@@ -112,7 +112,7 @@ const BookingSchema: Schema<IBooking> = new Schema({
   
   paymentMethod: {
     type: String,
-    enum: ['card', 'paypal', 'bank', 'cash'],
+    enum: ['card', 'paypal', 'bank', 'cash', 'pay_later'],
     default: 'card',
   },
   
