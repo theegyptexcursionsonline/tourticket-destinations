@@ -538,7 +538,7 @@ const TourOptionCard: React.FC<{
                 {option.badge || 'Recommended'}
               </span>
             )}
-            {option.discount && (
+            {option.discount && option.discount > 0 && (
               <span className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-sm">
                 Save {option.discount}%
               </span>
