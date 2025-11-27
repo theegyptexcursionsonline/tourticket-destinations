@@ -61,6 +61,10 @@ interface Tour {
     type: string;
     availableDays: number[];
     slots: { time: string; capacity: number }[];
+    blockedDates?: string[];
+    startDate?: string;
+    endDate?: string;
+    specificDates?: string[];
   };
   cancellationPolicy?: string;
   languages?: string[];
@@ -319,7 +323,8 @@ const CalendarWidget: React.FC<{
   selectedDate: Date | null;
   onDateSelect: (date: Date) => void;
   availabilityData?: { [key: string]: 'high' | 'medium' | 'low' | 'full' };
-}> = ({ selectedDate, onDateSelect, availabilityData = {} }) => {
+  availableDays?: number[]; // 0-6 for Sunday-Saturday
+}> = ({ selectedDate, onDateSelect, availabilityData = {}, availableDays }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
   const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
@@ -382,19 +387,24 @@ const CalendarWidget: React.FC<{
       const availability = availabilityData[dateKey];
       const isFull = availability === 'full';
 
+      // Check if day of week is available (if availableDays is provided)
+      const dayOfWeek = currentDate.getDay();
+      const isDayUnavailable = availableDays && availableDays.length > 0 && !availableDays.includes(dayOfWeek);
+      const isUnavailable = isPast || isFull || isDayUnavailable;
+
       days.push(
         <motion.button
           key={day}
-          onClick={() => !isPast && !isFull && onDateSelect(currentDate)}
-          disabled={isPast || isFull}
-          whileHover={{ scale: isPast || isFull ? 1 : 1.1 }}
-          whileTap={{ scale: isPast || isFull ? 1 : 0.95 }}
+          onClick={() => !isUnavailable && onDateSelect(currentDate)}
+          disabled={isUnavailable}
+          whileHover={{ scale: isUnavailable ? 1 : 1.1 }}
+          whileTap={{ scale: isUnavailable ? 1 : 0.95 }}
           className={`relative w-10 h-10 text-sm rounded-full border-2 transition-all font-medium ${
             isSelected
               ? 'bg-gradient-to-br from-red-500 to-orange-600 text-white border-red-600 shadow-lg scale-110'
-              : isToday
+              : isToday && !isDayUnavailable
               ? 'bg-gradient-to-br from-red-100 to-red-200 text-red-700 border-red-300 font-bold'
-              : isPast
+              : isPast || isDayUnavailable
               ? 'text-gray-300 bg-gray-50 border-gray-100 cursor-not-allowed'
               : availability
               ? getAvailabilityColor(availability) + ' hover:scale-105'
@@ -402,7 +412,7 @@ const CalendarWidget: React.FC<{
           }`}
         >
           {day}
-          {availability && availability !== 'full' && (
+          {availability && availability !== 'full' && !isDayUnavailable && (
             <div className={`absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 rounded-full ${
               availability === 'high' ? 'bg-green-400' :
               availability === 'medium' ? 'bg-yellow-400' :
@@ -1087,16 +1097,74 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour }
     specialRequests: '',
   });
 
-  // Mock availability data with better realism
-  const mockAvailabilityData = {
-    '2025-09-19': 'high',
-    '2025-09-20': 'medium',
-    '2025-09-21': 'high',
-    '2025-09-22': 'low',
-    '2025-09-23': 'full',
-    '2025-09-24': 'high',
-    '2025-09-25': 'medium',
-  };
+  // Generate calendar availability based on tour's availability settings
+  const calendarAvailability = useMemo(() => {
+    const availabilityMap: { [key: string]: 'high' | 'medium' | 'low' | 'full' } = {};
+
+    if (!tour?.availability) return availabilityMap;
+
+    const { type, availableDays = [], blockedDates = [], startDate, endDate, specificDates = [] } = tour.availability;
+
+    // Generate dates for the next 6 months
+    const today = new Date();
+    const sixMonthsLater = new Date();
+    sixMonthsLater.setMonth(sixMonthsLater.getMonth() + 6);
+
+    // Convert blocked dates to a Set for quick lookup
+    const blockedSet = new Set(
+      blockedDates.map(d => {
+        const date = new Date(d);
+        return date.toISOString().split('T')[0];
+      })
+    );
+
+    // For specific_dates type, only those dates are available
+    if (type === 'specific_dates' && specificDates.length > 0) {
+      specificDates.forEach(d => {
+        const date = new Date(d);
+        const dateKey = date.toISOString().split('T')[0];
+        if (!blockedSet.has(dateKey) && date >= today) {
+          availabilityMap[dateKey] = 'high';
+        }
+      });
+      return availabilityMap;
+    }
+
+    // For date_range type, check if date falls within range
+    const rangeStart = startDate ? new Date(startDate) : today;
+    const rangeEnd = endDate ? new Date(endDate) : sixMonthsLater;
+
+    // Iterate through each day
+    for (let d = new Date(today); d <= sixMonthsLater; d.setDate(d.getDate() + 1)) {
+      const dateKey = d.toISOString().split('T')[0];
+      const dayOfWeek = d.getDay(); // 0 = Sunday, 6 = Saturday
+
+      // Check if blocked
+      if (blockedSet.has(dateKey)) {
+        availabilityMap[dateKey] = 'full';
+        continue;
+      }
+
+      // Check date range for date_range type
+      if (type === 'date_range') {
+        if (d < rangeStart || d > rangeEnd) {
+          continue; // Outside date range, not available
+        }
+      }
+
+      // Check if day of week is available
+      if (availableDays.length > 0 && !availableDays.includes(dayOfWeek)) {
+        // Day not in available days - mark as unavailable (don't show indicator)
+        continue;
+      }
+
+      // Day is available - assign availability level
+      // Use 'high' for available days (can be enhanced with actual booking data later)
+      availabilityMap[dateKey] = 'high';
+    }
+
+    return availabilityMap;
+  }, [tour?.availability]);
 
   // Get tour display data with proper fallbacks
   const tourDisplayData = useMemo(() => {
@@ -1415,7 +1483,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour }
     setCurrentStep(1);
 
     const dateKey = date.toISOString().split('T')[0];
-    const dayAvailability = mockAvailabilityData[dateKey];
+    const dayAvailability = calendarAvailability[dateKey];
 
     if (dayAvailability === 'full') {
       toast.error('This date is fully booked. Please select another date.', {
@@ -1434,8 +1502,14 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour }
         id: 'availability-toast',
         icon: '✨'
       });
+    } else if (!dayAvailability) {
+      // Day not in availability map - tour not available on this day
+      toast('Tour available on this date.', {
+        id: 'availability-toast',
+        icon: '📅'
+      });
     }
-  }, [mockAvailabilityData]);
+  }, [calendarAvailability]);
 
   const handleTimeSlotSelect = useCallback((timeSlot: TimeSlot) => {
     if (timeSlot.available === 0) {
@@ -1785,7 +1859,8 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour }
                       <CalendarWidget
                         selectedDate={bookingData.selectedDate}
                         onDateSelect={handleDateSelect}
-                        availabilityData={mockAvailabilityData}
+                        availabilityData={calendarAvailability}
+                        availableDays={tour?.availability?.availableDays}
                       />
                     </motion.div>
                   )}
