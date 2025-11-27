@@ -183,11 +183,20 @@ export async function POST(request: Request) {
     // Process payment based on payment method
     let paymentResult;
     const isBankTransfer = paymentMethod === 'bank';
+    const isPayLater = paymentMethod === 'pay_later';
 
     if (isBankTransfer) {
       // For bank transfer, no Stripe processing needed
       paymentResult = {
         paymentId: `BANK-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+        status: 'pending',
+        amount: pricing.total,
+        currency: (pricing.currency || 'USD').toUpperCase(),
+      };
+    } else if (isPayLater) {
+      // For pay later, no payment processing needed
+      paymentResult = {
+        paymentId: `PAYLATER-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
         status: 'pending',
         amount: pricing.total,
         currency: (pricing.currency || 'USD').toUpperCase(),
@@ -266,7 +275,7 @@ export async function POST(request: Request) {
       }
     }
 
-    // Send Payment Confirmation or Bank Transfer Instructions
+    // Send Payment Confirmation or Bank Transfer Instructions or Pay Later Instructions
     try {
       if (isBankTransfer) {
         // Send bank transfer instructions email
@@ -289,6 +298,9 @@ export async function POST(request: Request) {
           hotelPickupDetails: customer.hotelPickupDetails,
           baseUrl: process.env.NEXT_PUBLIC_BASE_URL || ''
         });
+      } else if (isPayLater) {
+        // Pay later - no payment email needed, booking confirmation will be sent separately
+        console.log('Pay Later booking - skipping payment confirmation email');
       } else {
         // Send regular payment confirmation for card payments
         await EmailService.sendPaymentConfirmation({
@@ -363,7 +375,7 @@ export async function POST(request: Request) {
           time: bookingTime,
           guests: totalGuests,
           totalPrice: itemTotalPrice,
-          status: isBankTransfer ? 'Pending' : 'Confirmed',
+          status: (isBankTransfer || isPayLater) ? 'Pending' : 'Confirmed',
           paymentId: paymentResult.paymentId,
           paymentMethod,
           specialRequests: customer.specialRequests,
