@@ -1,7 +1,8 @@
 // app/api/checkout/receipt/route.ts - Premium Ticket-Style Receipt
 import { NextRequest, NextResponse } from 'next/server';
-import { PDFDocument, StandardFonts, rgb, PDFPage } from 'pdf-lib';
+import { PDFDocument, StandardFonts, rgb, PDFPage, PDFFont } from 'pdf-lib';
 import { Buffer } from 'buffer';
+import { parseLocalDate } from '@/utils/date';
 
 let QR: any = null;
 try {
@@ -23,6 +24,31 @@ const toNumber = (v: any) => {
 };
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
+
+const wrapText = (text: string, font: PDFFont, size: number, maxWidth: number): string[] => {
+  if (!text) return [];
+  const words = text.split(' ');
+  const lines: string[] = [];
+  let currentLine = '';
+
+  words.forEach((word) => {
+    const tentativeLine = currentLine ? `${currentLine} ${word}` : word;
+    const tentativeWidth = font.widthOfTextAtSize(tentativeLine, size);
+
+    if (tentativeWidth <= maxWidth || currentLine === '') {
+      currentLine = tentativeLine;
+    } else {
+      lines.push(currentLine);
+      currentLine = word;
+    }
+  });
+
+  if (currentLine) {
+    lines.push(currentLine);
+  }
+
+  return lines;
+};
 
 const calculateItemTotal = (item: any) => {
   const basePrice = item.selectedBookingOption?.price || item.discountPrice || item.price || 0;
@@ -105,8 +131,8 @@ export async function POST(req: NextRequest) {
     const total = round2(toNumber(pricing?.total ?? 0));
 
     // Parse booking date
-    const bookingDateStr = booking?.date || new Date().toLocaleDateString();
-    const bookingDate = new Date(bookingDateStr);
+    const bookingDateStr = booking?.date || new Date().toISOString().split('T')[0];
+    const bookingDate = parseLocalDate(bookingDateStr) || new Date();
     const dayOfWeek = bookingDate.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
     const dayNum = bookingDate.getDate().toString();
     const month = bookingDate.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
@@ -179,39 +205,55 @@ export async function POST(req: NextRequest) {
 
     y -= 35;
 
-    // Tour title
+    // Tour title and subtitle
     const firstItem = orderedItems[0];
-    const tourTitle = orderedItems.length === 1
-      ? (firstItem?.title || 'Tour Booking').substring(0, 45) + (firstItem?.title?.length > 45 ? '...' : '')
-      : `${orderedItems.length} Tours Booked`;
+    const tourTitle =
+      orderedItems.length === 1
+        ? firstItem?.title || 'Tour Booking'
+        : `${orderedItems.length} Tours Booked`;
 
-    page.drawText(tourTitle, {
-      x: margin,
-      y: y,
-      font: boldFont,
-      size: 18,
-      color: colors.black,
-      maxWidth: pageWidth - margin * 2 - 100,
+    const textBlockTopY = y;
+    const dateBadgeWidth = 70;
+    const titleMaxWidth = pageWidth - margin * 2 - dateBadgeWidth - 30;
+    const titleLines = wrapText(tourTitle, boldFont, 18, titleMaxWidth);
+
+    titleLines.forEach((line) => {
+      page.drawText(line, {
+        x: margin,
+        y,
+        font: boldFont,
+        size: 18,
+        color: colors.black,
+      });
+      y -= 22;
     });
 
-    y -= 18;
-
-    // Booking option subtitle
     if (firstItem?.selectedBookingOption?.title) {
-      page.drawText(firstItem.selectedBookingOption.title, {
-        x: margin,
-        y: y,
-        font: font,
-        size: 11,
-        color: colors.gray,
+      const subtitleLines = wrapText(
+        firstItem.selectedBookingOption.title,
+        font,
+        11,
+        titleMaxWidth
+      );
+
+      subtitleLines.forEach((line) => {
+        page.drawText(line, {
+          x: margin,
+          y,
+          font,
+          size: 11,
+          color: colors.gray,
+        });
+        y -= 16;
       });
+    } else {
+      y -= 8;
     }
 
     // Date badge (right side)
-    const dateBadgeWidth = 70;
     const dateBadgeHeight = 75;
     const dateBadgeX = pageWidth - margin - dateBadgeWidth;
-    const dateBadgeY = y - 15;
+    const dateBadgeY = textBlockTopY - 15;
 
     // Date badge background
     page.drawRectangle({

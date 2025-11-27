@@ -33,6 +33,7 @@ import ElfsightWidget from '@/components/ElfsightWidget';
 import { useSettings } from '@/hooks/useSettings';
 import { useCart } from '@/hooks/useCart';
 import { Tour, CartItem, Review as ReviewType } from '@/types';
+import { toDateOnlyString } from '@/utils/date';
 
 // Enhanced interfaces for additional tour data
 interface ItineraryItem {
@@ -989,7 +990,7 @@ export default function TourPageClient({ tour, relatedTours, initialReviews }: T
         uniqueId: `${tour._id}-quick-add-${Date.now()}`,
         quantity: 1,
         childQuantity: 0,
-        selectedDate: new Date().toISOString(),
+        selectedDate: toDateOnlyString(new Date()),
         selectedTime: 'Anytime',
         selectedAddOns: {},
         totalPrice: tour.discountPrice,

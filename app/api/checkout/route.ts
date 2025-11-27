@@ -7,28 +7,13 @@ import User from '@/lib/models/user';
 import Discount from '@/lib/models/Discount';
 import { EmailService } from '@/lib/email/emailService';
 import Stripe from 'stripe';
+import { parseLocalDate } from '@/utils/date';
+import { buildGoogleMapsLink, buildStaticMapImageUrl } from '@/lib/utils/mapImage';
 
 // Initialize Stripe
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-12-18.acacia',
+  apiVersion: '2025-08-27.basil',
 });
-
-// Helper to parse date-only strings as local dates (not UTC)
-// This fixes timezone issues where "2024-11-27" would be interpreted as UTC midnight
-// and then shown as the previous day in timezones behind UTC
-function parseLocalDate(dateString: string | Date | undefined): Date | null {
-  if (!dateString) return null;
-  if (dateString instanceof Date) return dateString;
-
-  // If it's a date-only string (YYYY-MM-DD), parse as local date
-  if (typeof dateString === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-    const [year, month, day] = dateString.split('-').map(Number);
-    return new Date(year, month - 1, day); // month is 0-indexed
-  }
-
-  // Otherwise parse normally (handles ISO strings with time component)
-  return new Date(dateString);
-}
 
 // Format date consistently for display
 function formatBookingDate(dateString: string | Date | undefined): string {
@@ -67,6 +52,32 @@ async function generateUniqueBookingReference(): Promise<string> {
   // Fallback with extra randomness
   return `EEO-${Date.now()}-${Math.random().toString(36).substring(2, 12).toUpperCase()}`;
 }
+
+const formatCurrencyValue = (value: number | undefined, symbol = '$'): string => {
+  const numeric = Number.isFinite(value) ? Number(value) : 0;
+  return `${symbol}${numeric.toFixed(2)}`;
+};
+
+const computeTimeUntilTour = (dateValue?: string | Date, timeValue?: string) => {
+  const tourDate = parseLocalDate(dateValue);
+  if (!tourDate) return null;
+
+  if (timeValue) {
+    const [hours, minutes] = timeValue.split(':').map(Number);
+    if (!Number.isNaN(hours)) {
+      tourDate.setHours(hours, Number.isNaN(minutes) ? 0 : minutes, 0, 0);
+    }
+  }
+
+  const diff = tourDate.getTime() - Date.now();
+  if (diff <= 0) return null;
+
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+  return { days, hours, minutes };
+};
 
 export async function POST(request: Request) {
   try {
@@ -233,7 +244,7 @@ export async function POST(request: Request) {
             metadata: {
               customer_email: customer.email,
               customer_name: `${customer.firstName} ${customer.lastName}`,
-              tours: cart.map(item => item.title).join(', '),
+              tours: cart.map((item: any) => item.title).join(', '),
               discount_code: discountCode || 'none',
             },
             // receipt_email removed - we send our own booking confirmation email
@@ -413,11 +424,64 @@ export async function POST(request: Request) {
     const mainCartItem = cart[0];
     const emailBookingDate = formatBookingDate(mainCartItem?.selectedDate);
     const emailBookingTime = mainCartItem?.selectedTime || mainBooking.time;
+    const currencySymbol = pricing?.symbol || '$';
+    const formatMoney = (value?: number) => formatCurrencyValue(value, currencySymbol);
+    const orderedItemsSummary = cart.map((item: any) => {
+      const basePrice = item.selectedBookingOption?.price || item.discountPrice || item.price || 0;
+      const adultPrice = basePrice * (item.quantity || 1);
+      const childPrice = (basePrice / 2) * (item.childQuantity || 0);
+      let total = adultPrice + childPrice;
+
+      if (item.selectedAddOns && item.selectedAddOnDetails) {
+        Object.entries(item.selectedAddOns).forEach(([addOnId, quantity]) => {
+          const addOnDetail = item.selectedAddOnDetails?.[addOnId];
+          if (addOnDetail && Number(quantity) > 0) {
+            const guestsForAddOns = (item.quantity || 0) + (item.childQuantity || 0);
+            const addOnQuantity = addOnDetail.perGuest ? guestsForAddOns : 1;
+            total += addOnDetail.price * addOnQuantity;
+          }
+        });
+      }
+
+      return {
+        title: item.title,
+        image: item.image,
+        adults: item.quantity || 0,
+        children: item.childQuantity || 0,
+        infants: item.infantQuantity || 0,
+        bookingOption: item.selectedBookingOption?.title,
+        totalPrice: formatMoney(total),
+      };
+    });
+
+    const pricingDetails = pricing
+      ? {
+          subtotal: formatMoney(pricing.subtotal),
+          serviceFee: formatMoney(pricing.serviceFee),
+          tax: formatMoney(pricing.tax),
+          discount: pricing.discount > 0 ? formatMoney(pricing.discount) : undefined,
+          total: formatMoney(pricing.total),
+          currencySymbol
+        }
+      : undefined;
+
+    const hotelPickupLocation = customer.hotelPickupLocation || null;
+    const hotelPickupMapImage = buildStaticMapImageUrl(hotelPickupLocation);
+    const hotelPickupMapLink = buildGoogleMapsLink(hotelPickupLocation);
+    const timeUntilTour = computeTimeUntilTour(mainCartItem?.selectedDate, emailBookingTime);
+    const parsedDateForBadge = parseLocalDate(mainCartItem?.selectedDate) || new Date();
+    const dateBadge = parsedDateForBadge
+      ? {
+          dayLabel: parsedDateForBadge.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase(),
+          dayNumber: parsedDateForBadge.getDate(),
+          monthLabel: parsedDateForBadge.toLocaleDateString('en-US', { month: 'short' }).toUpperCase(),
+          year: parsedDateForBadge.getFullYear()
+        }
+      : undefined;
     
     // Send Enhanced Booking Confirmation
     try {
       // Get booking option from first cart item
-      const mainCartItem = cart[0];
       const bookingOption = mainCartItem?.selectedBookingOption?.title;
 
       // Calculate participant breakdown for first item
@@ -448,15 +512,23 @@ export async function POST(request: Request) {
         bookingTime: emailBookingTime,
         participants: `${mainBooking.guests} participant${mainBooking.guests !== 1 ? 's' : ''}`,
         participantBreakdown: participantParts.join(', '),
-        totalPrice: `$${pricing.total.toFixed(2)}`,
+        totalPrice: formatMoney(pricing?.total),
         bookingId: bookingId,
         bookingOption: bookingOption,
         specialRequests: customer.specialRequests,
         hotelPickupDetails: customer.hotelPickupDetails,
+        hotelPickupLocation,
+        hotelPickupMapImage: hotelPickupMapImage || undefined,
+        hotelPickupMapLink: hotelPickupMapLink || undefined,
         meetingPoint: mainTour?.meetingPoint || "Meeting point will be confirmed 24 hours before tour",
         contactNumber: "+20 11 42255624",
         tourImage: mainTour?.image,
-        baseUrl: process.env.NEXT_PUBLIC_BASE_URL || ''
+        baseUrl: process.env.NEXT_PUBLIC_BASE_URL || '',
+        orderedItems: orderedItemsSummary,
+        pricingDetails,
+        timeUntil: timeUntilTour || undefined,
+        customerPhone: customer.phone,
+        dateBadge,
       });
     } catch (emailError) {
       console.error('Failed to send booking confirmation email:', emailError);
@@ -466,7 +538,7 @@ export async function POST(request: Request) {
     // Send Admin Alert
     try {
       // Prepare detailed tour information
-      const tourDetails = await Promise.all(cart.map(async (item) => {
+      const tourDetails = await Promise.all(cart.map(async (item: any) => {
         const tour = await Tour.findById(item._id || item.id);
 
         // Get add-ons details
@@ -474,7 +546,8 @@ export async function POST(request: Request) {
         if (item.selectedAddOns && item.selectedAddOnDetails) {
           Object.entries(item.selectedAddOns).forEach(([addOnId, quantity]) => {
             const addOnDetail = item.selectedAddOnDetails?.[addOnId];
-            if (addOnDetail && quantity > 0) {
+            const numericQuantity = Number(quantity);
+            if (addOnDetail && numericQuantity > 0) {
               addOns.push(addOnDetail.title);
             }
           });
@@ -491,7 +564,8 @@ export async function POST(request: Request) {
           if (item.selectedAddOns && item.selectedAddOnDetails) {
             Object.entries(item.selectedAddOns).forEach(([addOnId, quantity]) => {
               const addOnDetail = item.selectedAddOnDetails?.[addOnId];
-              if (addOnDetail && quantity > 0) {
+              const numericQuantity = Number(quantity);
+              if (addOnDetail && numericQuantity > 0) {
                 const totalGuests = (item.quantity || 0) + (item.childQuantity || 0);
                 const addOnQuantity = addOnDetail.perGuest ? totalGuests : 1;
                 addOnsTotal += addOnDetail.price * addOnQuantity;
@@ -520,9 +594,11 @@ export async function POST(request: Request) {
           infants: item.infantQuantity || 0,
           bookingOption: item.selectedBookingOption?.title,
           addOns: addOns.length > 0 ? addOns : undefined,
-          price: `$${getItemTotal(item).toFixed(2)}`
+          price: formatMoney(getItemTotal(item))
         };
       }));
+
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || '';
 
       await EmailService.sendAdminBookingAlert({
         customerName: `${customer.firstName} ${customer.lastName}`,
@@ -532,13 +608,18 @@ export async function POST(request: Request) {
         bookingId: bookingId,
         // Use original cart date to avoid timezone issues with MongoDB UTC storage
         bookingDate: emailBookingDate,
-        totalPrice: `$${pricing.total.toFixed(2)}`,
+        totalPrice: formatMoney(pricing?.total),
         paymentMethod: paymentMethod,
         specialRequests: customer.specialRequests,
         hotelPickupDetails: customer.hotelPickupDetails,
-        adminDashboardLink: `${process.env.NEXT_PUBLIC_BASE_URL}/admin/bookings/${bookingId}`,
-        baseUrl: process.env.NEXT_PUBLIC_BASE_URL || '',
-        tours: tourDetails
+        hotelPickupLocation,
+        hotelPickupMapImage: hotelPickupMapImage || undefined,
+        hotelPickupMapLink: hotelPickupMapLink || undefined,
+        adminDashboardLink: baseUrl ? `${baseUrl}/admin/bookings/${bookingId}` : undefined,
+        baseUrl,
+        tours: tourDetails,
+        timeUntil: timeUntilTour || undefined,
+        dateBadge
       });
     } catch (emailError) {
       console.error('Failed to send admin alert email:', emailError);

@@ -29,8 +29,6 @@ import {
   Tag,
   ChevronRight,
 } from 'lucide-react';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
 import AuthModal from '@/components/AuthModal';
 import StripePaymentForm from '@/components/StripePaymentForm';
 import HotelPickupMap from '@/components/HotelPickupMap';
@@ -39,6 +37,7 @@ import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/contexts/AuthContext';
 import { CartItem } from '@/types';
 import toast from 'react-hot-toast';
+import { parseLocalDate } from '@/utils/date';
 
 // Small payment SVG icons (keeping existing ones)
 const VisaIcon = ({ className = '', width = 48, height = 28 }: { className?: string; width?: number; height?: number }) => (
@@ -742,23 +741,6 @@ const CheckoutFormStep = ({
   );
 };
 
-// Helper to parse date-only strings as local dates (not UTC)
-// This fixes timezone issues where "2024-11-27" would be interpreted as UTC midnight
-// and then shown as the previous day in timezones behind UTC
-const parseLocalDate = (dateString: string | Date | undefined): Date | null => {
-  if (!dateString) return null;
-  if (dateString instanceof Date) return dateString;
-
-  // If it's a date-only string (YYYY-MM-DD), parse as local date
-  if (typeof dateString === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-    const [year, month, day] = dateString.split('-').map(Number);
-    return new Date(year, month - 1, day); // month is 0-indexed
-  }
-
-  // Otherwise parse normally (handles ISO strings with time component)
-  return new Date(dateString);
-};
-
 // Format date consistently for display
 const formatBookingDate = (dateString: string | Date | undefined): string => {
   const date = parseLocalDate(dateString);
@@ -772,8 +754,19 @@ const formatBookingDate = (dateString: string | Date | undefined): string => {
   });
 };
 
+type TimeUntilTour = {
+  days: number;
+  hours: number;
+  minutes: number;
+  seconds: number;
+  isPast: boolean;
+};
+
 // Helper to calculate remaining time until tour
-const getTimeUntilTour = (dateString: string | Date | undefined, timeString?: string) => {
+const getTimeUntilTour = (
+  dateString: string | Date | undefined,
+  timeString?: string
+): TimeUntilTour | null => {
   const tourDate = parseLocalDate(dateString);
   if (!tourDate || isNaN(tourDate.getTime())) return null;
 
@@ -786,13 +779,14 @@ const getTimeUntilTour = (dateString: string | Date | undefined, timeString?: st
   const now = new Date();
   const diff = tourDate.getTime() - now.getTime();
 
-  if (diff <= 0) return { days: 0, hours: 0, minutes: 0, isPast: true };
+  if (diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0, isPast: true };
 
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
   const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
   const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
-  return { days, hours, minutes, isPast: false };
+  return { days, hours, minutes, seconds, isPast: false };
 };
 
 const ThankYouPage = ({
@@ -817,20 +811,37 @@ const ThankYouPage = ({
   const firstItem = orderedItems[0];
   const bookingDate = formatBookingDate(firstItem?.selectedDate);
   const bookingTime = firstItem?.selectedTime || '';
-  const timeUntil = getTimeUntilTour(firstItem?.selectedDate, firstItem?.selectedTime);
+  const [timeUntil, setTimeUntil] = useState<TimeUntilTour | null>(() =>
+    getTimeUntilTour(firstItem?.selectedDate, firstItem?.selectedTime)
+  );
 
   // Parse date for ticket display
-  const dateObj = firstItem?.selectedDate ? new Date(firstItem.selectedDate) : new Date();
+  const dateObj = parseLocalDate(firstItem?.selectedDate) || new Date();
   const dayOfWeek = dateObj.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
   const dayNum = dateObj.getDate();
   const month = dateObj.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
   const year = dateObj.getFullYear();
+
+  const formatTimerUnit = (value: number) => String(value).padStart(2, '0');
 
   // Hide confetti after animation
   useEffect(() => {
     const timer = setTimeout(() => setShowConfetti(false), 4000);
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    const updateTime = () => {
+      setTimeUntil(getTimeUntilTour(firstItem?.selectedDate, firstItem?.selectedTime));
+    };
+
+    updateTime();
+
+    if (!firstItem?.selectedDate) return;
+
+    const intervalId = window.setInterval(updateTime, 1000);
+    return () => window.clearInterval(intervalId);
+  }, [firstItem?.selectedDate, firstItem?.selectedTime]);
 
 const handleDownloadReceipt = async () => {
   if (isDownloading) return;
@@ -1078,20 +1089,25 @@ const handleDownloadReceipt = async () => {
               {timeUntil && !timeUntil.isPast && (
                 <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl p-4 mb-6">
                   <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-3 text-center">Your Adventure Begins In</p>
-                  <div className="flex justify-center items-center gap-3">
-                    <div className="text-center">
+                  <div className="flex justify-center items-center gap-3 flex-wrap sm:flex-nowrap">
+                    <div className="text-center min-w-[70px]">
                       <div className="text-3xl sm:text-4xl font-black text-white leading-none">{timeUntil.days}</div>
                       <div className="text-[10px] text-slate-400 uppercase tracking-wider mt-1">Days</div>
                     </div>
-                    <div className="text-2xl font-light text-slate-600">:</div>
-                    <div className="text-center">
-                      <div className="text-3xl sm:text-4xl font-black text-white leading-none">{timeUntil.hours}</div>
+                    <div className="text-2xl font-light text-slate-600 hidden xs:block">:</div>
+                    <div className="text-center min-w-[70px]">
+                      <div className="text-3xl sm:text-4xl font-black text-white leading-none">{formatTimerUnit(timeUntil.hours)}</div>
                       <div className="text-[10px] text-slate-400 uppercase tracking-wider mt-1">Hours</div>
                     </div>
-                    <div className="text-2xl font-light text-slate-600">:</div>
-                    <div className="text-center">
-                      <div className="text-3xl sm:text-4xl font-black text-white leading-none">{timeUntil.minutes}</div>
+                    <div className="text-2xl font-light text-slate-600 hidden xs:block">:</div>
+                    <div className="text-center min-w-[70px]">
+                      <div className="text-3xl sm:text-4xl font-black text-white leading-none">{formatTimerUnit(timeUntil.minutes)}</div>
                       <div className="text-[10px] text-slate-400 uppercase tracking-wider mt-1">Mins</div>
+                    </div>
+                    <div className="text-2xl font-light text-slate-600 hidden xs:block">:</div>
+                    <div className="text-center min-w-[70px]">
+                      <div className="text-3xl sm:text-4xl font-black text-white leading-none">{formatTimerUnit(timeUntil.seconds)}</div>
+                      <div className="text-[10px] text-slate-400 uppercase tracking-wider mt-1">Secs</div>
                     </div>
                   </div>
                 </div>
@@ -1549,21 +1565,16 @@ export default function CheckoutPage() {
 
   if (!cart) {
     return (
-      <>
-        <Header startSolid={true} />
-        <main className="min-h-screen bg-slate-50 pt-24 pb-16 flex items-center justify-center">
-          <div className="text-center p-4">
-            <h1 className="text-3xl font-bold mb-4">Loading your booking...</h1>
-          </div>
-        </main>
-        <Footer />
-      </>
+      <main className="min-h-screen bg-slate-50 pt-24 pb-16 flex items-center justify-center">
+        <div className="text-center p-4">
+          <h1 className="text-3xl font-bold mb-4">Loading your booking...</h1>
+        </div>
+      </main>
     );
   }
 
   return (
     <>
-      <Header startSolid={true} />
       <main className={`min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50 pt-20 sm:pt-24 ${showMobileStickyCTA ? 'pb-56' : 'pb-40'} lg:pb-16`}>
         <div className="container mx-auto px-4 sm:px-6 max-w-7xl">
           <AnimatePresence mode="wait">
@@ -1646,8 +1657,6 @@ export default function CheckoutPage() {
         initialMode={authModalMode}
         onSuccess={handleAuthSuccess}
       />
-
-      <Footer />
     </>
   );
 }

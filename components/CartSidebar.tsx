@@ -8,6 +8,7 @@ import { X, ShoppingCart, Trash2, Calendar, Clock, Users, Plus } from 'lucide-re
 import { useCart } from '@/hooks/useCart';
 import { useSettings } from '@/hooks/useSettings';
 import Image from 'next/image';
+import { parseLocalDate } from '@/utils/date';
 
 const CartSidebar: FC = () => {
     const router = useRouter();
@@ -60,7 +61,8 @@ const CartSidebar: FC = () => {
     };
 
     const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
+        const date = parseLocalDate(dateString);
+        if (!date) return 'Date not set';
         return date.toLocaleDateString('en-US', {
             month: 'short',
             day: 'numeric',

@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Tour, Booking as BookingType } from '@/types';
-import {
   Calendar,
   Clock,
   Users,
@@ -14,25 +13,15 @@ import {
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
+import { parseLocalDate } from '@/utils/date';
 
 interface PopulatedBooking extends Omit<BookingType, 'tour'> {
   tour: Tour;
 }
 
-// Helper to parse dates avoiding timezone issues
-const parseLocalDate = (dateString: string | Date): Date => {
-  if (dateString instanceof Date) return dateString;
-  const match = String(dateString).match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (match) {
-    const [, year, month, day] = match;
-    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-  }
-  return new Date(dateString);
-};
-
 const formatDisplayDate = (dateString: string | Date): string => {
   const date = parseLocalDate(dateString);
-  if (isNaN(date.getTime())) return '';
+  if (!date || isNaN(date.getTime())) return '';
   return date.toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'long',
@@ -62,7 +51,7 @@ const StatCard = ({ title, value, icon: Icon }: { title: string; value: string |
 
 /* ---------- Booking Card (mobile-first) ---------- */
 const BookingCard = ({ booking }: { booking: PopulatedBooking }) => {
-  const bookingDate = parseLocalDate(booking.date);
+  const bookingDate = parseLocalDate(booking.date) || new Date(booking.date);
   const isPast = bookingDate < new Date();
 
   return (

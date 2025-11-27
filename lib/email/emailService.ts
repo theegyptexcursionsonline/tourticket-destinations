@@ -38,9 +38,13 @@ export class EmailService {
     data: Record<string, unknown>
   ): Promise<EmailTemplate> {
     try {
+      const templateData = {
+        year: new Date().getFullYear(),
+        ...data,
+      };
       const htmlTemplate = await TemplateEngine.loadTemplate(type);
-      const html = TemplateEngine.replaceVariables(htmlTemplate, data);
-      const subject = TemplateEngine.generateSubject(this.subjects[type], data);
+      const html = TemplateEngine.replaceVariables(htmlTemplate, templateData);
+      const subject = TemplateEngine.generateSubject(this.subjects[type], templateData);
       return { subject, html };
     } catch (error) {
       console.error(`Error generating email template for ${type}:`, error);
@@ -85,7 +89,11 @@ export class EmailService {
     } catch (error) {
       console.error('Error sending booking confirmation with QR code:', error);
       // Fallback: send email without QR code
-      const template = await this.generateEmailTemplate('booking-confirmation', data);
+      const fallbackData = {
+        ...data,
+        verificationUrl,
+      };
+      const template = await this.generateEmailTemplate('booking-confirmation', fallbackData);
       await sendEmail({
         to: data.customerEmail,
         subject: template.subject,

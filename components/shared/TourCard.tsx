@@ -14,6 +14,7 @@ import { useSettings } from '@/hooks/useSettings';
 import { useWishlist } from '@/contexts/WishlistContext';
 import { useCart } from '@/hooks/useCart';
 import toast from 'react-hot-toast';
+import { toDateOnlyString } from '@/utils/date';
 
 interface TourCardProps {
   tour: Tour;
@@ -83,7 +84,7 @@ const TourCard: React.FC<TourCardProps> = ({
         quantity: 1,
         childQuantity: 0,
         infantQuantity: 0,
-        selectedDate: new Date().toISOString(),
+        selectedDate: toDateOnlyString(new Date()),
         selectedTime: 'Anytime',
         selectedAddOns: {},
         totalPrice: tour.discountPrice,

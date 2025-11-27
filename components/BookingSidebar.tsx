@@ -16,6 +16,7 @@ import {
 import toast from 'react-hot-toast';
 import { useCart } from '@/hooks/useCart';
 import { useSettings } from '@/hooks/useSettings';
+import { toDateOnlyString } from '@/utils/date';
 
 // Enhanced Types with database compatibility
 interface Tour {
@@ -1601,9 +1602,14 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour }
         throw new Error('Tour data not available.');
       }
 
-      if (!bookingData.selectedDate || !bookingData.selectedTimeSlot) {
+      const selectedDateValue = bookingData.selectedDate;
+      const selectedTimeSlot = bookingData.selectedTimeSlot;
+
+      if (!selectedDateValue || !selectedTimeSlot) {
         throw new Error('Incomplete booking data.');
       }
+
+      const normalizedDate = toDateOnlyString(selectedDateValue);
 
       // Prepare add-on details for cart storage
       const selectedAddOnDetails: { [key: string]: any } = {};
@@ -1634,12 +1640,12 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour }
       const newCartItem = {
         ...tourDisplayData,
         id: tourDisplayData.id,
-        uniqueId: `${tourDisplayData.id}-${bookingData.selectedDate.toISOString()}-${bookingData.selectedTimeSlot.id}-${JSON.stringify(bookingData.selectedAddOns)}`,
+        uniqueId: `${tourDisplayData.id}-${normalizedDate}-${selectedTimeSlot.id}-${JSON.stringify(bookingData.selectedAddOns)}`,
         quantity: bookingData.adults,
         childQuantity: bookingData.children,
         infantQuantity: bookingData.infants,
-        selectedDate: bookingData.selectedDate.toISOString(),
-        selectedTime: bookingData.selectedTimeSlot.time,
+        selectedDate: normalizedDate,
+        selectedTime: selectedTimeSlot.time,
         selectedAddOns: bookingData.selectedAddOns,
         selectedAddOnDetails,
         selectedBookingOption: selectedBookingOptionDetails,

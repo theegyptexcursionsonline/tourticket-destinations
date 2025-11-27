@@ -3,7 +3,6 @@
 
 import { useState, useEffect } from 'react';
 import withAuth from '@/components/admin/withAuth';
-import {
   ListPlus,
   Printer,
   User,
@@ -18,6 +17,7 @@ import {
   Loader2,
   FileText
 } from 'lucide-react';
+import { parseLocalDate, toDateOnlyString } from '@/utils/date';
 
 // --- Type Definitions ---
 interface Tour {
@@ -43,22 +43,6 @@ interface ManifestData {
   bookings: ManifestBooking[];
 }
 
-// Helper to parse date-only strings as local dates (not UTC)
-// This fixes timezone issues where "2024-11-27" would be interpreted as UTC midnight
-const parseLocalDate = (dateString: string | Date | undefined): Date | null => {
-  if (!dateString) return null;
-  if (dateString instanceof Date) return dateString;
-
-  // If it's a date-only string (YYYY-MM-DD), parse as local date
-  if (typeof dateString === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-    const [year, month, day] = dateString.split('-').map(Number);
-    return new Date(year, month - 1, day); // month is 0-indexed
-  }
-
-  // Otherwise parse normally (handles ISO strings with time component)
-  return new Date(dateString);
-};
-
 const formatManifestDate = (dateString: string): string => {
   const date = parseLocalDate(dateString);
   if (!date || isNaN(date.getTime())) return '';
@@ -74,7 +58,7 @@ const formatManifestDate = (dateString: string): string => {
 const ManifestsPage = () => {
   const [tours, setTours] = useState<Tour[]>([]);
   const [selectedTour, setSelectedTour] = useState('');
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(toDateOnlyString(new Date()));
   const [manifestData, setManifestData] = useState<ManifestData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { parseLocalDate } from '@/utils/date';
 
 interface BookingDetails {
   bookingReference: string;
@@ -100,22 +101,6 @@ export default function BookingVerificationPage() {
       </div>
     );
   }
-
-  // Helper to parse date-only strings as local dates (not UTC)
-  // This fixes timezone issues where "2024-11-27" would be interpreted as UTC midnight
-  const parseLocalDate = (dateString: string | Date | undefined): Date | null => {
-    if (!dateString) return null;
-    if (dateString instanceof Date) return dateString;
-
-    // If it's a date-only string (YYYY-MM-DD), parse as local date
-    if (typeof dateString === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-      const [year, month, day] = dateString.split('-').map(Number);
-      return new Date(year, month - 1, day); // month is 0-indexed
-    }
-
-    // Otherwise parse normally (handles ISO strings with time component)
-    return new Date(dateString);
-  };
 
   const formatDate = (dateString: string) => {
     const date = parseLocalDate(dateString);

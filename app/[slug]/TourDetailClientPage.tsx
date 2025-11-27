@@ -30,6 +30,7 @@ import { useCart } from '@/hooks/useCart';
 import { useWishlist } from '@/contexts/WishlistContext';
 import { ITour } from '@/lib/models/Tour';
 import toast from 'react-hot-toast';
+import { toDateOnlyString } from '@/utils/date';
 
 // Enhanced interfaces for additional tour data
 interface ItineraryItem {
@@ -1073,7 +1074,7 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
         uniqueId: `${tour._id}-quick-add-${Date.now()}`,
         quantity: 1,
         childQuantity: 0,
-        selectedDate: new Date().toISOString(),
+        selectedDate: toDateOnlyString(new Date()),
         selectedTime: 'Anytime',
         selectedAddOns: {},
         totalPrice: tour.discountPrice,

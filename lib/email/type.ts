@@ -6,6 +6,7 @@ export interface BaseEmailData {
 }
 
 export interface BookingEmailData extends BaseEmailData {
+  customerPhone?: string;
   tourTitle: string;
   bookingDate: string;
   bookingTime: string;
@@ -16,12 +17,48 @@ export interface BookingEmailData extends BaseEmailData {
   bookingOption?: string; // Selected booking option name
   specialRequests?: string;
   hotelPickupDetails?: string;
+  hotelPickupLocation?: {
+    lat: number;
+    lng: number;
+    name?: string;
+    address?: string;
+  };
+  hotelPickupMapImage?: string;
+  hotelPickupMapLink?: string;
   meetingPoint?: string;
   contactNumber?: string;
   tourImage?: string;
   baseUrl?: string;
   qrCodeDataUrl?: string; // QR code as data URL for embedding in email
   verificationUrl?: string; // URL that the QR code points to
+  dateBadge?: {
+    dayLabel: string;
+    dayNumber: number;
+    monthLabel: string;
+    year: number;
+  };
+  orderedItems?: Array<{
+    title: string;
+    image?: string;
+    adults: number;
+    children: number;
+    infants: number;
+    bookingOption?: string;
+    totalPrice: string;
+  }>;
+  pricingDetails?: {
+    subtotal: string;
+    serviceFee: string;
+    tax: string;
+    discount?: string;
+    total: string;
+    currencySymbol: string;
+  };
+  timeUntil?: {
+    days: number;
+    hours: number;
+    minutes: number;
+  };
 }
 
 export interface PaymentEmailData extends BaseEmailData {
@@ -94,6 +131,19 @@ export interface AdminAlertData {
   paymentMethod?: string;
   specialRequests?: string;
   hotelPickupDetails?: string;
+  hotelPickupLocation?: {
+    lat: number;
+    lng: number;
+    name?: string;
+    address?: string;
+  };
+  hotelPickupMapImage?: string;
+  hotelPickupMapLink?: string;
+  timeUntil?: {
+    days: number;
+    hours: number;
+    minutes: number;
+  };
   adminDashboardLink?: string;
   baseUrl?: string;
   tours?: Array<{
@@ -107,6 +157,12 @@ export interface AdminAlertData {
     addOns?: string[];
     price: string;
   }>;
+  dateBadge?: {
+    dayLabel: string;
+    dayNumber: number;
+    monthLabel: string;
+    year: number;
+  };
 }
 
 export interface BookingStatusUpdateData extends BaseEmailData {
