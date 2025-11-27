@@ -44,25 +44,10 @@ async function getCategoryPage(categoryName: string): Promise<CategoryPageData |
 export const revalidate = 60;
 export const dynamicParams = true;
 
-// Pre-generate static pages for all published category pages
+// Skip static generation at build time to avoid MongoDB connection issues on Netlify
+// Pages will be generated on-demand with ISR caching
 export async function generateStaticParams() {
-  try {
-    await dbConnect();
-    
-    const categoryPages = await AttractionPageModel.find({ 
-      pageType: 'category',
-      isPublished: true 
-    })
-      .select('slug')
-      .lean();
-
-    return categoryPages.map((page) => ({
-      'category-name': page.slug,
-    }));
-  } catch (error) {
-    console.error('Error generating static params for category pages:', error);
-    return [];
-  }
+  return [];
 }
 
 export async function generateMetadata({ params }: CategoryPageProps): Promise<Metadata> {

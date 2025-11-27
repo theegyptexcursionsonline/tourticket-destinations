@@ -13,24 +13,10 @@ type Params = { slug: string };
 export const revalidate = 60;
 export const dynamicParams = true;
 
-// Pre-generate static pages for all published blog posts
+// Skip static generation at build time to avoid MongoDB connection issues on Netlify
+// Pages will be generated on-demand with ISR caching
 export async function generateStaticParams() {
-  try {
-    await dbConnect();
-    
-    const blogs = await Blog.find({ status: 'published' })
-      .select('slug')
-      .sort({ publishedAt: -1 })
-      .limit(100) // Pre-generate top 100 most recent posts
-      .lean();
-
-    return blogs.map((blog) => ({
-      slug: blog.slug,
-    }));
-  } catch (error) {
-    console.error('Error generating static params for blogs:', error);
-    return [];
-  }
+  return [];
 }
 
 export async function generateMetadata({ params }: { params: Promise<Params> }) {

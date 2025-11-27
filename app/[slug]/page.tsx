@@ -91,25 +91,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-// Pre-generate static pages for popular tours at build time
+// Skip static generation at build time to avoid MongoDB connection issues on Netlify
+// Pages will be generated on-demand with ISR caching
 export async function generateStaticParams() {
-  try {
-    await dbConnect();
-    
-    // Get the most popular tours to pre-generate
-    const popularTours = await Tour.find({ isPublished: true })
-      .sort({ bookings: -1 })
-      .limit(50)
-      .select('slug')
-      .lean();
-
-    return popularTours.map((tour) => ({
-      slug: tour.slug,
-    }));
-  } catch (error) {
-    console.error('Error generating static params:', error);
-    return [];
-  }
+  return [];
 }
 
 export default async function TourDetailPage({ params }: PageProps) {

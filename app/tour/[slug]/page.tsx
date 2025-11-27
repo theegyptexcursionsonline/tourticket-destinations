@@ -10,31 +10,14 @@ import UserModel from '@/lib/models/user';
 import { Tour, Review } from '@/types';
 import TourPageClient from './TourPageClient';
 
-// Enable ISR (Incremental Static Regeneration) with 60 second revalidation
-// This makes pages load instantly with automatic background updates
-export const revalidate = 60; // Revalidate every 60 seconds
-export const dynamicParams = true; // Allow dynamic routes not in generateStaticParams
+// Enable ISR with 60 second revalidation for instant page loads
+export const revalidate = 60;
+export const dynamicParams = true;
 
-// Pre-generate static pages for popular tours at build time
-// This enables instant page loads and automatic prefetching
+// Skip static generation at build time to avoid MongoDB connection issues on Netlify
+// Pages will be generated on-demand with ISR caching
 export async function generateStaticParams() {
-  try {
-    await dbConnect();
-    
-    // Get the most popular tours (by bookings) to pre-generate
-    const popularTours = await TourModel.find({ isPublished: true })
-      .sort({ bookings: -1 }) // Sort by most popular
-      .limit(50) // Pre-generate top 50 tours
-      .select('slug')
-      .lean();
-
-    return popularTours.map((tour) => ({
-      slug: tour.slug,
-    }));
-  } catch (error) {
-    console.error('Error generating static params for tours:', error);
-    return []; // Return empty array if error, pages will be generated on-demand
-  }
+  return [];
 }
 
 // Fetch tour data and reviews from database

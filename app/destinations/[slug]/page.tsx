@@ -7,10 +7,15 @@ import CategoryModel from '@/lib/models/Category';
 import ReviewModel from '@/lib/models/Review';
 import DestinationPageClient from './DestinationPageClient';
 
-// Force dynamic rendering to avoid MongoDB connection during build time
-// This prevents TLS/SSL connection errors on Netlify during static generation
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+// Enable ISR with 60 second revalidation for fast page loads
+export const revalidate = 60;
+export const dynamicParams = true;
+
+// Skip static generation at build time to avoid MongoDB connection issues on Netlify
+// Pages will be generated on-demand with ISR caching
+export async function generateStaticParams() {
+  return [];
+}
 
 // Generate metadata for SEO
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {

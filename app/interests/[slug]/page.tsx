@@ -80,22 +80,10 @@ async function getInterestData(slug: string): Promise<InterestData | null> {
 export const revalidate = 60;
 export const dynamicParams = true;
 
-// Pre-generate static pages for all published categories
+// Skip static generation at build time to avoid MongoDB connection issues on Netlify
+// Pages will be generated on-demand with ISR caching
 export async function generateStaticParams() {
-  try {
-    await dbConnect();
-    
-    const categories = await Category.find({ isPublished: true })
-      .select('slug')
-      .lean();
-
-    return categories.map((cat) => ({
-      slug: cat.slug,
-    }));
-  } catch (error) {
-    console.error('Error generating static params for interests:', error);
-    return [];
-  }
+  return [];
 }
 
 // Generate metadata

@@ -82,25 +82,10 @@ export async function generateMetadata({ params }: AttractionPageProps): Promise
 export const revalidate = 60;
 export const dynamicParams = true;
 
-// Pre-generate static pages for all published attractions
+// Skip static generation at build time to avoid MongoDB connection issues on Netlify
+// Pages will be generated on-demand with ISR caching
 export async function generateStaticParams() {
-  try {
-    await dbConnect();
-    
-    const attractions = await AttractionPageModel.find({ 
-      pageType: 'attraction',
-      isPublished: true 
-    })
-      .select('slug')
-      .lean();
-
-    return attractions.map((attr) => ({
-      slug: attr.slug,
-    }));
-  } catch (error) {
-    console.error('Error generating static params for attractions:', error);
-    return [];
-  }
+  return [];
 }
 
 export default async function AttractionPage({ params }: AttractionPageProps) {
