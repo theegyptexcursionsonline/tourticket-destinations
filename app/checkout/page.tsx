@@ -10,6 +10,8 @@ import {
   Shield,
   CheckCircle,
   CalendarDays,
+  Calendar,
+  Clock,
   User,
   Trash2,
   Smartphone,
@@ -22,6 +24,7 @@ import {
   Mail,
   Phone,
   UserCheck,
+  MapPin,
 } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -240,7 +243,7 @@ const SummaryItem: React.FC<{ item: CartItem }> = ({ item }) => {
         {/* Show booking details */}
         {item.selectedDate && (
           <p className="text-xs text-slate-500">
-            {new Date(item.selectedDate).toLocaleDateString()} at {item.selectedTime}
+            {formatBookingDate(item.selectedDate)} at {item.selectedTime}
           </p>
         )}
         
@@ -544,10 +547,13 @@ const CheckoutFormStep = ({
         <section>
           <HotelPickupMap
             onLocationSelect={(location) => {
+              // Use the hotel name if available, otherwise fall back to address
+              // This ensures the customer confirmation shows the hotel name properly
+              const displayName = location?.name || location?.address || '';
               setFormData({
                 ...formData,
                 hotelPickupLocation: location,
-                hotelPickupDetails: location?.address || ''
+                hotelPickupDetails: displayName
               });
             }}
             initialLocation={formData.hotelPickupLocation || undefined}
@@ -690,6 +696,29 @@ const formatBookingDate = (dateString: string | Date | undefined): string => {
   });
 };
 
+// Helper to calculate remaining time until tour
+const getTimeUntilTour = (dateString: string | Date | undefined, timeString?: string) => {
+  const tourDate = parseLocalDate(dateString);
+  if (!tourDate || isNaN(tourDate.getTime())) return null;
+
+  // If we have a time, set it on the date
+  if (timeString) {
+    const [hours, minutes] = timeString.split(':').map(Number);
+    if (!isNaN(hours)) tourDate.setHours(hours, minutes || 0, 0, 0);
+  }
+
+  const now = new Date();
+  const diff = tourDate.getTime() - now.getTime();
+
+  if (diff <= 0) return { days: 0, hours: 0, minutes: 0, isPast: true };
+
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+  return { days, hours, minutes, isPast: false };
+};
+
 const ThankYouPage = ({
   orderedItems,
   pricing,
@@ -706,6 +735,12 @@ const ThankYouPage = ({
   const { formatPrice } = useSettings();
   const router = useRouter();
   const [isDownloading, setIsDownloading] = useState(false);
+
+  // Get first item's booking details
+  const firstItem = orderedItems[0];
+  const bookingDate = formatBookingDate(firstItem?.selectedDate);
+  const bookingTime = firstItem?.selectedTime || '';
+  const timeUntil = getTimeUntilTour(firstItem?.selectedDate, firstItem?.selectedTime);
 
 const handleDownloadReceipt = async () => {
   if (isDownloading) return;
@@ -830,6 +865,84 @@ const handleDownloadReceipt = async () => {
         </div>
         <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 mb-2 sm:mb-3">Thank you — your booking is confirmed!</h1>
         <p className="text-sm sm:text-base text-slate-600">We've sent a booking confirmation and receipt to your email address.</p>
+
+        {/* Booking Reference */}
+        {lastOrderId && (
+          <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-full">
+            <span className="text-xs sm:text-sm text-slate-500">Booking Reference:</span>
+            <span className="font-mono font-bold text-sm sm:text-base text-slate-900">{lastOrderId}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Booking Details Card */}
+      <div className="px-4 sm:px-6 md:px-12 pb-4 sm:pb-6">
+        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            {/* Date & Time */}
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white rounded-xl shadow-sm flex items-center justify-center">
+                <Calendar className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-xs sm:text-sm text-blue-600 font-medium mb-0.5">Your Adventure Date</p>
+                <p className="text-base sm:text-lg font-bold text-slate-900">{bookingDate}</p>
+                {bookingTime && (
+                  <p className="text-sm text-slate-600 flex items-center gap-1 mt-0.5">
+                    <Clock size={14} className="text-slate-400" />
+                    {bookingTime}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Countdown */}
+            {timeUntil && !timeUntil.isPast && (
+              <div className="flex items-center gap-3 sm:gap-4 bg-white rounded-xl px-4 py-3 shadow-sm">
+                <div className="text-center">
+                  <div className="text-xl sm:text-2xl font-bold text-blue-600">{timeUntil.days}</div>
+                  <div className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wide">Days</div>
+                </div>
+                <div className="text-slate-300 font-light">:</div>
+                <div className="text-center">
+                  <div className="text-xl sm:text-2xl font-bold text-blue-600">{timeUntil.hours}</div>
+                  <div className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wide">Hours</div>
+                </div>
+                <div className="text-slate-300 font-light">:</div>
+                <div className="text-center">
+                  <div className="text-xl sm:text-2xl font-bold text-blue-600">{timeUntil.minutes}</div>
+                  <div className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wide">Mins</div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Customer Details */}
+          {customer && (
+            <div className="mt-4 pt-4 border-t border-blue-200/50 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="flex items-center gap-2 text-sm">
+                <User size={16} className="text-blue-500" />
+                <span className="text-slate-600">{customer.firstName} {customer.lastName}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <Mail size={16} className="text-blue-500" />
+                <span className="text-slate-600 truncate">{customer.email}</span>
+              </div>
+              {customer.phone && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Phone size={16} className="text-blue-500" />
+                  <span className="text-slate-600">{customer.phone}</span>
+                </div>
+              )}
+              {customer.hotelPickupDetails && (
+                <div className="flex items-center gap-2 text-sm">
+                  <MapPin size={16} className="text-blue-500" />
+                  <span className="text-slate-600 truncate">{customer.hotelPickupDetails}</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Receipt Section */}
@@ -1203,7 +1316,7 @@ export default function CheckoutPage() {
       toast.error('Please complete the payment before submitting');
       return;
     }
-    
+
     await handlePaymentProcessWithIntent(paymentIntentId);
   };
 
@@ -1212,6 +1325,13 @@ export default function CheckoutPage() {
       router.push('/');
     }
   }, [cart, isConfirmed, router]);
+
+  // Scroll to top when thank you page is shown
+  useEffect(() => {
+    if (isConfirmed) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [isConfirmed]);
 
   const showMobileStickyCTA = !isConfirmed && cart && cart.length > 0 && (customerType === 'guest' || user);
 

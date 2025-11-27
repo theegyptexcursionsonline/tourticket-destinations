@@ -45,6 +45,22 @@ async function ensureInitialized() {
   initializationPromise = (async () => {
     let initialized = false;
 
+    // Strategy 0: Try JSON string from environment variable (FIREBASE_SERVICE_ACCOUNT_KEY)
+    const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+
+    if (serviceAccountKey && !initialized) {
+      try {
+        const serviceAccountJSON = JSON.parse(serviceAccountKey);
+        admin.initializeApp({
+          credential: admin.credential.cert(serviceAccountJSON),
+        });
+        console.log('✅ Firebase Admin initialized from FIREBASE_SERVICE_ACCOUNT_KEY');
+        initialized = true;
+      } catch (error) {
+        console.error('❌ Error parsing FIREBASE_SERVICE_ACCOUNT_KEY JSON:', error);
+      }
+    }
+
     // Strategy 1: Try base64-encoded JSON from environment variable (RECOMMENDED)
     const serviceAccountBase64 = process.env.FIREBASE_SERVICE_ACCOUNT_BASE64;
 
@@ -174,11 +190,12 @@ async function ensureInitialized() {
       throw new Error(
         'Firebase Admin SDK credentials not found. ' +
         'Set one of the following:\n' +
-        '1. FIREBASE_SERVICE_ACCOUNT_BASE64 (base64-encoded JSON)\n' +
-        '2. FIREBASE_CLOUDINARY_PUBLIC_ID + CLOUDINARY_CLOUD_NAME + CLOUDINARY_API_SECRET (private Cloudinary)\n' +
-        '3. FIREBASE_SERVICE_ACCOUNT_URL (public URL - deprecated)\n' +
-        '4. FIREBASE_PROJECT_ID + FIREBASE_CLIENT_EMAIL + FIREBASE_PRIVATE_KEY (individual credentials)\n' +
-        '5. .firebase/service-account.json (local file for development)'
+        '1. FIREBASE_SERVICE_ACCOUNT_KEY (JSON string - recommended)\n' +
+        '2. FIREBASE_SERVICE_ACCOUNT_BASE64 (base64-encoded JSON)\n' +
+        '3. FIREBASE_CLOUDINARY_PUBLIC_ID + CLOUDINARY_CLOUD_NAME + CLOUDINARY_API_SECRET (private Cloudinary)\n' +
+        '4. FIREBASE_SERVICE_ACCOUNT_URL (public URL - deprecated)\n' +
+        '5. FIREBASE_PROJECT_ID + FIREBASE_CLIENT_EMAIL + FIREBASE_PRIVATE_KEY (individual credentials)\n' +
+        '6. .firebase/service-account.json (local file for development)'
       );
     }
   })();

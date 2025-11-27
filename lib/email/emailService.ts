@@ -6,6 +6,7 @@ import type {
   EmailType,
   BookingEmailData,
   PaymentEmailData,
+  BankTransferEmailData,
   TripReminderData,
   TripCompletionData,
   CancellationData,
@@ -21,6 +22,7 @@ export class EmailService {
   private static readonly subjects: Record<EmailType, string> = {
     'booking-confirmation': '🎉 Booking Confirmed - {{tourTitle}}',
     'payment-confirmation': '✅ Payment Confirmed - {{tourTitle}}',
+    'bank-transfer-instructions': '🏦 Bank Transfer Instructions - {{tourTitle}}',
     'trip-reminder': '⏰ Your Trip is Tomorrow - {{tourTitle}}',
     'trip-completion': '🌟 Thank You for Traveling with Us!',
     'booking-cancellation': '❌ Booking Cancelled - {{tourTitle}}',
@@ -101,6 +103,17 @@ export class EmailService {
       subject: template.subject,
       html: template.html,
       type: 'payment-confirmation'
+    });
+  }
+
+  // BANK TRANSFER INSTRUCTIONS
+  static async sendBankTransferInstructions(data: BankTransferEmailData): Promise<void> {
+    const template = await this.generateEmailTemplate('bank-transfer-instructions', data);
+    await sendEmail({
+      to: data.customerEmail,
+      subject: template.subject,
+      html: template.html,
+      type: 'bank-transfer-instructions'
     });
   }
 

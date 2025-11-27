@@ -141,9 +141,28 @@ export interface AdminAccessUpdateEmailData {
   isActivated?: boolean;
 }
 
+export interface BankTransferEmailData extends BaseEmailData {
+  tourTitle: string;
+  bookingId: string;
+  bookingDate: string;
+  bookingTime: string;
+  participants: string;
+  totalPrice: string;
+  bankName: string;
+  accountName: string;
+  accountNumber: string;
+  iban: string;
+  swiftCode: string;
+  currency: string;
+  specialRequests?: string;
+  hotelPickupDetails?: string;
+  baseUrl?: string;
+}
+
 export type EmailType =
   | 'booking-confirmation'
   | 'payment-confirmation'
+  | 'bank-transfer-instructions'
   | 'trip-reminder'
   | 'trip-completion'
   | 'booking-cancellation'

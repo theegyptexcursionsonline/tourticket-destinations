@@ -180,65 +180,77 @@ export async function POST(request: Request) {
       );
     }
 
-    // Process payment with Stripe
+    // Process payment based on payment method
     let paymentResult;
+    const isBankTransfer = paymentMethod === 'bank';
 
-    try {
-      // If paymentIntentId is provided, verify the payment
-      if (paymentDetails?.paymentIntentId) {
-        const paymentIntent = await stripe.paymentIntents.retrieve(paymentDetails.paymentIntentId);
+    if (isBankTransfer) {
+      // For bank transfer, no Stripe processing needed
+      paymentResult = {
+        paymentId: `BANK-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+        status: 'pending',
+        amount: pricing.total,
+        currency: (pricing.currency || 'USD').toUpperCase(),
+      };
+    } else {
+      // Process payment with Stripe for card payments
+      try {
+        // If paymentIntentId is provided, verify the payment
+        if (paymentDetails?.paymentIntentId) {
+          const paymentIntent = await stripe.paymentIntents.retrieve(paymentDetails.paymentIntentId);
 
-        if (paymentIntent.status !== 'succeeded') {
-          throw new Error('Payment has not been completed. Please complete the payment and try again.');
+          if (paymentIntent.status !== 'succeeded') {
+            throw new Error('Payment has not been completed. Please complete the payment and try again.');
+          }
+
+          // Verify the amount matches
+          const expectedAmount = Math.round(pricing.total * 100);
+          if (paymentIntent.amount !== expectedAmount) {
+            throw new Error('Payment amount mismatch. Please contact support.');
+          }
+
+          paymentResult = {
+            paymentId: paymentIntent.id,
+            status: paymentIntent.status,
+            amount: paymentIntent.amount / 100,
+            currency: paymentIntent.currency.toUpperCase(),
+          };
+        } else {
+          // Fallback: Create and auto-confirm PaymentIntent (for backward compatibility)
+          const paymentIntent = await stripe.paymentIntents.create({
+            amount: Math.round(pricing.total * 100),
+            currency: (pricing.currency || 'USD').toLowerCase(),
+            description: `Booking for ${cart.length} tour${cart.length > 1 ? 's' : ''}`,
+            metadata: {
+              customer_email: customer.email,
+              customer_name: `${customer.firstName} ${customer.lastName}`,
+              tours: cart.map(item => item.title).join(', '),
+              discount_code: discountCode || 'none',
+            },
+            receipt_email: customer.email,
+            confirm: true,
+            automatic_payment_methods: {
+              enabled: true,
+              allow_redirects: 'never',
+            },
+            payment_method: 'pm_card_visa', // Test only - won't work with live keys
+          });
+
+          if (paymentIntent.status !== 'succeeded') {
+            throw new Error('Payment processing failed. Please try a different payment method.');
+          }
+
+          paymentResult = {
+            paymentId: paymentIntent.id,
+            status: paymentIntent.status,
+            amount: paymentIntent.amount / 100,
+            currency: paymentIntent.currency.toUpperCase(),
+          };
         }
-
-        // Verify the amount matches
-        const expectedAmount = Math.round(pricing.total * 100);
-        if (paymentIntent.amount !== expectedAmount) {
-          throw new Error('Payment amount mismatch. Please contact support.');
-        }
-
-        paymentResult = {
-          paymentId: paymentIntent.id,
-          status: paymentIntent.status,
-          amount: paymentIntent.amount / 100,
-          currency: paymentIntent.currency.toUpperCase(),
-        };
-      } else {
-        // Fallback: Create and auto-confirm PaymentIntent (for backward compatibility)
-        const paymentIntent = await stripe.paymentIntents.create({
-          amount: Math.round(pricing.total * 100),
-          currency: (pricing.currency || 'USD').toLowerCase(),
-          description: `Booking for ${cart.length} tour${cart.length > 1 ? 's' : ''}`,
-          metadata: {
-            customer_email: customer.email,
-            customer_name: `${customer.firstName} ${customer.lastName}`,
-            tours: cart.map(item => item.title).join(', '),
-            discount_code: discountCode || 'none',
-          },
-          receipt_email: customer.email,
-          confirm: true,
-          automatic_payment_methods: {
-            enabled: true,
-            allow_redirects: 'never',
-          },
-          payment_method: 'pm_card_visa', // Test only - won't work with live keys
-        });
-
-        if (paymentIntent.status !== 'succeeded') {
-          throw new Error('Payment processing failed. Please try a different payment method.');
-        }
-
-        paymentResult = {
-          paymentId: paymentIntent.id,
-          status: paymentIntent.status,
-          amount: paymentIntent.amount / 100,
-          currency: paymentIntent.currency.toUpperCase(),
-        };
+      } catch (stripeError: any) {
+        console.error('Stripe payment error:', stripeError);
+        throw new Error(stripeError.message || 'Payment processing failed. Please try again.');
       }
-    } catch (stripeError: any) {
-      console.error('Stripe payment error:', stripeError);
-      throw new Error(stripeError.message || 'Payment processing failed. Please try again.');
     }
 
     // Increment discount usage counter if a discount was applied
@@ -254,21 +266,45 @@ export async function POST(request: Request) {
       }
     }
 
-    // Send Payment Confirmation
+    // Send Payment Confirmation or Bank Transfer Instructions
     try {
-      await EmailService.sendPaymentConfirmation({
-        customerName: `${customer.firstName} ${customer.lastName}`,
-        customerEmail: customer.email,
-        paymentId: paymentResult.paymentId,
-        paymentMethod: paymentMethod,
-        amount: `$${pricing.total.toFixed(2)}`,
-        currency: paymentResult.currency,
-        bookingId: `BOOKING-${Date.now()}`,
-        tourTitle: cart.length === 1 ? cart[0].title : `${cart.length} Tours`,
-        baseUrl: process.env.NEXT_PUBLIC_BASE_URL || ''
-      });
+      if (isBankTransfer) {
+        // Send bank transfer instructions email
+        await EmailService.sendBankTransferInstructions({
+          customerName: `${customer.firstName} ${customer.lastName}`,
+          customerEmail: customer.email,
+          tourTitle: cart.length === 1 ? cart[0].title : `${cart.length} Tours`,
+          bookingId: `BOOKING-${Date.now()}`,
+          bookingDate: formatBookingDate(cart[0]?.selectedDate),
+          bookingTime: cart[0]?.selectedTime || '10:00',
+          participants: `${cart.reduce((sum: number, item: any) => sum + (item.quantity || 0) + (item.childQuantity || 0) + (item.infantQuantity || 0), 0)} participant(s)`,
+          totalPrice: `$${pricing.total.toFixed(2)}`,
+          bankName: 'Commercial International Bank (CIB)',
+          accountName: 'Egypt Excursions Online',
+          accountNumber: '1001234567890',
+          iban: 'EG380001001001234567890',
+          swiftCode: 'CIBEEGCX',
+          currency: paymentResult.currency,
+          specialRequests: customer.specialRequests,
+          hotelPickupDetails: customer.hotelPickupDetails,
+          baseUrl: process.env.NEXT_PUBLIC_BASE_URL || ''
+        });
+      } else {
+        // Send regular payment confirmation for card payments
+        await EmailService.sendPaymentConfirmation({
+          customerName: `${customer.firstName} ${customer.lastName}`,
+          customerEmail: customer.email,
+          paymentId: paymentResult.paymentId,
+          paymentMethod: paymentMethod,
+          amount: `$${pricing.total.toFixed(2)}`,
+          currency: paymentResult.currency,
+          bookingId: `BOOKING-${Date.now()}`,
+          tourTitle: cart.length === 1 ? cart[0].title : `${cart.length} Tours`,
+          baseUrl: process.env.NEXT_PUBLIC_BASE_URL || ''
+        });
+      }
     } catch (emailError) {
-      console.error('Failed to send payment confirmation email:', emailError);
+      console.error('Failed to send payment/bank transfer email:', emailError);
       // Don't fail the booking if email fails
     }
 
@@ -327,7 +363,7 @@ export async function POST(request: Request) {
           time: bookingTime,
           guests: totalGuests,
           totalPrice: itemTotalPrice,
-          status: 'Confirmed',
+          status: isBankTransfer ? 'Pending' : 'Confirmed',
           paymentId: paymentResult.paymentId,
           paymentMethod,
           specialRequests: customer.specialRequests,
@@ -359,6 +395,12 @@ export async function POST(request: Request) {
     const mainBooking = createdBookings[0];
     const mainTour = await Tour.findById(mainBooking.tour);
     const bookingId = createdBookings.length === 1 ? mainBooking.bookingReference : `MULTI-${Date.now()}`;
+
+    // IMPORTANT: Use the original cart date string for emails to avoid timezone issues
+    // MongoDB stores dates in UTC which can cause off-by-one day errors when reformatted
+    const mainCartItem = cart[0];
+    const emailBookingDate = formatBookingDate(mainCartItem?.selectedDate);
+    const emailBookingTime = mainCartItem?.selectedTime || mainBooking.time;
     
     // Send Enhanced Booking Confirmation
     try {
@@ -389,9 +431,9 @@ export async function POST(request: Request) {
         customerName: `${customer.firstName} ${customer.lastName}`,
         customerEmail: customer.email,
         tourTitle: cart.length === 1 ? mainTour?.title || 'Tour' : `${cart.length} Tours`,
-        // Use formatBookingDate for consistent date formatting across email and invoice
-        bookingDate: formatBookingDate(mainBooking.date),
-        bookingTime: mainBooking.time,
+        // Use original cart date to avoid timezone issues with MongoDB UTC storage
+        bookingDate: emailBookingDate,
+        bookingTime: emailBookingTime,
         participants: `${mainBooking.guests} participant${mainBooking.guests !== 1 ? 's' : ''}`,
         participantBreakdown: participantParts.join(', '),
         totalPrice: `$${pricing.total.toFixed(2)}`,
@@ -476,8 +518,8 @@ export async function POST(request: Request) {
         customerPhone: customer.phone,
         tourTitle: cart.length === 1 ? mainTour?.title || 'Tour' : `${cart.length} Tours`,
         bookingId: bookingId,
-        // Use formatBookingDate for consistent date formatting
-        bookingDate: formatBookingDate(mainBooking.date),
+        // Use original cart date to avoid timezone issues with MongoDB UTC storage
+        bookingDate: emailBookingDate,
         totalPrice: `$${pricing.total.toFixed(2)}`,
         paymentMethod: paymentMethod,
         specialRequests: customer.specialRequests,

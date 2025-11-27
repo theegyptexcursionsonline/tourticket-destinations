@@ -99,11 +99,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const { user: mongoUser } = await response.json();
         return { ...mongoUser, photoURL: fbUser.photoURL };
       } else {
-        console.error('Failed to sync user with backend');
+        // Get detailed error from response
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Failed to sync user with backend:', {
+          status: response.status,
+          error: errorData.error || 'Unknown error',
+        });
+        // Non-critical error - user can still authenticate with Firebase data
         return null;
       }
     } catch (error) {
       console.error('Error syncing user with backend:', error);
+      // Non-critical error - user can still authenticate with Firebase data
       return null;
     }
   };

@@ -6,149 +6,169 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
     <title>Booking Confirmation</title>
-    <!--[if mso]>
-    <noscript>
-        <xml>
-            <o:OfficeDocumentSettings>
-                <o:PixelsPerInch>96</o:PixelsPerInch>
-            </o:OfficeDocumentSettings>
-        </xml>
-    </noscript>
-    <![endif]-->
     <style>
-        /* Reset & Basics */
-        body { margin: 0; padding: 0; width: 100% !important; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f5f5f5; color: #2d3436; }
+        /* Reset & Base */
+        body { margin: 0; padding: 0; width: 100% !important; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #eef2f7; color: #0f172a; -webkit-font-smoothing: antialiased; }
         img { border: 0; outline: none; text-decoration: none; display: block; max-width: 100%; }
-        table { border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
-        tr, td { padding: 0; }
-        a { text-decoration: none; color: #0066ff; }
-        
-        /* Layout */
-        .wrapper { width: 100%; background-color: #f5f5f5; padding: 40px 0; }
-        .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
-        
-        /* Header */
-        .header { background-color: #ffffff; padding: 24px 40px; border-bottom: 1px solid #f0f0f0; text-align: center; }
-        .logo { width: 120px; height: auto; margin: 0 auto; }
-        
-        /* Hero Section */
-        .hero { position: relative; background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #312e81 100%); min-height: 220px; }
-        .hero-image { width: 100%; height: auto; display: block; opacity: 0.8; mix-blend-mode: screen; min-height: 220px; object-fit: cover; }
-        .hero-content { position: absolute; left: 40px; right: 40px; bottom: 32px; color: #ffffff; }
-        .hero-eyebrow { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.85; font-weight: 600; }
-        .hero-title { font-size: 26px; font-weight: 700; margin: 8px 0 6px; letter-spacing: -0.4px; }
-        .hero-meta { font-size: 14px; opacity: 0.85; }
-        .status-badge { display: inline-block; background-color: #00d084; color: #0f172a; font-size: 12px; font-weight: 700; padding: 6px 12px; border-radius: 20px; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-        
+        table { border-collapse: collapse; }
+        a { text-decoration: none; color: #2563eb; }
+
+        .wrapper { width: 100%; padding: 32px 0; background: #eef2f7; }
+        .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 25px 45px rgba(15,23,42,0.15); }
+
+        /* Hero */
+        .hero { position: relative; background: linear-gradient(135deg, #1e40af 0%, #3b82f6 70%, #60a5fa 100%); padding: 0; min-height: 280px; }
+        .hero-image { width: 100%; height: 280px; object-fit: cover; opacity: 0.4; }
+        .hero-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(180deg, rgba(30,64,175,0.3) 0%, rgba(30,64,175,0.95) 100%); }
+        .hero-content { position: absolute; top: 0; left: 0; right: 0; bottom: 0; padding: 32px 40px; display: flex; flex-direction: column; justify-content: space-between; }
+        .hero-top { text-align: center; }
+        .logo { width: 140px; margin: 0 auto 20px; }
+        .status-badge { display: inline-block; background: rgba(34,197,94,0.95); color: #ffffff; font-size: 11px; font-weight: 700; padding: 8px 16px; border-radius: 20px; letter-spacing: 1.5px; text-transform: uppercase; box-shadow: 0 4px 12px rgba(34,197,94,0.4); }
+        .hero-bottom { color: #ffffff; }
+        .hero-eyebrow { font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; opacity: 0.8; font-weight: 600; margin-bottom: 8px; }
+        .hero-title { font-size: 26px; font-weight: 700; margin: 0 0 12px; letter-spacing: -0.5px; line-height: 1.2; text-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+        .hero-meta { font-size: 15px; opacity: 0.9; display: flex; align-items: center; gap: 8px; }
+        .hero-meta-icon { opacity: 0.8; }
+
         /* Content */
         .content { padding: 40px; }
-        .greeting { font-size: 24px; font-weight: 700; color: #1a1a1a; margin-bottom: 12px; letter-spacing: -0.5px; }
-        .intro { font-size: 16px; line-height: 1.6; color: #555555; margin-bottom: 32px; }
-        
-        /* Ticket Card */
-        .ticket-card { background-color: #ffffff; border: 1px solid #e0e0e0; border-radius: 14px; overflow: hidden; margin-bottom: 32px; box-shadow: 0 16px 30px rgba(15,23,42,0.08); }
-        .ticket-header { background-color: #f9fafb; padding: 24px; border-bottom: 1px dashed #d1d5db; }
-        .tour-title { font-size: 18px; font-weight: 700; color: #1a1a1a; line-height: 1.4; margin-bottom: 8px; }
-        .tour-option { font-size: 14px; color: #0066ff; font-weight: 600; }
-        
-        .ticket-body { padding: 24px; }
-        .info-grid { display: table; width: 100%; }
-        .info-col { display: table-cell; width: 50%; vertical-align: top; padding-bottom: 20px; }
-        .info-label { font-size: 12px; text-transform: uppercase; color: #888888; letter-spacing: 0.5px; font-weight: 600; margin-bottom: 4px; }
-        .info-value { font-size: 15px; color: #1a1a1a; font-weight: 500; line-height: 1.4; }
-        .price-large { font-size: 20px; font-weight: 700; color: #1a1a1a; }
-        
-        /* Primary CTA */
-        .cta-container { text-align: center; margin-bottom: 40px; }
-        .btn-primary { display: inline-block; background-color: #0066ff; color: #ffffff; font-size: 16px; font-weight: 600; padding: 16px 48px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 102, 255, 0.25); transition: background-color 0.2s; }
-        .btn-primary:hover { background-color: #0052cc; }
-        
-        /* Support Section */
-        .support-box { background-color: #0f172a; border-radius: 16px; padding: 28px; display: flex; align-items: center; margin-bottom: 32px; border: 1px solid rgba(255,255,255,0.1); color: #e2e8f0; box-shadow: inset 0 1px 0 rgba(255,255,255,0.1); }
-        .support-icon { font-size: 28px; margin-right: 18px; }
-        .support-text strong { display: block; color: #f8fafc; font-size: 16px; margin-bottom: 6px; letter-spacing: 0.2px; }
-        .support-text p { margin: 0; color: #cbd5f5; font-size: 14px; }
-        
-        /* Need to Know */
-        .section-title { font-size: 13px; font-weight: 700; color: #6b7280; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #f0f0f0; padding-bottom: 10px; }
-        .tip-row { padding: 12px 0; border-bottom: 1px solid #f5f5f5; font-size: 14px; color: #1f2937; display: flex; align-items: flex-start; }
-        .tip-row:last-child { border-bottom: none; }
-        .tip-icon { margin-right: 12px; font-size: 16px; min-width: 20px; }
-        
-        /* Special Requests */
-        .special-req { background-color: #fff8f0; border: 1px solid #fed7aa; border-radius: 8px; padding: 16px; margin-bottom: 32px; }
-        .special-req-title { color: #9a3412; font-weight: 700; font-size: 13px; margin-bottom: 8px; text-transform: uppercase; }
-        .special-req-text { color: #c2410c; font-size: 14px; line-height: 1.5; }
+        .greeting-section { text-align: center; margin-bottom: 32px; }
+        .greeting { font-size: 28px; font-weight: 700; color: #0f172a; margin: 0 0 12px; letter-spacing: -0.5px; }
+        .intro { font-size: 16px; line-height: 1.7; color: #475569; margin: 0; }
 
-        /* Footer */
-        .footer { background-color: #f9fafb; padding: 40px; text-align: center; border-top: 1px solid #f0f0f0; }
-        .footer-links { margin-bottom: 24px; }
-        .footer-link { color: #6b7280; font-size: 13px; margin: 0 12px; font-weight: 500; }
-        .footer-text { color: #9ca3af; font-size: 12px; line-height: 1.5; margin-bottom: 8px; }
-        .social-icons { margin-top: 20px; }
-        .social-icon { display: inline-block; width: 32px; height: 32px; background-color: #e5e7eb; border-radius: 50%; margin: 0 6px; line-height: 32px; color: #ffffff; font-size: 14px; }
+        /* Ticket Card */
+        .ticket-card { background: #ffffff; border: 2px solid #e2e8f0; border-radius: 16px; overflow: hidden; margin-bottom: 32px; }
+        .ticket-header { background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); padding: 24px 28px; border-bottom: 2px dashed #e2e8f0; }
+        .tour-title { font-size: 20px; font-weight: 700; color: #0f172a; line-height: 1.3; margin: 0 0 6px; }
+        .tour-option { font-size: 14px; color: #2563eb; font-weight: 600; }
+
+        .ticket-body { padding: 0; }
+
+        /* Date/Time Highlight */
+        .datetime-section { background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); padding: 24px 28px; border-bottom: 1px solid #e2e8f0; }
+        .datetime-grid { display: table; width: 100%; }
+        .datetime-col { display: table-cell; vertical-align: middle; }
+        .datetime-icon { width: 56px; height: 56px; background: #2563eb; border-radius: 14px; display: flex; align-items: center; justify-content: center; color: #ffffff; font-size: 24px; box-shadow: 0 4px 12px rgba(37,99,235,0.3); }
+        .datetime-content { padding-left: 20px; }
+        .datetime-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #2563eb; font-weight: 700; margin-bottom: 4px; }
+        .datetime-value { font-size: 18px; font-weight: 700; color: #0f172a; line-height: 1.3; }
+        .datetime-time { font-size: 15px; color: #475569; margin-top: 2px; }
+
+        /* Details Grid */
+        .details-section { padding: 24px 28px; }
+        .detail-grid { width: 100%; }
+        .detail-row { padding: 14px 0; border-bottom: 1px solid #f1f5f9; }
+        .detail-row:last-child { border-bottom: none; }
+        .detail-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: #64748b; font-weight: 600; margin-bottom: 4px; }
+        .detail-value { font-size: 16px; color: #0f172a; font-weight: 600; }
+        .detail-value.mono { font-family: 'SF Mono', Monaco, monospace; letter-spacing: 0.5px; }
+        .detail-value.price { font-size: 22px; font-weight: 700; color: #0f172a; }
+        .detail-sub { font-size: 13px; color: #64748b; margin-top: 2px; }
+
+        /* Hotel Pickup Highlight */
+        .pickup-highlight { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border: 1px solid #f59e0b; border-radius: 12px; padding: 16px 20px; margin: 20px 28px; }
+        .pickup-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #92400e; font-weight: 700; margin-bottom: 6px; }
+        .pickup-value { font-size: 16px; color: #78350f; font-weight: 600; }
+
+        /* QR Section */
+        .qr-section { border-top: 2px dashed #e2e8f0; padding: 28px; text-align: center; background: #fafbfc; }
+        .qr-title { font-size: 12px; font-weight: 700; color: #64748b; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 1.5px; }
+        .qr-code { width: 180px; height: 180px; margin: 0 auto; border: 3px solid #e2e8f0; border-radius: 16px; padding: 12px; background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+        .qr-hint { font-size: 13px; color: #64748b; margin-top: 14px; line-height: 1.5; }
 
         /* Timeline */
-        .timeline { display: flex; justify-content: space-between; margin: 28px 0 36px; padding: 0 16px; }
-        .timeline-step { text-align: center; flex: 1; position: relative; }
-        .timeline-step:not(:last-child)::after { content: ''; position: absolute; top: 18px; right: -50%; width: 100%; height: 2px; background: #e2e8f0; }
-        .timeline-dot { width: 14px; height: 14px; margin: 0 auto 10px; border-radius: 50%; border: 2px solid #94a3b8; background-color: #ffffff; }
-        .timeline-step.active .timeline-dot { border-color: #2563eb; background-color: #2563eb; box-shadow: 0 0 0 4px rgba(37,99,235,0.15); }
-        .timeline-label { font-size: 13px; font-weight: 600; color: #0f172a; margin-bottom: 4px; }
-        .timeline-desc { font-size: 12px; color: #6b7280; line-height: 1.4; }
+        .timeline { display: table; width: 100%; margin: 32px 0; }
+        .timeline-step { display: table-cell; text-align: center; position: relative; padding: 0 8px; width: 33.33%; }
+        .timeline-dot { width: 40px; height: 40px; margin: 0 auto 12px; border-radius: 50%; background: #f1f5f9; border: 2px solid #e2e8f0; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+        .timeline-step.active .timeline-dot { background: #2563eb; border-color: #2563eb; color: #ffffff; box-shadow: 0 4px 12px rgba(37,99,235,0.3); }
+        .timeline-label { font-size: 13px; font-weight: 700; color: #0f172a; margin-bottom: 4px; }
+        .timeline-desc { font-size: 12px; color: #64748b; line-height: 1.4; }
 
-        /* Essentials */
-        .essentials-card { border: 1px solid #e0e7ff; border-radius: 14px; padding: 20px; margin-bottom: 30px; background: #f8fafc; }
-        .essentials-item { display: flex; align-items: center; margin-bottom: 14px; }
-        .essentials-item:last-child { margin-bottom: 0; }
-        .essentials-icon { width: 36px; height: 36px; border-radius: 10px; background: #e0e7ff; display: flex; align-items: center; justify-content: center; font-size: 16px; margin-right: 12px; color: #1e1b4b; }
-        .essentials-body { font-size: 14px; color: #111827; line-height: 1.4; }
-        .essentials-body strong { display: block; font-size: 13px; color: #6366f1; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+        /* Special Requests */
+        .special-req { background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%); border: 1px solid #fed7aa; border-radius: 14px; padding: 20px 24px; margin-bottom: 32px; }
+        .special-req-title { color: #9a3412; font-weight: 700; font-size: 12px; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
+        .special-req-text { color: #c2410c; font-size: 15px; line-height: 1.6; font-style: italic; }
+
+        /* Support Box */
+        .support-box { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-radius: 16px; padding: 24px 28px; margin-bottom: 32px; }
+        .support-inner { display: table; width: 100%; }
+        .support-icon-cell { display: table-cell; width: 50px; vertical-align: middle; }
+        .support-icon { font-size: 32px; }
+        .support-content { display: table-cell; vertical-align: middle; padding-left: 16px; }
+        .support-title { color: #f8fafc; font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+        .support-text { color: #94a3b8; font-size: 14px; line-height: 1.5; }
+
+        /* CTA */
+        .cta-section { text-align: center; margin-bottom: 32px; }
+        .btn-primary { display: inline-block; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: #ffffff; font-size: 16px; font-weight: 600; padding: 16px 48px; border-radius: 12px; box-shadow: 0 8px 20px rgba(37,99,235,0.35); }
+        .cta-hint { margin-top: 14px; font-size: 14px; color: #64748b; }
+
+        /* Tips */
+        .tips-section { margin-bottom: 24px; }
+        .tips-title { font-size: 12px; font-weight: 700; color: #64748b; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 1.5px; padding-bottom: 12px; border-bottom: 1px solid #e2e8f0; }
+        .tip-item { display: table; width: 100%; padding: 10px 0; }
+        .tip-icon { display: table-cell; width: 32px; font-size: 18px; vertical-align: top; padding-top: 2px; }
+        .tip-text { display: table-cell; font-size: 14px; color: #334155; line-height: 1.5; }
+
+        /* Footer */
+        .footer { background: #f8fafc; padding: 32px 40px; text-align: center; border-top: 1px solid #e2e8f0; }
+        .footer-links { margin-bottom: 20px; }
+        .footer-link { color: #64748b; font-size: 13px; margin: 0 14px; font-weight: 600; }
+        .footer-text { color: #94a3b8; font-size: 12px; line-height: 1.6; margin: 4px 0; }
 
         /* Mobile */
         @media screen and (max-width: 600px) {
             .wrapper { padding: 0; }
-            .container { border-radius: 0; width: 100% !important; box-shadow: none; }
-            .header { padding: 20px; }
-            .content { padding: 24px 20px; }
-            .hero-content { left: 20px; right: 20px; bottom: 20px; }
-            .info-col { display: block; width: 100%; padding-bottom: 16px; }
-            .info-col:last-child { padding-bottom: 0; }
-            .btn-primary { display: block; width: 100%; padding: 16px 0; box-sizing: border-box; }
-            .timeline { flex-direction: column; padding: 0; }
-            .timeline-step { margin-bottom: 18px; }
-            .timeline-step:not(:last-child)::after { display: none; }
+            .container { border-radius: 0; }
+            .hero { min-height: 240px; }
+            .hero-image { height: 240px; }
+            .hero-content { padding: 24px; }
+            .hero-title { font-size: 22px; }
+            .content { padding: 24px; }
+            .greeting { font-size: 24px; }
+            .ticket-header, .details-section, .datetime-section { padding-left: 20px; padding-right: 20px; }
+            .pickup-highlight { margin-left: 20px; margin-right: 20px; }
+            .datetime-icon { width: 48px; height: 48px; font-size: 20px; }
+            .datetime-value { font-size: 16px; }
+            .timeline-step { display: block; width: 100%; margin-bottom: 20px; }
+            .btn-primary { display: block; width: 100%; box-sizing: border-box; }
+            .footer { padding: 24px; }
         }
     </style>
 </head>
 <body>
     <div class="wrapper">
         <div class="container">
-            <!-- Header -->
-            <div class="header">
-                <img src="https://egypt-excursionsonline.com/EEO-logo.png" alt="Egypt Excursions Online" class="logo">
-            </div>
-
-            <!-- Hero Image with Overlay (Optional) -->
+            <!-- Hero -->
             <div class="hero">
                 {{#if tourImage}}
                 <img src="{{tourImage}}" alt="{{tourTitle}}" class="hero-image">
                 {{/if}}
+                <div class="hero-overlay"></div>
                 <div class="hero-content">
-                    <div class="hero-eyebrow">Booking {{bookingId}}</div>
-                    <div class="hero-title">{{tourTitle}}</div>
-                    <div class="hero-meta">Happening {{bookingDate}} · {{bookingTime}}</div>
+                    <div class="hero-top">
+                        <img src="https://egypt-excursionsonline.com/EEO-logo.png" alt="Egypt Excursions Online" class="logo">
+                        <div class="status-badge">Booking Confirmed</div>
+                    </div>
+                    <div class="hero-bottom">
+                        <div class="hero-eyebrow">Booking {{bookingId}}</div>
+                        <div class="hero-title">{{tourTitle}}</div>
+                        <div class="hero-meta">
+                            <span class="hero-meta-icon">📅</span>
+                            {{bookingDate}} · {{bookingTime}}
+                        </div>
+                    </div>
                 </div>
             </div>
 
+            <!-- Content -->
             <div class="content">
-                <div style="text-align: center; margin-bottom: 32px;">
-                    <div class="status-badge">Booking Confirmed</div>
+                <div class="greeting-section">
                     <h1 class="greeting">You're going to Egypt!</h1>
-                    <p class="intro">Hi {{customerName}}, everything is set. Below is your digital travel pass with every detail you’ll need.</p>
+                    <p class="intro">Hi {{customerName}}, everything is set. Below is your digital travel pass with every detail you'll need.</p>
                 </div>
 
-                <!-- Digital Ticket Card -->
+                <!-- Ticket Card -->
                 <div class="ticket-card">
                     <div class="ticket-header">
                         <div class="tour-title">{{tourTitle}}</div>
@@ -156,150 +176,132 @@
                         <div class="tour-option">{{bookingOption}}</div>
                         {{/if}}
                     </div>
-                    <div class="ticket-body">
-                        <table class="info-grid">
+
+                    <!-- Date & Time Highlight -->
+                    <div class="datetime-section">
+                        <div class="datetime-grid">
+                            <div class="datetime-col" style="width: 56px;">
+                                <div class="datetime-icon">📅</div>
+                            </div>
+                            <div class="datetime-col datetime-content">
+                                <div class="datetime-label">Date & Time</div>
+                                <div class="datetime-value">{{bookingDate}}</div>
+                                <div class="datetime-time">🕐 {{bookingTime}}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Details -->
+                    <div class="details-section">
+                        <table class="detail-grid" width="100%">
                             <tr>
-                                <td class="info-col">
-                                    <div class="info-label">Date & Time</div>
-                                    <div class="info-value">{{bookingDate}}<br>{{bookingTime}}</div>
+                                <td width="50%" style="padding: 14px 0; border-bottom: 1px solid #f1f5f9;">
+                                    <div class="detail-label">Reference</div>
+                                    <div class="detail-value mono">{{bookingId}}</div>
                                 </td>
-                                <td class="info-col">
-                                    <div class="info-label">Reference</div>
-                                    <div class="info-value" style="font-family: monospace; letter-spacing: 1px;">{{bookingId}}</div>
+                                <td width="50%" style="padding: 14px 0; border-bottom: 1px solid #f1f5f9;">
+                                    <div class="detail-label">Total Price</div>
+                                    <div class="detail-value price">{{totalPrice}}</div>
                                 </td>
                             </tr>
                             <tr>
-                                <td class="info-col">
-                                    <div class="info-label">Guests</div>
-                                    <div class="info-value">{{participants}}</div>
+                                <td colspan="2" style="padding: 14px 0;">
+                                    <div class="detail-label">Guests</div>
+                                    <div class="detail-value">{{participants}}</div>
                                     {{#if participantBreakdown}}
-                                    <div style="font-size: 12px; color: #888; margin-top: 2px;">{{participantBreakdown}}</div>
+                                    <div class="detail-sub">{{participantBreakdown}}</div>
                                     {{/if}}
                                 </td>
-                                <td class="info-col">
-                                    <div class="info-label">Total Price</div>
-                                    <div class="price-large">{{totalPrice}}</div>
-                                </td>
                             </tr>
-                            {{#if meetingPoint}}
-                            <tr>
-                                <td class="info-col" colspan="2" style="padding-top: 8px; border-top: 1px solid #f0f0f0;">
-                                    <div class="info-label">Meeting Point</div>
-                                    <div class="info-value">📍 {{meetingPoint}}</div>
-                                </td>
-                            </tr>
-                            {{/if}}
-                            {{#if hotelPickupDetails}}
-                            <tr>
-                                <td class="info-col" colspan="2" style="padding-top: 8px; border-top: 1px solid #f0f0f0;">
-                                    <div class="info-label">Hotel Pickup Details</div>
-                                    <div class="info-value" style="color: #dc2626; font-weight: 700;">🏨 {{hotelPickupDetails}}</div>
-                                </td>
-                            </tr>
-                            {{/if}}
                         </table>
-                        
-                        <!-- QR Code Section -->
-                        {{#if qrCodeCid}}
-                        <div style="border-top: 1px dashed #d1d5db; padding-top: 24px; margin-top: 24px; text-align: center;">
-                            <div style="font-size: 13px; font-weight: 700; color: #6b7280; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 1px;">Your Digital Pass</div>
-                            <img src="cid:qr-code.png" alt="Booking QR Code" style="width: 200px; height: 200px; margin: 0 auto; display: block; border: 4px solid #f0f0f0; border-radius: 12px; padding: 8px; background: white;">
-                            <p style="font-size: 12px; color: #888888; margin-top: 12px; line-height: 1.5;">
-                                Scan this QR code at the meeting point or <a href="{{verificationUrl}}" style="color: #0066ff; text-decoration: underline;">view your booking online</a>
-                            </p>
-                        </div>
-                        {{/if}}
                     </div>
+
+                    {{#if hotelPickupDetails}}
+                    <div class="pickup-highlight">
+                        <div class="pickup-label">🏨 Hotel Pickup</div>
+                        <div class="pickup-value">{{hotelPickupDetails}}</div>
+                    </div>
+                    {{/if}}
+
+                    {{#if meetingPoint}}
+                    <div style="padding: 0 28px 20px;">
+                        <div class="detail-label">📍 Meeting Point</div>
+                        <div class="detail-value" style="font-size: 15px;">{{meetingPoint}}</div>
+                    </div>
+                    {{/if}}
+
+                    <!-- QR Code -->
+                    {{#if qrCodeCid}}
+                    <div class="qr-section">
+                        <div class="qr-title">Your Digital Pass</div>
+                        <img src="cid:qr-code.png" alt="Booking QR Code" class="qr-code">
+                        <p class="qr-hint">Show this QR code at the meeting point<br>or <a href="{{verificationUrl}}" style="color: #2563eb;">view your booking online</a></p>
+                    </div>
+                    {{/if}}
                 </div>
 
-                <!-- Trip Milestones -->
-                <div class="timeline">
-                    <div class="timeline-step active">
-                        <div class="timeline-dot"></div>
-                        <div class="timeline-label">Booked</div>
-                        <div class="timeline-desc">We’ve secured your seats and sent the confirmation.</div>
-                    </div>
-                    <div class="timeline-step">
-                        <div class="timeline-dot"></div>
-                        <div class="timeline-label">Reminder</div>
-                        <div class="timeline-desc">24 hrs before the trip we’ll email final instructions.</div>
-                    </div>
-                    <div class="timeline-step">
-                        <div class="timeline-dot"></div>
-                        <div class="timeline-label">Experience</div>
-                        <div class="timeline-desc">Show this pass on arrival and enjoy your tour.</div>
-                    </div>
-                </div>
+                <!-- Timeline -->
+                <table class="timeline" width="100%">
+                    <tr>
+                        <td class="timeline-step active" width="33%" style="text-align: center;">
+                            <div class="timeline-dot" style="margin: 0 auto 12px; width: 40px; height: 40px; border-radius: 50%; background: #2563eb; display: flex; align-items: center; justify-content: center;">✓</div>
+                            <div class="timeline-label">Booked</div>
+                            <div class="timeline-desc">Confirmation sent</div>
+                        </td>
+                        <td class="timeline-step" width="33%" style="text-align: center;">
+                            <div class="timeline-dot" style="margin: 0 auto 12px; width: 40px; height: 40px; border-radius: 50%; background: #f1f5f9; border: 2px solid #e2e8f0;">📧</div>
+                            <div class="timeline-label">Reminder</div>
+                            <div class="timeline-desc">24h before tour</div>
+                        </td>
+                        <td class="timeline-step" width="33%" style="text-align: center;">
+                            <div class="timeline-dot" style="margin: 0 auto 12px; width: 40px; height: 40px; border-radius: 50%; background: #f1f5f9; border: 2px solid #e2e8f0;">🎉</div>
+                            <div class="timeline-label">Experience</div>
+                            <div class="timeline-desc">Enjoy your tour!</div>
+                        </td>
+                    </tr>
+                </table>
 
-                <!-- Special Requests -->
                 {{#if specialRequests}}
                 <div class="special-req">
-                    <div class="special-req-title">Special Requests Included</div>
+                    <div class="special-req-title">📝 Special Requests</div>
                     <div class="special-req-text">"{{specialRequests}}"</div>
                 </div>
                 {{/if}}
 
-                <!-- Essentials -->
-                <div class="essentials-card">
-                    {{#if meetingPoint}}
-                    <div class="essentials-item">
-                        <div class="essentials-icon">📍</div>
-                        <div class="essentials-body">
-                            <strong>Meeting point</strong>
-                            {{meetingPoint}}
-                        </div>
-                    </div>
-                    {{/if}}
-                    <div class="essentials-item">
-                        <div class="essentials-icon">🆔</div>
-                        <div class="essentials-body">
-                            <strong>Booking reference</strong>
-                            {{bookingId}}
-                        </div>
-                    </div>
-                    <div class="essentials-item">
-                        <div class="essentials-icon">🤝</div>
-                        <div class="essentials-body">
-                            <strong>Guests</strong>
-                            {{participants}}
-                        </div>
-                    </div>
-                </div>
-
                 <!-- CTA -->
-                <div class="cta-container">
-                    <a href="{{baseUrl}}/user/bookings/{{bookingId}}" class="btn-primary">Manage My Booking</a>
-                    <div style="margin-top: 16px; font-size: 13px; color: #666;">
-                        <a href="{{baseUrl}}/contact" style="color: #666; text-decoration: underline;">Need to make changes?</a>
-                    </div>
+                <div class="cta-section">
+                    <a href="{{baseUrl}}/user/bookings" class="btn-primary">View My Bookings</a>
+                    <div class="cta-hint"><a href="{{baseUrl}}/contact" style="color: #64748b;">Need to make changes?</a></div>
                 </div>
 
                 <!-- Support -->
                 <div class="support-box">
-                    <div class="support-icon">🛎️</div>
-                    <div class="support-text">
-                        <strong>Concierge support anytime</strong>
-                        <p>
-                            WhatsApp: +20 11 42255624 &nbsp;•&nbsp;
-                            Email: booking@egypt-excursionsonline.com
-                            {{#if contactNumber}} &nbsp;•&nbsp; Emergency: {{contactNumber}}{{/if}}
-                        </p>
+                    <div class="support-inner">
+                        <div class="support-icon-cell">
+                            <div class="support-icon">🛎️</div>
+                        </div>
+                        <div class="support-content">
+                            <div class="support-title">24/7 Concierge Support</div>
+                            <div class="support-text">WhatsApp: +20 11 42255624<br>Email: booking@egypt-excursionsonline.com</div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Things to Know -->
-                <h3 class="section-title">Good to know</h3>
-                <div class="tip-row">
-                    <span class="tip-icon">📱</span>
-                    <span>Save this email. You can show this ticket on your phone.</span>
-                </div>
-                <div class="tip-row">
-                    <span class="tip-icon">⏰</span>
-                    <span>Please arrive 15 minutes before the start time.</span>
-                </div>
-                <div class="tip-row">
-                    <span class="tip-icon">☀️</span>
-                    <span>Check the weather forecast and dress comfortably.</span>
+                <!-- Tips -->
+                <div class="tips-section">
+                    <div class="tips-title">Good to Know</div>
+                    <div class="tip-item">
+                        <div class="tip-icon">📱</div>
+                        <div class="tip-text">Save this email - you can show this ticket on your phone</div>
+                    </div>
+                    <div class="tip-item">
+                        <div class="tip-icon">⏰</div>
+                        <div class="tip-text">Please arrive 15 minutes before the start time</div>
+                    </div>
+                    <div class="tip-item">
+                        <div class="tip-icon">☀️</div>
+                        <div class="tip-text">Check the weather and dress comfortably</div>
+                    </div>
                 </div>
             </div>
 
@@ -310,8 +312,7 @@
                     <a href="{{baseUrl}}/help" class="footer-link">Help Center</a>
                     <a href="{{baseUrl}}/terms" class="footer-link">Terms</a>
                 </div>
-                <p class="footer-text">© {{year}} Egypt Excursions Online. All rights reserved.</p>
-                <p class="footer-text">Cairo, Egypt</p>
+                <p class="footer-text">© {{year}} Egypt Excursions Online · Cairo, Egypt</p>
             </div>
         </div>
     </div>
