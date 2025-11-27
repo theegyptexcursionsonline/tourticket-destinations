@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Tour, Booking as BookingType } from '@/types';
+import {
   Calendar,
   Clock,
   Users,
