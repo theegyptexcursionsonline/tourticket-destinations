@@ -25,6 +25,9 @@ import {
   Phone,
   UserCheck,
   MapPin,
+  Ticket,
+  Tag,
+  ChevronRight,
 } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -808,12 +811,26 @@ const ThankYouPage = ({
   const { formatPrice } = useSettings();
   const router = useRouter();
   const [isDownloading, setIsDownloading] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(true);
 
   // Get first item's booking details
   const firstItem = orderedItems[0];
   const bookingDate = formatBookingDate(firstItem?.selectedDate);
   const bookingTime = firstItem?.selectedTime || '';
   const timeUntil = getTimeUntilTour(firstItem?.selectedDate, firstItem?.selectedTime);
+
+  // Parse date for ticket display
+  const dateObj = firstItem?.selectedDate ? new Date(firstItem.selectedDate) : new Date();
+  const dayOfWeek = dateObj.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+  const dayNum = dateObj.getDate();
+  const month = dateObj.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+  const year = dateObj.getFullYear();
+
+  // Hide confetti after animation
+  useEffect(() => {
+    const timer = setTimeout(() => setShowConfetti(false), 4000);
+    return () => clearTimeout(timer);
+  }, []);
 
 const handleDownloadReceipt = async () => {
   if (isDownloading) return;
@@ -822,7 +839,6 @@ const handleDownloadReceipt = async () => {
   try {
     const orderId = lastOrderId ?? `ORD-${Date.now()}`;
 
-    // DON'T recalculate - use the exact pricing from the thank you page
     const pricingForPdf = {
       subtotal: pricing.subtotal,
       serviceFee: pricing.serviceFee,
@@ -833,9 +849,7 @@ const handleDownloadReceipt = async () => {
       symbol: pricing.symbol,
     };
 
-    // DON'T recalculate item totals - use them as they are displayed
     const orderedItemsForPdf = orderedItems.map((item) => {
-      // Calculate the same way as shown on thank you page
       const getItemTotal = (item: CartItem) => {
         const basePrice = item.selectedBookingOption?.price || item.discountPrice || item.price || 0;
         const adultPrice = basePrice * (item.quantity || 1);
@@ -859,7 +873,6 @@ const handleDownloadReceipt = async () => {
 
       return {
         ...item,
-        // Keep the item total as calculated for display consistency
         totalPrice: getItemTotal(item),
         finalPrice: getItemTotal(item),
       };
@@ -873,8 +886,6 @@ const handleDownloadReceipt = async () => {
 
     const firstItem = orderedItems[0];
     const bookingForPdf = {
-      // Use the formatBookingDate helper to ensure consistent date formatting
-      // This matches the format used in the booking confirmation email
       date: formatBookingDate(firstItem?.selectedDate),
       time: firstItem?.selectedTime,
       guests: orderedItems.reduce((sum, item) =>
@@ -889,7 +900,7 @@ const handleDownloadReceipt = async () => {
       orderId,
       customer: customerForPdf,
       orderedItems: orderedItemsForPdf,
-      pricing: pricingForPdf, // Use exact pricing - no recalculation
+      pricing: pricingForPdf,
       booking: bookingForPdf,
       qrData,
       notes: customer?.specialRequests || 'Receipt requested from Thank You page',
@@ -925,239 +936,359 @@ const handleDownloadReceipt = async () => {
   }
 };
 
+  // Confetti particles
+  const confettiColors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899'];
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-lg shadow-lg max-w-4xl mx-auto border border-slate-200 overflow-hidden"
-    >
-      {/* Success Icon and Message */}
-      <div className="text-center pt-8 sm:pt-12 pb-4 sm:pb-6 px-4 sm:px-6">
-        <div className="mx-auto w-fit mb-4 sm:mb-6 p-3 sm:p-4 bg-green-100 rounded-full">
-          <CheckCircle size={36} className="sm:w-12 sm:h-12 text-green-600" />
+    <div className="relative">
+      {/* Confetti Animation */}
+      {showConfetti && (
+        <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
+          {[...Array(50)].map((_, i) => (
+            <motion.div
+              key={i}
+              initial={{
+                y: -20,
+                x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1000),
+                rotate: 0,
+                opacity: 1
+              }}
+              animate={{
+                y: typeof window !== 'undefined' ? window.innerHeight + 100 : 1000,
+                rotate: Math.random() * 720 - 360,
+                opacity: 0
+              }}
+              transition={{
+                duration: 3 + Math.random() * 2,
+                delay: Math.random() * 0.5,
+                ease: "linear"
+              }}
+              className="absolute w-3 h-3"
+              style={{
+                backgroundColor: confettiColors[i % confettiColors.length],
+                borderRadius: Math.random() > 0.5 ? '50%' : '0%',
+              }}
+            />
+          ))}
         </div>
-        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 mb-2 sm:mb-3">Thank you — your booking is confirmed!</h1>
-        <p className="text-sm sm:text-base text-slate-600">We've sent a booking confirmation and receipt to your email address.</p>
+      )}
 
-        {/* Booking Reference */}
-        {lastOrderId && (
-          <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-full">
-            <span className="text-xs sm:text-sm text-slate-500">Booking Reference:</span>
-            <span className="font-mono font-bold text-sm sm:text-base text-slate-900">{lastOrderId}</span>
-          </div>
-        )}
-      </div>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className="max-w-2xl mx-auto"
+      >
+        {/* Success Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="text-center mb-6"
+        >
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
+            className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full shadow-lg shadow-emerald-200 mb-4"
+          >
+            <CheckCircle className="w-10 h-10 text-white" strokeWidth={2.5} />
+          </motion.div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">Booking Confirmed!</h1>
+          <p className="text-slate-500">Your adventure awaits. Check your email for details.</p>
+        </motion.div>
 
-      {/* Booking Details Card */}
-      <div className="px-4 sm:px-6 md:px-12 pb-4 sm:pb-6">
-        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 sm:p-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            {/* Date & Time */}
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white rounded-xl shadow-sm flex items-center justify-center">
-                <Calendar className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600" />
+        {/* Premium Ticket Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="relative"
+        >
+          {/* Ticket Container with Notches */}
+          <div className="relative bg-white rounded-3xl shadow-2xl shadow-slate-200/50 overflow-hidden border border-slate-100">
+
+            {/* Top Gradient Bar */}
+            <div className="h-2 bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500" />
+
+            {/* Ticket Header */}
+            <div className="px-6 pt-6 pb-4 bg-gradient-to-b from-slate-50 to-white">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="px-2.5 py-1 bg-emerald-100 text-emerald-700 text-[10px] font-bold uppercase tracking-wider rounded-full">
+                      Confirmed
+                    </span>
+                    <span className="px-2.5 py-1 bg-slate-100 text-slate-600 text-[10px] font-medium uppercase tracking-wider rounded-full">
+                      E-Ticket
+                    </span>
+                  </div>
+                  <h2 className="text-lg sm:text-xl font-bold text-slate-900 leading-tight mb-1">
+                    {orderedItems.length === 1 ? firstItem?.title : `${orderedItems.length} Tour${orderedItems.length > 1 ? 's' : ''} Booked`}
+                  </h2>
+                  {firstItem?.selectedBookingOption && (
+                    <p className="text-sm text-slate-500">{firstItem.selectedBookingOption.title}</p>
+                  )}
+                </div>
+
+                {/* Date Badge */}
+                <div className="flex-shrink-0 text-center bg-white rounded-2xl shadow-md border border-slate-100 p-3 min-w-[70px]">
+                  <div className="text-[10px] font-bold text-rose-500 uppercase tracking-wider">{dayOfWeek}</div>
+                  <div className="text-2xl font-black text-slate-900 leading-none my-0.5">{dayNum}</div>
+                  <div className="text-xs font-semibold text-slate-500 uppercase">{month}</div>
+                </div>
               </div>
-              <div>
-                <p className="text-xs sm:text-sm text-blue-600 font-medium mb-0.5">Your Adventure Date</p>
-                <p className="text-base sm:text-lg font-bold text-slate-900">{bookingDate}</p>
-                {bookingTime && (
-                  <p className="text-sm text-slate-600 flex items-center gap-1 mt-0.5">
-                    <Clock size={14} className="text-slate-400" />
-                    {bookingTime}
+            </div>
+
+            {/* Perforated Divider */}
+            <div className="relative flex items-center px-0">
+              <div className="w-6 h-12 bg-slate-100 rounded-r-full -ml-3" />
+              <div className="flex-1 border-t-2 border-dashed border-slate-200 mx-2" />
+              <div className="w-6 h-12 bg-slate-100 rounded-l-full -mr-3" />
+            </div>
+
+            {/* Ticket Body */}
+            <div className="px-6 py-5">
+              {/* Booking Info Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+                <div>
+                  <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Booking ID</p>
+                  <p className="font-mono font-bold text-sm text-slate-900">{lastOrderId || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Time</p>
+                  <p className="font-bold text-sm text-slate-900">{bookingTime || 'Flexible'}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Guests</p>
+                  <p className="font-bold text-sm text-slate-900">
+                    {orderedItems.reduce((sum, item) => sum + (item.quantity || 0) + (item.childQuantity || 0) + (item.infantQuantity || 0), 0)} Total
                   </p>
-                )}
-              </div>
-            </div>
-
-            {/* Countdown */}
-            {timeUntil && !timeUntil.isPast && (
-              <div className="flex items-center gap-3 sm:gap-4 bg-white rounded-xl px-4 py-3 shadow-sm">
-                <div className="text-center">
-                  <div className="text-xl sm:text-2xl font-bold text-blue-600">{timeUntil.days}</div>
-                  <div className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wide">Days</div>
                 </div>
-                <div className="text-slate-300 font-light">:</div>
-                <div className="text-center">
-                  <div className="text-xl sm:text-2xl font-bold text-blue-600">{timeUntil.hours}</div>
-                  <div className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wide">Hours</div>
-                </div>
-                <div className="text-slate-300 font-light">:</div>
-                <div className="text-center">
-                  <div className="text-xl sm:text-2xl font-bold text-blue-600">{timeUntil.minutes}</div>
-                  <div className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wide">Mins</div>
+                <div>
+                  <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Status</p>
+                  <p className="font-bold text-sm text-emerald-600 flex items-center gap-1">
+                    <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                    Confirmed
+                  </p>
                 </div>
               </div>
-            )}
-          </div>
 
-          {/* Customer Details */}
-          {customer && (
-            <div className="mt-4 pt-4 border-t border-blue-200/50 grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="flex items-center gap-2 text-sm">
-                <User size={16} className="text-blue-500" />
-                <span className="text-slate-600">{customer.firstName} {customer.lastName}</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <Mail size={16} className="text-blue-500" />
-                <span className="text-slate-600 truncate">{customer.email}</span>
-              </div>
-              {customer.phone && (
-                <div className="flex items-center gap-2 text-sm">
-                  <Phone size={16} className="text-blue-500" />
-                  <span className="text-slate-600">{customer.phone}</span>
-                </div>
-              )}
-              {customer.hotelPickupDetails && (
-                <div className="flex items-center gap-2 text-sm">
-                  <MapPin size={16} className="text-blue-500" />
-                  <span className="text-slate-600 truncate">{customer.hotelPickupDetails}</span>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Receipt Section */}
-      <div className="px-4 sm:px-6 md:px-12 pb-8 sm:pb-12">
-        <div className="bg-white border border-slate-200 rounded-lg p-4 sm:p-6">
-          <h3 className="font-bold text-lg sm:text-xl text-slate-900 mb-4 sm:mb-6">Your Receipt</h3>
-          
-          {/* Items List */}
-          <div className="space-y-4 sm:space-y-6 mb-4 sm:mb-6">
-            {orderedItems.map((item, index) => {
-              // Use the same calculation logic
-              const getItemTotal = (item: CartItem) => {
-                const basePrice = item.selectedBookingOption?.price || item.discountPrice || item.price || 0;
-                const adultPrice = basePrice * (item.quantity || 1);
-                const childPrice = (basePrice / 2) * (item.childQuantity || 0);
-                let tourTotal = adultPrice + childPrice;
-
-                let addOnsTotal = 0;
-                if (item.selectedAddOns && item.selectedAddOnDetails) {
-                  Object.entries(item.selectedAddOns).forEach(([addOnId, quantity]) => {
-                    const addOnDetail = item.selectedAddOnDetails?.[addOnId];
-                    if (addOnDetail && quantity > 0) {
-                      const totalGuests = (item.quantity || 0) + (item.childQuantity || 0);
-                      const addOnQuantity = addOnDetail.perGuest ? totalGuests : 1;
-                      addOnsTotal += addOnDetail.price * addOnQuantity;
-                    }
-                  });
-                }
-
-                return tourTotal + addOnsTotal;
-              };
-
-              const itemTotal = getItemTotal(item);
-
-              return (
-                <div key={`${item._id ?? index}-${index}`} className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
-                  {/* Tour Image and Details Row for Mobile */}
-                  <div className="flex items-start gap-3 sm:contents">
-                    {/* Tour Image */}
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0 overflow-hidden rounded-lg border border-slate-200">
-                      {item.image ? (
-                        <Image src={item.image} alt={item.title} width={80} height={80} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full bg-slate-100" />
-                      )}
+              {/* Countdown Timer */}
+              {timeUntil && !timeUntil.isPast && (
+                <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl p-4 mb-6">
+                  <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-3 text-center">Your Adventure Begins In</p>
+                  <div className="flex justify-center items-center gap-3">
+                    <div className="text-center">
+                      <div className="text-3xl sm:text-4xl font-black text-white leading-none">{timeUntil.days}</div>
+                      <div className="text-[10px] text-slate-400 uppercase tracking-wider mt-1">Days</div>
                     </div>
-                    
-                    {/* Tour Details */}
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-bold text-sm sm:text-base text-slate-900 mb-1 line-clamp-2">{item.title}</h4>
-                      {item.selectedBookingOption && (
-                        <p className="text-xs sm:text-sm text-blue-600 font-medium mb-1 sm:mb-2">{item.selectedBookingOption.title}</p>
-                      )}
-                      <p className="text-xs sm:text-sm text-slate-600">
-                        {item.quantity} Adult{item.quantity > 1 ? 's' : ''}
-                        {item.childQuantity > 0 && `, ${item.childQuantity} Child${item.childQuantity > 1 ? 'ren' : ''}`}
-                        {item.infantQuantity > 0 && `, ${item.infantQuantity} Infant${item.infantQuantity > 1 ? 's' : ''}`}
-                      </p>
-                      {/* Show add-ons */}
-                      {item.selectedAddOns && item.selectedAddOnDetails && Object.keys(item.selectedAddOns).length > 0 && (
-                        <div className="text-[11px] sm:text-xs text-slate-500 mt-1">
-                          Add-ons: {Object.entries(item.selectedAddOns).map(([addOnId]) => {
-                            const addOnDetail = item.selectedAddOnDetails?.[addOnId];
-                            return addOnDetail?.title;
-                          }).filter(Boolean).join(', ')}
+                    <div className="text-2xl font-light text-slate-600">:</div>
+                    <div className="text-center">
+                      <div className="text-3xl sm:text-4xl font-black text-white leading-none">{timeUntil.hours}</div>
+                      <div className="text-[10px] text-slate-400 uppercase tracking-wider mt-1">Hours</div>
+                    </div>
+                    <div className="text-2xl font-light text-slate-600">:</div>
+                    <div className="text-center">
+                      <div className="text-3xl sm:text-4xl font-black text-white leading-none">{timeUntil.minutes}</div>
+                      <div className="text-[10px] text-slate-400 uppercase tracking-wider mt-1">Mins</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Guest Details */}
+              {customer && (
+                <div className="bg-slate-50 rounded-xl p-4 mb-6">
+                  <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-3">Guest Information</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 bg-white rounded-lg shadow-sm flex items-center justify-center">
+                        <User size={16} className="text-slate-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-400">Name</p>
+                        <p className="font-semibold text-sm text-slate-900">{customer.firstName} {customer.lastName}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 bg-white rounded-lg shadow-sm flex items-center justify-center">
+                        <Mail size={16} className="text-slate-600" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs text-slate-400">Email</p>
+                        <p className="font-semibold text-sm text-slate-900 truncate">{customer.email}</p>
+                      </div>
+                    </div>
+                    {customer.phone && (
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 bg-white rounded-lg shadow-sm flex items-center justify-center">
+                          <Phone size={16} className="text-slate-600" />
                         </div>
-                      )}
-                    </div>
-                  </div>
-                  
-                  {/* Price - Full width on mobile */}
-                  <div className="text-right sm:text-right flex-shrink-0 pl-[76px] sm:pl-0 -mt-2 sm:mt-0">
-                    <p className="font-semibold text-base sm:text-lg text-slate-900">{formatPrice(itemTotal)}</p>
+                        <div>
+                          <p className="text-xs text-slate-400">Phone</p>
+                          <p className="font-semibold text-sm text-slate-900">{customer.phone}</p>
+                        </div>
+                      </div>
+                    )}
+                    {customer.hotelPickupDetails && (
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 bg-white rounded-lg shadow-sm flex items-center justify-center">
+                          <MapPin size={16} className="text-slate-600" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs text-slate-400">Pickup</p>
+                          <p className="font-semibold text-sm text-slate-900 truncate">{customer.hotelPickupDetails}</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
-              );
-            })}
-          </div>
+              )}
 
-          {/* Pricing Summary */}
-          <div className="border-t border-slate-200 pt-3 sm:pt-4 space-y-2 sm:space-y-3">
-            <div className="flex justify-between text-sm sm:text-base text-slate-700">
-              <span>Subtotal</span>
-              <span>{formatPrice(pricing.subtotal)}</span>
-            </div>
-            <div className="flex justify-between text-sm sm:text-base text-slate-700">
-              <span>Service fee</span>
-              <span>{formatPrice(pricing.serviceFee)}</span>
-            </div>
-            <div className="flex justify-between text-sm sm:text-base text-slate-700">
-              <span>Taxes & fees</span>
-              <span>{formatPrice(pricing.tax)}</span>
-            </div>
-            {pricing.discount > 0 && (
-              <div className="flex justify-between text-sm sm:text-base text-green-700 font-medium">
-                <span>Discount Applied</span>
-                <span>-{formatPrice(pricing.discount)}</span>
+              {/* Items Summary */}
+              <div className="space-y-3 mb-4">
+                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Order Summary</p>
+                {orderedItems.map((item, index) => {
+                  const getItemTotal = (item: CartItem) => {
+                    const basePrice = item.selectedBookingOption?.price || item.discountPrice || item.price || 0;
+                    const adultPrice = basePrice * (item.quantity || 1);
+                    const childPrice = (basePrice / 2) * (item.childQuantity || 0);
+                    let tourTotal = adultPrice + childPrice;
+                    let addOnsTotal = 0;
+                    if (item.selectedAddOns && item.selectedAddOnDetails) {
+                      Object.entries(item.selectedAddOns).forEach(([addOnId, quantity]) => {
+                        const addOnDetail = item.selectedAddOnDetails?.[addOnId];
+                        if (addOnDetail && quantity > 0) {
+                          const totalGuests = (item.quantity || 0) + (item.childQuantity || 0);
+                          const addOnQuantity = addOnDetail.perGuest ? totalGuests : 1;
+                          addOnsTotal += addOnDetail.price * addOnQuantity;
+                        }
+                      });
+                    }
+                    return tourTotal + addOnsTotal;
+                  };
+                  const itemTotal = getItemTotal(item);
+
+                  return (
+                    <div key={`${item._id ?? index}-${index}`} className="flex items-center gap-3 bg-white rounded-xl p-3 border border-slate-100">
+                      <div className="w-14 h-14 flex-shrink-0 overflow-hidden rounded-lg bg-slate-100">
+                        {item.image ? (
+                          <Image src={item.image} alt={item.title} width={56} height={56} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
+                            <Ticket size={20} className="text-slate-400" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-sm text-slate-900 line-clamp-1">{item.title}</h4>
+                        <p className="text-xs text-slate-500">
+                          {item.quantity} Adult{item.quantity > 1 ? 's' : ''}
+                          {item.childQuantity > 0 && `, ${item.childQuantity} Child${item.childQuantity > 1 ? 'ren' : ''}`}
+                        </p>
+                      </div>
+                      <p className="font-bold text-slate-900">{formatPrice(itemTotal)}</p>
+                    </div>
+                  );
+                })}
               </div>
-            )}
-            <div className="flex justify-between text-lg sm:text-xl font-bold text-slate-900 pt-2 sm:pt-3 border-t border-slate-200">
-              <span>Total Paid</span>
-              <span>{formatPrice(pricing.total)}</span>
+
+              {/* Pricing Breakdown */}
+              <div className="border-t border-dashed border-slate-200 pt-4 space-y-2">
+                <div className="flex justify-between text-sm text-slate-600">
+                  <span>Subtotal</span>
+                  <span>{formatPrice(pricing.subtotal)}</span>
+                </div>
+                <div className="flex justify-between text-sm text-slate-600">
+                  <span>Service fee</span>
+                  <span>{formatPrice(pricing.serviceFee)}</span>
+                </div>
+                <div className="flex justify-between text-sm text-slate-600">
+                  <span>Taxes & fees</span>
+                  <span>{formatPrice(pricing.tax)}</span>
+                </div>
+                {pricing.discount > 0 && (
+                  <div className="flex justify-between text-sm text-emerald-600 font-medium">
+                    <span className="flex items-center gap-1">
+                      <Tag size={14} />
+                      Discount
+                    </span>
+                    <span>-{formatPrice(pricing.discount)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center pt-3 border-t border-slate-200">
+                  <span className="text-base font-bold text-slate-900">Total Paid</span>
+                  <span className="text-2xl font-black text-slate-900">{formatPrice(pricing.total)}</span>
+                </div>
+              </div>
             </div>
+
+            {/* Bottom Gradient Bar */}
+            <div className="h-1.5 bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500" />
           </div>
-        </div>
+        </motion.div>
 
         {/* Action Buttons */}
-        <div className="flex flex-col gap-2 sm:flex-row sm:justify-center sm:gap-3 mt-6 sm:mt-8">
-          <button
-            onClick={() => router.push('/')}
-            className="w-full sm:w-auto px-5 sm:px-6 py-3 border-2 border-slate-300 bg-white hover:bg-slate-50 transition-colors text-sm sm:text-base font-semibold rounded-lg text-slate-700 order-3 sm:order-1"
-          >
-            Go to homepage
-          </button>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+          className="flex flex-col sm:flex-row gap-3 mt-6"
+        >
           <button
             onClick={handleDownloadReceipt}
             disabled={isDownloading}
-            className="w-full sm:w-auto px-5 sm:px-6 py-3 bg-slate-900 text-white text-sm sm:text-base font-semibold rounded-lg hover:bg-slate-800 transition-colors disabled:bg-slate-500 disabled:cursor-not-allowed flex items-center justify-center gap-2 order-1 sm:order-2"
+            className="flex-1 py-4 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 active:scale-[0.98] transition-all disabled:bg-slate-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-slate-900/20"
           >
             {isDownloading ? (
               <>
-                <Loader2 className="animate-spin" size={16} />
-                <span className="sm:hidden">Downloading...</span>
-                <span className="hidden sm:inline">Downloading...</span>
+                <Loader2 className="animate-spin" size={18} />
+                Downloading...
               </>
             ) : (
               <>
-                <Download size={16} className="sm:w-[18px] sm:h-[18px]" />
+                <Download size={18} />
                 Download Receipt
               </>
             )}
           </button>
           <button
             onClick={() => window.print()}
-            className="w-full sm:w-auto px-5 sm:px-6 py-3 border-2 border-slate-300 bg-white hover:bg-slate-50 transition-colors text-sm sm:text-base font-semibold rounded-lg text-slate-700 flex items-center justify-center gap-2 order-2 sm:order-3"
+            className="flex-1 py-4 bg-white text-slate-700 font-bold rounded-xl border-2 border-slate-200 hover:bg-slate-50 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
           >
-            <Printer size={16} className="sm:w-[18px] sm:h-[18px]" />
-            Print
+            <Printer size={18} />
+            Print Ticket
           </button>
-        </div>
-      </div>
-    </motion.div>
+        </motion.div>
+
+        {/* Continue Exploring */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.8 }}
+          className="mt-6 text-center"
+        >
+          <button
+            onClick={() => router.push('/')}
+            className="text-slate-500 hover:text-slate-700 font-medium text-sm inline-flex items-center gap-1 transition-colors"
+          >
+            Continue exploring tours
+            <ChevronRight size={16} />
+          </button>
+        </motion.div>
+
+        {/* Help Text */}
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1 }}
+          className="text-center text-xs text-slate-400 mt-8"
+        >
+          Questions about your booking? Contact us at support@egyptexcursionsonline.com
+        </motion.p>
+      </motion.div>
+    </div>
   );
 };
 
