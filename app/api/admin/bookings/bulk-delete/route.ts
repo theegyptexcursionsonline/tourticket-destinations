@@ -1,26 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Booking from '@/lib/models/Booking';
-import { verifyToken } from '@/lib/jwt';
 
 export async function POST(request: NextRequest) {
   try {
-    // Verify admin authentication
-    const token = request.cookies.get('authToken')?.value;
-    if (!token) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
-    const payload = await verifyToken(token);
-    if (!payload || payload.role !== 'admin') {
-      return NextResponse.json(
-        { error: 'Admin access required' },
-        { status: 403 }
-      );
-    }
+    await dbConnect();
 
     const { bookingIds } = await request.json();
 
@@ -40,8 +24,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    await dbConnect();
 
     // Delete all bookings with the given IDs
     const result = await Booking.deleteMany({
