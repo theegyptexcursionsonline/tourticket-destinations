@@ -7,7 +7,7 @@ import User from '@/lib/models/user';
 import Discount from '@/lib/models/Discount';
 import { EmailService } from '@/lib/email/emailService';
 import Stripe from 'stripe';
-import { parseLocalDate } from '@/utils/date';
+import { parseLocalDate, ensureDateOnlyString } from '@/utils/date';
 import { buildGoogleMapsLink, buildStaticMapImageUrl } from '@/lib/utils/mapImage';
 
 // Initialize Stripe
@@ -344,6 +344,8 @@ export async function POST(request: Request) {
 
         // Use parseLocalDate to ensure date-only strings are parsed correctly
         const bookingDate = parseLocalDate(cartItem.selectedDate) || new Date();
+        // Store the original date string (YYYY-MM-DD) for timezone-safe display
+        const bookingDateString = ensureDateOnlyString(cartItem.selectedDate);
         const bookingTime = cartItem.selectedTime || '10:00';
         const totalGuests = (cartItem.quantity || 1) + (cartItem.childQuantity || 0) + (cartItem.infantQuantity || 0);
 
@@ -383,6 +385,7 @@ export async function POST(request: Request) {
           tour: tour._id,
           user: user._id,
           date: bookingDate,
+          dateString: bookingDateString, // Store original YYYY-MM-DD for timezone-safe display
           time: bookingTime,
           guests: totalGuests,
           totalPrice: itemTotalPrice,

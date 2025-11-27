@@ -1,12 +1,13 @@
-// lib/utils/generateReceiptPdf.ts - Generate Receipt PDF as Buffer
+// lib/utils/generateReceiptPdf.ts - Shared Receipt PDF Generator
+// This is the exact same logic used by /api/checkout/receipt
 import { PDFDocument, StandardFonts, rgb, PDFPage, PDFFont } from 'pdf-lib';
 import { Buffer } from 'buffer';
 import { parseLocalDate } from '@/utils/date';
 
-let QR: any = null;
+let QR: typeof import('qrcode') | null = null;
 try {
   QR = require('qrcode');
-} catch (e) {
+} catch {
   QR = null;
 }
 
@@ -17,7 +18,7 @@ const hexToRgb = (hex: string) => {
   return rgb(parseInt(r[1], 16) / 255, parseInt(r[2], 16) / 255, parseInt(r[3], 16) / 255);
 };
 
-const toNumber = (v: any) => {
+const toNumber = (v: unknown) => {
   const n = Number(v);
   return Number.isFinite(n) ? n : 0;
 };
@@ -49,7 +50,7 @@ const wrapText = (text: string, font: PDFFont, size: number, maxWidth: number): 
   return lines;
 };
 
-const calculateItemTotal = (item: any) => {
+const calculateItemTotal = (item: ReceiptOrderedItem) => {
   const basePrice = item.selectedBookingOption?.price || item.discountPrice || item.price || 0;
   const adultPrice = basePrice * (item.quantity || 1);
   const childPrice = (basePrice / 2) * (item.childQuantity || 0);
@@ -95,51 +96,66 @@ const drawDashedLine = (
   }
 };
 
-export interface ReceiptData {
-  orderId: string;
-  customer: {
-    name: string;
-    email: string;
-    phone?: string;
-  };
-  orderedItems: Array<{
-    title: string;
-    quantity: number;
-    childQuantity?: number;
-    infantQuantity?: number;
+// Types matching the checkout page payload format
+export interface ReceiptOrderedItem {
+  title?: string;
+  quantity?: number;
+  childQuantity?: number;
+  infantQuantity?: number;
+  price?: number;
+  discountPrice?: number;
+  totalPrice?: number;
+  finalPrice?: number;
+  selectedBookingOption?: {
+    title?: string;
     price?: number;
-    discountPrice?: number;
-    selectedBookingOption?: {
-      title: string;
-      price: number;
-    };
-    selectedAddOns?: Record<string, number>;
-    selectedAddOnDetails?: Record<string, { price: number; perGuest: boolean }>;
-  }>;
-  pricing: {
-    symbol?: string;
-    subtotal: number;
-    serviceFee: number;
-    tax: number;
-    discount: number;
-    total: number;
   };
-  booking: {
-    date: string;
-    time?: string;
-  };
-  qrData?: string;
+  selectedAddOns?: Record<string, number>;
+  selectedAddOnDetails?: Record<string, { price: number; perGuest: boolean }>;
 }
 
-export async function generateReceiptPdf(data: ReceiptData): Promise<Buffer> {
+export interface ReceiptPricing {
+  subtotal?: number;
+  serviceFee?: number;
+  tax?: number;
+  discount?: number;
+  total?: number;
+  currency?: string;
+  symbol?: string;
+}
+
+export interface ReceiptCustomer {
+  name?: string;
+  email?: string;
+  phone?: string;
+}
+
+export interface ReceiptBooking {
+  date?: string;
+  time?: string;
+  guests?: number;
+  specialRequests?: string;
+}
+
+export interface ReceiptPayload {
+  orderId: string;
+  customer?: ReceiptCustomer;
+  orderedItems?: ReceiptOrderedItem[];
+  pricing?: ReceiptPricing;
+  booking?: ReceiptBooking;
+  qrData?: string;
+  notes?: string;
+}
+
+export async function generateReceiptPdf(payload: ReceiptPayload): Promise<Buffer> {
   const {
     orderId,
-    customer = {} as any,
+    customer = {},
     orderedItems = [],
-    pricing = {} as any,
-    booking = {} as any,
+    pricing = {},
+    booking = {},
     qrData,
-  } = data;
+  } = payload;
 
   const currencySymbol = pricing?.symbol ?? '$';
   const subtotal = round2(toNumber(pricing?.subtotal ?? 0));
@@ -155,7 +171,7 @@ export async function generateReceiptPdf(data: ReceiptData): Promise<Buffer> {
   const dayNum = bookingDate.getDate().toString();
   const month = bookingDate.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
 
-  // Create PDF
+  // Create PDF - ticket size (wider format)
   const pdfDoc = await PDFDocument.create();
   const pageWidth = 595;
   const pageHeight = 900;
@@ -202,9 +218,11 @@ export async function generateReceiptPdf(data: ReceiptData): Promise<Buffer> {
 
   y -= 35;
 
-  // Tour title
+  // Tour title and subtitle
   const firstItem = orderedItems[0];
-  const tourTitle = orderedItems.length === 1 ? firstItem?.title || 'Tour Booking' : `${orderedItems.length} Tours Booked`;
+  const tourTitle = orderedItems.length === 1
+    ? firstItem?.title || 'Tour Booking'
+    : `${orderedItems.length} Tours Booked`;
 
   const textBlockTopY = y;
   const dateBadgeWidth = 70;
@@ -226,7 +244,7 @@ export async function generateReceiptPdf(data: ReceiptData): Promise<Buffer> {
     y -= 8;
   }
 
-  // Date badge
+  // Date badge (right side)
   const dateBadgeHeight = 75;
   const dateBadgeX = pageWidth - margin - dateBadgeWidth;
   const dateBadgeY = textBlockTopY - 15;
@@ -264,7 +282,9 @@ export async function generateReceiptPdf(data: ReceiptData): Promise<Buffer> {
   page.drawText('TIME', { x: margin + colWidth, y: gridY, font: boldFont, size: 8, color: colors.lightGray });
   page.drawText(booking?.time || 'Flexible', { x: margin + colWidth, y: gridY - 14, font: boldFont, size: 11, color: colors.black });
 
-  const totalGuests = orderedItems.reduce((sum: number, item: any) => sum + (item.quantity || 0) + (item.childQuantity || 0) + (item.infantQuantity || 0), 0);
+  const totalGuests = orderedItems.reduce((sum: number, item) => {
+    return sum + (item.quantity || 0) + (item.childQuantity || 0) + (item.infantQuantity || 0);
+  }, 0);
   page.drawText('GUESTS', { x: margin + colWidth * 2, y: gridY, font: boldFont, size: 8, color: colors.lightGray });
   page.drawText(`${totalGuests} Total`, { x: margin + colWidth * 2, y: gridY - 14, font: boldFont, size: 11, color: colors.black });
 
@@ -273,20 +293,29 @@ export async function generateReceiptPdf(data: ReceiptData): Promise<Buffer> {
 
   y -= 50;
 
-  // QR CODE SECTION
+  // LARGE QR CODE SECTION
   const qrSectionY = y;
   const qrSize = 140;
   const qrX = (pageWidth - qrSize) / 2;
 
-  page.drawRectangle({ x: margin, y: qrSectionY - qrSize - 40, width: pageWidth - margin * 2, height: qrSize + 60, color: colors.black });
+  page.drawRectangle({
+    x: margin, y: qrSectionY - qrSize - 40,
+    width: pageWidth - margin * 2, height: qrSize + 60, color: colors.black,
+  });
 
   const scanTitle = 'SCAN FOR BOOKING DETAILS';
   const scanTitleWidth = boldFont.widthOfTextAtSize(scanTitle, 10);
   page.drawText(scanTitle, { x: (pageWidth - scanTitleWidth) / 2, y: qrSectionY - 18, font: boldFont, size: 10, color: colors.lightGray });
 
+  // Generate and embed QR code
   if (qrData && QR) {
     try {
-      const pngBuffer = await QR.toBuffer(String(qrData), { type: 'png', width: 400, margin: 1, color: { dark: '#0f172a', light: '#ffffff' } });
+      const pngBuffer = await QR.toBuffer(String(qrData), {
+        type: 'png',
+        width: 400,
+        margin: 1,
+        color: { dark: '#0f172a', light: '#ffffff' }
+      });
       const qrPngBuffer = Buffer.from(pngBuffer);
       const qrImage = await pdfDoc.embedPng(qrPngBuffer);
       page.drawImage(qrImage, { x: qrX, y: qrSectionY - qrSize - 28, width: qrSize, height: qrSize });
@@ -327,21 +356,25 @@ export async function generateReceiptPdf(data: ReceiptData): Promise<Buffer> {
   page.drawText('ORDER SUMMARY', { x: margin, y: y, font: boldFont, size: 9, color: colors.lightGray });
   y -= 20;
 
-  orderedItems.forEach((item: any) => {
-    const itemTotal = calculateItemTotal(item);
-    const title = (item.title || 'Tour').substring(0, 40) + (item.title?.length > 40 ? '...' : '');
+  orderedItems.forEach((item) => {
+    const itemTotal = item.totalPrice ?? item.finalPrice ?? calculateItemTotal(item);
+    const title = (item.title || 'Tour').substring(0, 40) + ((item.title?.length ?? 0) > 40 ? '...' : '');
 
-    page.drawRectangle({ x: margin, y: y - 35, width: pageWidth - margin * 2, height: 45, color: colors.white, borderColor: colors.veryLightGray, borderWidth: 1 });
+    page.drawRectangle({
+      x: margin, y: y - 35, width: pageWidth - margin * 2, height: 45,
+      color: colors.white, borderColor: colors.veryLightGray, borderWidth: 1,
+    });
+
     page.drawText(title, { x: margin + 12, y: y - 12, font: boldFont, size: 10, color: colors.black });
 
     const participantText = [
-      item.quantity > 0 ? `${item.quantity} Adult${item.quantity > 1 ? 's' : ''}` : '',
-      item.childQuantity > 0 ? `${item.childQuantity} Child${item.childQuantity > 1 ? 'ren' : ''}` : '',
+      (item.quantity ?? 0) > 0 ? `${item.quantity} Adult${(item.quantity ?? 0) > 1 ? 's' : ''}` : '',
+      (item.childQuantity ?? 0) > 0 ? `${item.childQuantity} Child${(item.childQuantity ?? 0) > 1 ? 'ren' : ''}` : '',
     ].filter(Boolean).join(', ');
 
     page.drawText(participantText, { x: margin + 12, y: y - 26, font: font, size: 9, color: colors.gray });
 
-    const priceText = `${currencySymbol}${itemTotal.toFixed(2)}`;
+    const priceText = `${currencySymbol}${toNumber(itemTotal).toFixed(2)}`;
     const priceWidth = boldFont.widthOfTextAtSize(priceText, 12);
     page.drawText(priceText, { x: pageWidth - margin - priceWidth - 12, y: y - 18, font: boldFont, size: 12, color: colors.black });
 
@@ -396,7 +429,7 @@ export async function generateReceiptPdf(data: ReceiptData): Promise<Buffer> {
   page.drawRectangle({ x: margin + sectionWidth * 2, y: bottomBarY, width: sectionWidth, height: 6, color: colors.amber });
 
   // FOOTER
-  const footerText = 'Egypt Excursions Online  •  support@egyptexcursionsonline.com  •  www.egyptexcursionsonline.com';
+  const footerText = 'Egypt Excursions Online  •  booking@egypt-excursionsonline.com  •  www.egypt-excursionsonline.com';
   const footerWidth = font.widthOfTextAtSize(footerText, 8);
   page.drawText(footerText, { x: (pageWidth - footerWidth) / 2, y: 15, font: font, size: 8, color: colors.lightGray });
 

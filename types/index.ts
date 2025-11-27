@@ -324,6 +324,8 @@ export interface Booking {
   tour: Tour | string;
   user: User | string;
   bookingDate: string;
+  dateString?: string; // YYYY-MM-DD format - timezone-safe for display
+  date?: string | Date; // MongoDB date field
   bookingTime: string;
   adults: number;
   children: number;

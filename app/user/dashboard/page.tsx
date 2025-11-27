@@ -51,8 +51,10 @@ const StatCard = ({ title, value, icon: Icon }: { title: string; value: string |
 );
 
 /* ---------- Booking Card (mobile-first) ---------- */
-const BookingCard = ({ booking }: { booking: PopulatedBooking }) => {
-  const bookingDate = parseLocalDate(booking.date) || new Date(booking.date);
+const BookingCard = ({ booking }: { booking: PopulatedBooking & { dateString?: string } }) => {
+  // Prefer dateString (YYYY-MM-DD) for timezone-safe display, fall back to date
+  const dateSource = booking.dateString || booking.date;
+  const bookingDate = parseLocalDate(dateSource) || new Date(booking.date);
   const isPast = bookingDate < new Date();
 
   return (

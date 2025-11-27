@@ -1301,7 +1301,7 @@ const handleDownloadReceipt = async () => {
           transition={{ delay: 1 }}
           className="text-center text-xs text-slate-400 mt-8"
         >
-          Questions about your booking? Contact us at support@egyptexcursionsonline.com
+          Questions about your booking? Contact us at booking@egypt-excursionsonline.com
         </motion.p>
       </motion.div>
     </div>

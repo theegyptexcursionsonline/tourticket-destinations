@@ -2,7 +2,7 @@
 import { TemplateEngine } from './templateEngine';
 import { sendEmail } from '../mailgun';
 import { generateBookingVerificationURL } from '@/lib/utils/qrcode';
-import { generateReceiptPdf } from '@/lib/utils/generateReceiptPdf';
+import { generateReceiptPdf, ReceiptPayload } from '@/lib/utils/generateReceiptPdf';
 import type {
   EmailType,
   BookingEmailData,
@@ -71,10 +71,10 @@ export class EmailService {
       console.error('Error generating QR code:', error);
     }
 
-    // Generate receipt PDF
+    // Generate receipt PDF using the same format as the checkout page
     try {
-      // Prepare receipt data from booking email data
-      const receiptData = {
+      // Build receipt payload matching the checkout page format exactly
+      const receiptPayload: ReceiptPayload = {
         orderId: data.bookingId,
         customer: {
           name: data.customerName,
@@ -83,10 +83,11 @@ export class EmailService {
         },
         orderedItems: (data.orderedItems || []).map(item => ({
           title: item.title,
-          quantity: item.quantity || item.adults || 1,
-          childQuantity: item.childQuantity || item.children || 0,
-          infantQuantity: item.infantQuantity || item.infants || 0,
+          quantity: item.quantity ?? item.adults ?? 1,
+          childQuantity: item.childQuantity ?? item.children ?? 0,
+          infantQuantity: item.infantQuantity ?? item.infants ?? 0,
           price: item.price,
+          totalPrice: item.totalPrice ? parseFloat(item.totalPrice.replace(/[^0-9.-]/g, '')) : undefined,
           selectedBookingOption: item.selectedBookingOption,
         })),
         pricing: data.pricingRaw || {
@@ -104,7 +105,7 @@ export class EmailService {
         qrData: verificationUrl,
       };
 
-      receiptPdfBuffer = await generateReceiptPdf(receiptData);
+      receiptPdfBuffer = await generateReceiptPdf(receiptPayload);
       console.log(`📄 Generated receipt PDF: ${receiptPdfBuffer.length} bytes`);
     } catch (error) {
       console.error('Error generating receipt PDF:', error);

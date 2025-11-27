@@ -454,7 +454,7 @@ const BookingsPage = () => {
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-sm text-slate-900">
-                          {formatDisplayDate(booking.date)}
+                          {formatDisplayDate(booking.dateString || booking.date)}
                         </div>
                         <div className="text-sm text-slate-500">{booking.time}</div>
                       </td>

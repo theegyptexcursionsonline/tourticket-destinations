@@ -275,11 +275,23 @@ const UserBookingDetailPage = () => {
   const canCancelBooking = () => {
     if (!booking) return false;
     if (booking.status === 'Cancelled') return false;
-    
-    const bookingDate = new Date(booking.date);
+
+    // Use dateString for timezone-safe date parsing
+    const dateSource = booking.dateString || booking.date;
+    const dateStr = typeof dateSource === 'string' ? dateSource : new Date(dateSource).toISOString();
+    const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+
+    let bookingDate: Date;
+    if (match) {
+      const [, year, month, day] = match;
+      bookingDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    } else {
+      bookingDate = new Date(booking.date);
+    }
+
     const now = new Date();
     const hoursUntilBooking = (bookingDate.getTime() - now.getTime()) / (1000 * 60 * 60);
-    
+
     return hoursUntilBooking > 24;
   };
 
@@ -553,7 +565,7 @@ const UserBookingDetailPage = () => {
                 <DetailItem
                   icon={Calendar}
                   label="Tour Date"
-                  value={formatDisplayDate(booking.date)}
+                  value={formatDisplayDate(booking.dateString || booking.date)}
                 />
                 <DetailItem 
                   icon={Clock} 

@@ -19,6 +19,7 @@ interface BookingDetails {
     email: string;
   };
   date: string;
+  dateString?: string; // YYYY-MM-DD format - timezone-safe
   time: string;
   guests: number;
   adultGuests?: number;
@@ -203,7 +204,7 @@ export default function BookingVerificationPage() {
               {/* Date & Time */}
               <div className="bg-gray-50 rounded-xl p-4">
                 <div className="text-sm text-gray-600 mb-1">Date & Time</div>
-                <div className="text-lg font-semibold text-gray-900">{formatDate(booking.date)}</div>
+                <div className="text-lg font-semibold text-gray-900">{formatDate(booking.dateString || booking.date)}</div>
                 <div className="text-sm text-gray-600">{booking.time}</div>
               </div>
 

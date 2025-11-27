@@ -572,7 +572,7 @@ const BookingDetailPage = () => {
               <DetailItem
                 icon={Calendar}
                 label="Tour Date"
-                value={formatDisplayDate(booking.date)}
+                value={formatDisplayDate(booking.dateString || booking.date)}
               />
               <DetailItem 
                 icon={Clock} 
