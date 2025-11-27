@@ -1195,6 +1195,27 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour }
     };
   }, [tour]);
 
+  // Helper function to generate time slots from tour availability settings
+  const generateTimeSlotsFromAvailability = (price: number, optionIndex: number): TimeSlot[] => {
+    // Use actual slots from tour.availability if available
+    if (tour?.availability?.slots && tour.availability.slots.length > 0) {
+      return tour.availability.slots.map((slot, slotIndex) => ({
+        id: `slot-${optionIndex}-${slotIndex}`,
+        time: slot.time,
+        available: slot.capacity,
+        price: price,
+        isPopular: slotIndex === 0, // Mark first slot as popular
+        originalAvailable: slot.capacity,
+      }));
+    }
+
+    // Fallback to default slots if none configured in admin
+    return [
+      { id: `slot-${optionIndex}-1`, time: '09:00', available: 15, price: price, isPopular: false },
+      { id: `slot-${optionIndex}-2`, time: '14:00', available: 15, price: price, isPopular: true },
+    ];
+  };
+
   // OPTIMIZED: Use pre-fetched data from tour prop (SSR/ISR) instead of client-side API calls
   const fetchAvailability = async (date: Date, totalGuests: number) => {
     setIsLoading(true);
@@ -1210,45 +1231,39 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour }
       let tourOptions: TourOption[];
       if (tour.bookingOptions && tour.bookingOptions.length > 0) {
         // Transform pre-fetched bookingOptions to TourOption format
-        tourOptions = tour.bookingOptions.map((option: any, index: number) => ({
-          id: option.id || option._id || `option-${index}`,
-          title: option.label || option.title || 'Tour Option',
-          price: option.price || tourDisplayData?.discountPrice || 50,
-          originalPrice: option.originalPrice || option.price || tourDisplayData?.discountPrice || 50,
-          duration: option.duration || tourDisplayData?.duration || '3 hours',
-          languages: option.languages || tourDisplayData?.languages || ['English'],
-          description: option.description || 'Experience our tour',
-          timeSlots: option.timeSlots || [
-            { id: `slot-${index}-1`, time: '09:00', available: 12, price: option.price || tourDisplayData?.discountPrice || 50, isPopular: false },
-            { id: `slot-${index}-2`, time: '11:00', available: 8, price: option.price || tourDisplayData?.discountPrice || 50, isPopular: true },
-            { id: `slot-${index}-3`, time: '14:00', available: 15, price: option.price || tourDisplayData?.discountPrice || 50, isPopular: false },
-            { id: `slot-${index}-4`, time: '16:00', available: 3, price: option.price || tourDisplayData?.discountPrice || 50, isPopular: false },
-          ],
-          highlights: option.highlights || tourDisplayData?.highlights?.slice(0, 3) || ['Expert guide included', 'Small group experience', 'Photo opportunities'],
-          included: option.included || tourDisplayData?.includes?.slice(0, 3) || ['Professional guide', 'Entry tickets', 'Group photos'],
-          groupSize: option.groupSize || `Max ${tourDisplayData?.maxGroupSize || 15} people`,
-          difficulty: option.difficulty || 'Easy',
-          badge: option.badge || (index === 0 ? 'Most Popular' : undefined),
-          discount: option.discount || (tourDisplayData?.originalPrice ? Math.round(((tourDisplayData.originalPrice - tourDisplayData.discountPrice) / tourDisplayData.originalPrice) * 100) : 0),
-          isRecommended: option.isRecommended ?? index === 0,
-        }));
+        tourOptions = tour.bookingOptions.map((option: any, index: number) => {
+          const optionPrice = option.price || tourDisplayData?.discountPrice || 50;
+          return {
+            id: option.id || option._id || `option-${index}`,
+            title: option.label || option.title || 'Tour Option',
+            price: optionPrice,
+            originalPrice: option.originalPrice || optionPrice,
+            duration: option.duration || tourDisplayData?.duration || '3 hours',
+            languages: option.languages || tourDisplayData?.languages || ['English'],
+            description: option.description || 'Experience our tour',
+            timeSlots: option.timeSlots || generateTimeSlotsFromAvailability(optionPrice, index),
+            highlights: option.highlights || tourDisplayData?.highlights?.slice(0, 3) || ['Expert guide included', 'Small group experience', 'Photo opportunities'],
+            included: option.included || tourDisplayData?.includes?.slice(0, 3) || ['Professional guide', 'Entry tickets', 'Group photos'],
+            groupSize: option.groupSize || `Max ${tourDisplayData?.maxGroupSize || 15} people`,
+            difficulty: option.difficulty || 'Easy',
+            badge: option.badge || (index === 0 ? 'Most Popular' : undefined),
+            discount: option.discount || (tourDisplayData?.originalPrice ? Math.round(((tourDisplayData.originalPrice - tourDisplayData.discountPrice) / tourDisplayData.originalPrice) * 100) : 0),
+            isRecommended: option.isRecommended ?? index === 0,
+          };
+        });
       } else {
-        // Fallback to default tour options (no API call needed)
+        // Fallback to default tour options using actual availability slots
+        const standardPrice = tourDisplayData?.discountPrice || 50;
         tourOptions = [
           {
             id: 'standard-tour',
             title: 'Standard Tour Experience',
-            price: tourDisplayData?.discountPrice || 50,
-            originalPrice: tourDisplayData?.originalPrice || tourDisplayData?.discountPrice || 50,
+            price: standardPrice,
+            originalPrice: tourDisplayData?.originalPrice || standardPrice,
             duration: tourDisplayData?.duration || '3 hours',
             languages: tourDisplayData?.languages || ['English'],
             description: 'Perfect introduction to the destination with expert guide',
-            timeSlots: [
-              { id: 'slot-1', time: '09:00', available: 12, price: tourDisplayData?.discountPrice || 50, isPopular: false },
-              { id: 'slot-2', time: '11:00', available: 8, price: tourDisplayData?.discountPrice || 50, isPopular: true },
-              { id: 'slot-3', time: '14:00', available: 15, price: tourDisplayData?.discountPrice || 50, isPopular: false },
-              { id: 'slot-4', time: '16:00', available: 3, price: tourDisplayData?.discountPrice || 50, isPopular: false },
-            ],
+            timeSlots: generateTimeSlotsFromAvailability(standardPrice, 0),
             highlights: tourDisplayData?.highlights?.slice(0, 3) || ['Expert guide included', 'Small group experience', 'Photo opportunities'],
             included: tourDisplayData?.includes?.slice(0, 3) || ['Professional guide', 'Entry tickets', 'Group photos'],
             groupSize: `Max ${tourDisplayData?.maxGroupSize || 15} people`,
@@ -1256,26 +1271,6 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour }
             badge: 'Most Popular',
             discount: tourDisplayData?.originalPrice ? Math.round(((tourDisplayData.originalPrice - tourDisplayData.discountPrice) / tourDisplayData.originalPrice) * 100) : 0,
             isRecommended: true,
-          },
-          {
-            id: 'premium-tour',
-            title: 'Premium Experience',
-            price: (tourDisplayData?.discountPrice || 50) * 1.5,
-            originalPrice: (tourDisplayData?.originalPrice || tourDisplayData?.discountPrice || 50) * 1.5,
-            duration: tourDisplayData?.duration || '4 hours',
-            languages: ['English', 'Spanish', 'French'],
-            description: 'Enhanced experience with additional perks and smaller groups',
-            timeSlots: [
-              { id: 'premium-slot-1', time: '10:00', available: 6, price: (tourDisplayData?.discountPrice || 50) * 1.5, isPopular: false },
-              { id: 'premium-slot-2', time: '15:00', available: 4, price: (tourDisplayData?.discountPrice || 50) * 1.5, isPopular: true },
-            ],
-            highlights: ['VIP access', 'Complimentary refreshments', 'Professional photos included'],
-            included: ['Private guide', 'VIP entry', 'Refreshments', 'Photo package'],
-            groupSize: `Max ${Math.floor((tourDisplayData?.maxGroupSize || 15) / 2)} people`,
-            difficulty: 'Easy',
-            badge: 'Premium',
-            discount: 10,
-            isRecommended: false,
           }
         ];
       }
