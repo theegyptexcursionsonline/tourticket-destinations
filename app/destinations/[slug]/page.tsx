@@ -7,27 +7,10 @@ import CategoryModel from '@/lib/models/Category';
 import ReviewModel from '@/lib/models/Review';
 import DestinationPageClient from './DestinationPageClient';
 
-// Enable ISR with 60 second revalidation for fast page loads
-export const revalidate = 60;
-export const dynamicParams = true;
-
-// Pre-generate static pages for all published destinations
-export async function generateStaticParams() {
-  try {
-    await dbConnect();
-    
-    const destinations = await DestinationModel.find({ isPublished: true })
-      .select('slug')
-      .lean();
-
-    return destinations.map((dest) => ({
-      slug: dest.slug,
-    }));
-  } catch (error) {
-    console.error('Error generating static params for destinations:', error);
-    return [];
-  }
-}
+// Force dynamic rendering to avoid MongoDB connection during build time
+// This prevents TLS/SSL connection errors on Netlify during static generation
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 // Generate metadata for SEO
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {

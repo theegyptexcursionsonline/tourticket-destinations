@@ -555,10 +555,12 @@ const TourOptionCard: React.FC<{
               <Star size={14} className="text-yellow-500 fill-yellow-500" />
               <span className="text-sm font-semibold text-gray-800">{rating}</span>
             </div>
-            <div className="flex items-center gap-1.5 bg-gray-100 px-2.5 py-1 rounded-full">
-              <Users size={14} className="text-blue-500" />
-              <span className="text-sm font-medium text-gray-700">{totalBookings.toLocaleString()} booked</span>
-            </div>
+            {totalBookings > 0 && (
+              <div className="flex items-center gap-1.5 bg-gray-100 px-2.5 py-1 rounded-full">
+                <Users size={14} className="text-blue-500" />
+                <span className="text-sm font-medium text-gray-700">{totalBookings.toLocaleString()} booked</span>
+              </div>
+            )}
             <div className="flex items-center gap-1.5 bg-gray-100 px-2.5 py-1 rounded-full">
               <User size={14} className="text-purple-500" />
               <span className="text-sm font-medium text-gray-700">Max {maxParticipants}</span>
@@ -1247,7 +1249,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour }
             groupSize: option.groupSize || `Max ${tourDisplayData?.maxGroupSize || 15} people`,
             difficulty: option.difficulty || 'Easy',
             badge: option.badge || (index === 0 ? 'Most Popular' : undefined),
-            discount: option.discount || (tourDisplayData?.originalPrice ? Math.round(((tourDisplayData.originalPrice - tourDisplayData.discountPrice) / tourDisplayData.originalPrice) * 100) : 0),
+            discount: option.discount || (tourDisplayData?.originalPrice && tourDisplayData.originalPrice > tourDisplayData.discountPrice ? Math.round(((tourDisplayData.originalPrice - tourDisplayData.discountPrice) / tourDisplayData.originalPrice) * 100) : undefined),
             isRecommended: option.isRecommended ?? index === 0,
           };
         });
@@ -1269,7 +1271,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour }
             groupSize: `Max ${tourDisplayData?.maxGroupSize || 15} people`,
             difficulty: 'Easy',
             badge: 'Most Popular',
-            discount: tourDisplayData?.originalPrice ? Math.round(((tourDisplayData.originalPrice - tourDisplayData.discountPrice) / tourDisplayData.originalPrice) * 100) : 0,
+            discount: tourDisplayData?.originalPrice && tourDisplayData.originalPrice > tourDisplayData.discountPrice ? Math.round(((tourDisplayData.originalPrice - tourDisplayData.discountPrice) / tourDisplayData.originalPrice) * 100) : undefined,
             isRecommended: true,
           }
         ];
