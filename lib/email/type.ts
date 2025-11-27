@@ -45,6 +45,15 @@ export interface BookingEmailData extends BaseEmailData {
     infants: number;
     bookingOption?: string;
     totalPrice: string;
+    // Additional fields for receipt PDF
+    quantity?: number;
+    childQuantity?: number;
+    infantQuantity?: number;
+    price?: number;
+    selectedBookingOption?: {
+      title: string;
+      price: number;
+    };
   }>;
   pricingDetails?: {
     subtotal: string;
@@ -53,6 +62,15 @@ export interface BookingEmailData extends BaseEmailData {
     discount?: string;
     total: string;
     currencySymbol: string;
+  };
+  // Raw pricing values for receipt PDF generation
+  pricingRaw?: {
+    subtotal: number;
+    serviceFee: number;
+    tax: number;
+    discount: number;
+    total: number;
+    symbol: string;
   };
   timeUntil?: {
     days: number;

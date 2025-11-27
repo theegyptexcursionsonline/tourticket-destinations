@@ -17,6 +17,12 @@ interface InlineAttachment {
   cid: string;
 }
 
+interface Attachment {
+  filename: string;
+  data: Buffer;
+  contentType?: string;
+}
+
 interface EmailOptions {
   to: string;
   subject: string;
@@ -26,6 +32,7 @@ interface EmailOptions {
   bcc?: string;
   replyTo?: string;
   inlineAttachments?: InlineAttachment[];
+  attachments?: Attachment[];
 }
 
 export async function sendEmail(options: EmailOptions): Promise<void> {
@@ -41,21 +48,34 @@ export async function sendEmail(options: EmailOptions): Promise<void> {
       'h:X-Mailgun-Tag': options.type, // For analytics
     };
 
-    // Add inline attachments if present
+    // Add inline attachments if present (for embedded images like QR codes)
     if (options.inlineAttachments && options.inlineAttachments.length > 0) {
-      // Mailgun expects inline attachments as an array of file-like objects
+      // Mailgun expects inline attachments with filename matching the CID
       messageData.inline = options.inlineAttachments.map(attachment => {
         console.log(`📎 Adding inline attachment: ${attachment.cid}, size: ${attachment.data.length} bytes`);
-        // Return a proper file object with the buffer data
+        // The filename should match the CID for proper embedding
         return {
-          filename: attachment.filename,
+          filename: attachment.cid, // Use CID as filename for Mailgun inline images
           data: attachment.data,
           knownLength: attachment.data.length
         };
       });
     }
 
-    console.log(`📧 Sending email with inline attachments: ${messageData.inline ? messageData.inline.length : 0}`);
+    // Add regular attachments if present (for PDFs, etc.)
+    if (options.attachments && options.attachments.length > 0) {
+      messageData.attachment = options.attachments.map(attachment => {
+        console.log(`📄 Adding attachment: ${attachment.filename}, size: ${attachment.data.length} bytes`);
+        return {
+          filename: attachment.filename,
+          data: attachment.data,
+          knownLength: attachment.data.length,
+          contentType: attachment.contentType || 'application/octet-stream'
+        };
+      });
+    }
+
+    console.log(`📧 Sending email with inline: ${messageData.inline?.length || 0}, attachments: ${messageData.attachment?.length || 0}`);
     const result = await mg.messages.create(DOMAIN, messageData);
     console.log(`📮 Mailgun response ID: ${result.id}`);
 
