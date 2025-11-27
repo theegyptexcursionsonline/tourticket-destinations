@@ -1,9 +1,7 @@
-// app/api/checkout/receipt/route.ts (Fixed with correct pricing)
+// app/api/checkout/receipt/route.ts - Premium Ticket-Style Receipt
 import { NextRequest, NextResponse } from 'next/server';
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import { PDFDocument, StandardFonts, rgb, PDFPage } from 'pdf-lib';
 import { Buffer } from 'buffer';
-import fs from 'fs/promises';
-import path from 'path';
 
 let QR: any = null;
 try {
@@ -13,7 +11,7 @@ try {
 }
 
 // Helper functions
-const hexToPdfLibRgb = (hex: string) => {
+const hexToRgb = (hex: string) => {
   const r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   if (!r) return rgb(0, 0, 0);
   return rgb(parseInt(r[1], 16) / 255, parseInt(r[2], 16) / 255, parseInt(r[3], 16) / 255);
@@ -26,7 +24,6 @@ const toNumber = (v: any) => {
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
-// Use the SAME calculation logic as the checkout page
 const calculateItemTotal = (item: any) => {
   const basePrice = item.selectedBookingOption?.price || item.discountPrice || item.price || 0;
   const adultPrice = basePrice * (item.quantity || 1);
@@ -35,9 +32,10 @@ const calculateItemTotal = (item: any) => {
 
   let addOnsTotal = 0;
   if (item.selectedAddOns && item.selectedAddOnDetails) {
-    Object.entries(item.selectedAddOns).forEach(([addOnId, quantity]) => {
+    Object.entries(item.selectedAddOns).forEach(([addOnId, qty]) => {
       const addOnDetail = item.selectedAddOnDetails?.[addOnId];
-      if (addOnDetail && quantity > 0) {
+      const qtyNum = Number(qty) || 0;
+      if (addOnDetail && qtyNum > 0) {
         const totalGuests = (item.quantity || 0) + (item.childQuantity || 0);
         const addOnQuantity = addOnDetail.perGuest ? totalGuests : 1;
         addOnsTotal += addOnDetail.price * addOnQuantity;
@@ -46,6 +44,44 @@ const calculateItemTotal = (item: any) => {
   }
 
   return tourTotal + addOnsTotal;
+};
+
+// Draw rounded rectangle helper
+const drawRoundedRect = (
+  page: PDFPage,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number,
+  color: ReturnType<typeof rgb>
+) => {
+  // Simplified rounded rect using regular rect (pdf-lib doesn't have native rounded rect)
+  page.drawRectangle({ x, y, width, height, color });
+};
+
+// Draw dashed line helper
+const drawDashedLine = (
+  page: PDFPage,
+  startX: number,
+  startY: number,
+  endX: number,
+  dashLength: number,
+  gapLength: number,
+  color: ReturnType<typeof rgb>,
+  thickness: number
+) => {
+  let currentX = startX;
+  while (currentX < endX) {
+    const dashEnd = Math.min(currentX + dashLength, endX);
+    page.drawLine({
+      start: { x: currentX, y: startY },
+      end: { x: dashEnd, y: startY },
+      thickness,
+      color,
+    });
+    currentX = dashEnd + gapLength;
+  }
 };
 
 export async function POST(req: NextRequest) {
@@ -58,472 +94,504 @@ export async function POST(req: NextRequest) {
       orderedItems = [],
       pricing = {},
       booking = {},
-      qrImageBase64,
       qrData,
-      notes,
     } = body;
 
     const currencySymbol = pricing?.symbol ?? '$';
-    
- // In app/api/checkout/receipt/route.ts - use the provided pricing exactly
-const subtotal = round2(toNumber(pricing?.subtotal ?? 0));
-const serviceFee = round2(toNumber(pricing?.serviceFee ?? 0));
-const tax = round2(toNumber(pricing?.tax ?? 0));
-const discount = round2(toNumber(pricing?.discount ?? 0));
-const total = round2(toNumber(pricing?.total ?? 0));
+    const subtotal = round2(toNumber(pricing?.subtotal ?? 0));
+    const serviceFee = round2(toNumber(pricing?.serviceFee ?? 0));
+    const tax = round2(toNumber(pricing?.tax ?? 0));
+    const discount = round2(toNumber(pricing?.discount ?? 0));
+    const total = round2(toNumber(pricing?.total ?? 0));
 
+    // Parse booking date
+    const bookingDateStr = booking?.date || new Date().toLocaleDateString();
+    const bookingDate = new Date(bookingDateStr);
+    const dayOfWeek = bookingDate.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+    const dayNum = bookingDate.getDate().toString();
+    const month = bookingDate.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+    const year = bookingDate.getFullYear().toString();
 
-    // Create PDF
+    // Create PDF - ticket size (wider format)
     const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([595, 842]); // A4 size
-    const { width, height } = page.getSize();
-    const margin = 50;
+    const pageWidth = 595;
+    const pageHeight = 900;
+    const page = pdfDoc.addPage([pageWidth, pageHeight]);
+    const margin = 40;
 
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
+    // Colors
     const colors = {
-      primary: hexToPdfLibRgb('#111827'),
-      secondary: hexToPdfLibRgb('#6B7280'),
-      lightGray: hexToPdfLibRgb('#F9FAFB'),
-      lineColor: hexToPdfLibRgb('#E5E7EB'),
-      blue: hexToPdfLibRgb('#3B82F6'),
+      black: hexToRgb('#0f172a'),
+      darkGray: hexToRgb('#334155'),
+      gray: hexToRgb('#64748b'),
+      lightGray: hexToRgb('#94a3b8'),
+      veryLightGray: hexToRgb('#f1f5f9'),
+      white: rgb(1, 1, 1),
+      rose: hexToRgb('#e11d48'),
+      orange: hexToRgb('#ea580c'),
+      amber: hexToRgb('#d97706'),
+      emerald: hexToRgb('#059669'),
+      emeraldLight: hexToRgb('#d1fae5'),
     };
 
-    let currentY = height - margin;
+    let y = pageHeight - margin;
 
-    // --- HEADER ---
-    const headerHeight = 80;
-    page.drawRectangle({ 
-      x: 0, 
-      y: currentY - headerHeight, 
-      width, 
-      height: headerHeight, 
-      color: colors.lightGray 
+    // ============================================
+    // TOP GRADIENT BAR (simulated with sections)
+    // ============================================
+    const barHeight = 8;
+    const barWidth = pageWidth - margin * 2;
+    const sectionWidth = barWidth / 3;
+
+    page.drawRectangle({ x: margin, y: y - barHeight, width: sectionWidth, height: barHeight, color: colors.rose });
+    page.drawRectangle({ x: margin + sectionWidth, y: y - barHeight, width: sectionWidth, height: barHeight, color: colors.orange });
+    page.drawRectangle({ x: margin + sectionWidth * 2, y: y - barHeight, width: sectionWidth, height: barHeight, color: colors.amber });
+
+    y -= barHeight + 25;
+
+    // ============================================
+    // HEADER SECTION
+    // ============================================
+
+    // Status badges
+    // Confirmed badge
+    page.drawRectangle({ x: margin, y: y - 14, width: 70, height: 18, color: colors.emeraldLight });
+    page.drawText('CONFIRMED', {
+      x: margin + 8,
+      y: y - 10,
+      font: boldFont,
+      size: 8,
+      color: colors.emerald,
     });
 
-    // Company logo/name
-    try {
-      const logoPath = path.join(process.cwd(), 'public/EEO-logo.png');
-      const bytes = await fs.readFile(logoPath);
-      const logo = await pdfDoc.embedPng(bytes);
-      const logoWidth = 60;
-      const logoHeight = (logo.height / logo.width) * logoWidth;
-      
-      page.drawImage(logo, {
-        x: margin,
-        y: currentY - headerHeight/2 - logoHeight/2,
-        width: logoWidth,
-        height: logoHeight,
-      });
-    } catch (err) {
-      page.drawText('Egypt Excursions Online', {
-        x: margin,
-        y: currentY - headerHeight/2,
-        font: boldFont,
-        size: 14,
-        color: colors.blue,
-      });
-    }
+    // E-Ticket badge
+    page.drawRectangle({ x: margin + 78, y: y - 14, width: 55, height: 18, color: colors.veryLightGray });
+    page.drawText('E-TICKET', {
+      x: margin + 86,
+      y: y - 10,
+      font: boldFont,
+      size: 8,
+      color: colors.gray,
+    });
 
-    // Invoice title
-    page.drawText('INVOICE / RECEIPT', {
-      x: width - margin - 180,
-      y: currentY - 25,
+    y -= 35;
+
+    // Tour title
+    const firstItem = orderedItems[0];
+    const tourTitle = orderedItems.length === 1
+      ? (firstItem?.title || 'Tour Booking').substring(0, 45) + (firstItem?.title?.length > 45 ? '...' : '')
+      : `${orderedItems.length} Tours Booked`;
+
+    page.drawText(tourTitle, {
+      x: margin,
+      y: y,
       font: boldFont,
       size: 18,
-      color: colors.primary,
-    });
-    
-    page.drawText(`Order ID: ${orderId ?? `ORD-${Date.now()}`}`, {
-      x: width - margin - 180,
-      y: currentY - 45,
-      font: font,
-      size: 10,
-      color: colors.secondary,
+      color: colors.black,
+      maxWidth: pageWidth - margin * 2 - 100,
     });
 
-    currentY -= headerHeight + 20;
+    y -= 18;
 
-    // --- BILLING INFO ---
-    const billingY = currentY;
-    page.drawText('BILLED TO', { 
-      x: margin, 
-      y: billingY, 
-      font: boldFont, 
-      size: 10, 
-      color: colors.secondary 
-    });
-    
-    page.drawText('FROM', { 
-      x: width - margin - 200, 
-      y: billingY, 
-      font: boldFont, 
-      size: 10, 
-      color: colors.secondary 
-    });
-    
-    currentY -= 20;
-    page.drawLine({ 
-      start: { x: margin, y: currentY }, 
-      end: { x: width - margin, y: currentY }, 
-      thickness: 1, 
-      color: colors.lineColor 
-    });
-    
-    currentY -= 15;
-
-    // Customer details
-    page.drawText(customer?.name ?? 'Valued Customer', {
-      x: margin,
-      y: currentY,
-      font: boldFont,
-      size: 12,
-      color: colors.primary,
-    });
-
-    page.drawText('Egypt Excursions Online', {
-      x: width - margin - 200,
-      y: currentY,
-      font: boldFont,
-      size: 12,
-      color: colors.primary,
-    });
-
-    currentY -= 16;
-
-    if (customer?.email) {
-      page.drawText(String(customer.email), {
+    // Booking option subtitle
+    if (firstItem?.selectedBookingOption?.title) {
+      page.drawText(firstItem.selectedBookingOption.title, {
         x: margin,
-        y: currentY,
+        y: y,
         font: font,
-        size: 10,
-        color: colors.secondary,
+        size: 11,
+        color: colors.gray,
       });
     }
 
-    page.drawText('123 Nile Street', {
-      x: width - margin - 200,
-      y: currentY,
-      font: font,
-      size: 10,
-      color: colors.secondary,
+    // Date badge (right side)
+    const dateBadgeWidth = 70;
+    const dateBadgeHeight = 75;
+    const dateBadgeX = pageWidth - margin - dateBadgeWidth;
+    const dateBadgeY = y - 15;
+
+    // Date badge background
+    page.drawRectangle({
+      x: dateBadgeX,
+      y: dateBadgeY,
+      width: dateBadgeWidth,
+      height: dateBadgeHeight,
+      color: colors.white,
+      borderColor: colors.veryLightGray,
+      borderWidth: 1,
     });
 
-    currentY -= 14;
-
-    if (customer?.phone) {
-      page.drawText(String(customer.phone), {
-        x: margin,
-        y: currentY,
-        font: font,
-        size: 10,
-        color: colors.secondary,
-      });
-    }
-
-    page.drawText('Cairo, Egypt', {
-      x: width - margin - 200,
-      y: currentY,
-      font: font,
-      size: 10,
-      color: colors.secondary,
+    // Day of week
+    const dowWidth = boldFont.widthOfTextAtSize(dayOfWeek, 9);
+    page.drawText(dayOfWeek, {
+      x: dateBadgeX + (dateBadgeWidth - dowWidth) / 2,
+      y: dateBadgeY + dateBadgeHeight - 18,
+      font: boldFont,
+      size: 9,
+      color: colors.rose,
     });
 
-    currentY -= 30;
+    // Day number
+    const dayWidth = boldFont.widthOfTextAtSize(dayNum, 28);
+    page.drawText(dayNum, {
+      x: dateBadgeX + (dateBadgeWidth - dayWidth) / 2,
+      y: dateBadgeY + dateBadgeHeight - 48,
+      font: boldFont,
+      size: 28,
+      color: colors.black,
+    });
 
-    // --- ITEMS TABLE ---
-    // Table header
+    // Month
+    const monthWidth = boldFont.widthOfTextAtSize(month, 10);
+    page.drawText(month, {
+      x: dateBadgeX + (dateBadgeWidth - monthWidth) / 2,
+      y: dateBadgeY + 12,
+      font: boldFont,
+      size: 10,
+      color: colors.gray,
+    });
+
+    y -= 55;
+
+    // ============================================
+    // PERFORATED DIVIDER
+    // ============================================
+    y -= 15;
+
+    // Left notch
+    page.drawCircle({
+      x: margin - 10,
+      y: y,
+      size: 15,
+      color: colors.veryLightGray,
+    });
+
+    // Right notch
+    page.drawCircle({
+      x: pageWidth - margin + 10,
+      y: y,
+      size: 15,
+      color: colors.veryLightGray,
+    });
+
+    // Dashed line
+    drawDashedLine(page, margin + 10, y, pageWidth - margin - 10, 6, 4, colors.lightGray, 1);
+
+    y -= 30;
+
+    // ============================================
+    // BOOKING INFO GRID
+    // ============================================
+    const gridY = y;
+    const colWidth = (pageWidth - margin * 2) / 4;
+
+    // Booking ID
+    page.drawText('BOOKING ID', { x: margin, y: gridY, font: boldFont, size: 8, color: colors.lightGray });
+    page.drawText(orderId || '—', { x: margin, y: gridY - 14, font: boldFont, size: 11, color: colors.black });
+
+    // Time
+    page.drawText('TIME', { x: margin + colWidth, y: gridY, font: boldFont, size: 8, color: colors.lightGray });
+    page.drawText(booking?.time || 'Flexible', { x: margin + colWidth, y: gridY - 14, font: boldFont, size: 11, color: colors.black });
+
+    // Guests
+    const totalGuests = orderedItems.reduce((sum: number, item: any) => {
+      return sum + (item.quantity || 0) + (item.childQuantity || 0) + (item.infantQuantity || 0);
+    }, 0);
+    page.drawText('GUESTS', { x: margin + colWidth * 2, y: gridY, font: boldFont, size: 8, color: colors.lightGray });
+    page.drawText(`${totalGuests} Total`, { x: margin + colWidth * 2, y: gridY - 14, font: boldFont, size: 11, color: colors.black });
+
+    // Status
+    page.drawText('STATUS', { x: margin + colWidth * 3, y: gridY, font: boldFont, size: 8, color: colors.lightGray });
+    page.drawText('Confirmed', { x: margin + colWidth * 3, y: gridY - 14, font: boldFont, size: 11, color: colors.emerald });
+
+    y -= 50;
+
+    // ============================================
+    // LARGE QR CODE SECTION
+    // ============================================
+    const qrSectionY = y;
+    const qrSize = 140;
+    const qrX = (pageWidth - qrSize) / 2;
+
+    // QR Code background
     page.drawRectangle({
       x: margin,
-      y: currentY - 20,
-      width: width - margin * 2,
-      height: 20,
+      y: qrSectionY - qrSize - 40,
+      width: pageWidth - margin * 2,
+      height: qrSize + 60,
+      color: colors.black,
+    });
+
+    // QR Code title
+    const scanTitle = 'SCAN FOR BOOKING DETAILS';
+    const scanTitleWidth = boldFont.widthOfTextAtSize(scanTitle, 10);
+    page.drawText(scanTitle, {
+      x: (pageWidth - scanTitleWidth) / 2,
+      y: qrSectionY - 18,
+      font: boldFont,
+      size: 10,
       color: colors.lightGray,
     });
 
-    page.drawText('DESCRIPTION', {
-      x: margin + 10,
-      y: currentY - 12,
-      font: boldFont,
-      size: 10,
-      color: colors.secondary,
+    // Generate and embed QR code
+    if (qrData && QR) {
+      try {
+        const pngBuffer = await QR.toBuffer(String(qrData), {
+          type: 'png',
+          width: 400,
+          margin: 1,
+          color: {
+            dark: '#0f172a',
+            light: '#ffffff'
+          }
+        });
+        const qrPngBuffer = Buffer.from(pngBuffer);
+        const qrImage = await pdfDoc.embedPng(qrPngBuffer);
+
+        page.drawImage(qrImage, {
+          x: qrX,
+          y: qrSectionY - qrSize - 28,
+          width: qrSize,
+          height: qrSize,
+        });
+      } catch (err) {
+        // Fallback: draw placeholder
+        page.drawRectangle({
+          x: qrX,
+          y: qrSectionY - qrSize - 28,
+          width: qrSize,
+          height: qrSize,
+          color: colors.white,
+        });
+        page.drawText('QR Code', {
+          x: qrX + 40,
+          y: qrSectionY - qrSize / 2 - 28,
+          font: font,
+          size: 12,
+          color: colors.gray,
+        });
+      }
+    } else {
+      // Placeholder if no QR
+      page.drawRectangle({
+        x: qrX,
+        y: qrSectionY - qrSize - 28,
+        width: qrSize,
+        height: qrSize,
+        color: colors.white,
+      });
+    }
+
+    y = qrSectionY - qrSize - 70;
+
+    // ============================================
+    // GUEST INFORMATION
+    // ============================================
+    y -= 15;
+
+    page.drawRectangle({
+      x: margin,
+      y: y - 70,
+      width: pageWidth - margin * 2,
+      height: 85,
+      color: colors.veryLightGray,
     });
 
-    page.drawText('QTY', {
-      x: width - margin - 100,
-      y: currentY - 12,
+    page.drawText('GUEST INFORMATION', {
+      x: margin + 15,
+      y: y - 5,
       font: boldFont,
-      size: 10,
-      color: colors.secondary,
+      size: 9,
+      color: colors.lightGray,
     });
 
-    page.drawText('TOTAL', {
-      x: width - margin - 50,
-      y: currentY - 12,
+    const guestInfoY = y - 28;
+    const halfWidth = (pageWidth - margin * 2) / 2;
+
+    // Name
+    page.drawText('Name', { x: margin + 15, y: guestInfoY, font: font, size: 8, color: colors.lightGray });
+    page.drawText(customer?.name || 'Guest', { x: margin + 15, y: guestInfoY - 12, font: boldFont, size: 10, color: colors.black });
+
+    // Email
+    page.drawText('Email', { x: margin + halfWidth, y: guestInfoY, font: font, size: 8, color: colors.lightGray });
+    const emailText = (customer?.email || '—').substring(0, 30);
+    page.drawText(emailText, { x: margin + halfWidth, y: guestInfoY - 12, font: boldFont, size: 10, color: colors.black });
+
+    // Phone (if available)
+    if (customer?.phone) {
+      page.drawText('Phone', { x: margin + 15, y: guestInfoY - 30, font: font, size: 8, color: colors.lightGray });
+      page.drawText(customer.phone, { x: margin + 15, y: guestInfoY - 42, font: boldFont, size: 10, color: colors.black });
+    }
+
+    y -= 100;
+
+    // ============================================
+    // ORDER SUMMARY
+    // ============================================
+    y -= 10;
+
+    page.drawText('ORDER SUMMARY', {
+      x: margin,
+      y: y,
       font: boldFont,
-      size: 10,
-      color: colors.secondary,
+      size: 9,
+      color: colors.lightGray,
     });
 
-    currentY -= 30;
+    y -= 20;
 
     // Items
     orderedItems.forEach((item: any, index: number) => {
       const itemTotal = calculateItemTotal(item);
-      const totalParticipants = (item.quantity || 0) + (item.childQuantity || 0) + (item.infantQuantity || 0);
-      
-      // Item title
-      const title = String(item.title ?? 'Tour Item');
-      page.drawText(title, {
-        x: margin + 10,
-        y: currentY,
-        font: font,
-        size: 10,
-        color: colors.primary,
-        maxWidth: width - margin * 2 - 160,
+      const title = (item.title || 'Tour').substring(0, 40) + (item.title?.length > 40 ? '...' : '');
+
+      // Item row background
+      page.drawRectangle({
+        x: margin,
+        y: y - 35,
+        width: pageWidth - margin * 2,
+        height: 45,
+        color: colors.white,
+        borderColor: colors.veryLightGray,
+        borderWidth: 1,
       });
 
-      // Show booking option if available
-      if (item.selectedBookingOption?.title) {
-        currentY -= 12;
-        page.drawText(item.selectedBookingOption.title, {
-          x: margin + 10,
-          y: currentY,
-          font: font,
-          size: 8,
-          color: colors.blue,
-          maxWidth: width - margin * 2 - 160,
-        });
-      }
+      // Item title
+      page.drawText(title, {
+        x: margin + 12,
+        y: y - 12,
+        font: boldFont,
+        size: 10,
+        color: colors.black,
+      });
 
-      // Participant breakdown
-      currentY -= 12;
+      // Participant info
       const participantText = [
         item.quantity > 0 ? `${item.quantity} Adult${item.quantity > 1 ? 's' : ''}` : '',
         item.childQuantity > 0 ? `${item.childQuantity} Child${item.childQuantity > 1 ? 'ren' : ''}` : '',
-        item.infantQuantity > 0 ? `${item.infantQuantity} Infant${item.infantQuantity > 1 ? 's' : ''}` : ''
       ].filter(Boolean).join(', ');
 
       page.drawText(participantText, {
-        x: margin + 10,
-        y: currentY,
+        x: margin + 12,
+        y: y - 26,
         font: font,
-        size: 8,
-        color: colors.secondary,
+        size: 9,
+        color: colors.gray,
       });
 
-      // Show add-ons if any
-      if (item.selectedAddOns && item.selectedAddOnDetails && Object.keys(item.selectedAddOns).length > 0) {
-        currentY -= 12;
-        const addOnsList = Object.entries(item.selectedAddOns)
-          .map(([addOnId]) => {
-            const addOnDetail = item.selectedAddOnDetails?.[addOnId];
-            return addOnDetail?.title;
-          })
-          .filter(Boolean)
-          .join(', ');
-        
-        page.drawText(`Add-ons: ${addOnsList}`, {
-          x: margin + 10,
-          y: currentY,
-          font: font,
-          size: 8,
-          color: colors.secondary,
-          maxWidth: width - margin * 2 - 160,
-        });
-      }
-
-      // Reset Y to item line for quantity and total
-      const itemLineY = currentY + (item.selectedBookingOption?.title ? 24 : 12);
-      
-      // Quantity
-      page.drawText(String(totalParticipants), {
-        x: width - margin - 90,
-        y: itemLineY,
-        font: font,
-        size: 10,
-        color: colors.primary,
+      // Price (right aligned)
+      const priceText = `${currencySymbol}${itemTotal.toFixed(2)}`;
+      const priceWidth = boldFont.widthOfTextAtSize(priceText, 12);
+      page.drawText(priceText, {
+        x: pageWidth - margin - priceWidth - 12,
+        y: y - 18,
+        font: boldFont,
+        size: 12,
+        color: colors.black,
       });
 
-      // Total
-      const totalText = `${currencySymbol}${itemTotal.toFixed(2)}`;
-      const totalWidth = font.widthOfTextAtSize(totalText, 10);
-      page.drawText(totalText, {
-        x: width - margin - totalWidth,
-        y: itemLineY,
-        font: font,
-        size: 10,
-        color: colors.primary,
-      });
-
-      currentY -= 25;
+      y -= 55;
     });
 
-    currentY -= 20;
+    // ============================================
+    // PRICING BREAKDOWN
+    // ============================================
+    y -= 5;
 
-    // --- PRICING SUMMARY ---
-    const summaryX = width - margin - 150;
-    page.drawLine({ 
-      start: { x: summaryX, y: currentY }, 
-      end: { x: width - margin, y: currentY }, 
-      thickness: 1, 
-      color: colors.lineColor 
-    });
-    
-    currentY -= 15;
+    // Dashed divider
+    drawDashedLine(page, margin, y, pageWidth - margin, 4, 3, colors.lightGray, 1);
 
-    const drawSummaryRow = (label: string, value: number, isBold = false) => {
-      const textFont = isBold ? boldFont : font;
-      const textColor = isBold ? colors.primary : colors.secondary;
-      const valueStr = `${currencySymbol}${value.toFixed(2)}`;
+    y -= 20;
 
-      page.drawText(label, {
-        x: summaryX,
-        y: currentY,
-        font: textFont,
-        size: 10,
-        color: textColor,
-      });
+    const pricingX = pageWidth - margin - 150;
 
-      const valueWidth = textFont.widthOfTextAtSize(valueStr, 10);
-      page.drawText(valueStr, {
-        x: width - margin - valueWidth,
-        y: currentY,
-        font: textFont,
-        size: 10,
-        color: textColor,
-      });
+    // Subtotal
+    page.drawText('Subtotal', { x: pricingX, y: y, font: font, size: 10, color: colors.gray });
+    const subtotalText = `${currencySymbol}${subtotal.toFixed(2)}`;
+    const subtotalWidth = font.widthOfTextAtSize(subtotalText, 10);
+    page.drawText(subtotalText, { x: pageWidth - margin - subtotalWidth, y: y, font: font, size: 10, color: colors.gray });
+    y -= 16;
 
-      currentY -= 15;
-    };
+    // Service fee
+    page.drawText('Service fee', { x: pricingX, y: y, font: font, size: 10, color: colors.gray });
+    const serviceFeeText = `${currencySymbol}${serviceFee.toFixed(2)}`;
+    const serviceFeeWidth = font.widthOfTextAtSize(serviceFeeText, 10);
+    page.drawText(serviceFeeText, { x: pageWidth - margin - serviceFeeWidth, y: y, font: font, size: 10, color: colors.gray });
+    y -= 16;
 
-    drawSummaryRow('Subtotal', subtotal);
-    drawSummaryRow('Service Fee', serviceFee);
-    drawSummaryRow('Taxes & Fees', tax);
-    
+    // Tax
+    page.drawText('Taxes & fees', { x: pricingX, y: y, font: font, size: 10, color: colors.gray });
+    const taxText = `${currencySymbol}${tax.toFixed(2)}`;
+    const taxWidth = font.widthOfTextAtSize(taxText, 10);
+    page.drawText(taxText, { x: pageWidth - margin - taxWidth, y: y, font: font, size: 10, color: colors.gray });
+    y -= 16;
+
+    // Discount (if any)
     if (discount > 0) {
-      drawSummaryRow('Discount', -discount);
+      page.drawText('Discount', { x: pricingX, y: y, font: font, size: 10, color: colors.emerald });
+      const discountText = `-${currencySymbol}${discount.toFixed(2)}`;
+      const discountWidth = font.widthOfTextAtSize(discountText, 10);
+      page.drawText(discountText, { x: pageWidth - margin - discountWidth, y: y, font: font, size: 10, color: colors.emerald });
+      y -= 16;
     }
 
-    currentY -= 5;
+    y -= 8;
 
-    // Total with background
+    // Total - with background
     page.drawRectangle({
-      x: summaryX - 10,
-      y: currentY - 5,
-      width: 160,
-      height: 20,
+      x: pricingX - 15,
+      y: y - 8,
+      width: pageWidth - margin - pricingX + 15,
+      height: 28,
+      color: colors.veryLightGray,
+    });
+
+    page.drawText('Total Paid', { x: pricingX, y: y, font: boldFont, size: 11, color: colors.black });
+    const totalText = `${currencySymbol}${total.toFixed(2)}`;
+    const totalWidth = boldFont.widthOfTextAtSize(totalText, 16);
+    page.drawText(totalText, { x: pageWidth - margin - totalWidth, y: y - 2, font: boldFont, size: 16, color: colors.black });
+
+    y -= 45;
+
+    // ============================================
+    // BOTTOM GRADIENT BAR
+    // ============================================
+    const bottomBarY = 30;
+    page.drawRectangle({ x: margin, y: bottomBarY, width: sectionWidth, height: 6, color: colors.rose });
+    page.drawRectangle({ x: margin + sectionWidth, y: bottomBarY, width: sectionWidth, height: 6, color: colors.orange });
+    page.drawRectangle({ x: margin + sectionWidth * 2, y: bottomBarY, width: sectionWidth, height: 6, color: colors.amber });
+
+    // ============================================
+    // FOOTER
+    // ============================================
+    const footerText = 'Egypt Excursions Online  •  support@egyptexcursionsonline.com  •  www.egyptexcursionsonline.com';
+    const footerWidth = font.widthOfTextAtSize(footerText, 8);
+    page.drawText(footerText, {
+      x: (pageWidth - footerWidth) / 2,
+      y: 15,
+      font: font,
+      size: 8,
       color: colors.lightGray,
     });
 
-    drawSummaryRow('TOTAL PAID', total, true);
-
-    // --- BOOKING DETAILS ---
-    currentY -= 30;
-
-    page.drawText('Booking Details', {
-      x: margin,
-      y: currentY,
-      font: boldFont,
-      size: 12,
-      color: colors.primary,
-    });
-
-    currentY -= 15;
-    page.drawLine({ 
-      start: { x: margin, y: currentY }, 
-      end: { x: margin + 250, y: currentY }, 
-      thickness: 1, 
-      color: colors.lineColor 
-    });
-
-    currentY -= 15;
-
-    if (booking?.date) {
-      page.drawText(`Date: ${String(booking.date)}`, {
-        x: margin,
-        y: currentY,
-        font: font,
-        size: 10,
-        color: colors.secondary,
-      });
-    }
-
-    if (booking?.time) {
-      page.drawText(`Time: ${String(booking.time)}`, {
-        x: margin + 150,
-        y: currentY,
-        font: font,
-        size: 10,
-        color: colors.secondary,
-      });
-    }
-
-    currentY -= 15;
-
-    const totalGuests = orderedItems.reduce((sum: number, item: any) => {
-      return sum + (item.quantity || 0) + (item.childQuantity || 0) + (item.infantQuantity || 0);
-    }, 0);
-
-    page.drawText(`Guests: ${totalGuests}`, {
-      x: margin,
-      y: currentY,
-      font: font,
-      size: 10,
-      color: colors.secondary,
-    });
-
-    // --- QR CODE ---
-    if (qrData && QR) {
-      try {
-        const pngBuffer = await QR.toBuffer(String(qrData), { type: 'png', width: 150 });
-        const qrPngBuffer = Buffer.from(pngBuffer);
-        const qrImage = await pdfDoc.embedPng(qrPngBuffer);
-        
-        const qrSize = 60;
-        page.drawImage(qrImage, {
-          x: width - margin - qrSize,
-          y: 60,
-          width: qrSize,
-          height: qrSize,
-        });
-
-        page.drawText('Scan for details', {
-          x: width - margin - qrSize - 5,
-          y: 45,
-          font: font,
-          size: 8,
-          color: colors.secondary,
-        });
-      } catch (err) {
-        console.warn('QR generation failed:', err);
-      }
-    }
-
-    // --- FOOTER ---
-    page.drawText('Thank you for your booking. For support, contact booking@egypt-excursionsonline.com', {
-      x: margin,
-      y: 25,
-      font: font,
-      size: 8,
-      color: colors.secondary,
-    });
-
+    // Generate PDF
     const pdfBytes = await pdfDoc.save();
     return new NextResponse(Buffer.from(pdfBytes), {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="receipt-${orderId ?? Date.now()}.pdf"`,
+        'Content-Disposition': `attachment; filename="ticket-${orderId ?? Date.now()}.pdf"`,
       },
     });
 
   } catch (err: any) {
     console.error('Receipt route error:', err);
-    return NextResponse.json({ 
-      message: 'Failed to generate receipt', 
-      error: String(err?.message ?? err) 
+    return NextResponse.json({
+      message: 'Failed to generate receipt',
+      error: String(err?.message ?? err)
     }, { status: 500 });
   }
 }
