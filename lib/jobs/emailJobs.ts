@@ -5,6 +5,40 @@ import Tour from '@/lib/models/Tour';
 import User from '@/lib/models/user';
 import { EmailService } from '@/lib/email/emailService';
 
+// Helper to format dates consistently and avoid timezone issues
+// MongoDB stores dates in UTC which can cause off-by-one day errors when reformatted
+function formatBookingDate(dateValue: Date | string | undefined): string {
+  if (!dateValue) return '';
+
+  // Convert to string if Date object
+  const dateStr = dateValue instanceof Date
+    ? dateValue.toISOString()
+    : String(dateValue);
+
+  // Extract just the date part (YYYY-MM-DD) to avoid timezone issues
+  const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) {
+    const [, year, month, day] = match;
+    const localDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    return localDate.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  }
+
+  // Fallback
+  const date = new Date(dateValue);
+  if (isNaN(date.getTime())) return '';
+  return date.toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+}
+
 // Send trip reminders (run this daily)
 export async function sendTripReminders() {
   try {
@@ -37,12 +71,7 @@ export async function sendTripReminders() {
           customerName: `${booking.user.firstName} ${booking.user.lastName}`,
           customerEmail: booking.user.email,
           tourTitle: booking.tour.title,
-          bookingDate: booking.date.toLocaleDateString('en-US', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-          }),
+          bookingDate: formatBookingDate(booking.date),
           bookingTime: booking.time,
           meetingPoint: booking.tour.meetingPoint || "Meeting point will be provided via WhatsApp",
           contactNumber: "+20 11 42255624",
@@ -103,12 +132,7 @@ export async function sendTripCompletionEmails() {
           customerName: `${booking.user.firstName} ${booking.user.lastName}`,
           customerEmail: booking.user.email,
           tourTitle: booking.tour.title,
-          bookingDate: booking.date.toLocaleDateString('en-US', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-          }),
+          bookingDate: formatBookingDate(booking.date),
           reviewLink: `${process.env.NEXT_PUBLIC_BASE_URL}/tour/${booking.tour.slug}?review=true`,
           photoSharingLink: `${process.env.NEXT_PUBLIC_BASE_URL}/share-photos/${booking._id}`,
           recommendedTours: [
