@@ -227,7 +227,7 @@ export async function POST(request: Request) {
               tours: cart.map(item => item.title).join(', '),
               discount_code: discountCode || 'none',
             },
-            receipt_email: customer.email,
+            // receipt_email removed - we send our own booking confirmation email
             confirm: true,
             automatic_payment_methods: {
               enabled: true,
