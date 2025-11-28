@@ -2,6 +2,9 @@
 import mongoose, { Document, Schema, Model } from 'mongoose';
 
 export interface IReview extends Document {
+  // Multi-tenant support
+  tenantId: string;
+  
   tour: mongoose.Schema.Types.ObjectId;  // Changed from tourId
   user: mongoose.Schema.Types.ObjectId;  // Changed from userId
   userName: string;
@@ -17,6 +20,14 @@ export interface IReview extends Document {
 }
 
 const ReviewSchema: Schema<IReview> = new Schema({
+  // Multi-tenant support
+  tenantId: {
+    type: String,
+    required: [true, 'Tenant ID is required'],
+    index: true,
+    ref: 'Tenant',
+  },
+  
   tour: {  // Changed from tourId
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Tour',
@@ -72,14 +83,18 @@ const ReviewSchema: Schema<IReview> = new Schema({
   timestamps: true
 });
 
-// Compound index to prevent duplicate reviews
-ReviewSchema.index({ tour: 1, user: 1 }, { unique: true });
+// Multi-tenant indexes
+// Compound index to prevent duplicate reviews (per tenant)
+ReviewSchema.index({ tenantId: 1, tour: 1, user: 1 }, { unique: true });
 
-// Index for sorting by date
-ReviewSchema.index({ createdAt: -1 });
+// Index for sorting by date (per tenant)
+ReviewSchema.index({ tenantId: 1, createdAt: -1 });
 
-// Index for verified reviews
-ReviewSchema.index({ tour: 1, verified: 1 });
+// Index for verified reviews (per tenant)
+ReviewSchema.index({ tenantId: 1, tour: 1, verified: 1 });
+
+// Index for tour reviews
+ReviewSchema.index({ tenantId: 1, tour: 1, rating: -1 });
 
 const Review: Model<IReview> = mongoose.models.Review || mongoose.model<IReview>('Review', ReviewSchema);
 

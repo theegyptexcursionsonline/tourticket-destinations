@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   signInWithEmailAndPassword,
@@ -10,8 +10,10 @@ import {
   signInWithPopup,
   updateProfile,
   User as FirebaseUser,
+  Auth,
+  GoogleAuthProvider,
 } from 'firebase/auth';
-import { auth, googleProvider } from '@/lib/firebase/config';
+import { firebaseReady, getFirebaseAuth, getGoogleProvider } from '@/lib/firebase/config';
 
 // --- Interfaces ---
 interface User {
@@ -117,7 +119,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // --- Firebase auth state listener ---
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+    let unsubscribe: (() => void) | undefined;
+    
+    async function setupAuthListener() {
+      // Wait for Firebase to initialize
+      await firebaseReady;
+      const auth = await getFirebaseAuth();
+      
+      // If Firebase is not configured, skip auth state listener
+      if (!auth) {
+        console.warn('Firebase auth not configured - authentication disabled');
+        setIsLoading(false);
+        return;
+      }
+      
+      unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
       try {
         if (fbUser) {
           setFirebaseUser(fbUser);
@@ -173,9 +189,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setIsLoading(false);
       }
     });
+    }
+    
+    setupAuthListener();
 
     // Cleanup subscription
-    return () => unsubscribe();
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
   }, []);
 
   // --- Refresh user data ---
@@ -213,6 +236,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // --- Login with Email/Password ---
   const login = async (email: string, password: string): Promise<void> => {
+    await firebaseReady;
+    const auth = await getFirebaseAuth();
+    
+    if (!auth) {
+      throw new Error('Authentication is not configured. Please contact support.');
+    }
+    
     setIsLoading(true);
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
@@ -243,6 +273,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // --- Signup with Email/Password ---
   const signup = async (data: SignupData): Promise<void> => {
+    await firebaseReady;
+    const auth = await getFirebaseAuth();
+    
+    if (!auth) {
+      throw new Error('Authentication is not configured. Please contact support.');
+    }
+    
     setIsLoading(true);
     try {
       // Create Firebase user - Firebase handles duplicate email detection
@@ -279,6 +316,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // --- Login with Google ---
   const loginWithGoogle = async (): Promise<void> => {
+    await firebaseReady;
+    const auth = await getFirebaseAuth();
+    const googleProvider = await getGoogleProvider();
+    
+    if (!auth || !googleProvider) {
+      throw new Error('Google authentication is not configured. Please contact support.');
+    }
+    
     setIsLoading(true);
     try {
       const userCredential = await signInWithPopup(auth, googleProvider);
@@ -306,7 +351,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // --- Logout Function ---
   const logout = async () => {
     try {
-      await signOut(auth);
+      const auth = await getFirebaseAuth();
+      if (auth) {
+        await signOut(auth);
+      }
       setUser(null);
       setFirebaseUser(null);
       setToken(null);

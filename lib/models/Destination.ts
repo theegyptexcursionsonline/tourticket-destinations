@@ -2,6 +2,9 @@
 import mongoose, { Document, Schema, models } from 'mongoose';
 
 export interface IDestination extends Document {
+  // Multi-tenant support
+  tenantId: string;
+  
   // Basic Info
   name: string;
   slug: string;
@@ -82,11 +85,18 @@ const AverageTemperatureSchema = new Schema({
 }, { _id: false });
 
 const DestinationSchema: Schema<IDestination> = new Schema({
+  // Multi-tenant support
+  tenantId: {
+    type: String,
+    required: [true, 'Tenant ID is required'],
+    index: true,
+    ref: 'Tenant',
+  },
+  
   // Basic Info - Only name and description are required
   name: {
     type: String,
     required: [true, 'Destination name is required'],
-    unique: true,
     trim: true,
     minlength: [2, 'Name must be at least 2 characters'],
     maxlength: [100, 'Name cannot exceed 100 characters'],
@@ -95,7 +105,6 @@ const DestinationSchema: Schema<IDestination> = new Schema({
   slug: {
     type: String,
     required: [true, 'Slug is required'],
-    unique: true,
     lowercase: true,
     trim: true,
     match: [/^[a-z0-9-]+$/, 'Slug can only contain lowercase letters, numbers, and hyphens'],
@@ -293,11 +302,16 @@ metaDescription: {
   toObject: { virtuals: true },
 });
 
-// Indexes for performance
+// Indexes for performance (with multi-tenant support)
 DestinationSchema.index({ name: 'text', description: 'text', country: 'text' });
-DestinationSchema.index({ featured: 1, isPublished: 1 });
-DestinationSchema.index({ country: 1, featured: 1 });
-DestinationSchema.index({ tourCount: -1 });
+
+// Multi-tenant indexes
+DestinationSchema.index({ tenantId: 1, slug: 1 }, { unique: true });
+DestinationSchema.index({ tenantId: 1, name: 1 }, { unique: true });
+DestinationSchema.index({ tenantId: 1, isPublished: 1 });
+DestinationSchema.index({ tenantId: 1, featured: 1, isPublished: 1 });
+DestinationSchema.index({ tenantId: 1, country: 1, featured: 1 });
+DestinationSchema.index({ tenantId: 1, tourCount: -1 });
 
 // Virtual for full name with country
 DestinationSchema.virtual('fullName').get(function() {

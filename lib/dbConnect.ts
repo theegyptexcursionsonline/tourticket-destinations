@@ -4,14 +4,6 @@
 
 import mongoose from 'mongoose';
 
-const MONGODB_URI = process.env.MONGODB_URI;
-
-if (!MONGODB_URI) {
-  throw new Error(
-    'Please define the MONGODB_URI environment variable inside .env.local'
-  );
-}
-
 /**
  * Global is used here to maintain a cached connection across hot reloads
  * in development. This prevents connections from growing exponentially
@@ -24,6 +16,15 @@ if (!cached) {
 }
 
 async function dbConnect() {
+  // Check for MONGODB_URI at connection time (not at import time)
+  const MONGODB_URI = process.env.MONGODB_URI;
+  
+  if (!MONGODB_URI) {
+    throw new Error(
+      'Please define the MONGODB_URI environment variable inside .env.local'
+    );
+  }
+  
   if (cached.conn) {
     return cached.conn;
   }
@@ -39,7 +40,7 @@ async function dbConnect() {
       family: 4, // Use IPv4, skip trying IPv6
     };
 
-    cached.promise = mongoose.connect(MONGODB_URI!, opts).then((mongoose) => {
+    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
       console.log('Database connected successfully');
       return mongoose;
     }).catch((error) => {
@@ -98,6 +99,16 @@ async function dbConnect() {
     
     if (!mongoose.models.Otp) {
       require('./models/Otp');
+    }
+    
+    // Tenant Model (Multi-tenant support)
+    if (!mongoose.models.Tenant) {
+      require('./models/Tenant');
+    }
+    
+    // HeroSettings Model
+    if (!mongoose.models.HeroSettings) {
+      require('./models/HeroSettings');
     }
 
     // Log loaded models for debugging (optional - remove in production)

@@ -59,6 +59,9 @@ export interface IAddOn {
 
 // Complete Tour Interface
 export interface ITour extends Document {
+  // Multi-tenant support
+  tenantId: string;
+  
   // Basic fields
   title: string;
   slug: string;
@@ -344,6 +347,14 @@ const AddOnSchema = new Schema<IAddOn>({
 
 // COMPLETE Tour Schema with all fields and validation
 const TourSchema: Schema<ITour> = new Schema({
+  // Multi-tenant support
+  tenantId: {
+    type: String,
+    required: [true, 'Tenant ID is required'],
+    index: true,
+    ref: 'Tenant',
+  },
+  
   // Basic fields
   title: { 
     type: String, 
@@ -356,7 +367,6 @@ const TourSchema: Schema<ITour> = new Schema({
   slug: { 
     type: String, 
     required: [true, 'Slug is required'], 
-    unique: true,
     lowercase: true,
     trim: true,
     match: [/^[a-z0-9-]+$/, 'Slug can only contain lowercase letters, numbers, and hyphens'],
@@ -878,30 +888,37 @@ TourSchema.index({
   name: 'tour_text_index'
 });
 
-// Additional performance indexes
-TourSchema.index({ category: 1, isPublished: 1 });
-TourSchema.index({ destination: 1, isPublished: 1 });
-TourSchema.index({ rating: -1, bookings: -1 });
-TourSchema.index({ discountPrice: 1, isPublished: 1 });
-TourSchema.index({ isFeatured: 1, isPublished: 1 });
-TourSchema.index({ createdAt: -1 });
-TourSchema.index({ slug: 1 }, { unique: true });
-TourSchema.index({ difficulty: 1, isPublished: 1 });
+// Multi-tenant indexes - CRITICAL for performance
+// Slug must be unique per tenant, not globally
+TourSchema.index({ tenantId: 1, slug: 1 }, { unique: true });
+TourSchema.index({ tenantId: 1, isPublished: 1 });
+TourSchema.index({ tenantId: 1, isFeatured: 1, isPublished: 1 });
+TourSchema.index({ tenantId: 1, destination: 1, isPublished: 1 });
+TourSchema.index({ tenantId: 1, category: 1, isPublished: 1 });
+TourSchema.index({ tenantId: 1, createdAt: -1 });
 
-// Compound indexes for common query patterns
+// Additional performance indexes (with tenant)
+TourSchema.index({ tenantId: 1, rating: -1, bookings: -1 });
+TourSchema.index({ tenantId: 1, discountPrice: 1, isPublished: 1 });
+TourSchema.index({ tenantId: 1, difficulty: 1, isPublished: 1 });
+
+// Compound indexes for common query patterns (with tenant)
 TourSchema.index({ 
+  tenantId: 1,
   category: 1, 
   destination: 1, 
   isPublished: 1 
 });
 
 TourSchema.index({ 
+  tenantId: 1,
   discountPrice: 1, 
   rating: -1, 
   isPublished: 1 
 });
 
 TourSchema.index({
+  tenantId: 1,
   isFeatured: 1,
   rating: -1,
   bookings: -1,
@@ -911,42 +928,54 @@ TourSchema.index({
 // Geospatial index if you add coordinates later
 TourSchema.index({ "coordinates": "2dsphere" });
 
-// Static methods for common operations
-TourSchema.statics.findPublished = function() {
-  return this.find({ isPublished: true });
+// Static methods for common operations (all include tenantId for multi-tenant support)
+TourSchema.statics.findPublished = function(tenantId?: string) {
+  const query: any = { isPublished: true };
+  if (tenantId) query.tenantId = tenantId;
+  return this.find(query);
 };
 
-TourSchema.statics.findFeatured = function() {
-  return this.find({ isFeatured: true, isPublished: true });
+TourSchema.statics.findFeatured = function(tenantId?: string) {
+  const query: any = { isFeatured: true, isPublished: true };
+  if (tenantId) query.tenantId = tenantId;
+  return this.find(query);
 };
 
-TourSchema.statics.findByCategory = function(categoryId: string) {
-  return this.find({ 
+TourSchema.statics.findByCategory = function(categoryId: string, tenantId?: string) {
+  const query: any = { 
     category: categoryId, 
     isPublished: true 
-  });
+  };
+  if (tenantId) query.tenantId = tenantId;
+  return this.find(query);
 };
 
-TourSchema.statics.findByDestination = function(destinationId: string) {
-  return this.find({ 
+TourSchema.statics.findByDestination = function(destinationId: string, tenantId?: string) {
+  const query: any = { 
     destination: destinationId, 
     isPublished: true 
-  });
+  };
+  if (tenantId) query.tenantId = tenantId;
+  return this.find(query);
 };
 
-TourSchema.statics.searchTours = function(query: string) {
-  return this.find({
+TourSchema.statics.searchTours = function(query: string, tenantId?: string) {
+  const searchQuery: any = {
     $text: { $search: query },
     isPublished: true
-  }, {
+  };
+  if (tenantId) searchQuery.tenantId = tenantId;
+  
+  return this.find(searchQuery, {
     score: { $meta: "textScore" }
   }).sort({
     score: { $meta: "textScore" }
   });
 };
 
-TourSchema.statics.isSlugAvailable = async function(slug: string, excludeId?: string) {
-  const query: any = { slug };
+// Check if slug is available within a tenant
+TourSchema.statics.isSlugAvailable = async function(slug: string, tenantId: string, excludeId?: string) {
+  const query: any = { slug, tenantId };
   if (excludeId) {
     query._id = { $ne: excludeId };
   }
@@ -955,11 +984,12 @@ TourSchema.statics.isSlugAvailable = async function(slug: string, excludeId?: st
   return !existing;
 };
 
-TourSchema.statics.generateUniqueSlug = async function(baseSlug: string, excludeId?: string) {
+// Generate unique slug within a tenant
+TourSchema.statics.generateUniqueSlug = async function(baseSlug: string, tenantId: string, excludeId?: string) {
   let slug = baseSlug;
   let counter = 1;
   
-  while (!(await this.isSlugAvailable(slug, excludeId))) {
+  while (!(await this.isSlugAvailable(slug, tenantId, excludeId))) {
     slug = `${baseSlug}-${counter}`;
     counter++;
     
@@ -970,6 +1000,16 @@ TourSchema.statics.generateUniqueSlug = async function(baseSlug: string, exclude
   }
   
   return slug;
+};
+
+// Find tour by slug within a tenant
+TourSchema.statics.findBySlug = async function(slug: string, tenantId: string) {
+  return this.findOne({ slug, tenantId, isPublished: true });
+};
+
+// Find tour by slug across all tenants (for admin)
+TourSchema.statics.findBySlugGlobal = async function(slug: string) {
+  return this.findOne({ slug });
 };
 
 // Instance methods

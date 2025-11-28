@@ -1,6 +1,9 @@
 import mongoose, { Document, Schema, Model } from 'mongoose';
 
 export interface IBlog extends Document {
+  // Multi-tenant support
+  tenantId: string;
+  
   // Basic Info
   title: string;
   slug: string;
@@ -48,6 +51,14 @@ export interface IBlog extends Document {
 }
 
 const BlogSchema: Schema<IBlog> = new Schema({
+  // Multi-tenant support
+  tenantId: {
+    type: String,
+    required: [true, 'Tenant ID is required'],
+    index: true,
+    ref: 'Tenant',
+  },
+  
   // Basic Info
   title: {
     type: String,
@@ -60,7 +71,6 @@ const BlogSchema: Schema<IBlog> = new Schema({
   slug: {
     type: String,
     required: [true, 'Slug is required'],
-    unique: true,
     lowercase: true,
     trim: true,
     match: [/^[a-z0-9-]+$/, 'Slug can only contain lowercase letters, numbers, and hyphens'],
@@ -226,14 +236,17 @@ const BlogSchema: Schema<IBlog> = new Schema({
   toObject: { virtuals: true },
 });
 
-// Indexes for performance
+// Indexes for performance (with multi-tenant support)
 BlogSchema.index({ title: 'text', excerpt: 'text', content: 'text' });
-BlogSchema.index({ status: 1, publishedAt: -1 });
-BlogSchema.index({ category: 1, status: 1 });
-BlogSchema.index({ featured: 1, status: 1, publishedAt: -1 });
-BlogSchema.index({ author: 1, status: 1 });
-BlogSchema.index({ tags: 1, status: 1 });
-BlogSchema.index({ views: -1 });
+
+// Multi-tenant indexes
+BlogSchema.index({ tenantId: 1, slug: 1 }, { unique: true });
+BlogSchema.index({ tenantId: 1, status: 1, publishedAt: -1 });
+BlogSchema.index({ tenantId: 1, category: 1, status: 1 });
+BlogSchema.index({ tenantId: 1, featured: 1, status: 1, publishedAt: -1 });
+BlogSchema.index({ tenantId: 1, author: 1, status: 1 });
+BlogSchema.index({ tenantId: 1, tags: 1, status: 1 });
+BlogSchema.index({ tenantId: 1, views: -1 });
 
 // Virtual for formatted publish date
 BlogSchema.virtual('publishedDate').get(function() {
@@ -282,17 +295,27 @@ BlogSchema.pre('save', function(next) {
   next();
 });
 
-// Static methods
-BlogSchema.statics.getPublished = function() {
-  return this.find({ status: 'published' }).sort({ publishedAt: -1 });
+// Static methods (with multi-tenant support)
+BlogSchema.statics.getPublished = function(tenantId?: string) {
+  const query: any = { status: 'published' };
+  if (tenantId) query.tenantId = tenantId;
+  return this.find(query).sort({ publishedAt: -1 });
 };
 
-BlogSchema.statics.getFeatured = function() {
-  return this.find({ status: 'published', featured: true }).sort({ publishedAt: -1 });
+BlogSchema.statics.getFeatured = function(tenantId?: string) {
+  const query: any = { status: 'published', featured: true };
+  if (tenantId) query.tenantId = tenantId;
+  return this.find(query).sort({ publishedAt: -1 });
 };
 
-BlogSchema.statics.getByCategory = function(category: string) {
-  return this.find({ status: 'published', category }).sort({ publishedAt: -1 });
+BlogSchema.statics.getByCategory = function(category: string, tenantId?: string) {
+  const query: any = { status: 'published', category };
+  if (tenantId) query.tenantId = tenantId;
+  return this.find(query).sort({ publishedAt: -1 });
+};
+
+BlogSchema.statics.findBySlug = function(slug: string, tenantId: string) {
+  return this.findOne({ slug, tenantId, status: 'published' });
 };
 
 // Post-save hook to sync to Algolia

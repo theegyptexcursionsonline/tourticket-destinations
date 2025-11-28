@@ -2,6 +2,9 @@
 import mongoose, { Document, Schema, Model } from 'mongoose';
 
 export interface IAttractionPage extends Document {
+  // Multi-tenant support
+  tenantId: string;
+  
   // Basic Info
   title: string;
   slug: string;
@@ -39,6 +42,14 @@ export interface IAttractionPage extends Document {
 }
 
 const AttractionPageSchema: Schema<IAttractionPage> = new Schema({
+  // Multi-tenant support
+  tenantId: {
+    type: String,
+    required: [true, 'Tenant ID is required'],
+    index: true,
+    ref: 'Tenant',
+  },
+  
   title: {
     type: String,
     required: [true, 'Page title is required'],
@@ -49,7 +60,6 @@ const AttractionPageSchema: Schema<IAttractionPage> = new Schema({
   slug: {
     type: String,
     required: [true, 'Slug is required'],
-    unique: true,
     lowercase: true,
     trim: true,
     match: [/^[a-z0-9-]+$/, 'Slug can only contain lowercase letters, numbers, and hyphens'],
@@ -172,10 +182,14 @@ const AttractionPageSchema: Schema<IAttractionPage> = new Schema({
   toObject: { virtuals: true },
 });
 
-// Indexes
+// Indexes (with multi-tenant support)
 AttractionPageSchema.index({ title: 'text', description: 'text' });
-AttractionPageSchema.index({ pageType: 1, isPublished: 1 });
-AttractionPageSchema.index({ featured: 1, isPublished: 1 });
+
+// Multi-tenant indexes
+AttractionPageSchema.index({ tenantId: 1, slug: 1 }, { unique: true });
+AttractionPageSchema.index({ tenantId: 1, pageType: 1, isPublished: 1 });
+AttractionPageSchema.index({ tenantId: 1, featured: 1, isPublished: 1 });
+AttractionPageSchema.index({ tenantId: 1, isPublished: 1 });
 
 // Pre-save middleware
 AttractionPageSchema.pre('save', function(next) {
@@ -202,17 +216,27 @@ AttractionPageSchema.pre('save', function(next) {
   next();
 });
 
-// Static methods
-AttractionPageSchema.statics.getPublished = function() {
-  return this.find({ isPublished: true }).sort({ featured: -1, createdAt: -1 });
+// Static methods (with multi-tenant support)
+AttractionPageSchema.statics.getPublished = function(tenantId?: string) {
+  const query: any = { isPublished: true };
+  if (tenantId) query.tenantId = tenantId;
+  return this.find(query).sort({ featured: -1, createdAt: -1 });
 };
 
-AttractionPageSchema.statics.getFeatured = function() {
-  return this.find({ isPublished: true, featured: true }).sort({ createdAt: -1 });
+AttractionPageSchema.statics.getFeatured = function(tenantId?: string) {
+  const query: any = { isPublished: true, featured: true };
+  if (tenantId) query.tenantId = tenantId;
+  return this.find(query).sort({ createdAt: -1 });
 };
 
-AttractionPageSchema.statics.getByType = function(pageType: 'attraction' | 'category') {
-  return this.find({ isPublished: true, pageType }).sort({ createdAt: -1 });
+AttractionPageSchema.statics.getByType = function(pageType: 'attraction' | 'category', tenantId?: string) {
+  const query: any = { isPublished: true, pageType };
+  if (tenantId) query.tenantId = tenantId;
+  return this.find(query).sort({ createdAt: -1 });
+};
+
+AttractionPageSchema.statics.findBySlug = function(slug: string, tenantId: string) {
+  return this.findOne({ slug, tenantId, isPublished: true });
 };
 
 const AttractionPage: Model<IAttractionPage> = mongoose.models.AttractionPage || mongoose.model<IAttractionPage>('AttractionPage', AttractionPageSchema);

@@ -2,6 +2,9 @@
 import mongoose, { Document, Schema, models } from 'mongoose';
 
 export interface ICategory extends Document {
+  // Multi-tenant support
+  tenantId: string;
+  
   // Basic Info
   name: string;
   slug: string;
@@ -39,11 +42,18 @@ export interface ICategory extends Document {
 }
 
 const CategorySchema: Schema<ICategory> = new Schema({
+  // Multi-tenant support
+  tenantId: {
+    type: String,
+    required: [true, 'Tenant ID is required'],
+    index: true,
+    ref: 'Tenant',
+  },
+  
   // Basic Info
   name: {
     type: String,
     required: [true, 'Category name is required'],
-    unique: true,
     trim: true,
     minlength: [2, 'Name must be at least 2 characters'],
     maxlength: [100, 'Name cannot exceed 100 characters'],
@@ -52,7 +62,6 @@ const CategorySchema: Schema<ICategory> = new Schema({
   slug: {
     type: String,
     required: [true, 'Slug is required'],
-    unique: true,
     lowercase: true,
     trim: true,
     match: [/^[a-z0-9-]+$/, 'Slug can only contain lowercase letters, numbers, and hyphens'],
@@ -162,10 +171,15 @@ const CategorySchema: Schema<ICategory> = new Schema({
   toObject: { virtuals: true },
 });
 
-// Indexes
+// Indexes (with multi-tenant support)
 CategorySchema.index({ name: 'text', description: 'text' });
-CategorySchema.index({ featured: 1, isPublished: 1 });
-CategorySchema.index({ order: 1 });
+
+// Multi-tenant indexes
+CategorySchema.index({ tenantId: 1, slug: 1 }, { unique: true });
+CategorySchema.index({ tenantId: 1, name: 1 }, { unique: true });
+CategorySchema.index({ tenantId: 1, isPublished: 1 });
+CategorySchema.index({ tenantId: 1, featured: 1, isPublished: 1 });
+CategorySchema.index({ tenantId: 1, order: 1 });
 
 // Pre-save middleware
 CategorySchema.pre('save', function(next) {

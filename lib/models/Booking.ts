@@ -3,6 +3,9 @@
 import mongoose, { Document, Schema, Model } from 'mongoose';
 
 export interface IBooking extends Document {
+  // Multi-tenant support
+  tenantId: string;
+  
   bookingReference: string;
   tour: mongoose.Schema.Types.ObjectId;
   user: mongoose.Schema.Types.ObjectId;
@@ -49,10 +52,17 @@ export interface IBooking extends Document {
 }
 
 const BookingSchema: Schema<IBooking> = new Schema({
+  // Multi-tenant support
+  tenantId: {
+    type: String,
+    required: [true, 'Tenant ID is required'],
+    index: true,
+    ref: 'Tenant',
+  },
+  
   bookingReference: {
     type: String,
     required: true,
-    unique: true,
   },
   
   tour: {
@@ -208,11 +218,12 @@ BookingSchema.virtual('guestBreakdown').get(function() {
   return parts.join(', ');
 });
 
-// Indexes for efficient queries
-BookingSchema.index({ user: 1, createdAt: -1 });
-BookingSchema.index({ tour: 1, date: 1 });
-BookingSchema.index({ status: 1 });
-BookingSchema.index({ bookingReference: 1 }, { unique: true });
+// Indexes for efficient queries (with multi-tenant support)
+BookingSchema.index({ tenantId: 1, bookingReference: 1 }, { unique: true });
+BookingSchema.index({ tenantId: 1, user: 1, createdAt: -1 });
+BookingSchema.index({ tenantId: 1, tour: 1, date: 1 });
+BookingSchema.index({ tenantId: 1, status: 1 });
+BookingSchema.index({ tenantId: 1, createdAt: -1 });
 
 const Booking: Model<IBooking> = mongoose.models.Booking || mongoose.model<IBooking>('Booking', BookingSchema);
 

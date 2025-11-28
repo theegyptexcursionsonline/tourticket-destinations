@@ -1,4 +1,5 @@
 // app/HomePageServer.tsx
+// Multi-tenant homepage with tenant-specific content filtering
 import React from 'react';
 import dbConnect from '@/lib/dbConnect';
 import Destination from '@/lib/models/Destination';
@@ -23,14 +24,23 @@ import InterestGridServer from '@/components/InterestGridServer';
 import PopularInterestServer from '@/components/PopularInterestServer';
 import DayTripsServer from '@/components/DayTripsServer';
 
+// Import tenant utilities
+import { getTenantFromRequest, getTenantConfig, buildTenantQuery } from '@/lib/tenant';
+
 // ISR - Static generation with 60-second revalidation
 // This makes the homepage 10x faster by serving cached static pages
 // while still updating content every 60 seconds in the background
 export const revalidate = 60; // Revalidate every 60 seconds
 
-async function getHomePageData() {
+async function getHomePageData(tenantId: string) {
   try {
     await dbConnect();
+
+    // Build base query with tenant filter
+    // Note: If tenantId doesn't exist in data yet, we fall back to showing all data
+    // This ensures backward compatibility during migration
+    const tenantFilter = { tenantId };
+    const tenantFilterOrAll = tenantId ? { tenantId } : {};
 
     // Fetch all data in parallel for speed
     const [
@@ -45,66 +55,120 @@ async function getHomePageData() {
       heroSettings,
       dayTrips
     ] = await Promise.all([
-      // Destinations with tour count
-      Destination.find({ isPublished: true })
-        .select('name slug image description country')
+      // Destinations with tour count (filtered by tenant)
+      Destination.find(buildTenantQuery({ isPublished: true }, tenantId))
+        .select('name slug image description country tenantId')
         .limit(8)
-        .lean(),
+        .lean()
+        .catch(() => 
+          // Fallback: try without tenant filter for backward compatibility
+          Destination.find({ isPublished: true })
+            .select('name slug image description country')
+            .limit(8)
+            .lean()
+        ),
 
-      // Featured tours
-      Tour.find({ isPublished: true, isFeatured: true })
+      // Featured tours (filtered by tenant)
+      Tour.find(buildTenantQuery({ isPublished: true, isFeatured: true }, tenantId))
         .populate('destination', 'name')
-        .select('title slug image discountPrice originalPrice duration rating reviewCount bookings')
+        .select('title slug image discountPrice originalPrice duration rating reviewCount bookings tenantId')
         .limit(8)
-        .lean(),
+        .lean()
+        .catch(() =>
+          Tour.find({ isPublished: true, isFeatured: true })
+            .populate('destination', 'name')
+            .select('title slug image discountPrice originalPrice duration rating reviewCount bookings')
+            .limit(8)
+            .lean()
+        ),
 
-      // Categories for InterestGrid (will add tour counts below)
-      Category.find({ isPublished: true })
-        .select('name slug icon description')
-        .limit(12)
-        .lean(),
-
-      // All categories for PopularInterest
-      Category.find({}).lean(),
-
-      // Attraction pages for PopularInterest
-      AttractionPage.find({ isPublished: true, pageType: 'attraction' }).lean(),
-
-      // Category pages for PopularInterest
-      AttractionPage.find({ isPublished: true, pageType: 'category' })
-        .populate('categoryId', 'name slug')
-        .sort({ featured: -1, createdAt: -1 })
-        .lean(),
-
-      // Header destinations (featured)
-      Destination.find({ isPublished: true, featured: true })
-        .select('name slug image description country')
-        .lean(),
-
-      // Header categories (featured)
-      Category.find({ isPublished: true, featured: true })
-        .select('name slug icon description')
-        .lean(),
-
-      // Hero settings
-      HeroSettings.findOne({ isActive: true })
-        .select('backgroundImages currentActiveImage title searchSuggestions floatingTags trustIndicators overlaySettings animationSettings metaTitle metaDescription')
-        .lean(),
-
-      // Day trips (all published tours, limited to 12)
-      Tour.find({ isPublished: true })
-        .select('title slug image discountPrice originalPrice duration rating reviewCount bookings tags')
+      // Categories for InterestGrid (filtered by tenant)
+      Category.find(buildTenantQuery({ isPublished: true }, tenantId))
+        .select('name slug icon description tenantId')
         .limit(12)
         .lean()
+        .catch(() =>
+          Category.find({ isPublished: true })
+            .select('name slug icon description')
+            .limit(12)
+            .lean()
+        ),
+
+      // All categories for PopularInterest (filtered by tenant)
+      Category.find(tenantFilterOrAll).lean()
+        .catch(() => Category.find({}).lean()),
+
+      // Attraction pages for PopularInterest (filtered by tenant)
+      AttractionPage.find(buildTenantQuery({ isPublished: true, pageType: 'attraction' }, tenantId)).lean()
+        .catch(() => AttractionPage.find({ isPublished: true, pageType: 'attraction' }).lean()),
+
+      // Category pages for PopularInterest (filtered by tenant)
+      AttractionPage.find(buildTenantQuery({ isPublished: true, pageType: 'category' }, tenantId))
+        .populate('categoryId', 'name slug')
+        .sort({ featured: -1, createdAt: -1 })
+        .lean()
+        .catch(() =>
+          AttractionPage.find({ isPublished: true, pageType: 'category' })
+            .populate('categoryId', 'name slug')
+            .sort({ featured: -1, createdAt: -1 })
+            .lean()
+        ),
+
+      // Header destinations (featured, filtered by tenant)
+      Destination.find(buildTenantQuery({ isPublished: true, featured: true }, tenantId))
+        .select('name slug image description country tenantId')
+        .lean()
+        .catch(() =>
+          Destination.find({ isPublished: true, featured: true })
+            .select('name slug image description country')
+            .lean()
+        ),
+
+      // Header categories (featured, filtered by tenant)
+      Category.find(buildTenantQuery({ isPublished: true, featured: true }, tenantId))
+        .select('name slug icon description tenantId')
+        .lean()
+        .catch(() =>
+          Category.find({ isPublished: true, featured: true })
+            .select('name slug icon description')
+            .lean()
+        ),
+
+      // Hero settings (filtered by tenant)
+      HeroSettings.findOne(buildTenantQuery({ isActive: true }, tenantId))
+        .select('backgroundImages currentActiveImage title searchSuggestions floatingTags trustIndicators overlaySettings animationSettings metaTitle metaDescription tenantId')
+        .lean()
+        .catch(() =>
+          HeroSettings.findOne({ isActive: true })
+            .select('backgroundImages currentActiveImage title searchSuggestions floatingTags trustIndicators overlaySettings animationSettings metaTitle metaDescription')
+            .lean()
+        ),
+
+      // Day trips (all published tours, filtered by tenant, limited to 12)
+      Tour.find(buildTenantQuery({ isPublished: true }, tenantId))
+        .select('title slug image discountPrice originalPrice duration rating reviewCount bookings tags tenantId')
+        .limit(12)
+        .lean()
+        .catch(() =>
+          Tour.find({ isPublished: true })
+            .select('title slug image discountPrice originalPrice duration rating reviewCount bookings tags')
+            .limit(12)
+            .lean()
+        )
     ]);
 
     // Calculate tour counts for destinations
     const destinationsWithCounts = await Promise.all(
       destinations.map(async (dest) => {
-        const count = await Tour.countDocuments({
+        const countQuery = buildTenantQuery({
           destination: dest._id,
           isPublished: true
-        });
+        }, tenantId);
+        
+        const count = await Tour.countDocuments(countQuery).catch(() => 
+          Tour.countDocuments({ destination: dest._id, isPublished: true })
+        );
+        
         return {
           ...JSON.parse(JSON.stringify(dest)),
           tourCount: count
@@ -115,10 +179,15 @@ async function getHomePageData() {
     // Calculate tour counts for InterestGrid categories
     const interestGridCategories = await Promise.all(
       categories.map(async (category: any) => {
-        const tourCount = await Tour.countDocuments({
+        const countQuery = buildTenantQuery({
           category: { $in: [category._id] },
           isPublished: true
-        });
+        }, tenantId);
+        
+        const tourCount = await Tour.countDocuments(countQuery).catch(() =>
+          Tour.countDocuments({ category: { $in: [category._id] }, isPublished: true })
+        );
+        
         return {
           ...JSON.parse(JSON.stringify(category)),
           tourCount
@@ -129,11 +198,15 @@ async function getHomePageData() {
     // Build interests (categories + attractions with tour counts) for PopularInterest
     const categoriesWithCounts = await Promise.all(
       allCategories.map(async (category: any) => {
-        // Category is an array field in Tour model, so we need to use $in
-        const tourCount = await Tour.countDocuments({
+        const countQuery = buildTenantQuery({
           category: { $in: [category._id] },
           isPublished: true
-        });
+        }, tenantId);
+        
+        const tourCount = await Tour.countDocuments(countQuery).catch(() =>
+          Tour.countDocuments({ category: { $in: [category._id] }, isPublished: true })
+        );
+        
         return {
           type: 'category' as const,
           name: category.name,
@@ -166,10 +239,14 @@ async function getHomePageData() {
         }
 
         if (searchQueries.length > 0) {
-          tourCount = await Tour.countDocuments({
+          const countQuery = buildTenantQuery({
             isPublished: true,
             $or: searchQueries
-          });
+          }, tenantId);
+          
+          tourCount = await Tour.countDocuments(countQuery).catch(() =>
+            Tour.countDocuments({ isPublished: true, $or: searchQueries })
+          );
         }
 
         return {
@@ -197,7 +274,8 @@ async function getHomePageData() {
       headerDestinations: JSON.parse(JSON.stringify(headerDestinations)),
       headerCategories: JSON.parse(JSON.stringify(headerCategories)),
       heroSettings: heroSettings ? JSON.parse(JSON.stringify(heroSettings)) : null,
-      dayTrips: JSON.parse(JSON.stringify(dayTrips))
+      dayTrips: JSON.parse(JSON.stringify(dayTrips)),
+      tenantId
     };
   } catch (error) {
     console.error('Error fetching homepage data:', error);
@@ -210,12 +288,17 @@ async function getHomePageData() {
       headerDestinations: [],
       headerCategories: [],
       heroSettings: null,
-      dayTrips: []
+      dayTrips: [],
+      tenantId
     };
   }
 }
 
 export default async function HomePageServer() {
+  // Get current tenant from request
+  const tenantId = await getTenantFromRequest();
+  const tenantConfig = await getTenantConfig(tenantId);
+  
   const {
     destinations,
     tours,
@@ -226,10 +309,10 @@ export default async function HomePageServer() {
     headerCategories,
     heroSettings,
     dayTrips
-  } = await getHomePageData();
+  } = await getHomePageData(tenantId);
 
   return (
-    <main>
+    <main data-tenant={tenantId}>
       <ReviewsStructuredData />
       <Header
         initialDestinations={headerDestinations}
@@ -239,17 +322,38 @@ export default async function HomePageServer() {
 
       {/* Pass pre-fetched data as props */}
       <DestinationsServer destinations={destinations} />
-      <IcebarPromo />
+      
+      {/* Show IcebarPromo only if enabled for this tenant or if no tenant config */}
+      {(!tenantConfig || tenantConfig.homepage?.showPromoSection) && (
+        <IcebarPromo />
+      )}
+      
       <FeaturedToursServer tours={tours} />
       <PopularInterestServer interests={featuredInterests} categoryPages={categoryPages} />
       <InterestGridServer categories={categories} />
       <DayTripsServer tours={dayTrips} />
 
-      <AboutUs />
-      <Reviews />
-      <FAQ />
+      {/* Show AboutUs only if enabled for this tenant */}
+      {(!tenantConfig || tenantConfig.homepage?.showAboutUs !== false) && (
+        <AboutUs />
+      )}
+      
+      {/* Show Reviews only if enabled for this tenant */}
+      {(!tenantConfig || tenantConfig.homepage?.showReviews !== false) && (
+        <Reviews />
+      )}
+      
+      {/* Show FAQ only if enabled for this tenant */}
+      {(!tenantConfig || tenantConfig.homepage?.showFAQ !== false) && (
+        <FAQ />
+      )}
+      
       <Footer />
-      <AISearchWidget />
+      
+      {/* Show AISearchWidget only if enabled for this tenant */}
+      {(!tenantConfig || tenantConfig.features?.enableAISearch !== false) && (
+        <AISearchWidget />
+      )}
     </main>
   );
 }

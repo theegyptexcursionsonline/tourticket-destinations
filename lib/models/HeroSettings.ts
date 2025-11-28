@@ -2,6 +2,9 @@
 import mongoose, { Document, Schema, Model } from 'mongoose';
 
 export interface IHeroSettings extends Document {
+  // Multi-tenant support
+  tenantId: string;
+  
   // Background Images
   backgroundImages: {
     desktop: string;
@@ -66,6 +69,14 @@ export interface IHeroSettings extends Document {
 }
 
 const HeroSettingsSchema: Schema<IHeroSettings> = new Schema({
+  // Multi-tenant support
+  tenantId: {
+    type: String,
+    required: [true, 'Tenant ID is required'],
+    index: true,
+    ref: 'Tenant',
+  },
+  
   backgroundImages: [{
     desktop: {
       type: String,
@@ -278,16 +289,27 @@ HeroSettingsSchema.pre('save', function(next) {
   next();
 });
 
-// Ensure only one settings document is active at a time
+// Ensure only one settings document is active per tenant (not globally)
 HeroSettingsSchema.pre('save', async function(next) {
   if (this.isActive && this.isNew) {
     await this.constructor.updateMany(
-      { _id: { $ne: this._id } },
+      { _id: { $ne: this._id }, tenantId: this.tenantId },
       { $set: { isActive: false } }
     );
   }
   next();
 });
+
+// Multi-tenant indexes
+HeroSettingsSchema.index({ tenantId: 1, isActive: 1 });
+// Ensure only one active hero settings per tenant
+HeroSettingsSchema.index(
+  { tenantId: 1, isActive: 1 },
+  { 
+    unique: true,
+    partialFilterExpression: { isActive: true }
+  }
+);
 
 const HeroSettings: Model<IHeroSettings> = mongoose.models.HeroSettings || mongoose.model<IHeroSettings>('HeroSettings', HeroSettingsSchema);
 

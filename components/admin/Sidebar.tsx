@@ -24,12 +24,14 @@ import {
   Layout,
   ImageIcon,
   Shield,
+  Globe,
 } from "lucide-react";
 import { useAdminAuth } from "@/contexts/AdminAuthContext";
 
-// ✅ Updated navItems with Hero Settings added
+// ✅ Updated navItems with Hero Settings and Tenants
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, permissions: ["manageDashboard"] },
+  { href: "/admin/tenants", label: "Brands", icon: Globe, permissions: ["manageTenants"] },
   { href: "/admin/hero-settings", label: "Hero Settings", icon: ImageIcon, permissions: ["manageContent"] },
   { href: "/admin/bookings", label: "Bookings", icon: FileText, permissions: ["manageBookings"] },
   { href: "/admin/manifests", label: "Manifest", icon: ListPlus, permissions: ["manageBookings"] },
