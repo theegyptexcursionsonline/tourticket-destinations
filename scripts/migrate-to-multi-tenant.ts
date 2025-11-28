@@ -24,7 +24,7 @@ const INITIAL_TENANTS = [
   {
     tenantId: 'default',
     name: 'Egypt Excursions Online',
-    domain: 'egyptexcursionsonline.com',
+    domain: 'egypt-excursionsonline.com',
     isDefault: true,
     branding: {
       logo: '/EEO-logo.png',
@@ -46,7 +46,7 @@ const INITIAL_TENANTS = [
       ogImage: '/hero1.jpg',
     },
     contact: {
-      email: 'info@egyptexcursionsonline.com',
+      email: 'info@egypt-excursionsonline.com',
       phone: '+20 100 000 0000',
       whatsapp: '+20100000000',
     },

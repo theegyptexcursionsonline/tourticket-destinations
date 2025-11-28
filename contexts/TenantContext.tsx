@@ -103,7 +103,7 @@ interface TenantContextType {
 const DEFAULT_TENANT_CONFIG: TenantConfig = {
   tenantId: 'default',
   name: 'Egypt Excursions Online',
-  domain: 'egyptexcursionsonline.com',
+  domain: 'egypt-excursionsonline.com',
   branding: {
     logo: '/EEO-logo.png',
     logoAlt: 'Egypt Excursions Online',
@@ -123,7 +123,7 @@ const DEFAULT_TENANT_CONFIG: TenantConfig = {
     ogImage: '/hero1.jpg',
   },
   contact: {
-    email: 'info@egyptexcursionsonline.com',
+    email: 'info@egypt-excursionsonline.com',
     phone: '+20 000 000 0000',
   },
   socialLinks: {},

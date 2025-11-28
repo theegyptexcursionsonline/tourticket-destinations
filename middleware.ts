@@ -73,8 +73,8 @@ function getTenantDomains(): TenantDomainMapping {
     'www.dahabtours.com': 'dahab',
     
     // Main brand (Egypt Excursions Online)
-    'egyptexcursionsonline.com': 'default',
-    'www.egyptexcursionsonline.com': 'default',
+    'egypt-excursionsonline.com': 'default',
+    'www.egypt-excursionsonline.com': 'default',
     
     // Development & localhost
     'localhost:3000': 'default',

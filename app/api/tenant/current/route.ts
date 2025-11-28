@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
         tenant: {
           tenantId: 'default',
           name: 'Egypt Excursions Online',
-          domain: 'egyptexcursionsonline.com',
+          domain: 'egypt-excursionsonline.com',
           branding: {
             logo: '/EEO-logo.png',
             logoAlt: 'Egypt Excursions Online',
@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
             ogImage: '/hero1.jpg',
           },
           contact: {
-            email: 'info@egyptexcursionsonline.com',
+            email: 'info@egypt-excursionsonline.com',
             phone: '+20 000 000 0000',
           },
           socialLinks: {},

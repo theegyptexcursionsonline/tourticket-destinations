@@ -21,7 +21,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Determine base URL
     const baseUrl = tenantConfig 
       ? `https://${tenantConfig.domain}`
-      : process.env.NEXT_PUBLIC_APP_URL || 'https://egyptexcursionsonline.com';
+      : process.env.NEXT_PUBLIC_APP_URL || 'https://egypt-excursionsonline.com';
     
     // Build tenant filter
     const tenantFilter = tenantId ? { tenantId } : {};
@@ -175,7 +175,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error('Error generating sitemap:', error);
     
     // Return minimal sitemap on error
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://egyptexcursionsonline.com';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://egypt-excursionsonline.com';
     return [
       {
         url: baseUrl,
