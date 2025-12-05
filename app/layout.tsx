@@ -12,8 +12,8 @@ import WishlistSidebar from "@/components/WishlistSidebar";
 import { Toaster } from 'react-hot-toast';
 import IntercomClient from "@/components/IntercomClient";
 import ConditionalAIWidgets from "@/components/ConditionalAIWidgets";
-import { getTenantFromRequest, getTenantPublicConfig } from "@/lib/tenant";
-import ComingSoonWrapper from "@/components/ComingSoonWrapper";
+import { getTenantFromRequest, getTenantPublicConfig, TenantPublicConfig } from "@/lib/tenant";
+import ComingSoonPage from "@/components/ComingSoonPage";
 
 const COMING_SOON_MODE = true;
 
@@ -26,6 +26,27 @@ const almarai = Almarai({
 
 // Dynamic metadata generation based on tenant
 export async function generateMetadata(): Promise<Metadata> {
+  if (COMING_SOON_MODE) {
+    try {
+      const tenantId = await getTenantFromRequest();
+      const tenantConfig = await getTenantPublicConfig(tenantId);
+      
+      if (tenantConfig) {
+        return {
+          title: `Coming Soon - ${tenantConfig.name}`,
+          description: `Something extraordinary is coming to ${tenantConfig.name}. Sign up for early access!`,
+        };
+      }
+    } catch (error) {
+      console.error('Error generating metadata:', error);
+    }
+    
+    return {
+      title: 'Coming Soon - Egypt Excursions Online',
+      description: 'Something extraordinary is coming. Sign up for early access!',
+    };
+  }
+
   try {
     const tenantId = await getTenantFromRequest();
     const tenantConfig = await getTenantPublicConfig(tenantId);
@@ -66,38 +87,38 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Always fetch tenant config
+  let tenantConfig: TenantPublicConfig | null = null;
+  let tenantId = 'default';
+  
+  try {
+    tenantId = await getTenantFromRequest();
+    tenantConfig = await getTenantPublicConfig(tenantId);
+  } catch (error) {
+    console.error('Error fetching tenant:', error);
+  }
+
   if (COMING_SOON_MODE) {
     return (
       <html lang="en">
         <body>
-          <ComingSoonWrapper />
+          <ComingSoonPage tenant={tenantConfig} />
         </body>
       </html>
     );
   }
 
-  // Get initial tenant config for server-side rendering
-  let initialTenant = null;
-  let initialTenantId = 'default';
-  
-  try {
-    initialTenantId = await getTenantFromRequest();
-    initialTenant = await getTenantPublicConfig(initialTenantId);
-  } catch (error) {
-    console.error('Error fetching initial tenant:', error);
-  }
-  
   // Generate CSS variables for tenant branding
-  const brandingStyles = initialTenant ? `
+  const brandingStyles = tenantConfig ? `
     :root {
-      --primary-color: ${initialTenant.branding.primaryColor};
-      --secondary-color: ${initialTenant.branding.secondaryColor};
-      --accent-color: ${initialTenant.branding.accentColor};
-      --background-color: ${initialTenant.branding.backgroundColor || '#FFFFFF'};
-      --text-color: ${initialTenant.branding.textColor || '#1F2937'};
-      --font-family: ${initialTenant.branding.fontFamily}, system-ui, sans-serif;
-      --font-family-heading: ${initialTenant.branding.fontFamilyHeading || initialTenant.branding.fontFamily}, system-ui, sans-serif;
-      --border-radius: ${initialTenant.branding.borderRadius || '8px'};
+      --primary-color: ${tenantConfig.branding.primaryColor};
+      --secondary-color: ${tenantConfig.branding.secondaryColor};
+      --accent-color: ${tenantConfig.branding.accentColor};
+      --background-color: ${tenantConfig.branding.backgroundColor || '#FFFFFF'};
+      --text-color: ${tenantConfig.branding.textColor || '#1F2937'};
+      --font-family: ${tenantConfig.branding.fontFamily}, system-ui, sans-serif;
+      --font-family-heading: ${tenantConfig.branding.fontFamilyHeading || tenantConfig.branding.fontFamily}, system-ui, sans-serif;
+      --border-radius: ${tenantConfig.branding.borderRadius || '8px'};
     }
   ` : '';
   
@@ -113,8 +134,8 @@ export default async function RootLayout({
         <IntercomClient />
         {/* TenantProvider wraps all other providers */}
         <TenantProvider 
-          initialTenant={initialTenant as any}
-          initialTenantId={initialTenantId}
+          initialTenant={tenantConfig as any}
+          initialTenantId={tenantId}
         >
           <AuthProvider>
             <SettingsProvider>

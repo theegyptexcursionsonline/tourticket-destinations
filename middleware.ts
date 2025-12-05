@@ -55,6 +55,8 @@ function getTenantDomains(): TenantDomainMapping {
     'www.hurghadatours.com': 'hurghada',
     'hurghada-excursions.com': 'hurghada',
     'www.hurghada-excursions.com': 'hurghada',
+    'hurghadaspeedboat.com': 'hurghada-speedboat',
+    'www.hurghadaspeedboat.com': 'hurghada-speedboat',
     
     // Cairo brand
     'cairotours.com': 'cairo',

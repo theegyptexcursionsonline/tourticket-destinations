@@ -1,8 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { TenantPublicConfig } from '@/lib/tenant';
 
-export default function ComingSoonPage() {
+interface ComingSoonPageProps {
+  tenant?: TenantPublicConfig | null;
+}
+
+export default function ComingSoonPage({ tenant }: ComingSoonPageProps) {
   const [email, setEmail] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -12,6 +17,13 @@ export default function ComingSoonPage() {
     minutes: 0,
     seconds: 0,
   });
+
+  // Get tenant-specific values with fallbacks
+  const brandName = tenant?.name || 'Egypt Excursions Online';
+  const logo = tenant?.branding?.logo || '/EEO-logo.png';
+  const primaryColor = tenant?.branding?.primaryColor || '#d4a574';
+  const accentColor = tenant?.branding?.accentColor || '#FFEB3B';
+  const socialLinks = tenant?.socialLinks || {};
 
   useEffect(() => {
     setIsMounted(true);
@@ -48,6 +60,24 @@ export default function ComingSoonPage() {
     }
   };
 
+  // Build social links array from tenant config
+  const socialLinksArray = [
+    socialLinks.instagram && { label: 'Instagram', url: socialLinks.instagram, path: 'M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z' },
+    socialLinks.facebook && { label: 'Facebook', url: socialLinks.facebook, path: 'M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z' },
+    socialLinks.twitter && { label: 'Twitter', url: socialLinks.twitter, path: 'M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z' },
+    socialLinks.youtube && { label: 'YouTube', url: socialLinks.youtube, path: 'M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z' },
+  ].filter(Boolean) as { label: string; url: string; path: string }[];
+
+  // Default social links if tenant doesn't have any
+  const defaultSocialLinks = [
+    { label: 'Instagram', url: '#', path: 'M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z' },
+    { label: 'Facebook', url: '#', path: 'M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z' },
+    { label: 'Twitter', url: '#', path: 'M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z' },
+    { label: 'YouTube', url: '#', path: 'M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z' },
+  ];
+
+  const displaySocialLinks = socialLinksArray.length > 0 ? socialLinksArray : defaultSocialLinks;
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -78,7 +108,7 @@ export default function ComingSoonPage() {
                 width: '4px',
                 height: '4px',
                 borderRadius: '50%',
-                background: 'rgba(212, 165, 116, 0.3)',
+                background: `${primaryColor}4D`, // 30% opacity
                 animation: `floatUp ${8 + (i % 5) * 2}s linear infinite`,
                 animationDelay: `${i * 0.5}s`,
               }}
@@ -101,26 +131,17 @@ export default function ComingSoonPage() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: '12px',
           marginBottom: '40px',
         }}>
-          <div style={{ width: '40px', height: '40px', color: '#d4a574' }}>
-            <svg viewBox="0 0 100 100" style={{ width: '100%', height: '100%' }}>
-              <path d="M50 25 C50 15, 35 15, 35 25 C35 35, 50 35, 50 45 C50 35, 65 35, 65 25 C65 15, 50 15, 50 25" fill="none" stroke="currentColor" strokeWidth="3"/>
-              <line x1="50" y1="45" x2="50" y2="80" stroke="currentColor" strokeWidth="3"/>
-              <line x1="35" y1="55" x2="65" y2="55" stroke="currentColor" strokeWidth="3"/>
-            </svg>
-          </div>
-          <span style={{
-            color: '#d4a574',
-            fontSize: '20px',
-            fontWeight: 600,
-            letterSpacing: '0.2em',
-            textTransform: 'uppercase',
-            fontFamily: "'Cinzel', serif",
-          }}>
-            Egypt Excursions
-          </span>
+          <img 
+            src={logo} 
+            alt={brandName} 
+            style={{ 
+              height: '80px', 
+              objectFit: 'contain',
+              filter: `drop-shadow(0 0 20px ${primaryColor}4D)`,
+            }} 
+          />
         </div>
 
         {/* Main heading */}
@@ -142,13 +163,12 @@ export default function ComingSoonPage() {
           </span>
           <span style={{
             fontFamily: "'Cinzel', Georgia, serif",
-            color: '#FFEB3B',
+            color: accentColor,
             fontSize: 'clamp(28px, 6vw, 56px)',
             fontWeight: 700,
             letterSpacing: '0.02em',
-            textShadow: '0 4px 20px rgba(255, 235, 59, 0.8), 0 0 40px rgba(255, 235, 59, 0.6)',
+            textShadow: `0 4px 20px ${accentColor}CC, 0 0 40px ${accentColor}99`,
             display: 'block',
-            WebkitTextStroke: '1px #FFC107',
           }}>
             Extraordinary
           </span>
@@ -163,7 +183,7 @@ export default function ComingSoonPage() {
           </span>
         </h1>
 
-        {/* Tagline */}
+        {/* Tagline - tenant specific */}
         <p style={{
           fontFamily: "'Cormorant Garamond', serif",
           fontStyle: 'italic',
@@ -174,9 +194,10 @@ export default function ComingSoonPage() {
           margin: '0 auto 40px',
           padding: '0 16px',
         }}>
-          Discover the wonders of ancient Egypt like never before. 
-          Immersive tours, unforgettable experiences, and adventures 
-          that transcend time await you.
+          {tenant 
+            ? `Discover amazing experiences with ${brandName}. Unforgettable tours and adventures await you.`
+            : 'Discover the wonders of ancient Egypt like never before. Immersive tours, unforgettable experiences, and adventures that transcend time await you.'
+          }
         </p>
 
         {/* Countdown timer */}
@@ -199,7 +220,7 @@ export default function ComingSoonPage() {
               {index > 0 && (
                 <span style={{
                   fontFamily: "'Cinzel', serif",
-                  color: '#d4a574',
+                  color: primaryColor,
                   fontSize: '28px',
                   opacity: 0.4,
                 }}>:</span>
@@ -211,12 +232,12 @@ export default function ComingSoonPage() {
                 padding: '16px 24px',
                 borderRadius: '12px',
                 minWidth: '80px',
-                background: 'rgba(212, 165, 116, 0.1)',
-                border: '1px solid rgba(212, 165, 116, 0.25)',
+                background: `${primaryColor}1A`, // 10% opacity
+                border: `1px solid ${primaryColor}40`, // 25% opacity
               }}>
                 <span style={{
                   fontFamily: "'Cinzel', serif",
-                  color: '#d4a574',
+                  color: primaryColor,
                   fontSize: 'clamp(24px, 4vw, 36px)',
                   fontWeight: 600,
                 }}>
@@ -250,7 +271,7 @@ export default function ComingSoonPage() {
                 borderRadius: '50px',
                 overflow: 'hidden',
                 background: 'rgba(40, 40, 40, 0.8)',
-                border: '1px solid rgba(212, 165, 116, 0.3)',
+                border: `1px solid ${primaryColor}4D`,
               }}
             >
               <input
@@ -278,7 +299,7 @@ export default function ComingSoonPage() {
                   justifyContent: 'center',
                   gap: '8px',
                   padding: '16px 24px',
-                  background: 'linear-gradient(135deg, #d4a574 0%, #c4956a 100%)',
+                  background: `linear-gradient(135deg, ${primaryColor} 0%, ${primaryColor}CC 100%)`,
                   border: 'none',
                   cursor: 'pointer',
                   color: '#0c0a09',
@@ -326,15 +347,12 @@ export default function ComingSoonPage() {
           justifyContent: 'center',
           gap: '16px',
         }}>
-          {[
-            { label: 'Instagram', path: 'M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z' },
-            { label: 'Facebook', path: 'M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z' },
-            { label: 'Twitter', path: 'M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z' },
-            { label: 'YouTube', path: 'M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z' },
-          ].map((social) => (
+          {displaySocialLinks.map((social) => (
             <a 
               key={social.label}
-              href="#" 
+              href={social.url} 
+              target="_blank"
+              rel="noopener noreferrer"
               aria-label={social.label}
               style={{
                 width: '40px',
@@ -345,11 +363,11 @@ export default function ComingSoonPage() {
                 color: '#a8a29e',
                 borderRadius: '50%',
                 background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(212, 165, 116, 0.2)',
+                border: `1px solid ${primaryColor}33`,
                 transition: 'all 0.3s ease',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.color = '#d4a574';
+                e.currentTarget.style.color = primaryColor;
                 e.currentTarget.style.transform = 'scale(1.1)';
               }}
               onMouseLeave={(e) => {
@@ -363,6 +381,18 @@ export default function ComingSoonPage() {
             </a>
           ))}
         </div>
+
+        {/* Tenant name footer */}
+        {tenant && (
+          <div style={{
+            marginTop: '40px',
+            color: '#78716c',
+            fontSize: '14px',
+            fontFamily: "'Cormorant Garamond', serif",
+          }}>
+            © {new Date().getFullYear()} {brandName}. All rights reserved.
+          </div>
+        )}
       </div>
 
       {/* Keyframes for dust particles */}
