@@ -6,6 +6,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { SettingsProvider } from '@/contexts/SettingsContext';
 import withAuth from '@/components/admin/withAuth'; // 1. Import withAuth HOC
 import { AdminAuthProvider } from '@/contexts/AdminAuthContext';
+import { AdminTenantProvider } from '@/contexts/AdminTenantContext';
 
 // 2. Create a component for the protected content
 const ProtectedAdminContent = ({ children }: { children: React.ReactNode }) => {
@@ -35,9 +36,11 @@ export default function AdminLayout({
         <AuthProvider>
             <SettingsProvider>
                 <AdminAuthProvider>
-                    <AuthenticatedAdminLayout>
-                        {children}
-                    </AuthenticatedAdminLayout>
+                    <AdminTenantProvider>
+                        <AuthenticatedAdminLayout>
+                            {children}
+                        </AuthenticatedAdminLayout>
+                    </AdminTenantProvider>
                 </AdminAuthProvider>
             </SettingsProvider>
         </AuthProvider>

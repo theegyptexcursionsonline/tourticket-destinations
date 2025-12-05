@@ -100,12 +100,26 @@ interface TenantData {
     hotjarId: string;
   };
   homepage: {
+    heroType: 'slider' | 'video' | 'static';
     heroTitle: string;
     heroSubtitle: string;
     heroImage: string;
+    heroImages: string[];
+    heroVideoUrl: string;
     promoBarText: string;
     promoBarLink: string;
     promoBarActive: boolean;
+    showDestinations: boolean;
+    showCategories: boolean;
+    showFeaturedTours: boolean;
+    showPopularInterests: boolean;
+    showDayTrips: boolean;
+    showReviews: boolean;
+    showFAQ: boolean;
+    showAboutUs: boolean;
+    showPromoSection: boolean;
+    featuredTourIds: string[];
+    featuredToursCount: number;
   };
 }
 
@@ -188,12 +202,26 @@ const defaultTenant: Partial<TenantData> = {
     hotjarId: '',
   },
   homepage: {
+    heroType: 'slider' as const,
     heroTitle: '',
     heroSubtitle: '',
     heroImage: '',
+    heroImages: [],
+    heroVideoUrl: '',
     promoBarText: '',
     promoBarLink: '',
     promoBarActive: false,
+    showDestinations: true,
+    showCategories: true,
+    showFeaturedTours: true,
+    showPopularInterests: true,
+    showDayTrips: true,
+    showReviews: true,
+    showFAQ: true,
+    showAboutUs: true,
+    showPromoSection: false,
+    featuredTourIds: [],
+    featuredToursCount: 8,
   },
 };
 
@@ -984,35 +1012,98 @@ function PaymentsTab({ tenant, updateField }: { tenant: TenantData; updateField:
 }
 
 function HomepageTab({ tenant, updateField }: { tenant: TenantData; updateField: (path: string, value: unknown) => void }) {
+  const [tours, setTours] = React.useState<Array<{ _id: string; title: string }>>([]);
+  const [isLoadingTours, setIsLoadingTours] = React.useState(false);
+
+  // Fetch tours for this tenant
+  React.useEffect(() => {
+    const fetchTours = async () => {
+      setIsLoadingTours(true);
+      try {
+        const response = await fetch(`/api/admin/tours?tenantId=${tenant.tenantId}`);
+        const data = await response.json();
+        if (data.success) {
+          setTours(data.data || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch tours:', error);
+      } finally {
+        setIsLoadingTours(false);
+      }
+    };
+    fetchTours();
+  }, [tenant.tenantId]);
+
+  const toggleFeaturedTour = (tourId: string) => {
+    const currentIds = tenant.homepage?.featuredTourIds || [];
+    if (currentIds.includes(tourId)) {
+      updateField('homepage.featuredTourIds', currentIds.filter(id => id !== tourId));
+    } else {
+      updateField('homepage.featuredTourIds', [...currentIds, tourId]);
+    }
+  };
+
   return (
-    <div className="space-y-6">
-      <h3 className="text-lg font-semibold text-gray-900">Homepage Settings</h3>
+    <div className="space-y-8">
+      <div>
+        <h3 className="text-lg font-semibold text-gray-900">Homepage Settings</h3>
+        <p className="text-sm text-gray-500 mt-1">Configure what appears on the homepage for this brand</p>
+      </div>
       
-      <div className="grid grid-cols-1 gap-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Hero Title</label>
-          <input
-            type="text"
-            value={tenant.homepage?.heroTitle || ''}
-            onChange={(e) => updateField('homepage.heroTitle', e.target.value)}
-            placeholder="Discover Amazing Tours"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
+      {/* Hero Section Settings */}
+      <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
+        <h4 className="font-medium text-gray-900 mb-4">Hero Section</h4>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Hero Type</label>
+            <select
+              value={tenant.homepage?.heroType || 'slider'}
+              onChange={(e) => updateField('homepage.heroType', e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="slider">Image Slider</option>
+              <option value="video">Video Background</option>
+              <option value="static">Static Image</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Hero Title</label>
+            <input
+              type="text"
+              value={tenant.homepage?.heroTitle || ''}
+              onChange={(e) => updateField('homepage.heroTitle', e.target.value)}
+              placeholder="Discover Amazing Tours"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Hero Subtitle</label>
+            <input
+              type="text"
+              value={tenant.homepage?.heroSubtitle || ''}
+              onChange={(e) => updateField('homepage.heroSubtitle', e.target.value)}
+              placeholder="Book your next adventure"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
         </div>
         
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Hero Subtitle</label>
-          <input
-            type="text"
-            value={tenant.homepage?.heroSubtitle || ''}
-            onChange={(e) => updateField('homepage.heroSubtitle', e.target.value)}
-            placeholder="Book your next adventure today"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
+        {tenant.homepage?.heroType === 'video' && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Video URL</label>
+            <input
+              type="text"
+              value={tenant.homepage?.heroVideoUrl || ''}
+              onChange={(e) => updateField('homepage.heroVideoUrl', e.target.value)}
+              placeholder="https://..."
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+        )}
         
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Hero Image URL</label>
+        <div className="mt-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Hero Image URL (for static/fallback)</label>
           <input
             type="text"
             value={tenant.homepage?.heroImage || ''}
@@ -1022,9 +1113,113 @@ function HomepageTab({ tenant, updateField }: { tenant: TenantData; updateField:
           />
         </div>
       </div>
-      
-      <div className="border-t pt-6">
-        <h4 className="text-sm font-medium text-gray-700 mb-4">Promo Bar</h4>
+
+      {/* Homepage Sections Toggle */}
+      <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
+        <h4 className="font-medium text-gray-900 mb-4">Homepage Sections</h4>
+        <p className="text-sm text-gray-500 mb-4">Choose which sections to display on the homepage</p>
+        
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          {[
+            { key: 'showDestinations', label: 'Destinations' },
+            { key: 'showCategories', label: 'Categories' },
+            { key: 'showFeaturedTours', label: 'Featured Tours' },
+            { key: 'showPopularInterests', label: 'Popular Interests' },
+            { key: 'showDayTrips', label: 'Day Trips' },
+            { key: 'showReviews', label: 'Reviews' },
+            { key: 'showFAQ', label: 'FAQ' },
+            { key: 'showAboutUs', label: 'About Us' },
+            { key: 'showPromoSection', label: 'Promo Section' },
+          ].map((section) => (
+            <label key={section.key} className="flex items-center gap-2 p-3 bg-white rounded-lg border border-gray-200 cursor-pointer hover:border-blue-300">
+              <input
+                type="checkbox"
+                checked={tenant.homepage?.[section.key as keyof typeof tenant.homepage] !== false}
+                onChange={(e) => updateField(`homepage.${section.key}`, e.target.checked)}
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-sm text-gray-700">{section.label}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {/* Featured Tours Selection */}
+      <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h4 className="font-medium text-gray-900">Featured Tours</h4>
+            <p className="text-sm text-gray-500">Select specific tours to feature on the homepage</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-gray-600">Default count:</label>
+            <input
+              type="number"
+              min="1"
+              max="24"
+              value={tenant.homepage?.featuredToursCount || 8}
+              onChange={(e) => updateField('homepage.featuredToursCount', parseInt(e.target.value) || 8)}
+              className="w-16 px-2 py-1 border border-gray-300 rounded text-center text-sm"
+            />
+          </div>
+        </div>
+        
+        {isLoadingTours ? (
+          <div className="text-center py-8 text-gray-500">Loading tours...</div>
+        ) : tours.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            No tours found for this brand. Create tours first.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-96 overflow-y-auto">
+            {tours.map((tour) => {
+              const isSelected = (tenant.homepage?.featuredTourIds || []).includes(tour._id);
+              return (
+                <button
+                  key={tour._id}
+                  type="button"
+                  onClick={() => toggleFeaturedTour(tour._id)}
+                  className={`text-left p-3 rounded-lg border transition-all ${
+                    isSelected 
+                      ? 'bg-blue-50 border-blue-300 ring-1 ring-blue-200' 
+                      : 'bg-white border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <div className={`w-5 h-5 rounded flex items-center justify-center ${
+                      isSelected ? 'bg-blue-500 text-white' : 'border border-gray-300'
+                    }`}>
+                      {isSelected && <span>✓</span>}
+                    </div>
+                    <span className={`text-sm truncate ${isSelected ? 'font-medium text-blue-900' : 'text-gray-700'}`}>
+                      {tour.title}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+        
+        {(tenant.homepage?.featuredTourIds?.length || 0) > 0 && (
+          <div className="mt-4 pt-4 border-t border-gray-200 flex items-center justify-between">
+            <span className="text-sm text-gray-600">
+              {tenant.homepage?.featuredTourIds?.length} tours selected
+            </span>
+            <button
+              type="button"
+              onClick={() => updateField('homepage.featuredTourIds', [])}
+              className="text-sm text-red-600 hover:text-red-700"
+            >
+              Clear all
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Promo Bar Settings */}
+      <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
+        <h4 className="font-medium text-gray-900 mb-4">Promo Bar</h4>
         
         <label className="flex items-center gap-2 mb-4">
           <input

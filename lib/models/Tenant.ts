@@ -109,6 +109,10 @@ export interface ILocalization {
 // Homepage configuration interface
 export interface IHomepageConfig {
   heroType: 'slider' | 'video' | 'static';
+  heroTitle?: string;
+  heroSubtitle?: string;
+  heroImages?: string[];
+  heroVideoUrl?: string;
   showDestinations: boolean;
   showCategories: boolean;
   showFeaturedTours: boolean;
@@ -118,6 +122,10 @@ export interface IHomepageConfig {
   showFAQ: boolean;
   showAboutUs: boolean;
   showPromoSection: boolean;
+  // Featured tour IDs to display on homepage (overrides auto-selection)
+  featuredTourIds?: mongoose.Types.ObjectId[];
+  // Number of featured tours to show (if not using manual selection)
+  featuredToursCount?: number;
   customSections?: {
     id: string;
     title: string;
@@ -513,6 +521,24 @@ const HomepageConfigSchema = new Schema<IHomepageConfig>({
     enum: ['slider', 'video', 'static'],
     default: 'slider',
   },
+  heroTitle: {
+    type: String,
+    trim: true,
+    maxlength: [200, 'Hero title cannot exceed 200 characters'],
+  },
+  heroSubtitle: {
+    type: String,
+    trim: true,
+    maxlength: [500, 'Hero subtitle cannot exceed 500 characters'],
+  },
+  heroImages: [{
+    type: String,
+    trim: true,
+  }],
+  heroVideoUrl: {
+    type: String,
+    trim: true,
+  },
   showDestinations: { type: Boolean, default: true },
   showCategories: { type: Boolean, default: true },
   showFeaturedTours: { type: Boolean, default: true },
@@ -522,6 +548,16 @@ const HomepageConfigSchema = new Schema<IHomepageConfig>({
   showFAQ: { type: Boolean, default: true },
   showAboutUs: { type: Boolean, default: true },
   showPromoSection: { type: Boolean, default: false },
+  featuredTourIds: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Tour',
+  }],
+  featuredToursCount: {
+    type: Number,
+    default: 8,
+    min: 1,
+    max: 24,
+  },
   customSections: [{
     id: String,
     title: String,

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { useSettings } from '@/hooks/useSettings';
+import { useAdminTenant } from '@/contexts/AdminTenantContext';
 import {
     Loader2,
     XCircle,
@@ -39,7 +40,8 @@ import {
     Map,
     Edit,
     PlusCircle,
-    Minus
+    Minus,
+    Building2
 } from 'lucide-react';
 
 // --- Interface Definitions ---
@@ -96,6 +98,7 @@ interface AddOn {
 }
 
 interface TourFormData {
+    tenantId: string;
     title: string;
     slug: string;
     description: string;
@@ -124,6 +127,7 @@ interface TourFormData {
 
 interface Tour extends Partial<TourFormData> {
     _id?: string;
+    tenantId?: string;
     faq?: FAQ[];
 }
 
@@ -294,6 +298,7 @@ const AvailabilityManager = ({ availability, setAvailability }: { availability: 
 export default function TourForm({ tourToEdit, onSave }: { tourToEdit?: Tour, onSave?: () => void }) {
     const router = useRouter();
     const { selectedCurrency } = useSettings();
+    const { tenants, selectedTenantId, isAllTenantsSelected } = useAdminTenant();
     const CurrencyIcon = selectedCurrency.code === 'USD' ? DollarSign : Euro;
     
     const [isPanelOpen, setIsPanelOpen] = useState(false);
@@ -305,7 +310,18 @@ export default function TourForm({ tourToEdit, onSave }: { tourToEdit?: Tour, on
     const [expandedItineraryIndex, setExpandedItineraryIndex] = useState<number | null>(0);
     const [expandedFaqIndex, setExpandedFaqIndex] = useState<number | null>(0);
 
+    // Determine default tenantId: use selected tenant if specific one is selected, otherwise 'default'
+    const getDefaultTenantId = () => {
+        if (!isAllTenantsSelected() && selectedTenantId) {
+            return selectedTenantId;
+        }
+        // Fall back to default tenant or first available tenant
+        const defaultTenant = tenants.find(t => t.isDefault);
+        return defaultTenant?.tenantId || tenants[0]?.tenantId || 'default';
+    };
+
     const [formData, setFormData] = useState<TourFormData>({
+        tenantId: getDefaultTenantId(),
         title: '',
         slug: '',
         description: '',
@@ -339,6 +355,13 @@ export default function TourForm({ tourToEdit, onSave }: { tourToEdit?: Tour, on
         interests: [],
     });
 
+    // Update default tenantId when tenants are loaded and formData is empty
+    useEffect(() => {
+        if (!tourToEdit && tenants.length > 0 && !formData.tenantId) {
+            setFormData(prev => ({ ...prev, tenantId: getDefaultTenantId() }));
+        }
+    }, [tenants, selectedTenantId]);
+
     const [destinations, setDestinations] = useState<Destination[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
     const [attractions, setAttractions] = useState<AttractionInterest[]>([]);
@@ -349,8 +372,9 @@ export default function TourForm({ tourToEdit, onSave }: { tourToEdit?: Tour, on
     useEffect(() => {
         if (tourToEdit) {
             setIsSlugManuallyEdited(Boolean(tourToEdit.slug));
-            
+
             const initialData: Partial<TourFormData> = {
+                tenantId: tourToEdit.tenantId || getDefaultTenantId(),
                 title: tourToEdit.title || '',
                 slug: tourToEdit.slug || '',
                 description: tourToEdit.description || '',
@@ -808,7 +832,15 @@ const addItineraryItem = () => {
         try {
             const cleanedData = { ...formData };
 
+            // Ensure tenantId is set
+            if (!cleanedData.tenantId) {
+                toast.error('Please select a brand for this tour.');
+                setIsSubmitting(false);
+                return;
+            }
+
             const payload = {
+                tenantId: cleanedData.tenantId,
                 title: cleanedData.title.trim(),
                 slug: cleanedData.slug.trim(),
                 description: cleanedData.description.trim(),
@@ -1044,6 +1076,32 @@ const addItineraryItem = () => {
                                 {/* Basic Info Tab */}
                                 {activeTab === 'basic' && (
                                     <div className="space-y-6">
+                                        {/* Tenant/Brand Selector */}
+                                        <div className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl">
+                                            <FormLabel icon={Building2} required>Assign to Brand</FormLabel>
+                                            <div className="relative">
+                                                <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-indigo-500" />
+                                                <select
+                                                    name="tenantId"
+                                                    value={formData.tenantId || ''}
+                                                    onChange={handleChange}
+                                                    className={`${inputBase} pl-10 appearance-none cursor-pointer border-indigo-200 focus:ring-indigo-500`}
+                                                    required
+                                                >
+                                                    <option value="">Select a brand...</option>
+                                                    {tenants.map(t => (
+                                                        <option key={t.tenantId} value={t.tenantId}>
+                                                            {t.name} ({t.domain})
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                                            </div>
+                                            <SmallHint className="text-indigo-600">
+                                                This tour will only appear on the selected brand's website.
+                                            </SmallHint>
+                                        </div>
+
                                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                             <div className="space-y-3">
                                                 <FormLabel icon={Sparkles} required>Title</FormLabel>

@@ -36,6 +36,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTenant } from '@/contexts/TenantContext';
 import CurrencyLanguageSwitcher from '@/components/shared/CurrencyLanguageSwitcher';
 import AuthModal from '@/components/AuthModal';
 import { Destination, Category, Tour } from '@/types';
@@ -1164,7 +1165,7 @@ const MobileMenu: FC<{
           >
             <div className="flex flex-col h-full">
               <div className="flex items-center justify-between p-6 border-b">
-                <img src="/EEO-logo.png" alt="Egypt Excursions Online" className="h-10 object-contain" />
+                <img src={getLogo()} alt={getSiteName()} className="h-10 object-contain" />
                 <button onClick={onClose} className="p-2 rounded-full text-slate-500 hover:bg-slate-100">
                   <X size={24} />
                 </button>
@@ -1290,6 +1291,7 @@ export default function Header({
   const [destinations, setDestinations] = useState<Destination[]>(initialDestinations || []);
   const [categories, setCategories] = useState<Category[]>(initialCategories || []);
   const { t } = useSettings();
+  const { tenant, getLogo, getSiteName } = useTenant();
 
   useEffect(() => {
     // Only fetch if data wasn't provided via props
@@ -1349,7 +1351,7 @@ export default function Header({
     <div className="flex items-center justify-between h-16 md:h-20">
       <div className="flex items-center gap-4 lg:gap-8">
         <Link href="/" className="flex items-center h-full">
-          <img src="/EEO-logo.png" alt="Egypt Excursions Online" className="h-12 md:h-14 lg:h-16 object-contain transition-colors duration-300" />
+          <img src={getLogo()} alt={getSiteName()} className="h-12 md:h-14 lg:h-16 object-contain transition-colors duration-300" />
         </Link>
 
         <nav className="hidden md:flex items-center relative">

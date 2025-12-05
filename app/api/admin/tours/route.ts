@@ -64,35 +64,69 @@ function cleanBookingOptions(bookingOptions: any[]): any[] {
   });
 }
 
-async function fetchToursWithPopulate() {
+async function fetchToursWithPopulate(filter: Record<string, unknown> = {}) {
   try {
-    return await Tour.find({})
+    return await Tour.find(filter)
       .populate('category')
       .populate('destination')
       .populate('reviews')
       .populate('attractions')
       .populate('interests')
+      .sort({ createdAt: -1 })
       .lean();
   } catch (err) {
     console.warn('Populate failed, retrying with strictPopulate:false', err);
-    return await Tour.find({})
+    return await Tour.find(filter)
       .populate({ path: 'category', strictPopulate: false })
       .populate({ path: 'destination', strictPopulate: false })
       .populate({ path: 'reviews', strictPopulate: false })
       .populate({ path: 'attractions', strictPopulate: false })
       .populate({ path: 'interests', strictPopulate: false })
+      .sort({ createdAt: -1 })
       .lean();
   }
 }
 
-// GET all tours
-export async function GET() {
+// GET all tours (with optional tenant filter)
+export async function GET(request: Request) {
   await dbConnect();
 
   try {
-    const tours = await fetchToursWithPopulate();
+    const { searchParams } = new URL(request.url);
+    const tenantId = searchParams.get('tenantId');
+    const published = searchParams.get('published');
+    const featured = searchParams.get('featured');
+    
+    // Build filter object
+    const filter: Record<string, unknown> = {};
+    
+    // Filter by tenant if specified (and not 'all')
+    if (tenantId && tenantId !== 'all') {
+      filter.tenantId = tenantId;
+    }
+    
+    // Filter by published status if specified
+    if (published === 'true') {
+      filter.isPublished = true;
+    } else if (published === 'false') {
+      filter.isPublished = false;
+    }
+    
+    // Filter by featured status if specified
+    if (featured === 'true') {
+      filter.isFeatured = true;
+    }
+    
+    const tours = await fetchToursWithPopulate(filter);
 
-    return NextResponse.json({ success: true, data: tours }, { status: 200 });
+    return NextResponse.json({ 
+      success: true, 
+      data: tours,
+      meta: {
+        total: tours.length,
+        tenantId: tenantId || 'all',
+      }
+    }, { status: 200 });
   } catch (error) {
     console.error('Error fetching tours:', error);
     const message = error instanceof Error ? error.message : 'Unknown server error';

@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Destination } from '@/types';
 import toast, { Toaster } from 'react-hot-toast';
+import { useTenant } from '@/contexts/TenantContext';
 
 // Import the single, consolidated switcher component
 import CurrencyLanguageSwitcher from '@/components/shared/CurrencyLanguageSwitcher';
@@ -46,6 +47,25 @@ export default function Footer() {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
+  
+  // Get tenant branding and contact info
+  const { tenant, getLogo, getSiteName } = useTenant();
+  
+  // Get social links from tenant or use defaults
+  const tenantSocialLinks = tenant?.socialLinks || {};
+  const displaySocialLinks = [
+    tenantSocialLinks.facebook && { icon: Facebook, href: tenantSocialLinks.facebook },
+    tenantSocialLinks.instagram && { icon: Instagram, href: tenantSocialLinks.instagram },
+    tenantSocialLinks.twitter && { icon: Twitter, href: tenantSocialLinks.twitter },
+    tenantSocialLinks.youtube && { icon: Youtube, href: tenantSocialLinks.youtube },
+  ].filter(Boolean) as { icon: typeof Facebook; href: string }[];
+  
+  // Use default social links if tenant doesn't have any
+  const finalSocialLinks = displaySocialLinks.length > 0 ? displaySocialLinks : socialLinks;
+  
+  // Get contact info from tenant
+  const contactPhone = tenant?.contact?.phone || '+20 11 42255624';
+  const contactEmail = tenant?.contact?.email || 'booking@egypt-excursionsonline.com';
 
   useEffect(() => {
     const fetchDestinations = async () => {
@@ -239,15 +259,15 @@ export default function Footer() {
           <div className="space-y-6 lg:col-span-2">
             <Link href="/" className="inline-block">
               <Image
-                src="/EEO-logo.png"
-                alt="Egypt Excursions Online"
+                src={getLogo()}
+                alt={getSiteName()}
                 width={160}
                 height={80}
                 className="h-16 sm:h-20 w-auto object-contain"
               />
             </Link>
             <p className="text-sm text-slate-600 leading-relaxed max-w-xs">
-              Book your adventure, skip the lines. Unforgettable tours, tickets, and activities for a memorable journey through Egypt Excursions Online.
+              Book your adventure, skip the lines. Unforgettable tours, tickets, and activities for a memorable journey with {getSiteName()}.
             </p>
 
             {/* Trusted by clients */}
@@ -334,15 +354,15 @@ export default function Footer() {
                 <li className="flex gap-3">
                   <span className="h-10 w-10 rounded-full bg-red-50 flex items-center justify-center text-red-600"><Phone size={18} /></span>
                   <div className="flex flex-col">
-                    <a href="tel:+201142255624" className="font-semibold text-slate-900 hover:text-red-600 transition-colors">+20 11 42255624</a>
+                    <a href={`tel:${contactPhone.replace(/\s/g, '')}`} className="font-semibold text-slate-900 hover:text-red-600 transition-colors">{contactPhone}</a>
                     <span className="text-xs text-slate-500">(24/7 support)</span>
                   </div>
                 </li>
                 <li className="flex gap-3">
                   <span className="h-10 w-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600"><Mail size={18} /></span>
                   <div>
-                    <a href="mailto:booking@egypt-excursionsonline.com" className="font-semibold text-slate-900 hover:text-red-600 transition-colors break-all">
-                      booking@egypt-excursionsonline.com
+                    <a href={`mailto:${contactEmail}`} className="font-semibold text-slate-900 hover:text-red-600 transition-colors break-all">
+                      {contactEmail}
                     </a>
                     <p className="text-xs text-slate-500">Replies within 1 hour</p>
                   </div>
@@ -398,7 +418,7 @@ export default function Footer() {
               <h4 className="font-semibold text-base mb-2 text-slate-900">Follow us on social media</h4>
               <p className="text-xs text-slate-500 mb-3">Join our community for live updates, reels, and travel inspiration.</p>
               <div className="flex gap-3">
-                {socialLinks.map(({ icon: Icon, href }, i) => (
+                {finalSocialLinks.map(({ icon: Icon, href }, i) => (
                   <a 
                     key={i} 
                     href={href} 
@@ -427,7 +447,7 @@ export default function Footer() {
             <span className="hidden sm:inline">·</span>
             <Link className="underline hover:text-slate-700 transition-colors" href="/terms">Terms and conditions</Link>
           </div>
-          <p>© {new Date().getFullYear()} Egypt Excursions Online. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} {getSiteName()}. All rights reserved.</p>
         </div>
       </div>
     </footer>

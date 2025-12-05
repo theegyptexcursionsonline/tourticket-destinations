@@ -6,6 +6,7 @@ import { LogOut, Home, ChevronRight, User, Shield, DollarSign, Euro } from 'luci
 import { useSettings } from '@/hooks/useSettings';
 import { currencies } from '@/utils/localization';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
+import TenantSelector from '@/components/admin/TenantSelector';
 
 const AdminHeader = () => {
     const pathname = usePathname();
@@ -105,8 +106,14 @@ const AdminHeader = () => {
                         </nav>
                     </div>
 
-                    {/* Enhanced User Menu and Logout */}
+                    {/* Tenant Selector and User Menu */}
                     <div className="flex items-center gap-4">
+                        {/* Tenant/Brand Selector */}
+                        <TenantSelector variant="header" />
+                        
+                        {/* Divider */}
+                        <div className="hidden lg:block h-8 w-px bg-gray-200" />
+                        
                         {/* DYNAMIC CURRENCY SWITCHER */}
                         <div className="relative">
                            <CurrencyIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
