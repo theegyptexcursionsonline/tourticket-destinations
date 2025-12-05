@@ -13,12 +13,10 @@ export default function ComingSoonPage() {
     seconds: 0,
   });
 
-  // Mark component as mounted (client-side only)
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  // Countdown to a launch date (set this to your actual launch date)
   useEffect(() => {
     const launchDate = new Date('2026-01-15T00:00:00').getTime();
 
@@ -38,7 +36,6 @@ export default function ComingSoonPage() {
 
     calculateTimeLeft();
     const timer = setInterval(calculateTimeLeft, 1000);
-
     return () => clearInterval(timer);
   }, []);
 
@@ -52,203 +49,185 @@ export default function ComingSoonPage() {
   };
 
   return (
-    <div 
-      className="min-h-screen relative overflow-hidden flex items-center justify-center p-8"
-      style={{ 
-        background: 'linear-gradient(135deg, #0c0a09 0%, #1c1917 25%, #292524 50%, #1c1917 75%, #0c0a09 100%)' 
-      }}
-      suppressHydrationWarning
-    >
+    <div style={{
+      minHeight: '100vh',
+      position: 'relative',
+      overflow: 'hidden',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '32px',
+      background: 'linear-gradient(180deg, #0c0a09 0%, #1c1917 50%, #292524 100%)',
+      fontFamily: 'system-ui, -apple-system, sans-serif',
+    }}>
       {/* Google Fonts */}
       <link 
         href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" 
         rel="stylesheet" 
       />
 
-      {/* Animated background elements */}
-      <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 0 }}>
-        {/* Pyramids - positioned lower and more transparent */}
-        <div 
-          className="absolute transition-transform duration-300"
-          style={{ 
-            bottom: '-20%', 
-            left: '5%',
-            width: 0,
-            height: 0,
-            borderStyle: 'solid',
-            borderWidth: '0 120px 200px 120px',
-            borderColor: 'transparent transparent rgba(212, 165, 116, 0.08) transparent',
-            zIndex: 0,
-          }}
-        />
-        <div 
-          className="absolute transition-transform duration-300"
-          style={{ 
-            bottom: '-25%', 
-            left: '30%',
-            width: 0,
-            height: 0,
-            borderStyle: 'solid',
-            borderWidth: '0 150px 250px 150px',
-            borderColor: 'transparent transparent rgba(196, 149, 106, 0.08) transparent',
-            zIndex: 0,
-          }}
-        />
-        <div 
-          className="absolute transition-transform duration-300"
-          style={{ 
-            bottom: '-18%', 
-            right: '10%',
-            width: 0,
-            height: 0,
-            borderStyle: 'solid',
-            borderWidth: '0 100px 180px 100px',
-            borderColor: 'transparent transparent rgba(228, 181, 132, 0.08) transparent',
-            zIndex: 0,
-          }}
-        />
-
-        {/* Sand dunes gradient - reduced height to not overlap content */}
-        <div 
-          className="absolute bottom-0 left-0 right-0 h-[15%]"
-          style={{ 
-            background: 'linear-gradient(to top, rgba(212, 165, 116, 0.05) 0%, transparent 100%)',
-            zIndex: 0,
-          }}
-        />
-
-        {/* Floating dust particles - only rendered client-side */}
-        {isMounted && (
-          <div className="absolute inset-0" suppressHydrationWarning>
-            {[
-              { left: '5%', delay: '0s', duration: '8s' },
-              { left: '12%', delay: '2.5s', duration: '10s' },
-              { left: '18%', delay: '1s', duration: '7s' },
-              { left: '25%', delay: '3.5s', duration: '12s' },
-              { left: '32%', delay: '0.5s', duration: '9s' },
-              { left: '38%', delay: '4s', duration: '11s' },
-              { left: '45%', delay: '1.5s', duration: '8s' },
-              { left: '52%', delay: '2s', duration: '13s' },
-              { left: '58%', delay: '3s', duration: '7s' },
-              { left: '65%', delay: '0.8s', duration: '10s' },
-              { left: '72%', delay: '4.5s', duration: '9s' },
-              { left: '78%', delay: '1.2s', duration: '11s' },
-              { left: '85%', delay: '2.8s', duration: '8s' },
-              { left: '92%', delay: '0.3s', duration: '12s' },
-              { left: '8%', delay: '3.8s', duration: '10s' },
-              { left: '22%', delay: '1.8s', duration: '9s' },
-              { left: '48%', delay: '4.2s', duration: '7s' },
-              { left: '62%', delay: '0.6s', duration: '11s' },
-              { left: '88%', delay: '2.2s', duration: '13s' },
-              { left: '35%', delay: '3.2s', duration: '8s' },
-            ].map((particle, i) => (
-              <div
-                key={i}
-                className="absolute w-0.5 h-0.5 rounded-full animate-float-up"
-                style={{
-                  left: particle.left,
-                  background: 'rgba(212, 165, 116, 0.4)',
-                  animationDelay: particle.delay,
-                  animationDuration: particle.duration,
-                }}
-              />
-            ))}
-          </div>
-        )}
-      </div>
+      {/* Subtle dust particles */}
+      {isMounted && (
+        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
+          {[...Array(15)].map((_, i) => (
+            <div
+              key={i}
+              style={{
+                position: 'absolute',
+                left: `${5 + i * 6}%`,
+                width: '4px',
+                height: '4px',
+                borderRadius: '50%',
+                background: 'rgba(212, 165, 116, 0.3)',
+                animation: `floatUp ${8 + (i % 5) * 2}s linear infinite`,
+                animationDelay: `${i * 0.5}s`,
+              }}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Main content */}
-      <div className="relative text-center max-w-[800px] animate-fade-in" style={{ zIndex: 10 }}>
+      <div style={{
+        position: 'relative',
+        zIndex: 10,
+        textAlign: 'center',
+        maxWidth: '900px',
+        width: '100%',
+      }}>
+        
         {/* Logo/Brand */}
-        <div className="flex items-center justify-center gap-4 mb-12">
-          <div className="w-12 h-12 text-[#d4a574]">
-            <svg viewBox="0 0 100 100" className="w-full h-full">
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '12px',
+          marginBottom: '40px',
+        }}>
+          <div style={{ width: '40px', height: '40px', color: '#d4a574' }}>
+            <svg viewBox="0 0 100 100" style={{ width: '100%', height: '100%' }}>
               <path d="M50 25 C50 15, 35 15, 35 25 C35 35, 50 35, 50 45 C50 35, 65 35, 65 25 C65 15, 50 15, 50 25" fill="none" stroke="currentColor" strokeWidth="3"/>
               <line x1="50" y1="45" x2="50" y2="80" stroke="currentColor" strokeWidth="3"/>
               <line x1="35" y1="55" x2="65" y2="55" stroke="currentColor" strokeWidth="3"/>
             </svg>
           </div>
-          <span 
-            className="text-[#d4a574] text-xl font-semibold tracking-[0.15em] uppercase"
-            style={{ fontFamily: "'Cinzel', serif" }}
-          >
+          <span style={{
+            color: '#d4a574',
+            fontSize: '20px',
+            fontWeight: 600,
+            letterSpacing: '0.2em',
+            textTransform: 'uppercase',
+            fontFamily: "'Cinzel', serif",
+          }}>
             Egypt Excursions
           </span>
         </div>
 
         {/* Main heading */}
-        <h1 className="flex flex-col mb-8 gap-2">
-          <span 
-            className="block text-[#fafaf9] leading-[1.1] text-[clamp(2rem,6vw,4rem)] opacity-0 animate-slide-up"
-            style={{ fontFamily: "'Cinzel', serif", animationDelay: '0.3s', animationFillMode: 'forwards' }}
-          >
+        <h1 style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px',
+          marginBottom: '32px',
+          padding: '0 8px',
+        }}>
+          <span style={{
+            fontFamily: "'Cinzel', serif",
+            color: '#f5f5f4',
+            fontSize: 'clamp(24px, 5vw, 48px)',
+            fontWeight: 400,
+            letterSpacing: '0.05em',
+          }}>
             Something
           </span>
-          <span 
-            className="block leading-[1.1] text-[clamp(2.5rem,8vw,5.5rem)] opacity-0 animate-slide-up"
-            style={{ 
-              fontFamily: "'Cinzel', serif", 
-              animationDelay: '0.5s', 
-              animationFillMode: 'forwards',
-              color: '#d4a574',
-              textShadow: '0 0 20px rgba(212, 165, 116, 0.5)',
-            }}
-          >
+          <span style={{
+            fontFamily: "'Cinzel', serif",
+            color: '#f5c87a',
+            fontSize: 'clamp(32px, 7vw, 64px)',
+            fontWeight: 700,
+            letterSpacing: '0.02em',
+            textShadow: '0 0 60px rgba(245, 200, 122, 0.6), 0 0 30px rgba(245, 200, 122, 0.4)',
+          }}>
             Extraordinary
           </span>
-          <span 
-            className="block text-[#fafaf9] leading-[1.1] text-[clamp(2rem,6vw,4rem)] opacity-0 animate-slide-up"
-            style={{ fontFamily: "'Cinzel', serif", animationDelay: '0.7s', animationFillMode: 'forwards' }}
-          >
+          <span style={{
+            fontFamily: "'Cinzel', serif",
+            color: '#f5f5f4',
+            fontSize: 'clamp(24px, 5vw, 48px)',
+            fontWeight: 400,
+            letterSpacing: '0.05em',
+          }}>
             Is Coming
           </span>
         </h1>
 
         {/* Tagline */}
-        <p 
-          className="text-[#a8a29e] text-[clamp(1.1rem,2.5vw,1.4rem)] leading-[1.8] max-w-[600px] mx-auto mb-12 italic"
-          style={{ fontFamily: "'Cormorant Garamond', serif" }}
-        >
+        <p style={{
+          fontFamily: "'Cormorant Garamond', serif",
+          fontStyle: 'italic',
+          color: '#a8a29e',
+          fontSize: 'clamp(16px, 2.5vw, 20px)',
+          lineHeight: 1.8,
+          maxWidth: '600px',
+          margin: '0 auto 40px',
+          padding: '0 16px',
+        }}>
           Discover the wonders of ancient Egypt like never before. 
           Immersive tours, unforgettable experiences, and adventures 
           that transcend time await you.
         </p>
 
         {/* Countdown timer */}
-        <div className="flex items-center justify-center gap-2 mb-12 flex-wrap relative" style={{ zIndex: 10 }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '16px',
+          marginBottom: '40px',
+          flexWrap: 'wrap',
+          padding: '0 16px',
+        }}>
           {[
             { value: timeLeft.days, label: 'Days' },
             { value: timeLeft.hours, label: 'Hours' },
             { value: timeLeft.minutes, label: 'Minutes' },
             { value: timeLeft.seconds, label: 'Seconds' },
           ].map((item, index) => (
-            <div key={item.label} className="flex items-center relative" style={{ zIndex: 10 }}>
+            <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               {index > 0 && (
-                <span 
-                  className="text-[#d4a574] text-3xl opacity-50 mx-1 mb-6"
-                  style={{ fontFamily: "'Cinzel', serif" }}
-                >
-                  :
-                </span>
+                <span style={{
+                  fontFamily: "'Cinzel', serif",
+                  color: '#d4a574',
+                  fontSize: '28px',
+                  opacity: 0.4,
+                }}>:</span>
               )}
-              <div 
-                className="flex flex-col items-center px-6 py-4 rounded-lg min-w-[80px] backdrop-blur-sm relative"
-                style={{ 
-                  background: 'rgba(212, 165, 116, 0.12)',
-                  border: '1px solid rgba(212, 165, 116, 0.3)',
-                  zIndex: 10,
-                }}
-              >
-                <span 
-                  className="text-[#d4a574] text-[clamp(1.8rem,4vw,2.5rem)] font-semibold"
-                  style={{ fontFamily: "'Cinzel', serif" }}
-                >
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                padding: '16px 24px',
+                borderRadius: '12px',
+                minWidth: '80px',
+                background: 'rgba(212, 165, 116, 0.1)',
+                border: '1px solid rgba(212, 165, 116, 0.25)',
+              }}>
+                <span style={{
+                  fontFamily: "'Cinzel', serif",
+                  color: '#d4a574',
+                  fontSize: 'clamp(24px, 4vw, 36px)',
+                  fontWeight: 600,
+                }}>
                   {isMounted ? String(item.value).padStart(2, '0') : '--'}
                 </span>
-                <span 
-                  className="text-[#78716c] text-sm uppercase tracking-[0.1em] mt-1"
-                  style={{ fontFamily: "'Cormorant Garamond', serif" }}
-                >
+                <span style={{
+                  fontFamily: "'Cormorant Garamond', serif",
+                  color: '#78716c',
+                  fontSize: '12px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.1em',
+                  marginTop: '4px',
+                }}>
                   {item.label}
                 </span>
               </div>
@@ -257,15 +236,19 @@ export default function ComingSoonPage() {
         </div>
 
         {/* Email signup */}
-        <div className="mb-12 relative" style={{ zIndex: 10 }}>
+        <div style={{ marginBottom: '40px', padding: '0 16px' }}>
           {!isSubmitted ? (
             <form 
-              onSubmit={handleSubmit} 
-              className="flex max-w-[500px] mx-auto rounded-full overflow-hidden transition-all duration-300 focus-within:border-[#d4a574] focus-within:shadow-[0_0_30px_rgba(212,165,116,0.2)] relative"
-              style={{ 
-                background: 'rgba(250, 250, 249, 0.08)',
-                border: '1px solid rgba(212, 165, 116, 0.4)',
-                zIndex: 10,
+              onSubmit={handleSubmit}
+              style={{
+                display: 'flex',
+                flexDirection: 'row',
+                maxWidth: '500px',
+                margin: '0 auto',
+                borderRadius: '50px',
+                overflow: 'hidden',
+                background: 'rgba(40, 40, 40, 0.8)',
+                border: '1px solid rgba(212, 165, 116, 0.3)',
               }}
             >
               <input
@@ -273,34 +256,61 @@ export default function ComingSoonPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email for early access"
-                className="flex-1 px-6 py-4 bg-transparent border-none outline-none text-[#fafaf9] text-lg placeholder:text-[#78716c]"
-                style={{ fontFamily: "'Cormorant Garamond', serif" }}
                 required
+                style={{
+                  flex: 1,
+                  padding: '16px 20px',
+                  background: 'transparent',
+                  border: 'none',
+                  outline: 'none',
+                  color: '#fafaf9',
+                  fontSize: '16px',
+                  fontFamily: "'Cormorant Garamond', serif",
+                }}
               />
               <button 
-                type="submit" 
-                className="flex items-center gap-2 px-8 py-4 text-[#0c0a09] font-semibold text-sm uppercase tracking-[0.05em] cursor-pointer transition-all duration-300 hover:translate-x-1"
-                style={{ 
-                  fontFamily: "'Cinzel', serif",
+                type="submit"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  padding: '16px 24px',
                   background: 'linear-gradient(135deg, #d4a574 0%, #c4956a 100%)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: '#0c0a09',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  fontFamily: "'Cinzel', serif",
+                  whiteSpace: 'nowrap',
                 }}
               >
                 <span>Notify Me</span>
-                <svg viewBox="0 0 24 24" className="w-[18px] h-[18px] transition-transform duration-300 group-hover:translate-x-1">
+                <svg viewBox="0 0 24 24" style={{ width: '16px', height: '16px' }}>
                   <path d="M5 12h14M12 5l7 7-7 7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </button>
             </form>
           ) : (
-            <div 
-              className="flex items-center justify-center gap-3 px-8 py-4 rounded-full text-[#4ade80] text-lg"
-              style={{ 
-                fontFamily: "'Cormorant Garamond', serif",
-                background: 'rgba(34, 197, 94, 0.1)',
-                border: '1px solid rgba(34, 197, 94, 0.3)',
-              }}
-            >
-              <svg viewBox="0 0 24 24" className="w-6 h-6">
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '12px',
+              padding: '16px 24px',
+              borderRadius: '50px',
+              maxWidth: '500px',
+              margin: '0 auto',
+              color: '#4ade80',
+              fontSize: '16px',
+              fontFamily: "'Cormorant Garamond', serif",
+              background: 'rgba(34, 197, 94, 0.15)',
+              border: '1px solid rgba(34, 197, 94, 0.4)',
+            }}>
+              <svg viewBox="0 0 24 24" style={{ width: '20px', height: '20px' }}>
                 <path d="M20 6L9 17l-5-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
               <span>You&apos;re on the list! We&apos;ll notify you when we launch.</span>
@@ -309,7 +319,11 @@ export default function ComingSoonPage() {
         </div>
 
         {/* Social links */}
-        <div className="flex justify-center gap-6 relative" style={{ zIndex: 10 }}>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          gap: '16px',
+        }}>
           {[
             { label: 'Instagram', path: 'M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z' },
             { label: 'Facebook', path: 'M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z' },
@@ -319,14 +333,29 @@ export default function ComingSoonPage() {
             <a 
               key={social.label}
               href="#" 
-              className="w-11 h-11 flex items-center justify-center text-[#78716c] rounded-full transition-all duration-300 hover:text-[#d4a574] hover:border-[#d4a574] hover:-translate-y-1 hover:shadow-[0_10px_30px_rgba(212,165,116,0.2)]"
-              style={{ 
-                background: 'rgba(250, 250, 249, 0.05)',
-                border: '1px solid rgba(212, 165, 116, 0.2)',
-              }}
               aria-label={social.label}
+              style={{
+                width: '40px',
+                height: '40px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#a8a29e',
+                borderRadius: '50%',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(212, 165, 116, 0.2)',
+                transition: 'all 0.3s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = '#d4a574';
+                e.currentTarget.style.transform = 'scale(1.1)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = '#a8a29e';
+                e.currentTarget.style.transform = 'scale(1)';
+              }}
             >
-              <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+              <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: '16px', height: '16px' }}>
                 <path d={social.path}/>
               </svg>
             </a>
@@ -334,62 +363,37 @@ export default function ComingSoonPage() {
         </div>
       </div>
 
-      {/* Custom keyframes */}
+      {/* Keyframes for dust particles */}
       <style>{`
-        @keyframes float-up {
+        @keyframes floatUp {
           0% {
-            transform: translateY(100vh) scale(0);
+            transform: translateY(100vh);
             opacity: 0;
           }
           10% {
-            opacity: 1;
+            opacity: 0.6;
           }
           90% {
-            opacity: 1;
+            opacity: 0.6;
           }
           100% {
-            transform: translateY(-100px) scale(1);
+            transform: translateY(-20px);
             opacity: 0;
           }
         }
         
-        @keyframes fade-in {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        
-        @keyframes slide-up {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        
-        .animate-float-up {
-          animation: float-up linear infinite;
-        }
-        
-        .animate-fade-in {
-          animation: fade-in 1s ease-out;
-        }
-        
-        .animate-slide-up {
-          animation: slide-up 0.8s ease-out;
+        input::placeholder {
+          color: #6b6b6b;
         }
         
         @media (max-width: 640px) {
-          .countdown-wrapper {
-            gap: 0.3rem;
+          form {
+            flex-direction: column !important;
+            border-radius: 16px !important;
+          }
+          
+          form button {
+            border-radius: 0 0 14px 14px !important;
           }
         }
       `}</style>
