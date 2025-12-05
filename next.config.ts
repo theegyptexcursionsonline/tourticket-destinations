@@ -15,8 +15,17 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
 
-  // Server external packages configuration
-  serverExternalPackages: ['mongoose'],
+  // Server external packages configuration - externalize heavy packages to reduce bundle size
+  serverExternalPackages: [
+    'mongoose',
+    'bcryptjs',
+    'handlebars',
+    'nodemailer',
+    'mailgun.js',
+    'cloudinary',
+    'stripe',
+    '@sentry/nextjs',
+  ],
 
   // Image optimization configuration - Fixed for Netlify
   images: {
