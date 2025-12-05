@@ -141,12 +141,14 @@ export default function ComingSoonPage() {
             Something
           </span>
           <span style={{
-            fontFamily: "'Cinzel', serif",
-            color: '#f5c87a',
-            fontSize: 'clamp(32px, 7vw, 64px)',
+            fontFamily: "'Cinzel', Georgia, serif",
+            color: '#FFEB3B',
+            fontSize: 'clamp(28px, 6vw, 56px)',
             fontWeight: 700,
             letterSpacing: '0.02em',
-            textShadow: '0 0 60px rgba(245, 200, 122, 0.6), 0 0 30px rgba(245, 200, 122, 0.4)',
+            textShadow: '0 4px 20px rgba(255, 235, 59, 0.8), 0 0 40px rgba(255, 235, 59, 0.6)',
+            display: 'block',
+            WebkitTextStroke: '1px #FFC107',
           }}>
             Extraordinary
           </span>
