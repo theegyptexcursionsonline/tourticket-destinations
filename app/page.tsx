@@ -6,7 +6,7 @@ const COMING_SOON_MODE = true;
 // ============================================================================
 
 import { Metadata } from 'next';
-import ComingSoonPage from '@/components/ComingSoonPage';
+import ComingSoonWrapper from '@/components/ComingSoonWrapper';
 import HomePageServer from './HomePageServer';
 
 export const metadata: Metadata = COMING_SOON_MODE
@@ -19,12 +19,12 @@ export const metadata: Metadata = COMING_SOON_MODE
       description: 'Discover Egypt\'s wonders with unforgettable tours and experiences. From Pyramids to Nile cruises, book your adventure today.',
     };
 
-// Ensure Next.js picks up the ISR config for the homepage route.
-export const revalidate = 60;
+// Disable caching for coming soon mode, use ISR for normal mode
+export const revalidate = COMING_SOON_MODE ? 0 : 60;
 
 export default function HomePage() {
   if (COMING_SOON_MODE) {
-    return <ComingSoonPage />;
+    return <ComingSoonWrapper />;
   }
   return <HomePageServer />;
 }
