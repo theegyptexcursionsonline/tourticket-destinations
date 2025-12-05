@@ -13,6 +13,9 @@ import { Toaster } from 'react-hot-toast';
 import IntercomClient from "@/components/IntercomClient";
 import ConditionalAIWidgets from "@/components/ConditionalAIWidgets";
 import { getTenantFromRequest, getTenantPublicConfig } from "@/lib/tenant";
+import ComingSoonWrapper from "@/components/ComingSoonWrapper";
+
+const COMING_SOON_MODE = true;
 
 const inter = Inter({ subsets: ["latin"], variable: '--font-inter' });
 const almarai = Almarai({
@@ -63,6 +66,16 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  if (COMING_SOON_MODE) {
+    return (
+      <html lang="en">
+        <body>
+          <ComingSoonWrapper />
+        </body>
+      </html>
+    );
+  }
+
   // Get initial tenant config for server-side rendering
   let initialTenant = null;
   let initialTenantId = 'default';
