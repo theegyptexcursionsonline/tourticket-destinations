@@ -262,12 +262,29 @@ function isAllowedInComingSoonMode(pathname: string): boolean {
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const hostname = request.headers.get('host') || 'localhost:3000';
+
+  // Helper to attach tenant headers/cookies
+  const applyTenantContext = (response: NextResponse, tenantId: string) => {
+    response.headers.set('x-tenant-id', tenantId);
+    response.headers.set('x-tenant-domain', hostname);
+    response.cookies.set('tenantId', tenantId, {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 365,
+    });
+    return response;
+  };
   
   // Skip middleware for static files
   if (isStaticFile(pathname)) {
     return NextResponse.next();
   }
-  
+
+  // Determine tenant from domain
+  const tenantId = getTenantIdFromDomain(hostname);
+
   // ============================================
   // COMING SOON MODE - Redirect all routes to homepage
   // ============================================
@@ -275,13 +292,14 @@ export function middleware(request: NextRequest) {
     // Allow specific paths to work
     if (isAllowedInComingSoonMode(pathname)) {
       const response = NextResponse.next();
-      return response;
+      return applyTenantContext(response, tenantId);
     }
     
     // Redirect everything else to homepage (Coming Soon page)
     const url = request.nextUrl.clone();
     url.pathname = '/';
-    return NextResponse.redirect(url);
+    const redirectResponse = NextResponse.redirect(url);
+    return applyTenantContext(redirectResponse, tenantId);
   }
   
   // ============================================
@@ -290,45 +308,14 @@ export function middleware(request: NextRequest) {
   
   // Skip middleware for reserved paths (they handle their own logic)
   if (isReservedPath(pathname)) {
-    // Still set tenant headers for reserved paths
-    const tenantId = getTenantIdFromDomain(hostname);
     const response = NextResponse.next();
-    
-    // Set tenant headers
-    response.headers.set('x-tenant-id', tenantId);
-    response.headers.set('x-tenant-domain', hostname);
-    
-    // Set tenant cookie for client-side access
-    response.cookies.set('tenantId', tenantId, {
-      httpOnly: false,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 60 * 60 * 24 * 365, // 1 year
-    });
-    
-    return response;
+    return applyTenantContext(response, tenantId);
   }
-  
-  // Determine tenant from domain
-  const tenantId = getTenantIdFromDomain(hostname);
-  
+
   // Create response with tenant information
   const response = NextResponse.next();
-  
-  // Set tenant headers for server-side access
-  response.headers.set('x-tenant-id', tenantId);
-  response.headers.set('x-tenant-domain', hostname);
-  
-  // Set tenant cookie for client-side access
-  response.cookies.set('tenantId', tenantId, {
-    httpOnly: false,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/',
-    maxAge: 60 * 60 * 24 * 365, // 1 year
-  });
-  
+  applyTenantContext(response, tenantId);
+
   // For all other paths, let the [slug] route handle it
   // The route will use the tenant context to filter content
   return response;
