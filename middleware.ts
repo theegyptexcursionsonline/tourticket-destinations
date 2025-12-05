@@ -3,6 +3,26 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
+// ============================================================================
+// COMING SOON MODE: Set to `true` to redirect all routes to coming soon page
+// ============================================================================
+const COMING_SOON_MODE = true;
+// ============================================================================
+
+// Paths that should still work in Coming Soon mode
+const COMING_SOON_ALLOWED_PATHS = [
+  '/',                    // Homepage (Coming Soon page)
+  '/api/subscribe',       // Email subscription API
+  '/api/auth',            // Auth APIs (in case needed)
+  '/_next',               // Next.js assets
+  '/favicon.ico',
+  '/images',
+  '/static',
+  '/robots.txt',
+  '/sitemap.xml',
+  '/monitoring',
+];
+
 // ============================================
 // TENANT DOMAIN CONFIGURATION
 // ============================================
@@ -224,6 +244,15 @@ function isStaticFile(pathname: string): boolean {
   return pathname.includes('.') && !pathname.endsWith('/');
 }
 
+/**
+ * Check if path is allowed during Coming Soon mode
+ */
+function isAllowedInComingSoonMode(pathname: string): boolean {
+  return COMING_SOON_ALLOWED_PATHS.some(path => 
+    pathname === path || pathname.startsWith(path + '/') || pathname.startsWith(path)
+  );
+}
+
 // ============================================
 // MAIN MIDDLEWARE
 // ============================================
@@ -236,6 +265,26 @@ export function middleware(request: NextRequest) {
   if (isStaticFile(pathname)) {
     return NextResponse.next();
   }
+  
+  // ============================================
+  // COMING SOON MODE - Redirect all routes to homepage
+  // ============================================
+  if (COMING_SOON_MODE) {
+    // Allow specific paths to work
+    if (isAllowedInComingSoonMode(pathname)) {
+      const response = NextResponse.next();
+      return response;
+    }
+    
+    // Redirect everything else to homepage (Coming Soon page)
+    const url = request.nextUrl.clone();
+    url.pathname = '/';
+    return NextResponse.redirect(url);
+  }
+  
+  // ============================================
+  // NORMAL MODE - Regular routing logic
+  // ============================================
   
   // Skip middleware for reserved paths (they handle their own logic)
   if (isReservedPath(pathname)) {
