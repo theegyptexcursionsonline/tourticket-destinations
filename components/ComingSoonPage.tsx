@@ -7,9 +7,96 @@ interface ComingSoonPageProps {
   tenant?: TenantPublicConfig | null;
 }
 
+// Theme configuration for different tenants
+const TENANT_THEMES: Record<string, {
+  brandName: string;
+  logo: string;
+  background: string;
+  accentColor: string;
+  primaryColor: string;
+  contentTone: string;
+  glowColor: string;
+  deco: 'stars' | 'waves' | 'sand' | 'pyramids';
+  heading: { top: string; middle: string; bottom: string };
+  tagline: string;
+  features?: { title: string; desc: string; icon: string }[];
+}> = {
+  'hurghada-speedboat': {
+    brandName: 'Hurghada Speedboat',
+    logo: '/branding/hurghada-speedboat-logo.png',
+    background: 'linear-gradient(180deg, #001230 0%, #002451 35%, #013B66 60%, #0077B6 85%, #00A8E8 100%)',
+    accentColor: '#00E0FF',
+    primaryColor: '#64FFDA',
+    contentTone: '#d7f3ff',
+    glowColor: '#00E0FFAA',
+    deco: 'waves',
+    heading: {
+      top: 'Red Sea',
+      middle: 'Speed Rush',
+      bottom: 'Is Igniting Soon',
+    },
+    tagline: 'Strap in for high-octane speedboat rides, secret snorkeling coves, and cinematic sunsets along the Hurghada coast.',
+    features: [
+      { title: 'Island Hopping', desc: 'Giftun, Orange Bay & secret sandbars', icon: '🏝️' },
+      { title: 'Snorkeling Paradise', desc: 'Crystal reefs, gear & GoPro footage included', icon: '🤿' },
+      { title: 'Sunset Cruises', desc: 'Chase the horizon at golden hour', icon: '🌅' },
+      { title: 'Private Charters', desc: 'Exclusive boats for groups & celebrations', icon: '🚤' },
+    ],
+  },
+  'hurghada': {
+    brandName: 'Hurghada Excursions',
+    logo: '/branding/hurghada-logo.png',
+    background: 'linear-gradient(180deg, #0c0a09 0%, #1a1a2e 50%, #16213e 100%)',
+    accentColor: '#FF6B6B',
+    primaryColor: '#4ECDC4',
+    contentTone: '#e0e0e0',
+    glowColor: '#FF6B6BAA',
+    deco: 'waves',
+    heading: {
+      top: 'Hurghada',
+      middle: 'Adventures',
+      bottom: 'Await You',
+    },
+    tagline: 'Experience the magic of the Red Sea with world-class diving, desert safaris, and unforgettable excursions.',
+  },
+  'cairo': {
+    brandName: 'Cairo Tours',
+    logo: '/branding/cairo-logo.png',
+    background: 'linear-gradient(180deg, #1a1a2e 0%, #2d2d44 50%, #3d3d5c 100%)',
+    accentColor: '#FFD700',
+    primaryColor: '#C9A227',
+    contentTone: '#e8e8e8',
+    glowColor: '#FFD700AA',
+    deco: 'pyramids',
+    heading: {
+      top: 'Ancient',
+      middle: 'Cairo',
+      bottom: 'Unveiled',
+    },
+    tagline: 'Walk among pharaohs at the Pyramids, explore the treasures of the Egyptian Museum, and discover 5000 years of history.',
+  },
+  'luxor': {
+    brandName: 'Luxor Excursions',
+    logo: '/branding/luxor-logo.png',
+    background: 'linear-gradient(180deg, #2c1810 0%, #3d2317 50%, #4a2c1c 100%)',
+    accentColor: '#FFB347',
+    primaryColor: '#D4A574',
+    contentTone: '#e8ddd4',
+    glowColor: '#FFB347AA',
+    deco: 'sand',
+    heading: {
+      top: 'Temple',
+      middle: 'Kingdom',
+      bottom: 'Awaits',
+    },
+    tagline: 'Journey through the Valley of Kings, marvel at Karnak Temple, and cruise the legendary Nile.',
+  },
+};
+
 export default function ComingSoonPage({ tenant }: ComingSoonPageProps) {
   const [email, setEmail] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [timeLeft, setTimeLeft] = useState({
     days: 0,
@@ -18,11 +105,48 @@ export default function ComingSoonPage({ tenant }: ComingSoonPageProps) {
     seconds: 0,
   });
 
-  // Get tenant-specific values with fallbacks
-  const brandName = tenant?.name || 'Egypt Excursions Online';
-  const logo = tenant?.branding?.logo || '/EEO-logo.png';
-  const primaryColor = tenant?.branding?.primaryColor || '#d4a574';
-  const accentColor = tenant?.branding?.accentColor || '#FFEB3B';
+  // Determine if we have a specific tenant theme
+  const tenantId = tenant?.tenantId || 'default';
+  const isSpeedboat = tenantId === 'hurghada-speedboat';
+  const hasCustomTheme = tenantId in TENANT_THEMES;
+
+  // Get theme configuration
+  const getTheme = () => {
+    // If tenant has a predefined theme, use it
+    if (hasCustomTheme) {
+      const theme = TENANT_THEMES[tenantId];
+      return {
+        ...theme,
+        // Override with tenant's actual branding if available
+        brandName: tenant?.name || theme.brandName,
+        logo: tenant?.branding?.logo || theme.logo,
+      };
+    }
+    
+    // Default theme for any other tenant
+    return {
+      brandName: tenant?.name || 'Egypt Excursions Online',
+      logo: tenant?.branding?.logo || '/EEO-logo.png',
+      background: 'linear-gradient(180deg, #0c0a09 0%, #1c1917 50%, #292524 100%)',
+      accentColor: tenant?.branding?.accentColor || '#FFEB3B',
+      primaryColor: tenant?.branding?.primaryColor || '#d4a574',
+      contentTone: '#a8a29e',
+      glowColor: (tenant?.branding?.accentColor || '#FFEB3B') + 'CC',
+      deco: 'stars' as const,
+      heading: {
+        top: 'Something',
+        middle: 'Extraordinary',
+        bottom: 'Is Coming',
+      },
+      tagline: tenant
+        ? `Discover amazing experiences with ${tenant.name}. Unforgettable tours and adventures await you.`
+        : 'Discover the wonders of ancient Egypt like never before. Immersive tours, unforgettable experiences, and adventures that transcend time await you.',
+    };
+  };
+
+  const THEME = getTheme();
+  const { brandName, logo, background, accentColor, primaryColor, contentTone, glowColor, deco, heading, tagline } = THEME;
+  const features = 'features' in THEME ? THEME.features : undefined;
   const socialLinks = tenant?.socialLinks || {};
 
   useEffect(() => {
@@ -51,12 +175,30 @@ export default function ComingSoonPage({ tenant }: ComingSoonPageProps) {
     return () => clearInterval(timer);
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email) {
-      console.log('Email submitted:', email);
-      setIsSubmitted(true);
-      setEmail('');
+    if (!email) return;
+    
+    setIsSubmitting(true);
+    try {
+      const response = await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          email, 
+          source: 'coming_soon',
+          tenantId: tenant?.tenantId || 'default'
+        }),
+      });
+      
+      if (response.ok) {
+        setIsSubmitted(true);
+        setEmail('');
+      }
+    } catch (error) {
+      console.error('Subscription error:', error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -87,7 +229,7 @@ export default function ComingSoonPage({ tenant }: ComingSoonPageProps) {
       alignItems: 'center',
       justifyContent: 'center',
       padding: '32px',
-      background: 'linear-gradient(180deg, #0c0a09 0%, #1c1917 50%, #292524 100%)',
+      background,
       fontFamily: 'system-ui, -apple-system, sans-serif',
     }}>
       {/* Google Fonts */}
@@ -99,21 +241,56 @@ export default function ComingSoonPage({ tenant }: ComingSoonPageProps) {
       {/* Subtle dust particles */}
       {isMounted && (
         <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
-          {[...Array(15)].map((_, i) => (
+          {[...Array(18)].map((_, i) => (
             <div
               key={i}
               style={{
                 position: 'absolute',
-                left: `${5 + i * 6}%`,
-                width: '4px',
-                height: '4px',
-                borderRadius: '50%',
-                background: `${primaryColor}4D`, // 30% opacity
-                animation: `floatUp ${8 + (i % 5) * 2}s linear infinite`,
-                animationDelay: `${i * 0.5}s`,
+                left: `${isSpeedboat ? (i * 5.5) % 100 : 5 + i * 6}%`,
+                width: isSpeedboat ? '6px' : '4px',
+                height: isSpeedboat ? `${8 + (i % 4) * 4}px` : '4px',
+                borderRadius: isSpeedboat ? '30% 30% 50% 50%' : '50%',
+                background: isSpeedboat ? `${accentColor}33` : `${primaryColor}4D`,
+                animation: `${isSpeedboat ? 'floatBubble' : 'floatUp'} ${8 + (i % 5) * 2}s linear infinite`,
+                animationDelay: `${i * 0.45}s`,
               }}
             />
           ))}
+        </div>
+      )}
+
+      {isSpeedboat && (
+        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1 }}>
+          {[...Array(3)].map((_, idx) => (
+            <div
+              key={idx}
+              style={{
+                position: 'absolute',
+                left: 0,
+                right: 0,
+                bottom: `${-10 + idx * 4}%`,
+                height: '160px',
+                background: `linear-gradient(180deg, ${accentColor}0${idx} 0%, ${accentColor}11 40%, transparent 100%)`,
+                opacity: 0.6 - idx * 0.15,
+                transform: `translateY(${idx * 6}px)`,
+                animation: `waveMotion ${12 + idx * 4}s ease-in-out infinite`,
+              }}
+            />
+          ))}
+          <div
+            style={{
+              position: 'absolute',
+              left: '15%',
+              bottom: '18%',
+              width: '160px',
+              height: '60px',
+              background: 'linear-gradient(90deg, #FFD700, #FFA500)',
+              clipPath: 'polygon(0% 20%, 70% 0%, 100% 25%, 95% 70%, 30% 100%)',
+              opacity: 0.35,
+              filter: 'blur(2px)',
+              animation: 'boatFloat 6s ease-in-out infinite',
+            }}
+          />
         </div>
       )}
 
@@ -159,7 +336,7 @@ export default function ComingSoonPage({ tenant }: ComingSoonPageProps) {
             fontWeight: 400,
             letterSpacing: '0.05em',
           }}>
-            Something
+            {heading.top}
           </span>
           <span style={{
             fontFamily: "'Cinzel', Georgia, serif",
@@ -167,10 +344,10 @@ export default function ComingSoonPage({ tenant }: ComingSoonPageProps) {
             fontSize: 'clamp(28px, 6vw, 56px)',
             fontWeight: 700,
             letterSpacing: '0.02em',
-            textShadow: `0 4px 20px ${accentColor}CC, 0 0 40px ${accentColor}99`,
+            textShadow: `0 4px 20px ${glowColor}, 0 0 40px ${glowColor}`,
             display: 'block',
           }}>
-            Extraordinary
+            {heading.middle}
           </span>
           <span style={{
             fontFamily: "'Cinzel', serif",
@@ -179,7 +356,7 @@ export default function ComingSoonPage({ tenant }: ComingSoonPageProps) {
             fontWeight: 400,
             letterSpacing: '0.05em',
           }}>
-            Is Coming
+            {heading.bottom}
           </span>
         </h1>
 
@@ -187,18 +364,58 @@ export default function ComingSoonPage({ tenant }: ComingSoonPageProps) {
         <p style={{
           fontFamily: "'Cormorant Garamond', serif",
           fontStyle: 'italic',
-          color: '#a8a29e',
+          color: contentTone,
           fontSize: 'clamp(16px, 2.5vw, 20px)',
           lineHeight: 1.8,
-          maxWidth: '600px',
+          maxWidth: '640px',
           margin: '0 auto 40px',
           padding: '0 16px',
         }}>
-          {tenant 
-            ? `Discover amazing experiences with ${brandName}. Unforgettable tours and adventures await you.`
-            : 'Discover the wonders of ancient Egypt like never before. Immersive tours, unforgettable experiences, and adventures that transcend time await you.'
-          }
+          {tagline}
         </p>
+
+        {/* Feature Cards - Show for tenants with features */}
+        {features && features.length > 0 && (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '16px',
+            marginBottom: '40px',
+            maxWidth: '900px',
+            margin: '0 auto 40px',
+            padding: '0 16px',
+          }}>
+            {features.map((feature, idx) => (
+              <div key={feature.title} style={{
+                padding: '20px',
+                borderRadius: '20px',
+                background: `linear-gradient(145deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)`,
+                backdropFilter: 'blur(10px)',
+                border: `1px solid ${accentColor}25`,
+                transform: isMounted ? 'translateY(0)' : 'translateY(20px)',
+                opacity: isMounted ? 1 : 0,
+                transition: `all 0.5s ease ${idx * 0.1}s`,
+              }}>
+                <div style={{ fontSize: '32px', marginBottom: '12px' }}>{feature.icon}</div>
+                <div style={{ 
+                  fontFamily: "'Cinzel', serif", 
+                  color: accentColor, 
+                  marginBottom: '8px', 
+                  fontSize: '16px',
+                  fontWeight: 600,
+                  letterSpacing: '0.02em',
+                }}>{feature.title}</div>
+                <div style={{ 
+                  fontFamily: "'Cormorant Garamond', serif", 
+                  fontSize: '14px',
+                  color: contentTone,
+                  opacity: 0.9,
+                  lineHeight: 1.5,
+                }}>{feature.desc}</div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Countdown timer */}
         <div style={{
@@ -293,15 +510,18 @@ export default function ComingSoonPage({ tenant }: ComingSoonPageProps) {
               />
               <button 
                 type="submit"
+                disabled={isSubmitting}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '8px',
                   padding: '16px 24px',
-                  background: `linear-gradient(135deg, ${primaryColor} 0%, ${primaryColor}CC 100%)`,
+                  background: isSubmitting 
+                    ? `${primaryColor}80`
+                    : `linear-gradient(135deg, ${primaryColor} 0%, ${primaryColor}CC 100%)`,
                   border: 'none',
-                  cursor: 'pointer',
+                  cursor: isSubmitting ? 'not-allowed' : 'pointer',
                   color: '#0c0a09',
                   fontSize: '14px',
                   fontWeight: 600,
@@ -309,12 +529,31 @@ export default function ComingSoonPage({ tenant }: ComingSoonPageProps) {
                   letterSpacing: '0.05em',
                   fontFamily: "'Cinzel', serif",
                   whiteSpace: 'nowrap',
+                  transition: 'all 0.3s ease',
                 }}
               >
-                <span>Notify Me</span>
-                <svg viewBox="0 0 24 24" style={{ width: '16px', height: '16px' }}>
-                  <path d="M5 12h14M12 5l7 7-7 7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
+                {isSubmitting ? (
+                  <>
+                    <svg 
+                      viewBox="0 0 24 24" 
+                      style={{ 
+                        width: '16px', 
+                        height: '16px',
+                        animation: 'spin 1s linear infinite',
+                      }}
+                    >
+                      <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="32" strokeDashoffset="12"/>
+                    </svg>
+                    <span>Sending...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Notify Me</span>
+                    <svg viewBox="0 0 24 24" style={{ width: '16px', height: '16px' }}>
+                      <path d="M5 12h14M12 5l7 7-7 7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </>
+                )}
               </button>
             </form>
           ) : (
@@ -346,6 +585,7 @@ export default function ComingSoonPage({ tenant }: ComingSoonPageProps) {
           display: 'flex',
           justifyContent: 'center',
           gap: '16px',
+          flexWrap: 'wrap',
         }}>
           {displaySocialLinks.map((social) => (
             <a 
@@ -395,7 +635,7 @@ export default function ComingSoonPage({ tenant }: ComingSoonPageProps) {
         )}
       </div>
 
-      {/* Keyframes for dust particles */}
+      {/* Keyframes for animations */}
       <style>{`
         @keyframes floatUp {
           0% {
@@ -412,6 +652,35 @@ export default function ComingSoonPage({ tenant }: ComingSoonPageProps) {
             transform: translateY(-20px);
             opacity: 0;
           }
+        }
+        @keyframes floatBubble {
+          0% {
+            transform: translateY(120%) translateX(0);
+            opacity: 0;
+          }
+          20% { opacity: 0.6; }
+          100% {
+            transform: translateY(-50%) translateX(10px);
+            opacity: 0;
+          }
+        }
+        @keyframes waveMotion {
+          0% { transform: translateY(0) translateX(0); }
+          50% { transform: translateY(6px) translateX(20px); }
+          100% { transform: translateY(0) translateX(0); }
+        }
+        @keyframes boatFloat {
+          0% { transform: translateY(0) translateX(0) rotate(-2deg); }
+          50% { transform: translateY(-8px) translateX(10px) rotate(2deg); }
+          100% { transform: translateY(0) translateX(0) rotate(-2deg); }
+        }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        @keyframes shimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
         }
         
         input::placeholder {
