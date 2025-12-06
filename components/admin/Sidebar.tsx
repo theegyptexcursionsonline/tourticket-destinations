@@ -55,6 +55,7 @@ const AdminSidebar = () => {
   const showLabel = isOpen || (isMobile && isMobileOpen);
   const { hasAnyPermission } = useAdminAuth();
   const logoWidthClass = showLabel ? "w-36" : "w-12";
+  const headerPaddingClass = showLabel ? "px-6" : "px-4";
 
   // Handle mobile detection & keep sidebar responsive
   useEffect(() => {
@@ -159,16 +160,18 @@ const AdminSidebar = () => {
         aria-expanded={isMobile ? isMobileOpen : isOpen}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-6 border-b border-slate-100 flex-shrink-0">
+        <div
+          className={`flex items-center justify-between ${headerPaddingClass} py-6 border-b border-slate-100 flex-shrink-0`}
+        >
           <div className="flex items-center gap-3 min-w-0">
             {/* Logo */}
-            <div className={`flex-shrink-0 transition-all duration-300 ${logoWidthClass}`}>
+            <div className={`relative h-10 flex-shrink-0 transition-all duration-300 ${logoWidthClass}`}>
               <Image
                 src="/EEO-logo.png"
                 alt="Egypt Excursions Online logo"
-                width={180}
-                height={60}
-                className="h-10 w-full object-contain"
+                fill
+                sizes={showLabel ? "144px" : "48px"}
+                className="object-contain"
                 priority
               />
             </div>
@@ -189,7 +192,7 @@ const AdminSidebar = () => {
           </div>
 
           {/* Toggle button (Desktop only) */}
-          {!isMobile && (
+          {!isMobile && isOpen && (
             <button
               onClick={toggleSidebar}
               aria-label={isOpen ? "Collapse sidebar" : "Expand sidebar"}
@@ -358,13 +361,13 @@ const AdminSidebar = () => {
         <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex-shrink-0">
           {showLabel ? (
             <div className="flex items-center gap-3">
-              <div className="w-10 flex-shrink-0">
+              <div className="relative h-10 w-28 flex-shrink-0">
                 <Image
                   src="/EEO-logo.png"
                   alt="Egypt Excursions Online logo"
-                  width={120}
-                  height={40}
-                  className="h-10 w-full object-contain"
+                  fill
+                  sizes="112px"
+                  className="object-contain"
                 />
               </div>
               <div className="min-w-0">
@@ -378,13 +381,15 @@ const AdminSidebar = () => {
             </div>
           ) : (
             <div className="flex justify-center">
-              <Image
-                src="/EEO-logo.png"
-                alt="Egypt Excursions Online logo"
-                width={120}
-                height={40}
-                className="h-8 w-full object-contain"
-              />
+              <div className="relative h-8 w-20">
+                <Image
+                  src="/EEO-logo.png"
+                  alt="Egypt Excursions Online logo"
+                  fill
+                  sizes="80px"
+                  className="object-contain"
+                />
+              </div>
             </div>
           )}
         </div>
