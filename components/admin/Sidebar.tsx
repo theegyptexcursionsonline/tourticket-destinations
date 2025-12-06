@@ -304,6 +304,55 @@ const AdminSidebar = () => {
               </div>
             </div>
           )}
+
+          {/* Bottom Tenants quick access */}
+          {hasAnyPermission(["manageTenants"]) && (
+            <div className="mt-6 pt-6 border-t border-slate-100/70">
+              <Link
+                href="/admin/tenants"
+                className={`relative group flex items-center rounded-2xl transition-all duration-200 overflow-hidden ${
+                  showLabel ? "gap-4 px-4 py-3.5" : "justify-center p-3.5 mx-auto w-14"
+                } ${
+                  pathname.startsWith("/admin/tenants")
+                    ? "bg-gradient-to-r from-blue-50 to-purple-50 text-blue-700 shadow-sm border border-blue-100/50"
+                    : "hover:bg-slate-50 text-slate-700 hover:text-slate-900"
+                } ${!showLabel ? "hover:scale-105" : "hover:translate-x-1"}`}
+              >
+                {pathname.startsWith("/admin/tenants") && (
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-gradient-to-b from-blue-500 to-purple-500 rounded-full" />
+                )}
+
+                <div
+                  className={`p-2 rounded-xl transition-all duration-200 flex-shrink-0 ${
+                    pathname.startsWith("/admin/tenants")
+                      ? "bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/25"
+                      : "bg-slate-100 text-slate-500 group-hover:bg-slate-200 group-hover:text-slate-600"
+                  }`}
+                >
+                  <Globe className="h-4 w-4" />
+                </div>
+
+                {showLabel && (
+                  <span
+                    className={`font-medium transition-all duration-300 truncate min-w-0 ${
+                      pathname.startsWith("/admin/tenants")
+                        ? "text-slate-800"
+                        : "text-slate-600 group-hover:text-slate-800"
+                    }`}
+                  >
+                    Tenants
+                  </span>
+                )}
+
+                {!showLabel && (
+                  <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 bg-slate-900 text-white text-sm px-3 py-2 rounded-xl opacity-0 group-hover:opacity-100 pointer-events-none shadow-2xl transition-all duration-200 z-50 whitespace-nowrap">
+                    Tenants
+                    <div className="absolute right-full top-1/2 -translate-y-1/2 w-2 h-2 bg-slate-900 rotate-45" />
+                  </div>
+                )}
+              </Link>
+            </div>
+          )}
         </nav>
 
         {/* Footer */}
