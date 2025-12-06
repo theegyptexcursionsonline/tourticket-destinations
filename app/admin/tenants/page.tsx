@@ -31,6 +31,45 @@ export default function TenantsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [filter, setFilter] = useState<'all' | 'active' | 'inactive'>('all');
+
+  const activeCount = tenants.filter((t) => t.isActive).length;
+  const inactiveCount = tenants.filter((t) => !t.isActive).length;
+  const defaultTenant = tenants.find((t) => t.isDefault);
+  const defaultTenantName = defaultTenant?.name || 'Not set';
+  const totalDomains = tenants.reduce((acc, tenant) => {
+    const extraDomains = tenant.domains?.length ? tenant.domains.length : tenant.domain ? 1 : 0;
+    return acc + extraDomains;
+  }, 0);
+  const statCards = [
+    {
+      label: 'Total Brands',
+      value: tenants.length.toString(),
+      sublabel: 'Across all regions',
+      accent: 'from-sky-500 to-indigo-500',
+      icon: Globe,
+    },
+    {
+      label: 'Active Brands',
+      value: activeCount.toString(),
+      sublabel: 'Live & visible',
+      accent: 'from-emerald-500 to-green-600',
+      icon: CheckCircle,
+    },
+    {
+      label: 'Inactive',
+      value: inactiveCount.toString(),
+      sublabel: 'Hidden from web',
+      accent: 'from-rose-500 to-red-500',
+      icon: XCircle,
+    },
+    {
+      label: 'Default Brand',
+      value: defaultTenantName,
+      sublabel: defaultTenant?.domain || 'No domain assigned',
+      accent: 'from-amber-400 to-orange-500',
+      icon: Star,
+    },
+  ];
   
   // Fetch tenants
   const fetchTenants = useCallback(async () => {
@@ -145,113 +184,112 @@ export default function TenantsPage() {
   };
   
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Brand Management</h1>
-          <p className="text-gray-500 mt-1">Manage your multi-brand tourism websites</p>
+    <div className="space-y-8">
+      {/* Hero */}
+      <div className="rounded-3xl bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.25),_transparent_45%),_linear-gradient(135deg,_#0f172a,_#1e293b_50%,_#4338ca)] text-white shadow-xl overflow-hidden border border-white/10">
+        <div className="flex flex-col gap-6 p-6 md:p-8 lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-4 max-w-2xl">
+            <p className="text-xs uppercase tracking-[0.3em] text-slate-200/80">Brand Control Center</p>
+            <div>
+              <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">Manage every tenant, everywhere.</h1>
+              <p className="mt-3 text-base text-slate-100/80">
+                Launch, pause, or refresh branded storefronts in seconds. Keep domains, colors, and visibility perfectly in sync across your network.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm">
+                <span className="inline-block h-2 w-2 rounded-full bg-emerald-400"></span>
+                {activeCount} live brands
+              </div>
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm">
+                <Globe className="w-4 h-4" />
+                {totalDomains} domains connected
+              </div>
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm">
+                <Star className="w-4 h-4 text-yellow-300" />
+                Default: {defaultTenantName}
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row lg:flex-col xl:flex-row">
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white text-slate-900 px-6 py-3 font-semibold shadow-lg shadow-black/10 hover:shadow-2xl hover:-translate-y-0.5 transition-all"
+            >
+              <Plus className="w-5 h-5" />
+              Launch New Brand
+            </button>
+            <Link
+              href="/admin/tenants"
+              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/40 px-6 py-3 font-semibold text-white hover:bg-white/10 transition-colors"
+            >
+              <Settings className="w-5 h-5" />
+              Brand Guidelines
+            </Link>
+          </div>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <Plus className="w-5 h-5" />
-          <span>Add New Brand</span>
-        </button>
       </div>
-      
+
       {/* Filters and Search */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+      <div className="bg-white/80 backdrop-blur border border-slate-200/80 rounded-2xl shadow-sm p-4 md:p-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="w-full lg:max-w-xl relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
           <input
             type="text"
-            placeholder="Search brands by name or domain..."
+            placeholder="Search by brand name, tenant ID, or domain"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-12 pr-4 text-sm text-slate-700 placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20"
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {(['all', 'active', 'inactive'] as const).map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              className={`rounded-full px-4 py-2 text-sm font-medium transition-all ${
                 filter === f
-                  ? 'bg-blue-100 text-blue-700'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  ? 'bg-slate-900 text-white shadow'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
-              {f.charAt(0).toUpperCase() + f.slice(1)}
+              {f === 'all' ? 'All brands' : f.charAt(0).toUpperCase() + f.slice(1)}
             </button>
           ))}
         </div>
       </div>
-      
+
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl p-5 border border-gray-200">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-              <Globe className="w-5 h-5 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">{tenants.length}</p>
-              <p className="text-sm text-gray-500">Total Brands</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl p-5 border border-gray-200">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
-              <CheckCircle className="w-5 h-5 text-green-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">
-                {tenants.filter(t => t.isActive).length}
-              </p>
-              <p className="text-sm text-gray-500">Active</p>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {statCards.map(({ label, value, sublabel, accent, icon: IconCard }) => (
+          <div
+            key={label}
+            className="group relative overflow-hidden rounded-2xl border border-slate-100 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg"
+          >
+            <div className={`absolute inset-x-4 top-4 h-14 rounded-xl bg-gradient-to-r ${accent} opacity-10 blur-2xl group-hover:opacity-20`}></div>
+            <div className="relative flex items-center gap-4">
+              <div className={`inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${accent} text-white shadow`}>
+                <IconCard className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-slate-500">{label}</p>
+                <p className="text-2xl font-semibold text-slate-900">{value}</p>
+                <p className="text-xs text-slate-400">{sublabel}</p>
+              </div>
             </div>
           </div>
-        </div>
-        <div className="bg-white rounded-xl p-5 border border-gray-200">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
-              <XCircle className="w-5 h-5 text-red-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">
-                {tenants.filter(t => !t.isActive).length}
-              </p>
-              <p className="text-sm text-gray-500">Inactive</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl p-5 border border-gray-200">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-yellow-100 flex items-center justify-center">
-              <Star className="w-5 h-5 text-yellow-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">
-                {tenants.find(t => t.isDefault)?.name.split(' ')[0] || 'None'}
-              </p>
-              <p className="text-sm text-gray-500">Default Brand</p>
-            </div>
-          </div>
-        </div>
+        ))}
       </div>
       
       {/* Tenants Grid */}
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-white rounded-xl p-6 border border-gray-200 animate-pulse">
-              <div className="h-12 bg-gray-200 rounded mb-4"></div>
-              <div className="h-4 bg-gray-200 rounded w-2/3 mb-2"></div>
-              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+            <div key={i} className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm animate-pulse">
+              <div className="h-12 w-32 rounded-2xl bg-slate-200 mb-4"></div>
+              <div className="h-4 w-full rounded bg-slate-200 mb-2"></div>
+              <div className="h-4 w-2/3 rounded bg-slate-200 mb-2"></div>
+              <div className="h-4 w-1/2 rounded bg-slate-200"></div>
             </div>
           ))}
         </div>
@@ -269,142 +307,168 @@ export default function TenantsPage() {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
           {tenants.map((tenant) => (
             <div
               key={tenant._id}
-              className={`bg-white rounded-xl border overflow-hidden transition-shadow hover:shadow-lg ${
-                tenant.isDefault ? 'border-yellow-400 ring-2 ring-yellow-100' : 'border-gray-200'
+              className={`group relative rounded-3xl border bg-white/70 backdrop-blur p-6 shadow-sm transition-all hover:-translate-y-1 hover:shadow-2xl ${
+                tenant.isDefault ? 'border-amber-300 ring-2 ring-amber-100' : 'border-slate-100'
               } ${!tenant.isActive ? 'opacity-60' : ''}`}
             >
-              {/* Brand Header with Color */}
-              <div 
-                className="h-2"
-                style={{ backgroundColor: tenant.branding?.primaryColor || '#E63946' }}
-              />
-              
-              <div className="p-5">
+              <div className="absolute inset-x-6 top-0 h-1 rounded-full" style={{ backgroundColor: tenant.branding?.primaryColor || '#3b82f6' }} />
+
+              <div className="mt-2 space-y-5">
                 {/* Brand Info */}
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-4">
                     {tenant.branding?.logo ? (
-                      <img 
-                        src={tenant.branding.logo} 
-                        alt={tenant.name}
-                        className="w-12 h-12 object-contain rounded-lg border"
-                      />
+                      <div className="h-14 w-14 rounded-2xl bg-white shadow ring-1 ring-slate-100 flex items-center justify-center overflow-hidden">
+                        <img
+                          src={tenant.branding.logo}
+                          alt={tenant.name}
+                          className="h-12 w-12 object-contain"
+                        />
+                      </div>
                     ) : (
-                      <div 
-                        className="w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold text-lg"
-                        style={{ backgroundColor: tenant.branding?.primaryColor || '#E63946' }}
+                      <div
+                        className="h-14 w-14 rounded-2xl flex items-center justify-center text-white text-xl font-semibold shadow"
+                        style={{ backgroundColor: tenant.branding?.primaryColor || '#3b82f6' }}
                       >
                         {tenant.name.charAt(0)}
                       </div>
                     )}
                     <div>
-                      <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                        {tenant.name}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="text-lg font-semibold text-slate-900">{tenant.name}</h3>
                         {tenant.isDefault && (
-                          <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs rounded-full">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">
+                            <Star className="w-3.5 h-3.5" />
                             Default
                           </span>
                         )}
-                      </h3>
-                      <p className="text-sm text-gray-500">{tenant.tenantId}</p>
+                      </div>
+                      <p className="text-sm text-slate-500">{tenant.tenantId}</p>
                     </div>
                   </div>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    tenant.isActive 
-                      ? 'bg-green-100 text-green-700' 
-                      : 'bg-red-100 text-red-700'
-                  }`}>
-                    {tenant.isActive ? 'Active' : 'Inactive'}
+                  <span
+                    className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${
+                      tenant.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-600'
+                    }`}
+                  >
+                    <span className={`h-2 w-2 rounded-full ${tenant.isActive ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
+                    {tenant.isActive ? 'Live' : 'Hidden'}
                   </span>
                 </div>
-                
+
                 {/* Domain */}
-                <div className="flex items-center gap-2 mb-4 p-2 bg-gray-50 rounded-lg">
-                  <Globe className="w-4 h-4 text-gray-400" />
-                  <span className="text-sm text-gray-600 flex-1 truncate">{tenant.domain}</span>
-                  <button
-                    onClick={() => copyDomain(tenant.domain)}
-                    className="p-1 hover:bg-gray-200 rounded transition-colors"
-                    title="Copy URL"
-                  >
-                    <Copy className="w-4 h-4 text-gray-400" />
-                  </button>
-                  <a
-                    href={`https://${tenant.domain}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-1 hover:bg-gray-200 rounded transition-colors"
-                    title="Open website"
-                  >
-                    <ExternalLink className="w-4 h-4 text-gray-400" />
-                  </a>
+                <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-3">
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <Globe className="w-4 h-4 text-slate-400" />
+                    <span className="flex-1 truncate font-medium text-slate-700">{tenant.domain}</span>
+                    <button
+                      onClick={() => copyDomain(tenant.domain)}
+                      className="rounded-full p-2 text-slate-400 hover:bg-white hover:text-slate-700 transition-colors"
+                      title="Copy URL"
+                      aria-label={`Copy ${tenant.domain}`}
+                    >
+                      <Copy className="w-4 h-4" />
+                    </button>
+                    <a
+                      href={`https://${tenant.domain}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rounded-full p-2 text-slate-400 hover:bg-white hover:text-blue-600 transition-colors"
+                      title="Open website"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </a>
+                  </div>
+                  {!!tenant.domains?.length && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {tenant.domains.slice(0, 3).map((domain) => (
+                        <span key={domain} className="rounded-full bg-white px-3 py-1 text-xs font-medium text-slate-500 shadow-sm">
+                          {domain}
+                        </span>
+                      ))}
+                      {tenant.domains.length > 3 && (
+                        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-500">
+                          +{tenant.domains.length - 3} more
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
-                
-                {/* Color Swatches */}
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="text-xs text-gray-500">Colors:</span>
-                  <div 
-                    className="w-6 h-6 rounded-full border-2 border-white shadow"
-                    style={{ backgroundColor: tenant.branding?.primaryColor || '#E63946' }}
-                    title="Primary"
-                  />
-                  <div 
-                    className="w-6 h-6 rounded-full border-2 border-white shadow"
-                    style={{ backgroundColor: tenant.branding?.secondaryColor || '#1D3557' }}
-                    title="Secondary"
-                  />
+
+                {/* Colors */}
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="rounded-2xl border border-slate-100 bg-white p-3">
+                    <p className="text-xs uppercase tracking-wide text-slate-400">Primary</p>
+                    <div className="mt-2 flex items-center gap-3">
+                      <span
+                        className="h-8 w-8 rounded-full border border-white shadow-inner"
+                        style={{ backgroundColor: tenant.branding?.primaryColor || '#3b82f6' }}
+                      ></span>
+                      <span className="font-medium text-slate-700">{tenant.branding?.primaryColor || '#3B82F6'}</span>
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-slate-100 bg-white p-3">
+                    <p className="text-xs uppercase tracking-wide text-slate-400">Secondary</p>
+                    <div className="mt-2 flex items-center gap-3">
+                      <span
+                        className="h-8 w-8 rounded-full border border-white shadow-inner"
+                        style={{ backgroundColor: tenant.branding?.secondaryColor || '#1D3557' }}
+                      ></span>
+                      <span className="font-medium text-slate-700">{tenant.branding?.secondaryColor || '#1D3557'}</span>
+                    </div>
+                  </div>
                 </div>
-                
+
                 {/* Actions */}
-                <div className="flex items-center gap-2 pt-4 border-t">
+                <div className="flex flex-wrap items-center gap-2 border-t border-slate-100 pt-4">
                   <Link
                     href={`/admin/tenants/${tenant.tenantId}`}
-                    className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm"
+                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow hover:-translate-y-0.5 hover:bg-slate-800 transition-all"
                   >
                     <Edit className="w-4 h-4" />
-                    <span>Edit</span>
+                    Edit brand
                   </Link>
-                  
+
                   <button
                     onClick={() => toggleTenantStatus(tenant.tenantId, tenant.isActive)}
-                    className={`flex-1 inline-flex items-center justify-center gap-1 px-3 py-2 rounded-lg transition-colors text-sm ${
+                    className={`inline-flex flex-1 items-center justify-center gap-2 rounded-2xl px-4 py-2 text-sm font-semibold transition-all ${
                       tenant.isActive
-                        ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
-                        : 'bg-green-100 text-green-700 hover:bg-green-200'
+                        ? 'bg-amber-50 text-amber-700 hover:bg-amber-100'
+                        : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
                     }`}
                     title={tenant.isActive ? 'Deactivate' : 'Activate'}
                   >
                     {tenant.isActive ? (
                       <>
                         <EyeOff className="w-4 h-4" />
-                        <span>Hide</span>
+                        Hide
                       </>
                     ) : (
                       <>
                         <Eye className="w-4 h-4" />
-                        <span>Show</span>
+                        Show
                       </>
                     )}
                   </button>
-                  
+
                   {!tenant.isDefault && (
                     <button
                       onClick={() => setAsDefault(tenant.tenantId)}
-                      className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg transition-colors"
+                      className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-amber-200 text-amber-600 hover:bg-amber-50 transition-colors"
                       title="Set as default"
                     >
                       <Star className="w-4 h-4" />
                     </button>
                   )}
-                  
+
                   {!tenant.isDefault && (
                     <button
                       onClick={() => deleteTenant(tenant.tenantId, tenant.name)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-rose-200 text-rose-600 hover:bg-rose-50 transition-colors"
                       title="Delete"
                     >
                       <Trash2 className="w-4 h-4" />
