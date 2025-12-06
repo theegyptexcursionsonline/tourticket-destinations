@@ -301,7 +301,15 @@ export function middleware(request: NextRequest) {
   // ============================================
   if (COMING_SOON_MODE) {
     if (isAdminPath(pathname)) {
-      const response = NextResponse.next();
+      const requestHeaders = new Headers(request.headers);
+      requestHeaders.set('x-coming-soon-exempt', 'true');
+      
+      const response = NextResponse.next({
+        request: {
+          headers: requestHeaders,
+        },
+      });
+      
       response.headers.set('x-coming-soon-exempt', 'true');
       return applyTenantContext(response, tenantId);
     }
