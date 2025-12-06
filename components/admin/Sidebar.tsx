@@ -54,6 +54,7 @@ const AdminSidebar = () => {
   const pathname = usePathname();
   const showLabel = isOpen || (isMobile && isMobileOpen);
   const { hasAnyPermission } = useAdminAuth();
+  const logoWidthClass = showLabel ? "w-36" : "w-12";
 
   // Handle mobile detection & keep sidebar responsive
   useEffect(() => {
@@ -161,17 +162,15 @@ const AdminSidebar = () => {
         <div className="flex items-center justify-between px-6 py-6 border-b border-slate-100 flex-shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             {/* Logo */}
-            <div className="relative flex-shrink-0">
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl opacity-10"></div>
-              <div className="relative bg-gradient-to-br from-blue-500 to-purple-600 p-2 rounded-xl">
-                <Image
-                  src="/EEO-logo.png"
-                  alt="Logo"
-                  width={24}
-                  height={24}
-                  className="rounded-sm filter brightness-0 invert"
-                />
-              </div>
+            <div className={`flex-shrink-0 transition-all duration-300 ${logoWidthClass}`}>
+              <Image
+                src="/EEO-logo.png"
+                alt="Egypt Excursions Online logo"
+                width={180}
+                height={60}
+                className="h-10 w-full object-contain"
+                priority
+              />
             </div>
 
             {/* Title */}
@@ -359,8 +358,14 @@ const AdminSidebar = () => {
         <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex-shrink-0">
           {showLabel ? (
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center flex-shrink-0">
-                <span className="text-white text-xs font-bold">EEO</span>
+              <div className="w-10 flex-shrink-0">
+                <Image
+                  src="/EEO-logo.png"
+                  alt="Egypt Excursions Online logo"
+                  width={120}
+                  height={40}
+                  className="h-10 w-full object-contain"
+                />
               </div>
               <div className="min-w-0">
                 <p className="text-xs font-medium text-slate-700 truncate">
@@ -373,9 +378,13 @@ const AdminSidebar = () => {
             </div>
           ) : (
             <div className="flex justify-center">
-              <div className="w-8 h-8 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center">
-                <span className="text-white text-xs font-bold">EEO</span>
-              </div>
+              <Image
+                src="/EEO-logo.png"
+                alt="Egypt Excursions Online logo"
+                width={120}
+                height={40}
+                className="h-8 w-full object-contain"
+              />
             </div>
           )}
         </div>
