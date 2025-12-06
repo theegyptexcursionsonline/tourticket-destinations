@@ -1,5 +1,6 @@
 // app/layout.tsx
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { Inter, Almarai } from "next/font/google";
 import "./globals.css";
 import { TenantProvider } from "@/contexts/TenantContext";
@@ -26,7 +27,16 @@ const almarai = Almarai({
 
 // Dynamic metadata generation based on tenant
 export async function generateMetadata(): Promise<Metadata> {
-  if (COMING_SOON_MODE) {
+  let comingSoonBypassed = false;
+  
+  try {
+    const headersList = await headers();
+    comingSoonBypassed = headersList.get('x-coming-soon-exempt') === 'true';
+  } catch (error) {
+    console.warn('Unable to read headers in generateMetadata:', error);
+  }
+
+  if (COMING_SOON_MODE && !comingSoonBypassed) {
     try {
       const tenantId = await getTenantFromRequest();
       const tenantConfig = await getTenantPublicConfig(tenantId);
@@ -87,6 +97,17 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  let comingSoonBypassed = false;
+  
+  try {
+    const headersList = await headers();
+    comingSoonBypassed = headersList.get('x-coming-soon-exempt') === 'true';
+  } catch (error) {
+    console.warn('Unable to read headers in RootLayout:', error);
+  }
+
+  const showComingSoonPage = COMING_SOON_MODE && !comingSoonBypassed;
+
   // Always fetch tenant config
   let tenantConfig: TenantPublicConfig | null = null;
   let tenantId = 'default';
@@ -98,7 +119,7 @@ export default async function RootLayout({
     console.error('Error fetching tenant:', error);
   }
 
-  if (COMING_SOON_MODE) {
+  if (showComingSoonPage) {
     return (
       <html lang="en">
         <body>

@@ -247,6 +247,17 @@ function isStaticFile(pathname: string): boolean {
 }
 
 /**
+ * Check if the current path is part of the admin panel
+ */
+function isAdminPath(pathname: string): boolean {
+  return (
+    pathname === '/admin' ||
+    pathname.startsWith('/admin/') ||
+    pathname.startsWith('/api/admin')
+  );
+}
+
+/**
  * Check if path is allowed during Coming Soon mode
  */
 function isAllowedInComingSoonMode(pathname: string): boolean {
@@ -289,6 +300,12 @@ export function middleware(request: NextRequest) {
   // COMING SOON MODE - Redirect all routes to homepage
   // ============================================
   if (COMING_SOON_MODE) {
+    if (isAdminPath(pathname)) {
+      const response = NextResponse.next();
+      response.headers.set('x-coming-soon-exempt', 'true');
+      return applyTenantContext(response, tenantId);
+    }
+
     // Allow specific paths to work
     if (isAllowedInComingSoonMode(pathname)) {
       const response = NextResponse.next();
