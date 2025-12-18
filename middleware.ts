@@ -6,7 +6,7 @@ import type { NextRequest } from 'next/server';
 // ============================================================================
 // COMING SOON MODE: Set to `true` to redirect all routes to coming soon page
 // ============================================================================
-const COMING_SOON_MODE = true;
+const COMING_SOON_MODE = false;
 // ============================================================================
 
 // Paths that should still work in Coming Soon mode

@@ -16,7 +16,7 @@ import ConditionalAIWidgets from "@/components/ConditionalAIWidgets";
 import { getTenantFromRequest, getTenantPublicConfig, TenantPublicConfig } from "@/lib/tenant";
 import ComingSoonPage from "@/components/ComingSoonPage";
 
-const COMING_SOON_MODE = true;
+const COMING_SOON_MODE = false;
 
 const inter = Inter({ subsets: ["latin"], variable: '--font-inter' });
 const almarai = Almarai({
