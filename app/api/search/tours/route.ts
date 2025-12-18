@@ -102,6 +102,12 @@ export async function GET(request: Request) {
             isPublished: true  // Only show published tours
         };
 
+        // Multi-tenant: Filter by tenantId if provided (from header or query param)
+        const tenantId = searchParams.get('tenantId') || request.headers.get('x-tenant-id');
+        if (tenantId && tenantId !== 'all' && tenantId !== 'default') {
+            additionalFilters.tenantId = tenantId;
+        }
+
         // Categories Filter
         const categories = searchParams.get('categories');
         if (categories) {

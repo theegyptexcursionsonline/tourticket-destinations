@@ -103,6 +103,7 @@ function getTenantDomains(): TenantDomainMapping {
     'localhost:3001': 'hurghada',
     'localhost:3002': 'cairo',
     'localhost:3003': 'luxor',
+    'localhost:3004': 'hurghada-speedboat',
     
     // Netlify preview deployments
     'main--egyptexcursions.netlify.app': 'default',

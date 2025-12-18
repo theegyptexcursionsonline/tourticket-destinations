@@ -10,29 +10,40 @@ import Footer from '@/components/Footer';
 import AISearchWidget from '@/components/AISearchWidget';
 import ToursClientPage from './ToursClientPage';
 import { ITour } from '@/lib/models/Tour';
+import { getTenantFromRequest, getTenantConfig, buildTenantQuery } from '@/lib/tenant';
 
 // Enable ISR with 60 second revalidation for instant page loads
 export const revalidate = 60;
 
-// Generate metadata for SEO
-export const metadata: Metadata = {
-  title: 'All Tours & Activities | Egypt Excursions Online',
-  description: 'Browse our complete collection of tours and experiences in Egypt. Find the perfect adventure for your trip.',
-  openGraph: {
-    title: 'All Tours & Activities | Egypt Excursions Online',
-    description: 'Browse our complete collection of tours and experiences in Egypt.',
-    type: 'website',
-  },
-};
+// Generate dynamic metadata for SEO based on tenant
+export async function generateMetadata(): Promise<Metadata> {
+  const tenantId = await getTenantFromRequest();
+  const tenantConfig = await getTenantConfig(tenantId);
+  
+  const siteName = tenantConfig?.name || 'Egypt Excursions Online';
+  
+  return {
+    title: `All Tours & Activities | ${siteName}`,
+    description: `Browse our complete collection of tours and experiences. Find the perfect adventure for your trip with ${siteName}.`,
+    openGraph: {
+      title: `All Tours & Activities | ${siteName}`,
+      description: `Browse our complete collection of tours and experiences.`,
+      type: 'website',
+    },
+  };
+}
 
-// Server-side function to fetch all tours with populated data
-async function getAllTours(): Promise<ITour[]> {
+// Server-side function to fetch all tours with populated data (tenant-aware)
+async function getAllTours(tenantId: string): Promise<ITour[]> {
   await dbConnect();
   
-  const tours = await Tour.find({ isPublished: true })
+  // Build query with tenant filter
+  const query = buildTenantQuery({ isPublished: true }, tenantId);
+  
+  const tours = await Tour.find(query)
     .populate('destination', 'name')
     .populate('category', 'name')
-    .sort({ featured: -1, createdAt: -1 }) // Featured first, then most recent
+    .sort({ isFeatured: -1, createdAt: -1 }) // Featured first, then most recent
     .lean();
   
   // Serialize the data to pass to the client component
@@ -41,7 +52,8 @@ async function getAllTours(): Promise<ITour[]> {
 
 // The main server component for the /tours route
 export default async function ToursIndexPage() {
-  const tours = await getAllTours();
+  const tenantId = await getTenantFromRequest();
+  const tours = await getAllTours(tenantId);
 
   return (
     <>

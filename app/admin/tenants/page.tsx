@@ -3,8 +3,25 @@
 // app/admin/tenants/page.tsx
 // Admin page for managing tenants (brands/websites)
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Search, Globe, Settings, Trash2, Eye, EyeOff, Star, ExternalLink, Edit, Copy, CheckCircle, XCircle } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import {
+  Plus,
+  Search,
+  Globe,
+  Settings,
+  Trash2,
+  Eye,
+  EyeOff,
+  Star,
+  ExternalLink,
+  Edit,
+  Copy,
+  CheckCircle,
+  XCircle,
+  Loader2,
+  AlertTriangle,
+  X,
+} from 'lucide-react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 
@@ -28,9 +45,14 @@ interface Tenant {
 export default function TenantsPage() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  // Keep an immediate input value for responsiveness + debounce before fetching
+  const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [filter, setFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const isSearching = searchInput.trim() !== searchQuery.trim();
 
   const activeCount = tenants.filter((t) => t.isActive).length;
   const inactiveCount = tenants.filter((t) => !t.isActive).length;
@@ -40,7 +62,7 @@ export default function TenantsPage() {
     const extraDomains = tenant.domains?.length ? tenant.domains.length : tenant.domain ? 1 : 0;
     return acc + extraDomains;
   }, 0);
-  const statCards = [
+  const statCards = useMemo(() => [
     {
       label: 'Total Brands',
       value: tenants.length.toString(),
@@ -69,12 +91,21 @@ export default function TenantsPage() {
       accent: 'from-amber-400 to-orange-500',
       icon: Star,
     },
-  ];
+  ], [tenants.length, activeCount, inactiveCount, defaultTenantName, defaultTenant?.domain]);
+
+  // Debounce search input to avoid refetching on every keystroke
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      setSearchQuery(searchInput.trim());
+    }, 250);
+    return () => window.clearTimeout(handle);
+  }, [searchInput]);
   
   // Fetch tenants
   const fetchTenants = useCallback(async () => {
     try {
       setIsLoading(true);
+      setErrorMessage(null);
       const params = new URLSearchParams();
       
       if (filter !== 'all') {
@@ -90,10 +121,12 @@ export default function TenantsPage() {
       if (data.success) {
         setTenants(data.data);
       } else {
+        setErrorMessage(data.error || 'Failed to fetch tenants');
         toast.error('Failed to fetch tenants');
       }
     } catch (error) {
       console.error('Error fetching tenants:', error);
+      setErrorMessage('Failed to fetch tenants');
       toast.error('Failed to fetch tenants');
     } finally {
       setIsLoading(false);
@@ -237,10 +270,26 @@ export default function TenantsPage() {
           <input
             type="text"
             placeholder="Search by brand name, tenant ID, or domain"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-12 pr-4 text-sm text-slate-700 placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            className="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-12 pr-12 text-sm text-slate-700 placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20"
           />
+          <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+            {isSearching && (
+              <Loader2 className="w-4 h-4 text-slate-400 animate-spin" aria-label="Searching" />
+            )}
+            {!!searchInput && (
+              <button
+                type="button"
+                onClick={() => setSearchInput('')}
+                className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+                aria-label="Clear search"
+                title="Clear"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
         <div className="flex flex-wrap gap-2">
           {(['all', 'active', 'inactive'] as const).map((f) => (
@@ -292,6 +341,27 @@ export default function TenantsPage() {
               <div className="h-4 w-1/2 rounded bg-slate-200"></div>
             </div>
           ))}
+        </div>
+      ) : errorMessage ? (
+        <div className="rounded-3xl border border-rose-200 bg-rose-50/60 p-8">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-rose-100 text-rose-600">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-slate-900">Couldn’t load brands</h3>
+                <p className="mt-1 text-sm text-slate-600">{errorMessage}</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={fetchTenants}
+              className="inline-flex items-center justify-center rounded-2xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white shadow hover:bg-slate-800 transition-colors"
+            >
+              Retry
+            </button>
+          </div>
         </div>
       ) : tenants.length === 0 ? (
         <div className="bg-white rounded-xl p-12 border border-gray-200 text-center">
@@ -498,6 +568,7 @@ export default function TenantsPage() {
 // Create Tenant Modal Component
 function CreateTenantModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const firstFieldRef = useRef<HTMLInputElement | null>(null);
   const [formData, setFormData] = useState({
     tenantId: '',
     name: '',
@@ -505,6 +576,18 @@ function CreateTenantModal({ onClose, onSuccess }: { onClose: () => void; onSucc
     primaryColor: '#E63946',
     secondaryColor: '#1D3557',
   });
+
+  useEffect(() => {
+    firstFieldRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [onClose]);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -565,11 +648,33 @@ function CreateTenantModal({ onClose, onSuccess }: { onClose: () => void; onSucc
   };
   
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
-        <div className="p-6 border-b">
-          <h2 className="text-xl font-bold text-gray-900">Create New Brand</h2>
-          <p className="text-sm text-gray-500 mt-1">Add a new website brand to your platform</p>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Create new brand"
+      onMouseDown={(e) => {
+        // close on clicking backdrop (but not when clicking inside the modal)
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-white/20">
+        <div className="p-6 border-b bg-gradient-to-r from-slate-50 to-indigo-50">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">Create New Brand</h2>
+              <p className="text-sm text-gray-600 mt-1">Add a new website brand to your platform</p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-2xl p-2 text-slate-500 hover:bg-white/70 hover:text-slate-900 transition-colors"
+              aria-label="Close"
+              title="Close"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
         </div>
         
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
@@ -579,13 +684,14 @@ function CreateTenantModal({ onClose, onSuccess }: { onClose: () => void; onSucc
             </label>
             <input
               type="text"
+              ref={firstFieldRef}
               value={formData.tenantId}
               onChange={(e) => setFormData(prev => ({ 
                 ...prev, 
                 tenantId: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') 
               }))}
               placeholder="e.g., hurghada, cairo, luxor"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 shadow-sm focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/15"
               required
             />
             <p className="text-xs text-gray-500 mt-1">Lowercase letters, numbers, and hyphens only</p>
@@ -600,7 +706,7 @@ function CreateTenantModal({ onClose, onSuccess }: { onClose: () => void; onSucc
               value={formData.name}
               onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
               placeholder="e.g., Hurghada Tours & Excursions"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 shadow-sm focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/15"
               required
             />
           </div>
@@ -614,7 +720,7 @@ function CreateTenantModal({ onClose, onSuccess }: { onClose: () => void; onSucc
               value={formData.domain}
               onChange={(e) => setFormData(prev => ({ ...prev, domain: e.target.value.toLowerCase() }))}
               placeholder="e.g., hurghadatours.com"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 shadow-sm focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/15"
               required
             />
           </div>
@@ -635,7 +741,7 @@ function CreateTenantModal({ onClose, onSuccess }: { onClose: () => void; onSucc
                   type="text"
                   value={formData.primaryColor}
                   onChange={(e) => setFormData(prev => ({ ...prev, primaryColor: e.target.value }))}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/15"
                 />
               </div>
             </div>
@@ -655,7 +761,7 @@ function CreateTenantModal({ onClose, onSuccess }: { onClose: () => void; onSucc
                   type="text"
                   value={formData.secondaryColor}
                   onChange={(e) => setFormData(prev => ({ ...prev, secondaryColor: e.target.value }))}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/15"
                 />
               </div>
             </div>
@@ -665,16 +771,23 @@ function CreateTenantModal({ onClose, onSuccess }: { onClose: () => void; onSucc
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+              className="flex-1 inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSubmitting ? 'Creating...' : 'Create Brand'}
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                'Create Brand'
+              )}
             </button>
           </div>
         </form>

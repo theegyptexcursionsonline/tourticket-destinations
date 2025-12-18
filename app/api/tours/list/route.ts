@@ -1,18 +1,26 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Tour from '@/lib/models/Tour';
 import Destination from '@/lib/models/Destination';
 import Category from '@/lib/models/Category';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     await dbConnect();
 
-    // Fetch all tours with populated destination and category
-    const tours = await Tour.find({})
+    // Build query with tenant filter
+    const query: Record<string, unknown> = {};
+    const { searchParams } = new URL(request.url);
+    const tenantId = searchParams.get('tenantId') || request.headers.get('x-tenant-id');
+    if (tenantId && tenantId !== 'all' && tenantId !== 'default') {
+      query.tenantId = tenantId;
+    }
+
+    // Fetch tours with populated destination and category
+    const tours = await Tour.find(query)
       .populate('destination', 'name slug')
       .populate('category', 'name slug')
-      .select('title slug description price discountPrice duration difficulty isPublished isFeatured image')
+      .select('title slug description price discountPrice duration difficulty isPublished isFeatured image tenantId')
       .lean()
       .sort({ createdAt: -1 });
 

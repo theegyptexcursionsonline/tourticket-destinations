@@ -13,7 +13,9 @@
     "test:coverage": "jest --coverage",
     "algolia:sync": "tsx scripts/sync-algolia.ts",
     "algolia:clear-sync": "tsx scripts/sync-algolia.ts --clear",
-    "algolia:sync-all": "tsx scripts/sync-all-algolia.ts"
+    "algolia:sync-all": "tsx scripts/sync-all-algolia.ts",
+    "tenant:seed-speedboat": "tsx scripts/seed-speedboat-tenant.ts",
+    "tenant:assign-speedboat-tours": "tsx scripts/assign-speedboat-tours.ts"
   },
   "dependencies": {
     "@ai-sdk/react": "^2.0.93",

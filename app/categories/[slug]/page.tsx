@@ -5,6 +5,7 @@ import TourModel from '@/lib/models/Tour';
 import CategoryModel from '@/lib/models/Category';
 import { Tour, Category } from '@/types';
 import CategoryPageClient from './CategoryPageClient';
+import { getTenantFromRequest, getTenantConfig, buildTenantQuery } from '@/lib/tenant';
 
 // Enable ISR with 60 second revalidation for instant page loads
 export const revalidate = 60;
@@ -16,10 +17,14 @@ export async function generateStaticParams() {
   return [];
 }
 
-// Generate metadata for SEO
+// Generate metadata for SEO (tenant-aware)
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   try {
     const { slug } = await params;
+    const tenantId = await getTenantFromRequest();
+    const tenantConfig = await getTenantConfig(tenantId);
+    const siteName = tenantConfig?.name || 'Egypt Excursions Online';
+    
     await dbConnect();
     
     const category = await CategoryModel.findOne({ slug })
@@ -34,7 +39,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     }
 
     return {
-      title: category.metaTitle || `${category.name} Tours | Egypt Excursions Online`,
+      title: category.metaTitle || `${category.name} Tours | ${siteName}`,
       description: category.metaDescription || category.description?.substring(0, 160) || `Explore ${category.name} tours and activities`,
       keywords: category.keywords?.join(', '),
       openGraph: {
@@ -53,7 +58,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   }
 }
 
-async function getPageData(slug: string) {
+async function getPageData(slug: string, tenantId: string) {
   await dbConnect();
 
   const category = await CategoryModel.findOne({ slug }).lean();
@@ -61,10 +66,13 @@ async function getPageData(slug: string) {
     return { category: null, categoryTours: [] };
   }
 
-  const categoryTours = await TourModel.find({
+  // Build tenant-filtered query for tours
+  const tourQuery = buildTenantQuery({
     category: { $in: [category._id] },
     isPublished: true
-  }).populate('destination').lean();
+  }, tenantId);
+
+  const categoryTours = await TourModel.find(tourQuery).populate('destination').lean();
   
   const serializedCategory = JSON.parse(JSON.stringify(category));
   const serializedTours = JSON.parse(JSON.stringify(categoryTours));
@@ -77,7 +85,8 @@ async function getPageData(slug: string) {
 
 export default async function CategoryPage({ params }: { params: Promise<{ slug: string }> }) {
   const resolvedParams = await params;
-  const { category, categoryTours } = await getPageData(resolvedParams.slug);
+  const tenantId = await getTenantFromRequest();
+  const { category, categoryTours } = await getPageData(resolvedParams.slug, tenantId);
 
   if (!category) {
     notFound();

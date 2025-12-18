@@ -6,6 +6,7 @@ import TourModel from '@/lib/models/Tour';
 import CategoryModel from '@/lib/models/Category';
 import ReviewModel from '@/lib/models/Review';
 import DestinationPageClient from './DestinationPageClient';
+import { getTenantFromRequest, getTenantConfig, buildTenantQuery } from '@/lib/tenant';
 
 // Enable ISR with 60 second revalidation for fast page loads
 export const revalidate = 60;
@@ -17,10 +18,14 @@ export async function generateStaticParams() {
   return [];
 }
 
-// Generate metadata for SEO
+// Generate metadata for SEO (tenant-aware)
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   try {
     const { slug } = await params;
+    const tenantId = await getTenantFromRequest();
+    const tenantConfig = await getTenantConfig(tenantId);
+    const siteName = tenantConfig?.name || 'Egypt Excursions Online';
+    
     await dbConnect();
     const destination = await DestinationModel.findOne({ slug })
       .select('name description image country')
@@ -34,7 +39,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     }
 
     return {
-      title: `${destination.name}, ${destination.country} - Tours & Activities | Egypt Excursions Online`,
+      title: `${destination.name}, ${destination.country} - Tours & Activities | ${siteName}`,
       description: destination.description?.substring(0, 160) || `Discover the best tours and activities in ${destination.name}`,
       openGraph: {
         title: `${destination.name}, ${destination.country}`,
@@ -52,7 +57,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   }
 }
 
-async function getPageData(slug: string) {
+async function getPageData(slug: string, tenantId: string) {
   await dbConnect();
 
   const destination = await DestinationModel.findOne({ slug }).lean();
@@ -66,13 +71,17 @@ async function getPageData(slug: string) {
     };
   }
 
-  // Fetch published tours for this destination
-  const destinationTours = await TourModel.find({
+  // Fetch published tours for this destination (filtered by tenant)
+  const tourQuery = buildTenantQuery({
     destination: destination._id,
     isPublished: true
-  }).lean();
+  }, tenantId);
+  
+  const destinationTours = await TourModel.find(tourQuery).lean();
 
-  const allCategories = await CategoryModel.find({}).lean();
+  // Fetch categories (filtered by tenant)
+  const categoryQuery = buildTenantQuery({}, tenantId);
+  const allCategories = await CategoryModel.find(categoryQuery).lean();
 
   // Fetch reviews for tours in this destination
   const tourIds = destinationTours.map(tour => tour._id);
@@ -84,7 +93,7 @@ async function getPageData(slug: string) {
     .limit(6)
     .lean();
 
-  // Fetch related destinations (same country or similar)
+  // Fetch related destinations (same country or similar, with tours for this tenant)
   const relatedDestinationsRaw = await DestinationModel.find({
     _id: { $ne: destination._id },
     $or: [
@@ -92,28 +101,35 @@ async function getPageData(slug: string) {
       { featured: true }
     ]
   })
-    .limit(4)
+    .limit(8) // Fetch more to filter
     .lean();
 
-  // Calculate tour count for each related destination
+  // Calculate tour count for each related destination (filtered by tenant)
   const relatedDestinations = await Promise.all(
     relatedDestinationsRaw.map(async (dest) => {
-      const tourCount = await TourModel.countDocuments({
+      const countQuery = buildTenantQuery({
         destination: dest._id,
         isPublished: true
-      });
+      }, tenantId);
+      
+      const tourCount = await TourModel.countDocuments(countQuery);
       return {
         ...dest,
         tourCount
       };
     })
   );
+  
+  // Filter out destinations with no tours for this tenant and limit to 4
+  const filteredRelatedDestinations = relatedDestinations
+    .filter(d => d.tourCount > 0)
+    .slice(0, 4);
 
   const serializedDestination = JSON.parse(JSON.stringify(destination));
   const serializedTours = JSON.parse(JSON.stringify(destinationTours));
   const serializedCategories = JSON.parse(JSON.stringify(allCategories));
   const serializedReviews = JSON.parse(JSON.stringify(reviews));
-  const serializedRelatedDest = JSON.parse(JSON.stringify(relatedDestinations));
+  const serializedRelatedDest = JSON.parse(JSON.stringify(filteredRelatedDestinations));
 
   return {
     destination: serializedDestination,
@@ -126,7 +142,8 @@ async function getPageData(slug: string) {
 
 export default async function DestinationPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const { destination, destinationTours, allCategories, reviews, relatedDestinations } = await getPageData(slug);
+  const tenantId = await getTenantFromRequest();
+  const { destination, destinationTours, allCategories, reviews, relatedDestinations } = await getPageData(slug, tenantId);
 
   if (!destination) {
     notFound();

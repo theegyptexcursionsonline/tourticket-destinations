@@ -10,7 +10,8 @@ import toast from 'react-hot-toast';
 import { 
   ArrowLeft, Save, Globe, Palette, Mail, Phone, 
   Facebook, Twitter, Instagram, Youtube, Linkedin,
-  Settings, Eye, Image, Type, Layout, Shield
+  Settings, Eye, Layout, Shield,
+  ExternalLink, Copy, Loader2, Star, CheckCircle2, XCircle
 } from 'lucide-react';
 
 interface TenantData {
@@ -227,6 +228,21 @@ const defaultTenant: Partial<TenantData> = {
 
 type TabType = 'general' | 'branding' | 'seo' | 'contact' | 'social' | 'features' | 'payments' | 'homepage';
 
+const UI = {
+  container: 'mx-auto w-full max-w-7xl',
+  surface:
+    'rounded-3xl border border-slate-200/70 bg-white/80 backdrop-blur shadow-sm',
+  surfaceSolid:
+    'rounded-3xl border border-slate-200/70 bg-white shadow-sm',
+  input:
+    'w-full rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 shadow-sm focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/15 disabled:bg-slate-50 disabled:text-slate-500',
+  textarea:
+    'w-full rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 shadow-sm focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/15 disabled:bg-slate-50 disabled:text-slate-500',
+  select:
+    'w-full rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 shadow-sm focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/15 disabled:bg-slate-50 disabled:text-slate-500',
+  checkbox: 'h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500',
+};
+
 export default function EditTenantPage() {
   const params = useParams();
   const router = useRouter();
@@ -278,6 +294,17 @@ export default function EditTenantPage() {
     fetchTenant();
   }, [fetchTenant]);
 
+  // Warn before leaving when there are unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (!hasChanges) return;
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasChanges]);
+
   // Update field helper
   const updateField = (path: string, value: unknown) => {
     if (!tenant) return;
@@ -296,8 +323,18 @@ export default function EditTenantPage() {
     setTenant(newTenant as TenantData);
   };
 
+  const copyToClipboard = useCallback(async (value: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      toast.success(`${label} copied`);
+    } catch (error) {
+      console.error('Clipboard error:', error);
+      toast.error('Could not copy to clipboard');
+    }
+  }, []);
+
   // Save tenant
-  const saveTenant = async () => {
+  const saveTenant = useCallback(async () => {
     if (!tenant) return;
     
     try {
@@ -323,7 +360,19 @@ export default function EditTenantPage() {
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [tenant, tenantId]);
+
+  // Cmd/Ctrl+S to save
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const isSave = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's';
+      if (!isSave) return;
+      e.preventDefault();
+      if (!isSaving && hasChanges) saveTenant();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [hasChanges, isSaving, saveTenant]);
 
   const tabs: { id: TabType; label: string; icon: React.ReactNode }[] = [
     { id: 'general', label: 'General', icon: <Settings className="w-4 h-4" /> },
@@ -338,100 +387,241 @@ export default function EditTenantPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className={`${UI.container} py-10`}>
+        <div className={`${UI.surface} p-6 md:p-8`}>
+          <div className="animate-pulse space-y-6">
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded-2xl bg-slate-200" />
+              <div className="flex-1 space-y-2">
+                <div className="h-5 w-64 rounded bg-slate-200" />
+                <div className="h-4 w-40 rounded bg-slate-200" />
+              </div>
+              <div className="h-10 w-32 rounded-2xl bg-slate-200" />
+            </div>
+            <div className="h-12 w-full rounded-2xl bg-slate-200" />
+            <div className="h-80 w-full rounded-3xl bg-slate-200" />
+          </div>
+        </div>
       </div>
     );
   }
 
   if (!tenant) {
     return (
-      <div className="text-center py-12">
-        <p className="text-gray-500">Tenant not found</p>
-        <Link href="/admin/tenants" className="text-blue-600 hover:underline mt-2 inline-block">
-          Back to tenants
-        </Link>
+      <div className={`${UI.container} py-12`}>
+        <div className={`${UI.surface} p-10 text-center`}>
+          <p className="text-slate-600">Brand not found</p>
+          <Link
+            href="/admin/tenants"
+            className="mt-3 inline-flex items-center justify-center rounded-2xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white shadow hover:bg-slate-800 transition-colors"
+          >
+            Back to brands
+          </Link>
+        </div>
       </div>
     );
   }
 
+  const primary = tenant.branding?.primaryColor || '#6366F1';
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <Link
-            href="/admin/tenants"
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Edit Brand: {tenant.name}</h1>
-            <p className="text-gray-500 mt-1">{tenant.domain}</p>
+      {/* Sticky header + tabs */}
+      <div className="-mx-4 sm:-mx-6 md:-mx-8 px-4 sm:px-6 md:px-8 sticky top-0 z-30 bg-gray-100/80 backdrop-blur supports-[backdrop-filter]:bg-gray-100/60 py-4">
+        <div className={`${UI.container} space-y-4`}>
+          <div className={`${UI.surface} p-5 md:p-6`}>
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex items-start gap-4">
+                <Link
+                  href="/admin/tenants"
+                  className="mt-0.5 inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors"
+                  aria-label="Back to brands"
+                  title="Back"
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                </Link>
+
+                <div className="flex items-start gap-4">
+                  <div
+                    className="h-12 w-12 rounded-2xl text-white flex items-center justify-center font-bold shadow"
+                    style={{ backgroundColor: primary }}
+                    aria-hidden="true"
+                  >
+                    {tenant.name?.charAt(0) || 'B'}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-slate-900 truncate">
+                        {tenant.name}
+                      </h1>
+                      {tenant.isDefault && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">
+                          <Star className="h-3.5 w-3.5" />
+                          Default
+                        </span>
+                      )}
+                      <span
+                        className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${
+                          tenant.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
+                        }`}
+                      >
+                        <span className={`h-2 w-2 rounded-full ${tenant.isActive ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                        {tenant.isActive ? 'Live' : 'Hidden'}
+                      </span>
+                      {hasChanges && (
+                        <span className="inline-flex items-center gap-2 rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700">
+                          <span className="h-2 w-2 rounded-full bg-orange-500" />
+                          Unsaved changes
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-600">
+                      <span className="font-medium">{tenant.domain}</span>
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard(`https://${tenant.domain}`, 'URL')}
+                        className="inline-flex items-center gap-1 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 border border-slate-200 hover:bg-slate-50 transition-colors"
+                        title="Copy URL"
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                        Copy
+                      </button>
+                      <a
+                        href={`https://${tenant.domain}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-indigo-700 border border-indigo-200 hover:bg-indigo-50 transition-colors"
+                        title="Open website"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                        Visit
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={saveTenant}
+                  disabled={isSaving || !hasChanges}
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white shadow hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  <span>{isSaving ? 'Saving…' : 'Save changes'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className={`${UI.surfaceSolid} p-2`}>
+            <nav className="flex flex-wrap gap-2">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-semibold transition-all ${
+                    activeTab === tab.id
+                      ? 'bg-slate-900 text-white shadow'
+                      : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                  }`}
+                >
+                  {tab.icon}
+                  {tab.label}
+                </button>
+              ))}
+            </nav>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          {hasChanges && (
-            <span className="text-sm text-orange-600">Unsaved changes</span>
-          )}
-          <button
-            onClick={saveTenant}
-            disabled={isSaving || !hasChanges}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Save className="w-5 h-5" />
-            <span>{isSaving ? 'Saving...' : 'Save Changes'}</span>
-          </button>
+      </div>
+
+      <div className={`${UI.container} grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-6`}>
+        {/* Main */}
+        <div className={`${UI.surface} p-6 md:p-8`}>
+          {activeTab === 'general' && <GeneralTab tenant={tenant} updateField={updateField} />}
+          {activeTab === 'branding' && <BrandingTab tenant={tenant} updateField={updateField} />}
+          {activeTab === 'seo' && <SEOTab tenant={tenant} updateField={updateField} />}
+          {activeTab === 'contact' && <ContactTab tenant={tenant} updateField={updateField} />}
+          {activeTab === 'social' && <SocialTab tenant={tenant} updateField={updateField} />}
+          {activeTab === 'features' && <FeaturesTab tenant={tenant} updateField={updateField} />}
+          {activeTab === 'payments' && <PaymentsTab tenant={tenant} updateField={updateField} />}
+          {activeTab === 'homepage' && <HomepageTab tenant={tenant} updateField={updateField} />}
         </div>
-      </div>
 
-      {/* Tabs */}
-      <div className="border-b border-gray-200">
-        <nav className="flex gap-4 overflow-x-auto pb-px">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-3 font-medium text-sm border-b-2 whitespace-nowrap transition-colors ${
-                activeTab === tab.id
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              {tab.icon}
-              {tab.label}
-            </button>
-          ))}
-        </nav>
-      </div>
+        {/* Sidebar */}
+        <aside className="space-y-4 xl:sticky xl:top-6 self-start">
+          <div className={`${UI.surface} p-5`}>
+            <h3 className="text-sm font-semibold text-slate-900">Quick actions</h3>
+            <div className="mt-4 space-y-2">
+              <button
+                type="button"
+                onClick={() => copyToClipboard(tenant.tenantId, 'Brand ID')}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+              >
+                <Copy className="h-4 w-4" />
+                Copy Brand ID
+              </button>
+              <a
+                href={`https://${tenant.domain}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full inline-flex items-center justify-center gap-2 rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-sm font-semibold text-indigo-700 hover:bg-indigo-100 transition-colors"
+              >
+                <ExternalLink className="h-4 w-4" />
+                Preview site
+              </a>
+            </div>
 
-      {/* Tab Content */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        {activeTab === 'general' && (
-          <GeneralTab tenant={tenant} updateField={updateField} />
-        )}
-        {activeTab === 'branding' && (
-          <BrandingTab tenant={tenant} updateField={updateField} />
-        )}
-        {activeTab === 'seo' && (
-          <SEOTab tenant={tenant} updateField={updateField} />
-        )}
-        {activeTab === 'contact' && (
-          <ContactTab tenant={tenant} updateField={updateField} />
-        )}
-        {activeTab === 'social' && (
-          <SocialTab tenant={tenant} updateField={updateField} />
-        )}
-        {activeTab === 'features' && (
-          <FeaturesTab tenant={tenant} updateField={updateField} />
-        )}
-        {activeTab === 'payments' && (
-          <PaymentsTab tenant={tenant} updateField={updateField} />
-        )}
-        {activeTab === 'homepage' && (
-          <HomepageTab tenant={tenant} updateField={updateField} />
-        )}
+            <div className="mt-5 border-t border-slate-200/70 pt-5">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Status</h4>
+              <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
+                <div className="rounded-2xl border border-slate-200 bg-white p-3">
+                  <div className="flex items-center gap-2 text-slate-600">
+                    {tenant.isActive ? (
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                    ) : (
+                      <XCircle className="h-4 w-4 text-rose-600" />
+                    )}
+                    <span className="font-semibold text-slate-800">{tenant.isActive ? 'Live' : 'Hidden'}</span>
+                  </div>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {tenant.isActive ? 'Visible to customers' : 'Not visible on web'}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-white p-3">
+                  <div className="flex items-center gap-2 text-slate-600">
+                    <Star className={`h-4 w-4 ${tenant.isDefault ? 'text-amber-500' : 'text-slate-300'}`} />
+                    <span className="font-semibold text-slate-800">{tenant.isDefault ? 'Default' : 'Normal'}</span>
+                  </div>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {tenant.isDefault ? 'Fallback brand' : 'Standard brand'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className={`${UI.surface} p-5`}>
+            <h3 className="text-sm font-semibold text-slate-900">Design preview</h3>
+            <p className="mt-1 text-xs text-slate-500">Quickly sanity-check colors & contrast.</p>
+            <div className="mt-4 rounded-3xl border border-slate-200 bg-white p-4">
+              <div className="flex items-center gap-3">
+                <span className="h-10 w-10 rounded-2xl shadow-inner" style={{ backgroundColor: tenant.branding?.primaryColor || '#6366F1' }} />
+                <span className="h-10 w-10 rounded-2xl shadow-inner" style={{ backgroundColor: tenant.branding?.secondaryColor || '#1D3557' }} />
+                <span className="h-10 w-10 rounded-2xl shadow-inner" style={{ backgroundColor: tenant.branding?.accentColor || '#F4A261' }} />
+              </div>
+              <div className="mt-4 space-y-2">
+                <div className="h-10 rounded-2xl text-white font-semibold flex items-center justify-center shadow" style={{ backgroundColor: tenant.branding?.primaryColor || '#6366F1' }}>
+                  Primary button
+                </div>
+                <div className="h-10 rounded-2xl border font-semibold flex items-center justify-center" style={{ borderColor: tenant.branding?.secondaryColor || '#1D3557', color: tenant.branding?.secondaryColor || '#1D3557' }}>
+                  Secondary button
+                </div>
+              </div>
+            </div>
+          </div>
+        </aside>
       </div>
     </div>
   );
@@ -440,82 +630,92 @@ export default function EditTenantPage() {
 // Tab Components
 function GeneralTab({ tenant, updateField }: { tenant: TenantData; updateField: (path: string, value: unknown) => void }) {
   return (
-    <div className="space-y-6">
-      <h3 className="text-lg font-semibold text-gray-900">General Settings</h3>
-      
+    <div className="space-y-8">
+      <div>
+        <h3 className="text-lg font-semibold text-slate-900">General</h3>
+        <p className="mt-1 text-sm text-slate-500">Identity, domains, and visibility.</p>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Brand ID
-          </label>
-          <input
-            type="text"
-            value={tenant.tenantId}
-            disabled
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500"
-          />
-          <p className="text-xs text-gray-500 mt-1">Cannot be changed after creation</p>
+          <label className="block text-sm font-semibold text-slate-700 mb-1">Brand ID</label>
+          <input type="text" value={tenant.tenantId} disabled className={UI.input} />
+          <p className="text-xs text-slate-500 mt-1">Cannot be changed after creation.</p>
         </div>
-        
+
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Brand Name <span className="text-red-500">*</span>
+          <label className="block text-sm font-semibold text-slate-700 mb-1">
+            Brand Name <span className="text-rose-600">*</span>
           </label>
           <input
             type="text"
             value={tenant.name}
             onChange={(e) => updateField('name', e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className={UI.input}
           />
         </div>
-        
+
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Primary Domain <span className="text-red-500">*</span>
+          <label className="block text-sm font-semibold text-slate-700 mb-1">
+            Primary Domain <span className="text-rose-600">*</span>
           </label>
           <input
             type="text"
             value={tenant.domain}
             onChange={(e) => updateField('domain', e.target.value.toLowerCase())}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className={UI.input}
           />
         </div>
-        
+
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Additional Domains
-          </label>
+          <label className="block text-sm font-semibold text-slate-700 mb-1">Additional Domains</label>
           <input
             type="text"
             value={tenant.domains?.join(', ') || ''}
-            onChange={(e) => updateField('domains', e.target.value.split(',').map(d => d.trim().toLowerCase()).filter(Boolean))}
+            onChange={(e) =>
+              updateField(
+                'domains',
+                e.target.value
+                  .split(',')
+                  .map((d) => d.trim().toLowerCase())
+                  .filter(Boolean)
+              )
+            }
             placeholder="domain1.com, domain2.com"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className={UI.input}
           />
-          <p className="text-xs text-gray-500 mt-1">Comma-separated list of domains</p>
+          <p className="text-xs text-slate-500 mt-1">Comma-separated list of domains.</p>
         </div>
       </div>
-      
-      <div className="flex items-center gap-6 pt-4 border-t">
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={tenant.isActive}
-            onChange={(e) => updateField('isActive', e.target.checked)}
-            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-          />
-          <span className="text-sm text-gray-700">Active (website is live)</span>
-        </label>
-        
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={tenant.isDefault}
-            onChange={(e) => updateField('isDefault', e.target.checked)}
-            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-          />
-          <span className="text-sm text-gray-700">Default brand (fallback)</span>
-        </label>
+
+      <div className="rounded-3xl border border-slate-200 bg-slate-50/60 p-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <label className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 hover:bg-slate-50 transition-colors cursor-pointer">
+            <input
+              type="checkbox"
+              checked={tenant.isActive}
+              onChange={(e) => updateField('isActive', e.target.checked)}
+              className={`${UI.checkbox} mt-0.5`}
+            />
+            <div>
+              <div className="font-semibold text-slate-900">Active (website is live)</div>
+              <div className="text-sm text-slate-500">When disabled, the brand is hidden from the public site.</div>
+            </div>
+          </label>
+
+          <label className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 hover:bg-slate-50 transition-colors cursor-pointer">
+            <input
+              type="checkbox"
+              checked={tenant.isDefault}
+              onChange={(e) => updateField('isDefault', e.target.checked)}
+              className={`${UI.checkbox} mt-0.5`}
+            />
+            <div>
+              <div className="font-semibold text-slate-900">Default brand</div>
+              <div className="text-sm text-slate-500">Used as the fallback when a domain doesn’t match.</div>
+            </div>
+          </label>
+        </div>
       </div>
     </div>
   );
@@ -523,76 +723,95 @@ function GeneralTab({ tenant, updateField }: { tenant: TenantData; updateField: 
 
 function BrandingTab({ tenant, updateField }: { tenant: TenantData; updateField: (path: string, value: unknown) => void }) {
   return (
-    <div className="space-y-6">
-      <h3 className="text-lg font-semibold text-gray-900">Branding & Design</h3>
-      
+    <div className="space-y-8">
+      <div>
+        <h3 className="text-lg font-semibold text-slate-900">Branding</h3>
+        <p className="mt-1 text-sm text-slate-500">Logos, colors, typography, and layout variants.</p>
+      </div>
+
       {/* Logo & Favicon */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Logo URL</label>
+        <div className="rounded-3xl border border-slate-200 bg-slate-50/60 p-5">
+          <label className="block text-sm font-semibold text-slate-700 mb-1">Logo URL</label>
           <input
             type="text"
             value={tenant.branding?.logo || ''}
             onChange={(e) => updateField('branding.logo', e.target.value)}
             placeholder="/logo.png or https://..."
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className={UI.input}
           />
-          {tenant.branding?.logo && (
-            <img src={tenant.branding.logo} alt="Logo preview" className="mt-2 h-12 object-contain" />
-          )}
+          <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
+            <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Preview</div>
+            <div className="mt-3 flex items-center gap-3">
+              {tenant.branding?.logo ? (
+                <img src={tenant.branding.logo} alt="Logo preview" className="h-10 w-auto object-contain" />
+              ) : (
+                <div className="h-10 w-10 rounded-2xl bg-slate-100 border border-slate-200" />
+              )}
+              <div className="text-sm font-semibold text-slate-800 truncate">{tenant.name}</div>
+            </div>
+          </div>
         </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Favicon URL</label>
+
+        <div className="rounded-3xl border border-slate-200 bg-slate-50/60 p-5">
+          <label className="block text-sm font-semibold text-slate-700 mb-1">Favicon URL</label>
           <input
             type="text"
             value={tenant.branding?.favicon || ''}
             onChange={(e) => updateField('branding.favicon', e.target.value)}
             placeholder="/favicon.ico"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className={UI.input}
           />
+          <p className="mt-2 text-xs text-slate-500">Tip: use a square icon (32×32 or 48×48).</p>
         </div>
       </div>
-      
+
       {/* Colors */}
-      <div>
-        <h4 className="text-sm font-medium text-gray-700 mb-3">Brand Colors</h4>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="rounded-3xl border border-slate-200 bg-slate-50/60 p-5">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h4 className="text-sm font-semibold text-slate-900">Brand colors</h4>
+            <p className="mt-1 text-xs text-slate-500">Keep contrast readable across buttons and text.</p>
+          </div>
+        </div>
+        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             { key: 'primaryColor', label: 'Primary' },
             { key: 'secondaryColor', label: 'Secondary' },
             { key: 'accentColor', label: 'Accent' },
             { key: 'backgroundColor', label: 'Background' },
           ].map(({ key, label }) => (
-            <div key={key}>
-              <label className="block text-xs text-gray-500 mb-1">{label}</label>
-              <div className="flex items-center gap-2">
+            <div key={key} className="rounded-2xl border border-slate-200 bg-white p-4">
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                {label}
+              </label>
+              <div className="flex items-center gap-3">
                 <input
                   type="color"
                   value={(tenant.branding as Record<string, string>)?.[key] || '#000000'}
                   onChange={(e) => updateField(`branding.${key}`, e.target.value)}
-                  className="w-10 h-10 rounded cursor-pointer border-0"
+                  className="w-11 h-11 rounded-2xl cursor-pointer border border-slate-200 bg-white"
                 />
                 <input
                   type="text"
                   value={(tenant.branding as Record<string, string>)?.[key] || ''}
                   onChange={(e) => updateField(`branding.${key}`, e.target.value)}
-                  className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                  className="flex-1 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/15"
                 />
               </div>
             </div>
           ))}
         </div>
       </div>
-      
+
       {/* Typography */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Font Family</label>
+        <div className="rounded-3xl border border-slate-200 bg-slate-50/60 p-5">
+          <label className="block text-sm font-semibold text-slate-700 mb-1">Font family</label>
           <select
             value={tenant.branding?.fontFamily || 'Inter'}
             onChange={(e) => updateField('branding.fontFamily', e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className={UI.select}
           >
             <option value="Inter">Inter</option>
             <option value="Roboto">Roboto</option>
@@ -603,13 +822,13 @@ function BrandingTab({ tenant, updateField }: { tenant: TenantData; updateField:
             <option value="Playfair Display">Playfair Display</option>
           </select>
         </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Border Radius</label>
+
+        <div className="rounded-3xl border border-slate-200 bg-slate-50/60 p-5">
+          <label className="block text-sm font-semibold text-slate-700 mb-1">Border radius</label>
           <select
             value={tenant.branding?.borderRadius || '8px'}
             onChange={(e) => updateField('branding.borderRadius', e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className={UI.select}
           >
             <option value="0px">Sharp (0px)</option>
             <option value="4px">Subtle (4px)</option>
@@ -619,28 +838,28 @@ function BrandingTab({ tenant, updateField }: { tenant: TenantData; updateField:
           </select>
         </div>
       </div>
-      
+
       {/* Header/Footer Variants */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Header Style</label>
+        <div className="rounded-3xl border border-slate-200 bg-slate-50/60 p-5">
+          <label className="block text-sm font-semibold text-slate-700 mb-1">Header style</label>
           <select
             value={tenant.branding?.headerVariant || 'light'}
             onChange={(e) => updateField('branding.headerVariant', e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className={UI.select}
           >
             <option value="light">Light</option>
             <option value="dark">Dark</option>
             <option value="transparent">Transparent</option>
           </select>
         </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Footer Style</label>
+
+        <div className="rounded-3xl border border-slate-200 bg-slate-50/60 p-5">
+          <label className="block text-sm font-semibold text-slate-700 mb-1">Footer style</label>
           <select
             value={tenant.branding?.footerVariant || 'dark'}
             onChange={(e) => updateField('branding.footerVariant', e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className={UI.select}
           >
             <option value="light">Light</option>
             <option value="dark">Dark</option>
@@ -654,89 +873,100 @@ function BrandingTab({ tenant, updateField }: { tenant: TenantData; updateField:
 
 function SEOTab({ tenant, updateField }: { tenant: TenantData; updateField: (path: string, value: unknown) => void }) {
   return (
-    <div className="space-y-6">
-      <h3 className="text-lg font-semibold text-gray-900">SEO Settings</h3>
-      
+    <div className="space-y-8">
+      <div>
+        <h3 className="text-lg font-semibold text-slate-900">SEO</h3>
+        <p className="mt-1 text-sm text-slate-500">Defaults used across pages when specific metadata isn’t set.</p>
+      </div>
+
       <div className="grid grid-cols-1 gap-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Default Page Title</label>
+        <div className="rounded-3xl border border-slate-200 bg-slate-50/60 p-5">
+          <label className="block text-sm font-semibold text-slate-700 mb-1">Default page title</label>
           <input
             type="text"
             value={tenant.seo?.defaultTitle || ''}
             onChange={(e) => updateField('seo.defaultTitle', e.target.value)}
             placeholder="Your Brand - Tours & Excursions"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className={UI.input}
           />
         </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Title Suffix</label>
+
+        <div className="rounded-3xl border border-slate-200 bg-slate-50/60 p-5">
+          <label className="block text-sm font-semibold text-slate-700 mb-1">Title suffix</label>
           <input
             type="text"
             value={tenant.seo?.titleSuffix || ''}
             onChange={(e) => updateField('seo.titleSuffix', e.target.value)}
             placeholder="| Your Brand Name"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className={UI.input}
           />
-          <p className="text-xs text-gray-500 mt-1">Added to the end of all page titles</p>
+          <p className="text-xs text-slate-500 mt-2">Added to the end of all page titles.</p>
         </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Meta Description</label>
+
+        <div className="rounded-3xl border border-slate-200 bg-slate-50/60 p-5">
+          <label className="block text-sm font-semibold text-slate-700 mb-1">Meta description</label>
           <textarea
             value={tenant.seo?.defaultDescription || ''}
             onChange={(e) => updateField('seo.defaultDescription', e.target.value)}
-            rows={3}
+            rows={4}
             placeholder="Describe your brand and services..."
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className={UI.textarea}
           />
-          <p className="text-xs text-gray-500 mt-1">{(tenant.seo?.defaultDescription || '').length}/160 characters</p>
+          <p className="text-xs text-slate-500 mt-2">{(tenant.seo?.defaultDescription || '').length}/160 characters</p>
         </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Keywords</label>
+
+        <div className="rounded-3xl border border-slate-200 bg-slate-50/60 p-5">
+          <label className="block text-sm font-semibold text-slate-700 mb-1">Keywords</label>
           <input
             type="text"
             value={tenant.seo?.defaultKeywords?.join(', ') || ''}
-            onChange={(e) => updateField('seo.defaultKeywords', e.target.value.split(',').map(k => k.trim()).filter(Boolean))}
+            onChange={(e) =>
+              updateField(
+                'seo.defaultKeywords',
+                e.target.value
+                  .split(',')
+                  .map((k) => k.trim())
+                  .filter(Boolean)
+              )
+            }
             placeholder="tours, excursions, travel, egypt"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className={UI.input}
           />
-          <p className="text-xs text-gray-500 mt-1">Comma-separated keywords</p>
+          <p className="text-xs text-slate-500 mt-2">Comma-separated keywords.</p>
         </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Open Graph Image URL</label>
+
+        <div className="rounded-3xl border border-slate-200 bg-slate-50/60 p-5">
+          <label className="block text-sm font-semibold text-slate-700 mb-1">Open Graph image URL</label>
           <input
             type="text"
             value={tenant.seo?.ogImage || ''}
             onChange={(e) => updateField('seo.ogImage', e.target.value)}
             placeholder="/og-image.jpg or https://..."
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className={UI.input}
           />
-          <p className="text-xs text-gray-500 mt-1">Recommended size: 1200x630 pixels</p>
+          <p className="text-xs text-slate-500 mt-2">Recommended size: 1200×630.</p>
         </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Twitter Handle</label>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="rounded-3xl border border-slate-200 bg-slate-50/60 p-5">
+            <label className="block text-sm font-semibold text-slate-700 mb-1">Twitter handle</label>
             <input
               type="text"
               value={tenant.seo?.twitterHandle || ''}
               onChange={(e) => updateField('seo.twitterHandle', e.target.value)}
               placeholder="@yourbrand"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={UI.input}
             />
           </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Google Site Verification</label>
+
+          <div className="rounded-3xl border border-slate-200 bg-slate-50/60 p-5">
+            <label className="block text-sm font-semibold text-slate-700 mb-1">Google site verification</label>
             <input
               type="text"
               value={tenant.seo?.googleSiteVerification || ''}
               onChange={(e) => updateField('seo.googleSiteVerification', e.target.value)}
               placeholder="verification code"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={UI.input}
             />
           </div>
         </div>
@@ -747,12 +977,15 @@ function SEOTab({ tenant, updateField }: { tenant: TenantData; updateField: (pat
 
 function ContactTab({ tenant, updateField }: { tenant: TenantData; updateField: (path: string, value: unknown) => void }) {
   return (
-    <div className="space-y-6">
-      <h3 className="text-lg font-semibold text-gray-900">Contact Information</h3>
-      
+    <div className="space-y-8">
+      <div>
+        <h3 className="text-lg font-semibold text-slate-900">Contact</h3>
+        <p className="mt-1 text-sm text-slate-500">Support and booking contact details shown across the site.</p>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+        <div className="rounded-3xl border border-slate-200 bg-slate-50/60 p-5">
+          <label className="block text-sm font-semibold text-slate-700 mb-1">
             <Mail className="w-4 h-4 inline mr-1" /> Email
           </label>
           <input
@@ -760,12 +993,12 @@ function ContactTab({ tenant, updateField }: { tenant: TenantData; updateField: 
             value={tenant.contact?.email || ''}
             onChange={(e) => updateField('contact.email', e.target.value)}
             placeholder="info@yourdomain.com"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className={UI.input}
           />
         </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+
+        <div className="rounded-3xl border border-slate-200 bg-slate-50/60 p-5">
+          <label className="block text-sm font-semibold text-slate-700 mb-1">
             <Phone className="w-4 h-4 inline mr-1" /> Phone
           </label>
           <input
@@ -773,62 +1006,62 @@ function ContactTab({ tenant, updateField }: { tenant: TenantData; updateField: 
             value={tenant.contact?.phone || ''}
             onChange={(e) => updateField('contact.phone', e.target.value)}
             placeholder="+20 100 000 0000"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className={UI.input}
           />
         </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp</label>
+
+        <div className="rounded-3xl border border-slate-200 bg-slate-50/60 p-5">
+          <label className="block text-sm font-semibold text-slate-700 mb-1">WhatsApp</label>
           <input
             type="tel"
             value={tenant.contact?.whatsapp || ''}
             onChange={(e) => updateField('contact.whatsapp', e.target.value)}
             placeholder="+201000000000"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className={UI.input}
           />
         </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Support Email</label>
+
+        <div className="rounded-3xl border border-slate-200 bg-slate-50/60 p-5">
+          <label className="block text-sm font-semibold text-slate-700 mb-1">Support email</label>
           <input
             type="email"
             value={tenant.contact?.supportEmail || ''}
             onChange={(e) => updateField('contact.supportEmail', e.target.value)}
             placeholder="support@yourdomain.com"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className={UI.input}
           />
         </div>
-        
-        <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+
+        <div className="md:col-span-2 rounded-3xl border border-slate-200 bg-slate-50/60 p-5">
+          <label className="block text-sm font-semibold text-slate-700 mb-1">Address</label>
           <input
             type="text"
             value={tenant.contact?.address || ''}
             onChange={(e) => updateField('contact.address', e.target.value)}
             placeholder="123 Street Name"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className={UI.input}
           />
         </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+
+        <div className="rounded-3xl border border-slate-200 bg-slate-50/60 p-5">
+          <label className="block text-sm font-semibold text-slate-700 mb-1">City</label>
           <input
             type="text"
             value={tenant.contact?.city || ''}
             onChange={(e) => updateField('contact.city', e.target.value)}
             placeholder="Cairo"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className={UI.input}
           />
         </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
+
+        <div className="rounded-3xl border border-slate-200 bg-slate-50/60 p-5">
+          <label className="block text-sm font-semibold text-slate-700 mb-1">Country</label>
           <input
             type="text"
             value={tenant.contact?.country || ''}
             onChange={(e) => updateField('contact.country', e.target.value)}
             placeholder="Egypt"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className={UI.input}
           />
         </div>
       </div>
@@ -846,13 +1079,16 @@ function SocialTab({ tenant, updateField }: { tenant: TenantData; updateField: (
   ];
   
   return (
-    <div className="space-y-6">
-      <h3 className="text-lg font-semibold text-gray-900">Social Media Links</h3>
-      
+    <div className="space-y-8">
+      <div>
+        <h3 className="text-lg font-semibold text-slate-900">Social</h3>
+        <p className="mt-1 text-sm text-slate-500">Links shown in the footer and shared pages.</p>
+      </div>
+
       <div className="grid grid-cols-1 gap-4">
         {socialFields.map(({ key, label, icon: Icon, placeholder }) => (
-          <div key={key}>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+          <div key={key} className="rounded-3xl border border-slate-200 bg-slate-50/60 p-5">
+            <label className="block text-sm font-semibold text-slate-700 mb-1">
               <Icon className="w-4 h-4 inline mr-1" /> {label}
             </label>
             <input
@@ -860,7 +1096,7 @@ function SocialTab({ tenant, updateField }: { tenant: TenantData; updateField: (
               value={(tenant.socialLinks as Record<string, string>)?.[key] || ''}
               onChange={(e) => updateField(`socialLinks.${key}`, e.target.value)}
               placeholder={placeholder}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={UI.input}
             />
           </div>
         ))}
@@ -907,26 +1143,29 @@ function FeaturesTab({ tenant, updateField }: { tenant: TenantData; updateField:
   
   return (
     <div className="space-y-8">
-      <h3 className="text-lg font-semibold text-gray-900">Feature Toggles</h3>
-      
+      <div>
+        <h3 className="text-lg font-semibold text-slate-900">Features</h3>
+        <p className="mt-1 text-sm text-slate-500">Enable or disable modules per brand.</p>
+      </div>
+
       {featureGroups.map((group) => (
-        <div key={group.title}>
-          <h4 className="text-sm font-medium text-gray-700 mb-3">{group.title}</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div key={group.title} className="rounded-3xl border border-slate-200 bg-slate-50/60 p-5">
+          <h4 className="text-sm font-semibold text-slate-900">{group.title}</h4>
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
             {group.features.map(({ key, label, description }) => (
               <label
                 key={key}
-                className="flex items-start gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
+                className="group flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 hover:bg-slate-50 cursor-pointer transition-colors"
               >
                 <input
                   type="checkbox"
                   checked={(tenant.features as Record<string, boolean>)?.[key] || false}
                   onChange={(e) => updateField(`features.${key}`, e.target.checked)}
-                  className="mt-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className={`${UI.checkbox} mt-0.5`}
                 />
-                <div>
-                  <span className="font-medium text-gray-900">{label}</span>
-                  <p className="text-sm text-gray-500">{description}</p>
+                <div className="min-w-0">
+                  <span className="font-semibold text-slate-900">{label}</span>
+                  <p className="text-sm text-slate-500">{description}</p>
                 </div>
               </label>
             ))}
@@ -939,69 +1178,83 @@ function FeaturesTab({ tenant, updateField }: { tenant: TenantData; updateField:
 
 function PaymentsTab({ tenant, updateField }: { tenant: TenantData; updateField: (path: string, value: unknown) => void }) {
   return (
-    <div className="space-y-6">
-      <h3 className="text-lg font-semibold text-gray-900">Payment Settings</h3>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Default Currency</label>
-          <select
-            value={tenant.payments?.currency || 'USD'}
-            onChange={(e) => updateField('payments.currency', e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="USD">USD - US Dollar</option>
-            <option value="EUR">EUR - Euro</option>
-            <option value="GBP">GBP - British Pound</option>
-            <option value="EGP">EGP - Egyptian Pound</option>
-            <option value="AED">AED - UAE Dirham</option>
-            <option value="SAR">SAR - Saudi Riyal</option>
-          </select>
-        </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Currency Symbol</label>
-          <input
-            type="text"
-            value={tenant.payments?.currencySymbol || '$'}
-            onChange={(e) => updateField('payments.currencySymbol', e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
-        
-        <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Supported Currencies</label>
-          <input
-            type="text"
-            value={tenant.payments?.supportedCurrencies?.join(', ') || ''}
-            onChange={(e) => updateField('payments.supportedCurrencies', e.target.value.split(',').map(c => c.trim().toUpperCase()).filter(Boolean))}
-            placeholder="USD, EUR, GBP, EGP"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
+    <div className="space-y-8">
+      <div>
+        <h3 className="text-lg font-semibold text-slate-900">Payments</h3>
+        <p className="mt-1 text-sm text-slate-500">Currencies and payment method availability per brand.</p>
+      </div>
+
+      <div className="rounded-3xl border border-slate-200 bg-slate-50/60 p-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-1">Default currency</label>
+            <select
+              value={tenant.payments?.currency || 'USD'}
+              onChange={(e) => updateField('payments.currency', e.target.value)}
+              className={UI.select}
+            >
+              <option value="USD">USD - US Dollar</option>
+              <option value="EUR">EUR - Euro</option>
+              <option value="GBP">GBP - British Pound</option>
+              <option value="EGP">EGP - Egyptian Pound</option>
+              <option value="AED">AED - UAE Dirham</option>
+              <option value="SAR">SAR - Saudi Riyal</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-1">Currency symbol</label>
+            <input
+              type="text"
+              value={tenant.payments?.currencySymbol || '$'}
+              onChange={(e) => updateField('payments.currencySymbol', e.target.value)}
+              className={UI.input}
+            />
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-sm font-semibold text-slate-700 mb-1">Supported currencies</label>
+            <input
+              type="text"
+              value={tenant.payments?.supportedCurrencies?.join(', ') || ''}
+              onChange={(e) =>
+                updateField(
+                  'payments.supportedCurrencies',
+                  e.target.value
+                    .split(',')
+                    .map((c) => c.trim().toUpperCase())
+                    .filter(Boolean)
+                )
+              }
+              placeholder="USD, EUR, GBP, EGP"
+              className={UI.input}
+            />
+            <p className="mt-2 text-xs text-slate-500">Comma-separated ISO currency codes.</p>
+          </div>
         </div>
       </div>
-      
-      <div>
-        <h4 className="text-sm font-medium text-gray-700 mb-3">Payment Methods</h4>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+      <div className="rounded-3xl border border-slate-200 bg-slate-50/60 p-5">
+        <h4 className="text-sm font-semibold text-slate-900">Payment methods</h4>
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
           {[
             { key: 'stripeEnabled', label: 'Stripe', description: 'Credit/Debit cards' },
             { key: 'paypalEnabled', label: 'PayPal', description: 'PayPal payments' },
-            { key: 'bankTransferEnabled', label: 'Bank Transfer', description: 'Direct bank transfer' },
+            { key: 'bankTransferEnabled', label: 'Bank transfer', description: 'Direct bank transfer' },
           ].map(({ key, label, description }) => (
             <label
               key={key}
-              className="flex items-start gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
+              className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 hover:bg-slate-50 cursor-pointer transition-colors"
             >
               <input
                 type="checkbox"
                 checked={(tenant.payments as Record<string, boolean>)?.[key] || false}
                 onChange={(e) => updateField(`payments.${key}`, e.target.checked)}
-                className="mt-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className={`${UI.checkbox} mt-0.5`}
               />
-              <div>
-                <span className="font-medium text-gray-900">{label}</span>
-                <p className="text-sm text-gray-500">{description}</p>
+              <div className="min-w-0">
+                <span className="font-semibold text-slate-900">{label}</span>
+                <p className="text-sm text-slate-500">{description}</p>
               </div>
             </label>
           ))}
@@ -1046,21 +1299,21 @@ function HomepageTab({ tenant, updateField }: { tenant: TenantData; updateField:
   return (
     <div className="space-y-8">
       <div>
-        <h3 className="text-lg font-semibold text-gray-900">Homepage Settings</h3>
-        <p className="text-sm text-gray-500 mt-1">Configure what appears on the homepage for this brand</p>
+        <h3 className="text-lg font-semibold text-slate-900">Homepage</h3>
+        <p className="text-sm text-slate-500 mt-1">Configure what appears on the homepage for this brand.</p>
       </div>
       
       {/* Hero Section Settings */}
-      <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
-        <h4 className="font-medium text-gray-900 mb-4">Hero Section</h4>
+      <div className="rounded-3xl border border-slate-200 bg-slate-50/60 p-6">
+        <h4 className="font-semibold text-slate-900 mb-4">Hero section</h4>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Hero Type</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-1">Hero type</label>
             <select
               value={tenant.homepage?.heroType || 'slider'}
               onChange={(e) => updateField('homepage.heroType', e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={UI.select}
             >
               <option value="slider">Image Slider</option>
               <option value="video">Video Background</option>
@@ -1068,56 +1321,56 @@ function HomepageTab({ tenant, updateField }: { tenant: TenantData; updateField:
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Hero Title</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-1">Hero title</label>
             <input
               type="text"
               value={tenant.homepage?.heroTitle || ''}
               onChange={(e) => updateField('homepage.heroTitle', e.target.value)}
               placeholder="Discover Amazing Tours"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={UI.input}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Hero Subtitle</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-1">Hero subtitle</label>
             <input
               type="text"
               value={tenant.homepage?.heroSubtitle || ''}
               onChange={(e) => updateField('homepage.heroSubtitle', e.target.value)}
               placeholder="Book your next adventure"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={UI.input}
             />
           </div>
         </div>
         
         {tenant.homepage?.heroType === 'video' && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Video URL</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-1">Video URL</label>
             <input
               type="text"
               value={tenant.homepage?.heroVideoUrl || ''}
               onChange={(e) => updateField('homepage.heroVideoUrl', e.target.value)}
               placeholder="https://..."
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={UI.input}
             />
           </div>
         )}
         
         <div className="mt-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Hero Image URL (for static/fallback)</label>
+          <label className="block text-sm font-semibold text-slate-700 mb-1">Hero image URL (for static/fallback)</label>
           <input
             type="text"
             value={tenant.homepage?.heroImage || ''}
             onChange={(e) => updateField('homepage.heroImage', e.target.value)}
             placeholder="/hero.jpg or https://..."
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className={UI.input}
           />
         </div>
       </div>
 
       {/* Homepage Sections Toggle */}
-      <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
-        <h4 className="font-medium text-gray-900 mb-4">Homepage Sections</h4>
-        <p className="text-sm text-gray-500 mb-4">Choose which sections to display on the homepage</p>
+      <div className="rounded-3xl border border-slate-200 bg-slate-50/60 p-6">
+        <h4 className="font-semibold text-slate-900 mb-2">Homepage sections</h4>
+        <p className="text-sm text-slate-500 mb-4">Choose which sections to display on the homepage.</p>
         
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {[
@@ -1131,47 +1384,50 @@ function HomepageTab({ tenant, updateField }: { tenant: TenantData; updateField:
             { key: 'showAboutUs', label: 'About Us' },
             { key: 'showPromoSection', label: 'Promo Section' },
           ].map((section) => (
-            <label key={section.key} className="flex items-center gap-2 p-3 bg-white rounded-lg border border-gray-200 cursor-pointer hover:border-blue-300">
+            <label
+              key={section.key}
+              className="flex items-center gap-2 p-3 bg-white rounded-2xl border border-slate-200 cursor-pointer hover:bg-slate-50 hover:border-indigo-300 transition-colors"
+            >
               <input
                 type="checkbox"
                 checked={tenant.homepage?.[section.key as keyof typeof tenant.homepage] !== false}
                 onChange={(e) => updateField(`homepage.${section.key}`, e.target.checked)}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className={UI.checkbox}
               />
-              <span className="text-sm text-gray-700">{section.label}</span>
+              <span className="text-sm text-slate-700">{section.label}</span>
             </label>
           ))}
         </div>
       </div>
 
       {/* Featured Tours Selection */}
-      <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
+      <div className="rounded-3xl border border-slate-200 bg-slate-50/60 p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h4 className="font-medium text-gray-900">Featured Tours</h4>
-            <p className="text-sm text-gray-500">Select specific tours to feature on the homepage</p>
+            <h4 className="font-semibold text-slate-900">Featured tours</h4>
+            <p className="text-sm text-slate-500">Select specific tours to feature on the homepage.</p>
           </div>
           <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-600">Default count:</label>
+            <label className="text-sm text-slate-600">Default count:</label>
             <input
               type="number"
               min="1"
               max="24"
               value={tenant.homepage?.featuredToursCount || 8}
               onChange={(e) => updateField('homepage.featuredToursCount', parseInt(e.target.value) || 8)}
-              className="w-16 px-2 py-1 border border-gray-300 rounded text-center text-sm"
+              className="w-16 rounded-xl border border-slate-200 bg-white px-2 py-1.5 text-center text-sm text-slate-800 shadow-sm focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/15"
             />
           </div>
         </div>
         
         {isLoadingTours ? (
-          <div className="text-center py-8 text-gray-500">Loading tours...</div>
+          <div className="text-center py-10 text-slate-500">Loading tours...</div>
         ) : tours.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-10 text-slate-500">
             No tours found for this brand. Create tours first.
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-96 overflow-y-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-96 overflow-y-auto pr-1">
             {tours.map((tour) => {
               const isSelected = (tenant.homepage?.featuredTourIds || []).includes(tour._id);
               return (
@@ -1179,19 +1435,19 @@ function HomepageTab({ tenant, updateField }: { tenant: TenantData; updateField:
                   key={tour._id}
                   type="button"
                   onClick={() => toggleFeaturedTour(tour._id)}
-                  className={`text-left p-3 rounded-lg border transition-all ${
+                  className={`text-left p-3 rounded-2xl border transition-all ${
                     isSelected 
-                      ? 'bg-blue-50 border-blue-300 ring-1 ring-blue-200' 
-                      : 'bg-white border-gray-200 hover:border-gray-300'
+                      ? 'bg-indigo-50 border-indigo-300 ring-1 ring-indigo-200' 
+                      : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                   }`}
                 >
                   <div className="flex items-center gap-2">
                     <div className={`w-5 h-5 rounded flex items-center justify-center ${
-                      isSelected ? 'bg-blue-500 text-white' : 'border border-gray-300'
+                      isSelected ? 'bg-indigo-600 text-white' : 'border border-slate-300'
                     }`}>
                       {isSelected && <span>✓</span>}
                     </div>
-                    <span className={`text-sm truncate ${isSelected ? 'font-medium text-blue-900' : 'text-gray-700'}`}>
+                    <span className={`text-sm truncate ${isSelected ? 'font-semibold text-indigo-900' : 'text-slate-700'}`}>
                       {tour.title}
                     </span>
                   </div>
@@ -1202,14 +1458,14 @@ function HomepageTab({ tenant, updateField }: { tenant: TenantData; updateField:
         )}
         
         {(tenant.homepage?.featuredTourIds?.length || 0) > 0 && (
-          <div className="mt-4 pt-4 border-t border-gray-200 flex items-center justify-between">
-            <span className="text-sm text-gray-600">
+          <div className="mt-4 pt-4 border-t border-slate-200 flex items-center justify-between">
+            <span className="text-sm text-slate-600">
               {tenant.homepage?.featuredTourIds?.length} tours selected
             </span>
             <button
               type="button"
               onClick={() => updateField('homepage.featuredTourIds', [])}
-              className="text-sm text-red-600 hover:text-red-700"
+              className="text-sm font-semibold text-rose-600 hover:text-rose-700"
             >
               Clear all
             </button>
@@ -1218,39 +1474,39 @@ function HomepageTab({ tenant, updateField }: { tenant: TenantData; updateField:
       </div>
 
       {/* Promo Bar Settings */}
-      <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
-        <h4 className="font-medium text-gray-900 mb-4">Promo Bar</h4>
+      <div className="rounded-3xl border border-slate-200 bg-slate-50/60 p-6">
+        <h4 className="font-semibold text-slate-900 mb-4">Promo bar</h4>
         
         <label className="flex items-center gap-2 mb-4">
           <input
             type="checkbox"
             checked={tenant.homepage?.promoBarActive || false}
             onChange={(e) => updateField('homepage.promoBarActive', e.target.checked)}
-            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            className={UI.checkbox}
           />
-          <span className="text-sm text-gray-700">Show promo bar on homepage</span>
+          <span className="text-sm text-slate-700">Show promo bar on homepage</span>
         </label>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Promo Text</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-1">Promo text</label>
             <input
               type="text"
               value={tenant.homepage?.promoBarText || ''}
               onChange={(e) => updateField('homepage.promoBarText', e.target.value)}
               placeholder="🎉 Special offer: 20% off all tours!"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={UI.input}
             />
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Promo Link</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-1">Promo link</label>
             <input
               type="text"
               value={tenant.homepage?.promoBarLink || ''}
               onChange={(e) => updateField('homepage.promoBarLink', e.target.value)}
               placeholder="/tours"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={UI.input}
             />
           </div>
         </div>
