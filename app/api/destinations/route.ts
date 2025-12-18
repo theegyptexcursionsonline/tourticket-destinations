@@ -1,21 +1,26 @@
 // app/api/destinations/route.ts
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Destination from '@/lib/models/Destination';
 import Tour from '@/lib/models/Tour';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     await dbConnect();
 
+    const { searchParams } = new URL(request.url);
+    const tenantId = searchParams.get('tenantId') || request.headers.get('x-tenant-id');
+    const tenantFilter =
+      tenantId && tenantId !== 'all' && tenantId !== 'default' ? { tenantId } : {};
+
     // Fetch all published destinations
-    const destinations = await Destination.find({ isPublished: true, featured: true })
+    const destinations = await Destination.find({ isPublished: true, featured: true, ...tenantFilter })
       .select('_id name slug country image description featured tourCount')
       .sort({ featured: -1, tourCount: -1, name: 1 })
       .lean();
 
     // Get all published tours
-    const tours = await Tour.find({ isPublished: true })
+    const tours = await Tour.find({ isPublished: true, ...tenantFilter })
       .select('destination')
       .lean();
 
