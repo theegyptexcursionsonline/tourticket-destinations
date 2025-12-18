@@ -11,7 +11,7 @@ import { Tour, Review } from '@/types';
 import TourPageClient from './TourPageClient';
 
 // Enable ISR with 60 second revalidation for instant page loads
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 export const dynamicParams = true;
 
 // Skip static generation at build time to avoid MongoDB connection issues on Netlify

@@ -8,7 +8,7 @@ import BlogClientPage from './BlogClientPage';
 import { IBlog } from '@/lib/models/Blog';
 
 // Enable ISR with 60 second revalidation for instant page loads
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 
 // Generate metadata for SEO
 export const metadata: Metadata = {

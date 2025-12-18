@@ -28,7 +28,7 @@ import DayTripsServer from '@/components/DayTripsServer';
 import { getTenantFromRequest, getTenantConfig, buildTenantQuery } from '@/lib/tenant';
 
 // ISR - Static generation with 60-second revalidation
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 
 /**
  * Get homepage data

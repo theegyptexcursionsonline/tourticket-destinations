@@ -7,8 +7,8 @@ import { Tour, Category } from '@/types';
 import CategoryPageClient from './CategoryPageClient';
 import { getTenantFromRequest, getTenantConfig, buildTenantQuery } from '@/lib/tenant';
 
-// Enable ISR with 60 second revalidation for instant page loads
-export const revalidate = 60;
+// Force dynamic rendering to fix ISR caching issues on Netlify
+export const dynamic = 'force-dynamic';
 export const dynamicParams = true;
 
 // Skip static generation at build time to avoid MongoDB connection issues on Netlify

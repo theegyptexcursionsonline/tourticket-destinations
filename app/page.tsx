@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 };
 
 // ISR: 5 minute cache for fast initial loads with background revalidation
-export const revalidate = 300;
+export const dynamic = 'force-dynamic';
 
 export default function HomePage() {
   if (COMING_SOON_MODE) {
