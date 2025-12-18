@@ -1,6 +1,5 @@
 // app/destinations/[slug]/page.tsx
 import { notFound } from 'next/navigation';
-import { unstable_cache } from 'next/cache';
 import dbConnect from '@/lib/dbConnect';
 import DestinationModel from '@/lib/models/Destination';
 import TourModel from '@/lib/models/Tour';
@@ -8,14 +7,12 @@ import CategoryModel from '@/lib/models/Category';
 import ReviewModel from '@/lib/models/Review';
 import DestinationPageClient from './DestinationPageClient';
 import { getTenantFromRequest } from '@/lib/tenant';
-import { CACHE_DURATIONS, CACHE_TAGS } from '@/lib/cache';
 
-// Enable ISR with 5 minute revalidation for optimal caching
-export const revalidate = 300;
+// Enable ISR with 60 second revalidation
+export const revalidate = 60;
 export const dynamicParams = true;
 
-// Skip static generation at build time to avoid MongoDB connection issues on Netlify
-// Pages will be generated on-demand with ISR caching
+// Skip static generation at build time
 export async function generateStaticParams() {
   return [];
 }
@@ -65,91 +62,82 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 }
 
 /**
- * Get destination page data with ISR caching
- * Cached for 5 minutes per slug/tenant combination
+ * Get destination page data
+ * Uses ISR via page-level revalidate export
  */
-const getPageData = (slug: string, tenantId: string) => {
-  return unstable_cache(
-    async () => {
-      try {
-        await dbConnect();
+async function getPageData(slug: string, tenantId: string) {
+  try {
+    await dbConnect();
 
-        const tenantFilter = tenantId !== 'default' 
-          ? { $or: [{ tenantId }, { tenantId: 'default' }] }
-          : { tenantId: 'default' };
-        
-        const destination = await DestinationModel.findOne({ 
-          slug, 
-          ...tenantFilter 
-        })
-          .sort({ tenantId: tenantId !== 'default' ? -1 : 1 })
-          .lean();
-      
-        if (!destination) {
-          return {
-            destination: null,
-            destinationTours: [],
-            allCategories: [],
-            reviews: [],
-            relatedDestinations: []
-          };
-        }
-
-        // Run all queries in parallel for maximum speed
-        const [destinationTours, allCategories, relatedDestinationsRaw] = await Promise.all([
-          TourModel.find({
-            destination: destination._id,
-            isPublished: true,
-            tenantId
-          }).lean(),
-          
-          CategoryModel.find({ tenantId }).limit(20).lean(),
-          
-          DestinationModel.find({
-            _id: { $ne: destination._id },
-            tenantId,
-            $or: [{ country: destination.country }, { featured: true }]
-          }).limit(4).lean()
-        ]);
-
-        // Fetch reviews only if we have tours
-        let reviews: any[] = [];
-        if (destinationTours.length > 0) {
-          const tourIds = destinationTours.map(tour => tour._id);
-          reviews = await ReviewModel.find({
-            tour: { $in: tourIds },
-            verified: true
-          })
-            .sort({ createdAt: -1 })
-            .limit(6)
-            .lean();
-        }
-
-        return {
-          destination: JSON.parse(JSON.stringify(destination)),
-          destinationTours: JSON.parse(JSON.stringify(destinationTours)),
-          allCategories: JSON.parse(JSON.stringify(allCategories)),
-          reviews: JSON.parse(JSON.stringify(reviews)),
-          relatedDestinations: JSON.parse(JSON.stringify(relatedDestinationsRaw))
-        };
-      } catch (error) {
-        console.error(`[Destination] Error fetching page data for ${slug}:`, error);
-        return {
-          destination: null,
-          destinationTours: [],
-          allCategories: [],
-          reviews: [],
-          relatedDestinations: []
-        };
-      }
-    },
-    [`destination-page-${slug}-${tenantId}`],
-    {
-      revalidate: CACHE_DURATIONS.MEDIUM,
-      tags: [CACHE_TAGS.DESTINATIONS, CACHE_TAGS.TOURS, `destination-${slug}`],
+    const tenantFilter = tenantId !== 'default' 
+      ? { $or: [{ tenantId }, { tenantId: 'default' }] }
+      : { tenantId: 'default' };
+    
+    const destination = await DestinationModel.findOne({ 
+      slug, 
+      ...tenantFilter 
+    })
+      .sort({ tenantId: tenantId !== 'default' ? -1 : 1 })
+      .lean();
+  
+    if (!destination) {
+      return {
+        destination: null,
+        destinationTours: [],
+        allCategories: [],
+        reviews: [],
+        relatedDestinations: []
+      };
     }
-  )();
-};
+
+    // Run all queries in parallel
+    const [destinationTours, allCategories, relatedDestinationsRaw] = await Promise.all([
+      TourModel.find({
+        destination: destination._id,
+        isPublished: true,
+        tenantId
+      }).lean(),
+      
+      CategoryModel.find({ tenantId }).limit(20).lean(),
+      
+      DestinationModel.find({
+        _id: { $ne: destination._id },
+        tenantId,
+        $or: [{ country: destination.country }, { featured: true }]
+      }).limit(4).lean()
+    ]);
+
+    // Fetch reviews only if we have tours
+    let reviews: any[] = [];
+    if (destinationTours.length > 0) {
+      const tourIds = destinationTours.map(tour => tour._id);
+      reviews = await ReviewModel.find({
+        tour: { $in: tourIds },
+        verified: true
+      })
+        .sort({ createdAt: -1 })
+        .limit(6)
+        .lean();
+    }
+
+    return {
+      destination: JSON.parse(JSON.stringify(destination)),
+      destinationTours: JSON.parse(JSON.stringify(destinationTours)),
+      allCategories: JSON.parse(JSON.stringify(allCategories)),
+      reviews: JSON.parse(JSON.stringify(reviews)),
+      relatedDestinations: JSON.parse(JSON.stringify(relatedDestinationsRaw))
+    };
+  } catch (error) {
+    console.error(`[Destination] Error fetching page data for ${slug}:`, error);
+    return {
+      destination: null,
+      destinationTours: [],
+      allCategories: [],
+      reviews: [],
+      relatedDestinations: []
+    };
+  }
+}
 
 export default async function DestinationPage({ params }: { params: Promise<{ slug: string }> }) {
   try {

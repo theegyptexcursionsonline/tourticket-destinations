@@ -1,7 +1,6 @@
 // app/HomePageServer.tsx
-// Multi-tenant homepage with tenant-specific content filtering and ISR caching
+// Multi-tenant homepage with tenant-specific content filtering
 import React from 'react';
-import { unstable_cache } from 'next/cache';
 import dbConnect from '@/lib/dbConnect';
 import Destination from '@/lib/models/Destination';
 import Tour from '@/lib/models/Tour';
@@ -27,25 +26,21 @@ import DayTripsServer from '@/components/DayTripsServer';
 
 // Import tenant utilities
 import { getTenantFromRequest, getTenantConfig, buildTenantQuery } from '@/lib/tenant';
-import { CACHE_DURATIONS, CACHE_TAGS } from '@/lib/cache';
 
-// ISR - Static generation with 5-minute revalidation for fast initial loads
-// Pages are cached and served instantly, then revalidated in the background
-export const revalidate = 300; // Revalidate every 5 minutes
+// ISR - Static generation with 60-second revalidation
+export const revalidate = 60;
 
 /**
- * Get homepage data with ISR caching
- * Cached for 5 minutes per tenant for fast initial loads
+ * Get homepage data
+ * Uses ISR via page-level revalidate export
  */
-const getHomePageData = (tenantId: string) => {
-  return unstable_cache(
-    async () => {
-      try {
-        await dbConnect();
+async function getHomePageData(tenantId: string) {
+  try {
+    await dbConnect();
 
-        // Build base query with tenant filter
-        const tenantFilter = { tenantId };
-        const tenantFilterOrAll = tenantId ? { tenantId } : {};
+    // Build base query with tenant filter
+    const tenantFilter = { tenantId };
+    const tenantFilterOrAll = tenantId ? { tenantId } : {};
 
     // Fetch all data in parallel for speed
     const [
@@ -277,34 +272,27 @@ const getHomePageData = (tenantId: string) => {
       featuredInterests,
       categoryPages: JSON.parse(JSON.stringify(categoryPages)),
       headerDestinations: JSON.parse(JSON.stringify(headerDestinations)),
-        headerCategories: JSON.parse(JSON.stringify(headerCategories)),
-        heroSettings: heroSettings ? JSON.parse(JSON.stringify(heroSettings)) : null,
-        dayTrips: JSON.parse(JSON.stringify(dayTrips)),
-        tenantId
-      };
-    } catch (error) {
-      console.error('Error fetching homepage data:', error);
-      return {
-        destinations: [],
-        tours: [],
-        categories: [],
-        featuredInterests: [],
-        categoryPages: [],
-        headerDestinations: [],
-        headerCategories: [],
-        heroSettings: null,
-        dayTrips: [],
-        tenantId
-      };
-    }
-  },
-  [`homepage-${tenantId}`],
-  {
-    revalidate: CACHE_DURATIONS.MEDIUM,
-    tags: [CACHE_TAGS.TOURS, CACHE_TAGS.DESTINATIONS, CACHE_TAGS.CATEGORIES, `homepage-${tenantId}`],
+      headerCategories: JSON.parse(JSON.stringify(headerCategories)),
+      heroSettings: heroSettings ? JSON.parse(JSON.stringify(heroSettings)) : null,
+      dayTrips: JSON.parse(JSON.stringify(dayTrips)),
+      tenantId
+    };
+  } catch (error) {
+    console.error('Error fetching homepage data:', error);
+    return {
+      destinations: [],
+      tours: [],
+      categories: [],
+      featuredInterests: [],
+      categoryPages: [],
+      headerDestinations: [],
+      headerCategories: [],
+      heroSettings: null,
+      dayTrips: [],
+      tenantId
+    };
   }
-)();
-};
+}
 
 export default async function HomePageServer() {
   // Get current tenant from request
