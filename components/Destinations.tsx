@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Destination } from '@/types';
 import { Loader2 } from 'lucide-react';
+import { useTenant } from '@/contexts/TenantContext';
 
 interface DestinationWithTourCount extends Destination {
   tourCount: number;
@@ -15,6 +16,8 @@ export default function Destinations() {
   const [destinations, setDestinations] = useState<DestinationWithTourCount[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { tenant } = useTenant();
+  const isSpeedboat = tenant?.tenantId === 'hurghada-speedboat';
 
   useEffect(() => {
     const fetchDestinations = async () => {
@@ -23,7 +26,8 @@ export default function Destinations() {
         setError(null);
 
         // Fetch from new cached API endpoint
-        const response = await fetch('/api/destinations');
+        const tenantId = tenant?.tenantId || 'default';
+        const response = await fetch(`/api/destinations?tenantId=${encodeURIComponent(tenantId)}`);
         
         if (!response.ok) {
           throw new Error(`Failed to fetch destinations: ${response.statusText}`);
@@ -41,53 +45,92 @@ export default function Destinations() {
         setError(error instanceof Error ? error.message : 'Unknown error');
         
         // Fallback: show mock destinations
-        const mockDestinations: DestinationWithTourCount[] = [
-          {
-            _id: 'mock-1',
-            name: 'Cairo',
-            slug: 'cairo',
-            country: 'Egypt',
-            image: 'https://images.unsplash.com/photo-1539768942893-daf53e448371?w=400&h=400&fit=crop',
-            description: 'Ancient capital with pyramids and rich history',
-            tourCount: 15
-          },
-          {
-            _id: 'mock-2',
-            name: 'Luxor',
-            slug: 'luxor',
-            country: 'Egypt',
-            image: 'https://images.unsplash.com/photo-1572252009286-268acec5ca0a?w=400&h=400&fit=crop',
-            description: 'Valley of the Kings and ancient temples',
-            tourCount: 12
-          },
-          {
-            _id: 'mock-3',
-            name: 'Alexandria',
-            slug: 'alexandria',
-            country: 'Egypt',
-            image: 'https://images.unsplash.com/photo-1568322445389-f64ac2515020?w=400&h=400&fit=crop',
-            description: 'Mediterranean coastal city with ancient library',
-            tourCount: 8
-          },
-          {
-            _id: 'mock-4',
-            name: 'Aswan',
-            slug: 'aswan',
-            country: 'Egypt',
-            image: 'https://images.unsplash.com/photo-1553913861-c0fddf2619ee?w=400&h=400&fit=crop',
-            description: 'Nile river city with beautiful temples',
-            tourCount: 10
-          },
-          {
-            _id: 'mock-5',
-            name: 'Hurghada',
-            slug: 'hurghada',
-            country: 'Egypt',
-            image: 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=400&h=400&fit=crop',
-            description: 'Red Sea resort with amazing diving',
-            tourCount: 7
-          }
-        ];
+        const mockDestinations: DestinationWithTourCount[] = isSpeedboat
+          ? [
+              {
+                _id: 'mock-sb-1',
+                name: 'Hurghada Marina',
+                slug: 'hurghada-marina',
+                country: 'Egypt',
+                image: '/tenants/hurghada-speedboat/hero/hero-1.png',
+                description: 'Marina departures and private charters',
+                tourCount: 5,
+              },
+              {
+                _id: 'mock-sb-2',
+                name: 'Giftun Island',
+                slug: 'giftun-island',
+                country: 'Egypt',
+                image: '/tenants/hurghada-speedboat/hero/hero-2.png',
+                description: 'Island runs, snorkeling and beach time',
+                tourCount: 1,
+              },
+              {
+                _id: 'mock-sb-3',
+                name: 'Orange Bay',
+                slug: 'orange-bay',
+                country: 'Egypt',
+                image: '/tenants/hurghada-speedboat/hero/hero-3.png',
+                description: 'Turquoise lagoons and soft sand beaches',
+                tourCount: 1,
+              },
+              {
+                _id: 'mock-sb-4',
+                name: 'Dolphin House',
+                slug: 'dolphin-house',
+                country: 'Egypt',
+                image: '/tenants/hurghada-speedboat/hero/hero-1.png',
+                description: 'Swim with wild dolphins in their habitat',
+                tourCount: 1,
+              },
+            ]
+          : [
+              {
+                _id: 'mock-1',
+                name: 'Cairo',
+                slug: 'cairo',
+                country: 'Egypt',
+                image: 'https://images.unsplash.com/photo-1539768942893-daf53e448371?w=400&h=400&fit=crop',
+                description: 'Ancient capital with pyramids and rich history',
+                tourCount: 15,
+              },
+              {
+                _id: 'mock-2',
+                name: 'Luxor',
+                slug: 'luxor',
+                country: 'Egypt',
+                image: 'https://images.unsplash.com/photo-1572252009286-268acec5ca0a?w=400&h=400&fit=crop',
+                description: 'Valley of the Kings and ancient temples',
+                tourCount: 12,
+              },
+              {
+                _id: 'mock-3',
+                name: 'Alexandria',
+                slug: 'alexandria',
+                country: 'Egypt',
+                image: 'https://images.unsplash.com/photo-1568322445389-f64ac2515020?w=400&h=400&fit=crop',
+                description: 'Mediterranean coastal city with ancient library',
+                tourCount: 8,
+              },
+              {
+                _id: 'mock-4',
+                name: 'Aswan',
+                slug: 'aswan',
+                country: 'Egypt',
+                image: 'https://images.unsplash.com/photo-1553913861-c0fddf2619ee?w=400&h=400&fit=crop',
+                description: 'Nile river city with beautiful temples',
+                tourCount: 10,
+              },
+              {
+                _id: 'mock-5',
+                name: 'Hurghada',
+                slug: 'hurghada',
+                country: 'Egypt',
+                image: 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=400&h=400&fit=crop',
+                description: 'Red Sea resort with amazing diving',
+                tourCount: 7,
+              },
+            ];
         setDestinations(mockDestinations);
       } finally {
         setIsLoading(false);
@@ -95,7 +138,7 @@ export default function Destinations() {
     };
 
     fetchDestinations();
-  }, []);
+  }, [tenant?.tenantId, isSpeedboat]);
 
   if (isLoading) {
     return (
