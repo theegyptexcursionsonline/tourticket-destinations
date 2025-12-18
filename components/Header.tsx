@@ -1324,6 +1324,8 @@ export default function Header({
 
   const isScrolled = scrollY > 100;
   const isTransparent = !(isScrolled || isMegaMenuOpen || startSolid);
+  const { tenant } = useTenant();
+  const isSpeedboat = tenant?.tenantId === 'hurghada-speedboat';
 
   // handlers
   const handleMegaMenuToggle = useCallback(() => setMegaMenuOpen(prev => !prev), []);
@@ -1335,9 +1337,22 @@ export default function Header({
   const handleAuthModalClose = useCallback(() => setAuthModalOpen(false), []);
   const handleSearch = useCallback((term: string) => addSearchTerm(term), [addSearchTerm]);
 
-  const headerBg = isTransparent ? 'bg-transparent' : 'bg-white shadow-lg';
-  const headerText = isTransparent ? 'text-white' : 'text-gray-800';
-  const linkHoverColor = isTransparent ? 'hover:text-gray-200' : 'hover:text-red-500';
+  // Tenant-aware styling
+  const headerBg = isTransparent 
+    ? 'bg-transparent' 
+    : isSpeedboat 
+      ? 'bg-[#0A1628] shadow-lg shadow-cyan-500/10' 
+      : 'bg-white shadow-lg';
+  const headerText = isTransparent 
+    ? 'text-white' 
+    : isSpeedboat 
+      ? 'text-white' 
+      : 'text-gray-800';
+  const linkHoverColor = isTransparent 
+    ? 'hover:text-gray-200' 
+    : isSpeedboat 
+      ? 'hover:text-cyan-400' 
+      : 'hover:text-red-500';
 
   return (
     <>
@@ -1380,7 +1395,7 @@ export default function Header({
         >
           <Heart size={24} className={`${headerText} ${linkHoverColor} transition-colors`} />
           {wishlist?.length > 0 && (
-            <span className="absolute -top-1 -right-1 md:-top-2 md:-right-2 bg-red-500 text-white text-[10px] rounded-full h-5 w-5 flex items-center justify-center font-bold border-2 border-white shadow-lg">
+            <span className={`absolute -top-1 -right-1 md:-top-2 md:-right-2 ${isSpeedboat ? 'bg-cyan-500 text-[#0A1628]' : 'bg-red-500 text-white'} text-[10px] rounded-full h-5 w-5 flex items-center justify-center font-bold border-2 border-white shadow-lg`}>
               {wishlist.length}
             </span>
           )}
@@ -1393,14 +1408,14 @@ export default function Header({
         >
           <ShoppingCart size={24} className={`${headerText} ${linkHoverColor} transition-colors`} />
           {totalItems > 0 && (
-            <span className="absolute -top-1 -right-1 md:-top-2 md:-right-2 bg-red-500 text-white text-[10px] rounded-full h-5 w-5 flex items-center justify-center font-bold border-2 border-white shadow-lg">
+            <span className={`absolute -top-1 -right-1 md:-top-2 md:-right-2 ${isSpeedboat ? 'bg-cyan-500 text-[#0A1628]' : 'bg-red-500 text-white'} text-[10px] rounded-full h-5 w-5 flex items-center justify-center font-bold border-2 border-white shadow-lg`}>
               {totalItems}
             </span>
           )}
         </button>
 
         <button onClick={handleMobileSearchOpen} className={`${headerText} ${linkHoverColor} lg:hidden group p-2`} aria-label="Open search">
-          <Search size={22} className="group-hover:text-red-500" />
+          <Search size={22} className={isSpeedboat ? 'group-hover:text-cyan-400' : 'group-hover:text-red-500'} />
         </button>
 
         {user ? (
@@ -1408,7 +1423,7 @@ export default function Header({
         ) : (
           <div className="hidden md:flex items-center gap-3">
             <Link href="/login" className={`${headerText} ${linkHoverColor} font-semibold text-sm`}>{t('header.login')}</Link>
-            <Link href="/signup" className="bg-red-600 text-white px-4 py-2 rounded-full font-semibold text-sm hover:bg-red-700 transition-colors">{t('header.signup')}</Link>
+            <Link href="/signup" className={`${isSpeedboat ? 'bg-cyan-500 text-[#0A1628] hover:bg-cyan-400' : 'bg-red-600 text-white hover:bg-red-700'} px-4 py-2 rounded-full font-semibold text-sm transition-colors`}>{t('header.signup')}</Link>
           </div>
         )}
 

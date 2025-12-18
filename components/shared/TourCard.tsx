@@ -13,6 +13,7 @@ import { Tour } from '@/types';
 import { useSettings } from '@/hooks/useSettings';
 import { useWishlist } from '@/contexts/WishlistContext';
 import { useCart } from '@/hooks/useCart';
+import { useTenant } from '@/contexts/TenantContext';
 import toast from 'react-hot-toast';
 import { toDateOnlyString } from '@/utils/date';
 
@@ -35,8 +36,16 @@ const TourCard: React.FC<TourCardProps> = ({
   const { formatPrice, t } = useSettings();
   const { addToWishlist, removeFromWishlist, isWishlisted } = useWishlist();
   const { addToCart } = useCart();
+  const { tenant } = useTenant();
   const [isHovered, setIsHovered] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
+  
+  // Tenant-aware styling
+  const isSpeedboat = tenant?.tenantId === 'hurghada-speedboat';
+  const primaryColor = isSpeedboat ? 'text-cyan-500' : 'text-red-600';
+  const primaryBg = isSpeedboat ? 'bg-cyan-500' : 'bg-red-600';
+  const primaryHoverBg = isSpeedboat ? 'hover:bg-cyan-600' : 'hover:bg-red-700';
+  const hoverTextColor = isSpeedboat ? 'group-hover:text-cyan-500' : 'group-hover:text-red-600';
 
   const destination = typeof tour.destination === 'object' ? tour.destination : null;
 
@@ -156,9 +165,9 @@ const TourCard: React.FC<TourCardProps> = ({
               {tour.tags && tour.tags.slice(0, 1).map((tag, i) => (
                 <div key={i} className={`px-3 py-1 text-xs font-semibold rounded-full shadow-lg ${
                   tag.includes('%') || tag.toLowerCase().includes('deal') || tag.toLowerCase().includes('discount')
-                    ? 'bg-red-600 text-white'
+                    ? isSpeedboat ? 'bg-orange-500 text-white' : 'bg-red-600 text-white'
                     : tag.toLowerCase().includes('bestseller') || tag.toLowerCase().includes('popular')
-                    ? 'bg-green-600 text-white'
+                    ? isSpeedboat ? 'bg-cyan-500 text-[#0A1628]' : 'bg-green-600 text-white'
                     : 'bg-blue-600 text-white'
                 }`}>
                   {tag}
@@ -172,8 +181,8 @@ const TourCard: React.FC<TourCardProps> = ({
                 onClick={handleWishlistToggle}
                 className={`p-2 rounded-full backdrop-blur-sm transition-all duration-200 ${
                   tourIsWishlisted
-                    ? 'bg-red-600 text-white shadow-lg'
-                    : 'bg-white/90 text-slate-600 hover:bg-red-600 hover:text-white'
+                    ? `${primaryBg} ${isSpeedboat ? 'text-[#0A1628]' : 'text-white'} shadow-lg`
+                    : `bg-white/90 text-slate-600 ${primaryHoverBg} ${isSpeedboat ? 'hover:text-[#0A1628]' : 'hover:text-white'}`
                 }`}
                 aria-label={tourIsWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
               >
@@ -229,7 +238,7 @@ const TourCard: React.FC<TourCardProps> = ({
           {/* Content Section */}
           <div className="p-6">
             <div className="mb-4">
-              <h3 className="font-bold text-lg text-slate-900 group-hover:text-red-600 transition-colors duration-200 line-clamp-2 leading-tight mb-2">
+              <h3 className={`font-bold text-lg text-slate-900 ${hoverTextColor} transition-colors duration-200 line-clamp-2 leading-tight mb-2`}>
                 {tour.title}
               </h3>
               
@@ -237,7 +246,7 @@ const TourCard: React.FC<TourCardProps> = ({
               <div className="flex items-center gap-4 text-sm text-slate-500 mb-3">
                 {destination && (
                   <div className="flex items-center gap-1">
-                    <MapPin className="w-4 h-4 text-red-500" />
+                    <MapPin className={`w-4 h-4 ${primaryColor}`} />
                     <span>{destination.name}</span>
                   </div>
                 )}
@@ -312,7 +321,7 @@ const TourCard: React.FC<TourCardProps> = ({
               </div>
               
               <div className="opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
-                <ArrowRight className="w-5 h-5 text-red-600" />
+                <ArrowRight className={`w-5 h-5 ${primaryColor}`} />
               </div>
             </div>
           </div>

@@ -225,12 +225,12 @@ export const TenantProvider: React.FC<TenantProviderProps> = ({
         setTenantId(data.tenant.tenantId);
         
         // Apply CSS variables for branding
-        applyBrandingStyles(data.tenant.branding);
+        applyBrandingStyles(data.tenant.branding, data.tenant.tenantId);
       } else {
         // Use default config if tenant not found
         setTenant(DEFAULT_TENANT_CONFIG);
         setTenantId('default');
-        applyBrandingStyles(DEFAULT_TENANT_CONFIG.branding);
+        applyBrandingStyles(DEFAULT_TENANT_CONFIG.branding, 'default');
       }
     } catch (err) {
       console.error('Error fetching tenant config:', err);
@@ -239,18 +239,19 @@ export const TenantProvider: React.FC<TenantProviderProps> = ({
       // Fall back to default config
       setTenant(DEFAULT_TENANT_CONFIG);
       setTenantId('default');
-      applyBrandingStyles(DEFAULT_TENANT_CONFIG.branding);
+      applyBrandingStyles(DEFAULT_TENANT_CONFIG.branding, 'default');
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   // Apply branding styles as CSS variables
-  const applyBrandingStyles = (branding: TenantBranding) => {
+  const applyBrandingStyles = (branding: TenantBranding, currentTenantId?: string) => {
     if (typeof document === 'undefined') return;
     
     const root = document.documentElement;
     
+    // Core colors
     root.style.setProperty('--primary-color', branding.primaryColor);
     root.style.setProperty('--secondary-color', branding.secondaryColor);
     root.style.setProperty('--accent-color', branding.accentColor);
@@ -259,6 +260,52 @@ export const TenantProvider: React.FC<TenantProviderProps> = ({
     root.style.setProperty('--font-family', `${branding.fontFamily}, system-ui, sans-serif`);
     root.style.setProperty('--font-family-heading', `${branding.fontFamilyHeading || branding.fontFamily}, system-ui, sans-serif`);
     root.style.setProperty('--border-radius', branding.borderRadius || '8px');
+    
+    // Tenant-specific extended theming
+    if (currentTenantId === 'hurghada-speedboat') {
+      // Speedboat Ocean Theme
+      root.style.setProperty('--primary-color', '#00D4FF');
+      root.style.setProperty('--primary-hover', '#00B8E6');
+      root.style.setProperty('--primary-light', '#E0F7FF');
+      root.style.setProperty('--secondary-color', '#0A1628');
+      root.style.setProperty('--accent-color', '#FF6B35');
+      root.style.setProperty('--accent-hover', '#E55A2B');
+      root.style.setProperty('--success-color', '#10B981');
+      root.style.setProperty('--warning-color', '#F59E0B');
+      root.style.setProperty('--gradient-primary', 'linear-gradient(135deg, #00D4FF 0%, #0891B2 100%)');
+      root.style.setProperty('--gradient-secondary', 'linear-gradient(135deg, #0A1628 0%, #1E3A5F 100%)');
+      root.style.setProperty('--gradient-hero', 'linear-gradient(180deg, rgba(10,22,40,0.9) 0%, rgba(10,22,40,0.4) 50%, rgba(0,212,255,0.2) 100%)');
+      root.style.setProperty('--shadow-primary', '0 4px 14px 0 rgba(0, 212, 255, 0.25)');
+      root.style.setProperty('--shadow-card', '0 4px 20px rgba(10, 22, 40, 0.1)');
+      root.style.setProperty('--border-color', '#E0F7FF');
+      root.style.setProperty('--surface-color', '#F0F9FF');
+      root.style.setProperty('--header-bg', 'rgba(10, 22, 40, 0.95)');
+      root.style.setProperty('--footer-bg', '#0A1628');
+      root.style.setProperty('--badge-bg', '#00D4FF');
+      root.style.setProperty('--badge-text', '#0A1628');
+      root.style.setProperty('--rating-color', '#FFD700');
+      root.style.setProperty('--border-radius', '12px');
+      root.classList.add('theme-speedboat');
+      root.classList.remove('theme-default');
+    } else {
+      // Default Egypt Theme
+      root.style.setProperty('--primary-hover', '#D32F3F');
+      root.style.setProperty('--primary-light', '#FEE2E2');
+      root.style.setProperty('--gradient-primary', 'linear-gradient(135deg, #E63946 0%, #D32F3F 100%)');
+      root.style.setProperty('--gradient-secondary', 'linear-gradient(135deg, #1D3557 0%, #457B9D 100%)');
+      root.style.setProperty('--gradient-hero', 'linear-gradient(180deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 100%)');
+      root.style.setProperty('--shadow-primary', '0 4px 14px 0 rgba(230, 57, 70, 0.25)');
+      root.style.setProperty('--shadow-card', '0 4px 20px rgba(0, 0, 0, 0.1)');
+      root.style.setProperty('--border-color', '#E5E7EB');
+      root.style.setProperty('--surface-color', '#F9FAFB');
+      root.style.setProperty('--header-bg', 'rgba(255, 255, 255, 0.95)');
+      root.style.setProperty('--footer-bg', '#1F2937');
+      root.style.setProperty('--badge-bg', '#E63946');
+      root.style.setProperty('--badge-text', '#FFFFFF');
+      root.style.setProperty('--rating-color', '#FBBF24');
+      root.classList.add('theme-default');
+      root.classList.remove('theme-speedboat');
+    }
     
     // Update favicon
     if (branding.favicon) {
@@ -273,7 +320,7 @@ export const TenantProvider: React.FC<TenantProviderProps> = ({
   useEffect(() => {
     if (initialTenant) {
       // If initial tenant provided, just apply styles
-      applyBrandingStyles(initialTenant.branding);
+      applyBrandingStyles(initialTenant.branding, initialTenant.tenantId);
       return;
     }
     

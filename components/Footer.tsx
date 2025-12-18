@@ -247,13 +247,15 @@ export default function Footer() {
     }
   };
 
+  const isSpeedboat = tenant?.tenantId === 'hurghada-speedboat';
+  
   return (
-    <footer className="bg-white text-slate-700 pb-20 md:pb-24">
+    <footer className={`${isSpeedboat ? 'bg-[#0A1628] text-gray-300' : 'bg-white text-slate-700'} pb-20 md:pb-24`}>
       <Toaster position="top-center" />
       <div className="container mx-auto px-4 py-12">
 
         {/* Main Footer Content */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-8 lg:gap-6 mb-6 items-start bg-slate-50 border border-slate-100 rounded-3xl p-6 sm:p-8 lg:p-10 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.2)]">
+        <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-8 lg:gap-6 mb-6 items-start ${isSpeedboat ? 'bg-[#0D1F35] border-cyan-900/30' : 'bg-slate-50 border-slate-100'} border rounded-3xl p-6 sm:p-8 lg:p-10 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.2)]`}>
 
           {/* Column 1: Brand Info, Trust Badge & Payment Methods */}
           <div className="space-y-6 lg:col-span-2">
@@ -382,23 +384,27 @@ export default function Footer() {
             </div>
 
             {/* Newsletter */}
-            <div className="bg-white rounded-2xl border border-slate-100 p-5">
+            <div className={`${isSpeedboat ? 'bg-[#0A1628] border-cyan-900/30' : 'bg-white border-slate-100'} rounded-2xl border p-5`}>
               {!isSubscribed ? (
                 <>
-                  <h4 className="font-semibold text-base mb-2 text-slate-900">Don't miss our travel updates</h4>
-                  <p className="text-xs text-slate-500 mb-3">Get curated tips, exclusive offers, and destination guides straight to your inbox.</p>
+                  <h4 className={`font-semibold text-base mb-2 ${isSpeedboat ? 'text-white' : 'text-slate-900'}`}>
+                    {isSpeedboat ? 'Get Speedboat Deals' : 'Don\'t miss our travel updates'}
+                  </h4>
+                  <p className={`text-xs mb-3 ${isSpeedboat ? 'text-gray-400' : 'text-slate-500'}`}>
+                    {isSpeedboat ? 'Exclusive offers and adventure updates straight to your inbox.' : 'Get curated tips, exclusive offers, and destination guides straight to your inbox.'}
+                  </p>
                   <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                     <input 
                       type="email" 
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="Your email address" 
-                      className="w-full sm:flex-1 h-11 rounded-xl border border-slate-200 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-red-600 bg-white shadow-sm" 
+                      className={`w-full sm:flex-1 h-11 rounded-xl border px-4 text-sm focus:outline-none focus:ring-2 shadow-sm ${isSpeedboat ? 'bg-[#0D1F35] border-cyan-900/30 text-white placeholder:text-gray-500 focus:ring-cyan-500' : 'bg-white border-slate-200 focus:ring-red-600'}`}
                       disabled={isLoading}
                     />
                     <button 
                       type="submit" 
-                      className="h-11 w-full sm:w-auto px-4 sm:px-6 rounded-xl text-white bg-gradient-to-r from-red-600 to-slate-900 hover:from-red-700 hover:to-slate-950 transition-colors text-sm font-semibold flex items-center justify-center disabled:bg-slate-500"
+                      className={`h-11 w-full sm:w-auto px-4 sm:px-6 rounded-xl text-sm font-semibold flex items-center justify-center disabled:bg-slate-500 transition-colors ${isSpeedboat ? 'bg-gradient-to-r from-cyan-500 to-cyan-600 text-[#0A1628] hover:from-cyan-400 hover:to-cyan-500' : 'bg-gradient-to-r from-red-600 to-slate-900 text-white hover:from-red-700 hover:to-slate-950'}`}
                       disabled={isLoading}
                     >
                       {isLoading ? <Loader2 className="animate-spin" /> : 'SUBSCRIBE'}
@@ -407,16 +413,16 @@ export default function Footer() {
                 </>
               ) : (
                 <div className="text-center py-4">
-                  <h4 className="font-bold text-sm mb-2 text-green-600">Thank you!</h4>
-                  <p className="text-sm text-slate-600">You've successfully subscribed to our newsletter.</p>
+                  <h4 className={`font-bold text-sm mb-2 ${isSpeedboat ? 'text-cyan-400' : 'text-green-600'}`}>Thank you!</h4>
+                  <p className={`text-sm ${isSpeedboat ? 'text-gray-400' : 'text-slate-600'}`}>You've successfully subscribed to our newsletter.</p>
                 </div>
               )}
             </div>
             
             {/* Social Media */}
-            <div className="bg-white rounded-2xl border border-slate-100 p-5">
-              <h4 className="font-semibold text-base mb-2 text-slate-900">Follow us on social media</h4>
-              <p className="text-xs text-slate-500 mb-3">Join our community for live updates, reels, and travel inspiration.</p>
+            <div className={`${isSpeedboat ? 'bg-[#0A1628] border-cyan-900/30' : 'bg-white border-slate-100'} rounded-2xl border p-5`}>
+              <h4 className={`font-semibold text-base mb-2 ${isSpeedboat ? 'text-white' : 'text-slate-900'}`}>Follow us on social media</h4>
+              <p className={`text-xs mb-3 ${isSpeedboat ? 'text-gray-400' : 'text-slate-500'}`}>Join our community for live updates, reels, and travel inspiration.</p>
               <div className="flex gap-3">
                 {finalSocialLinks.map(({ icon: Icon, href }, i) => (
                   <a 
@@ -424,7 +430,7 @@ export default function Footer() {
                     href={href} 
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-10 h-10 rounded-full bg-slate-900 text-white flex items-center justify-center hover:bg-red-600 transition-colors border border-slate-200" 
+                    className={`w-10 h-10 rounded-full ${isSpeedboat ? 'bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500 hover:text-[#0A1628] border-cyan-500/30' : 'bg-slate-900 text-white hover:bg-red-600 border-slate-200'} flex items-center justify-center transition-colors border`} 
                     aria-label={`Follow us on social media`}
                   >
                     <Icon size={18} />
