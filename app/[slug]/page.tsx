@@ -57,6 +57,8 @@ async function getTourBySlug(slug: string, tenantId: string): Promise<{ tour: IT
  */
 async function getRelatedTours(categoryIds: string | string[] | any, currentTourId: string, tenantId: string): Promise<ITour[]> {
   try {
+    await dbConnect(); // Ensure DB connection
+    
     // Extract category IDs
     let categoryIdArray: string[] = [];
     if (Array.isArray(categoryIds)) {
@@ -133,28 +135,33 @@ export async function generateStaticParams() {
 }
 
 export default async function TourDetailPage({ params }: PageProps) {
-  const { slug } = await params;
-  const tenantId = await getTenantFromRequest();
-  const result = await getTourBySlug(slug, tenantId);
+  try {
+    const { slug } = await params;
+    const tenantId = await getTenantFromRequest();
+    const result = await getTourBySlug(slug, tenantId);
 
-  if (!result) {
+    if (!result) {
+      notFound();
+    }
+
+    const { tour, reviews } = result;
+    const relatedTours = await getRelatedTours(tour.category, (tour._id as any)?.toString(), tenantId);
+
+    return (
+      <>
+        <Header2 startSolid />
+        <TourDetailClientPage
+          tour={tour}
+          relatedTours={relatedTours}
+          initialReviews={reviews}
+        />
+        <Footer />
+      </>
+    );
+  } catch (error) {
+    console.error('[Tour] Page error:', error);
     notFound();
   }
-
-  const { tour, reviews } = result;
-  const relatedTours = await getRelatedTours(tour.category, (tour._id as any)?.toString(), tenantId);
-
-  return (
-    <>
-      <Header2 startSolid />
-      <TourDetailClientPage
-        tour={tour}
-        relatedTours={relatedTours}
-        initialReviews={reviews}
-      />
-      <Footer />
-    </>
-  );
 }
 
 // Enable ISR with 60 second revalidation for instant page loads
