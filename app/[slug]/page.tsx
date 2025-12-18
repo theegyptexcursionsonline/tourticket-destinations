@@ -135,18 +135,29 @@ export async function generateStaticParams() {
 }
 
 export default async function TourDetailPage({ params }: PageProps) {
+  let slug = '';
+  let tenantId = '';
+  let step = 'init';
+  
   try {
-    const { slug } = await params;
-    const tenantId = await getTenantFromRequest();
+    step = 'params';
+    slug = (await params).slug;
+    
+    step = 'tenant';
+    tenantId = await getTenantFromRequest();
+    
+    step = 'fetch';
     const result = await getTourBySlug(slug, tenantId);
 
     if (!result) {
       notFound();
     }
 
+    step = 'related';
     const { tour, reviews } = result;
     const relatedTours = await getRelatedTours(tour.category, (tour._id as any)?.toString(), tenantId);
 
+    step = 'render';
     return (
       <>
         <Header2 startSolid />
@@ -158,9 +169,20 @@ export default async function TourDetailPage({ params }: PageProps) {
         <Footer />
       </>
     );
-  } catch (error) {
-    console.error('[Tour] Page error:', error);
-    notFound();
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error(`[Tour] Error at step '${step}' for slug '${slug}' tenant '${tenantId}':`, err.message);
+    console.error('[Tour] Stack:', err.stack);
+    // Return a simple error page instead of notFound to see if it renders
+    return (
+      <div style={{ padding: 20 }}>
+        <h1>Tour Error</h1>
+        <p>Step: {step}</p>
+        <p>Slug: {slug}</p>
+        <p>Tenant: {tenantId}</p>
+        <p>Error: {err.message}</p>
+      </div>
+    );
   }
 }
 
