@@ -41,5 +41,6 @@ export default async function TourDetailPage({ params }: PageProps) {
   }
 }
 
-export const revalidate = 60;
+// Force dynamic rendering, no caching
+export const dynamic = 'force-dynamic';
 export const dynamicParams = true;
