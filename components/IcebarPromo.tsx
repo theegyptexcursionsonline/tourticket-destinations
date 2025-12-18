@@ -2,32 +2,62 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import { useTenant } from '@/contexts/TenantContext';
 
 /**
  * EgyptPromo - Ultra Premium (parallax removed)
  * - Responsive <picture> with LQIP
  * - Cinematic overlay + subtle grain (reduced darkness)
  * - Entrance animations + accessible focus states
- *
- * NOTE: parallax and the heavy dark gradient were removed as requested.
+ * - Tenant-aware content
  */
 
+// Tenant-specific promo content
+const TENANT_PROMO: Record<string, {
+  image: string;
+  heading: string;
+  subheading: string;
+  description: string;
+  primaryHref: string;
+  primaryText: string;
+}> = {
+  'hurghada-speedboat': {
+    image: 'https://images.unsplash.com/photo-1559827291-72ee739d0d9a?w=1200',
+    heading: 'Island Paradise',
+    subheading: 'Crystal waters, coral reefs & endless adventure',
+    description: 'Escape to stunning Red Sea islands — snorkel vibrant reefs, swim with dolphins, and discover hidden beaches aboard our modern speedboats.',
+    primaryHref: '/tours',
+    primaryText: 'View All Tours',
+  },
+  'default': {
+    image: '/pyramid2.jpg',
+    heading: 'Discover Egypt',
+    subheading: 'Timeless wonders, Nile sunsets & ancient stories',
+    description: 'Unveil the wonders of the Pharaohs — sail the Nile, explore the pyramids, and feel history come alive with curated luxury experiences.',
+    primaryHref: '/egypt',
+    primaryText: 'Explore Egypt',
+  },
+};
+
 export default function EgyptPromo() {
+  const { tenant } = useTenant();
+  const tenantId = tenant?.tenantId || 'default';
+  const content = TENANT_PROMO[tenantId] || TENANT_PROMO['default'];
+
   // -----------------------
   // 🔧 CONTROL AREA - update image paths, text, links here
   // Put responsive images under /public/
   // -----------------------
-  const imgSmall = '/pyramid2.jpg';   // for <= 640
-  const imgMedium = '/pyramid2.jpg';  // for <= 1024
-  const imgLarge = '/pyramid2.jpg';   // for >= 1024
-  const imgLQ = '/pyramid2.jpg';      // tiny blurred placeholder (very small file)
+  const imgSmall = content.image;   // for <= 640
+  const imgMedium = content.image;  // for <= 1024
+  const imgLarge = content.image;   // for >= 1024
+  const imgLQ = content.image;      // tiny blurred placeholder (very small file)
 
-  const heading = 'Discover Egypt';
-  const subheading = 'Timeless wonders, Nile sunsets & ancient stories';
-  const description =
-    'Unveil the wonders of the Pharaohs — sail the Nile, explore the pyramids, and feel history come alive with curated luxury experiences.';
-  const primaryHref = '/egypt';
-  const primaryText = 'Explore Egypt';
+  const heading = content.heading;
+  const subheading = content.subheading;
+  const description = content.description;
+  const primaryHref = content.primaryHref;
+  const primaryText = content.primaryText;
 
   // -----------------------
   const bgRef = useRef<HTMLDivElement | null>(null);
