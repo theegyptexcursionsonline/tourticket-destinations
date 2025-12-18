@@ -4,9 +4,9 @@ import { Metadata } from 'next';
 import dbConnect from '@/lib/dbConnect';
 import Tour from '@/lib/models/Tour';
 import Review from '@/lib/models/Review';
-import Header2 from '@/components/Header2';
-import Footer from '@/components/Footer';
-import TourDetailClientPage from './TourDetailClientPage';
+// import Header2 from '@/components/Header2';
+// import Footer from '@/components/Footer';
+// import TourDetailClientPage from './TourDetailClientPage';
 import { ITour } from '@/lib/models/Tour';
 import { getTenantFromRequest } from '@/lib/tenant';
 
@@ -158,16 +158,16 @@ export default async function TourDetailPage({ params }: PageProps) {
     const relatedTours = await getRelatedTours(tour.category, (tour._id as any)?.toString(), tenantId);
 
     step = 'render';
+    // MINIMAL RENDER FOR DEBUGGING
     return (
-      <>
-        <Header2 startSolid />
-        <TourDetailClientPage
-          tour={tour}
-          relatedTours={relatedTours}
-          initialReviews={reviews}
-        />
-        <Footer />
-      </>
+      <div style={{ padding: '40px', fontFamily: 'system-ui' }}>
+        <h1>{tour.title}</h1>
+        <p>Slug: {tour.slug}</p>
+        <p>Tenant: {tenantId}</p>
+        <p>Has Reviews: {reviews.length}</p>
+        <p>Related Tours: {relatedTours.length}</p>
+        <a href="/">Back to Home</a>
+      </div>
     );
   } catch (error: unknown) {
     const err = error as Error;
