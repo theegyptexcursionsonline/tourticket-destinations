@@ -145,10 +145,12 @@ export async function getTenantDomainFromRequest(): Promise<string> {
 /**
  * Get full tenant configuration from database
  * Includes all settings, branding, SEO, etc.
+ * Uses tenant-specific database if configured
  */
 export async function getTenantConfig(tenantId: string): Promise<ITenant | null> {
   try {
-    await dbConnect();
+    // Connect to tenant-specific database if configured
+    await dbConnect(tenantId);
     
     const tenant = await Tenant.findOne({ tenantId, isActive: true })
       .populate('heroSettings')
@@ -164,9 +166,12 @@ export async function getTenantConfig(tenantId: string): Promise<ITenant | null>
 
 /**
  * Get tenant configuration by domain
+ * Note: This function checks the main database since we need to look up
+ * which tenant/database to use based on domain
  */
 export async function getTenantByDomain(domain: string): Promise<ITenant | null> {
   try {
+    // First connect to main database to look up tenant mapping
     await dbConnect();
     
     // Normalize domain
@@ -329,10 +334,12 @@ export function buildTenantQuery(
 
 /**
  * Check if a tenant exists and is active
+ * Uses tenant-specific database if configured
  */
 export async function isTenantActive(tenantId: string): Promise<boolean> {
   try {
-    await dbConnect();
+    // Connect to tenant-specific database if configured
+    await dbConnect(tenantId);
     
     const tenant = await Tenant.findOne({ tenantId, isActive: true })
       .select('_id')
@@ -412,6 +419,7 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 /**
  * Get tenant config with caching
+ * Uses tenant-specific database if configured
  */
 export async function getTenantConfigCached(tenantId: string): Promise<ITenant | null> {
   const cached = tenantCache.get(tenantId);
@@ -420,6 +428,7 @@ export async function getTenantConfigCached(tenantId: string): Promise<ITenant |
     return cached.config;
   }
   
+  // getTenantConfig already uses tenant-specific database
   const config = await getTenantConfig(tenantId);
   
   if (config) {
