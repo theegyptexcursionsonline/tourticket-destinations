@@ -1324,7 +1324,6 @@ export default function Header({
 
   const isScrolled = scrollY > 100;
   const isTransparent = !(isScrolled || isMegaMenuOpen || startSolid);
-  const { tenant } = useTenant();
   const isSpeedboat = tenant?.tenantId === 'hurghada-speedboat';
 
   // handlers
