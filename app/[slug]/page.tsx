@@ -4,7 +4,7 @@ import { Metadata } from 'next';
 import dbConnect from '@/lib/dbConnect';
 import Tour from '@/lib/models/Tour';
 import Review from '@/lib/models/Review';
-import Header2 from '@/components/Header2';
+import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import TourDetailClientPage from './TourDetailClientPage';
 import { ITour } from '@/lib/models/Tour';
@@ -154,7 +154,7 @@ export default async function TourDetailPage({ params }: PageProps) {
 
     return (
       <>
-        <Header2 startSolid />
+        <Header />
         <TourDetailClientPage
           tour={tour}
           relatedTours={relatedTours}
