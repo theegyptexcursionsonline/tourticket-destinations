@@ -8,8 +8,8 @@ import ReviewModel from '@/lib/models/Review';
 import DestinationPageClient from './DestinationPageClient';
 import { getTenantFromRequest } from '@/lib/tenant';
 
-// Enable ISR with 60 second revalidation
-export const revalidate = 60;
+// Force dynamic rendering to fix 500 errors
+export const dynamic = 'force-dynamic';
 export const dynamicParams = true;
 
 // Skip static generation at build time
