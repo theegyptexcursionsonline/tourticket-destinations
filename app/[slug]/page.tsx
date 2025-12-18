@@ -15,52 +15,33 @@ interface PageProps {
 }
 
 /**
- * Get tour by slug with multi-tenant support
- * First tries to find tour for the current tenant, then falls back to global search
+ * Get tour by slug with multi-tenant support (OPTIMIZED)
+ * Uses single query with $or for tenant fallback
  */
 async function getTourBySlug(slug: string, tenantId: string): Promise<{ tour: ITour; reviews: any[] } | null> {
   try {
     await dbConnect();
     
-    console.log(`[Tour] Looking for tour with slug: ${slug}, tenantId: ${tenantId}`);
+    // OPTIMIZED: Single query with $or for tenant fallback instead of 3 sequential queries
+    const tenantFilter = tenantId !== 'default' 
+      ? { $or: [{ tenantId }, { tenantId: 'default' }] }
+      : {};
     
-    // First, try to find tour for this specific tenant
-    let tour = await Tour.findOne({ slug, tenantId })
+    const tour = await Tour.findOne({ slug, ...tenantFilter })
       .populate('destination', 'name slug')
       .populate('category', 'name slug')
+      .sort({ tenantId: tenantId !== 'default' ? -1 : 1 }) // Prefer tenant-specific
       .lean();
 
-    // If not found and tenant is not default, try finding in default tenant or globally
-    // This allows shared tours to work across tenants
-    if (!tour && tenantId !== 'default') {
-      console.log(`[Tour] Not found for tenant ${tenantId}, trying default...`);
-      // Try default tenant first
-      tour = await Tour.findOne({ slug, tenantId: 'default' })
-        .populate('destination', 'name slug')
-        .populate('category', 'name slug')
-        .lean();
-      
-      // If still not found, fall back to global search (backward compatibility)
-      if (!tour) {
-        console.log(`[Tour] Not found in default, trying global search...`);
-        tour = await Tour.findOne({ slug })
-          .populate('destination', 'name slug')
-          .populate('category', 'name slug')
-          .lean();
-      }
-    }
-
     if (!tour) {
-      console.log(`[Tour] Tour not found: ${slug}`);
       return null;
     }
 
-    console.log(`[Tour] Found tour: ${tour.title} (tenantId: ${(tour as any).tenantId})`);
-
-    // Fetch reviews separately
+    // Fetch reviews in parallel with returning
     const reviews = await Review.find({ tour: tour._id })
       .populate('user', 'firstName lastName picture')
       .sort({ createdAt: -1 })
+      .limit(20) // Limit reviews for performance
       .lean();
 
     return {
@@ -74,14 +55,12 @@ async function getTourBySlug(slug: string, tenantId: string): Promise<{ tour: IT
 }
 
 /**
- * Get related tours with multi-tenant support
- * Filters by tenant to show only relevant tours
+ * Get related tours with multi-tenant support (OPTIMIZED)
+ * Uses single query with tenant filter
  */
 async function getRelatedTours(categoryIds: string | string[] | any, currentTourId: string, tenantId: string): Promise<ITour[]> {
   try {
-    await dbConnect();
-
-    // Extract category IDs from populated categories or use the IDs directly
+    // Extract category IDs
     let categoryIdArray: string[] = [];
     if (Array.isArray(categoryIds)) {
       categoryIdArray = categoryIds.map(cat => typeof cat === 'object' ? cat._id?.toString() : cat?.toString()).filter(Boolean);
@@ -94,33 +73,17 @@ async function getRelatedTours(categoryIds: string | string[] | any, currentTour
       return [];
     }
 
-    // Build query with tenant filter
-    const query: Record<string, unknown> = {
+    // OPTIMIZED: Single query with tenant filter
+    const relatedTours = await Tour.find({
       category: { $in: categoryIdArray },
       _id: { $ne: currentTourId },
-      isPublished: true
-    };
-    
-    // Filter by tenant if not default
-    if (tenantId && tenantId !== 'default') {
-      query.tenantId = tenantId;
-    }
-
-    let relatedTours = await Tour.find(query)
+      isPublished: true,
+      tenantId
+    })
+      .select('title slug image discountPrice originalPrice duration destination category rating reviewCount')
       .populate('destination', 'name')
-      .populate('category', 'name')
       .limit(3)
       .lean();
-
-    // If no related tours found for tenant, try without tenant filter
-    if (relatedTours.length === 0 && tenantId !== 'default') {
-      delete query.tenantId;
-      relatedTours = await Tour.find(query)
-        .populate('destination', 'name')
-        .populate('category', 'name')
-        .limit(3)
-        .lean();
-    }
 
     return JSON.parse(JSON.stringify(relatedTours));
   } catch (error) {
@@ -130,30 +93,43 @@ async function getRelatedTours(categoryIds: string | string[] | any, currentTour
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { slug } = await params;
-  const tenantId = await getTenantFromRequest();
-  const result = await getTourBySlug(slug, tenantId);
+  try {
+    const { slug } = await params;
+    const tenantId = await getTenantFromRequest();
+    
+    await dbConnect();
+    
+    // OPTIMIZED: Lightweight query just for metadata
+    const tenantFilter = tenantId !== 'default' 
+      ? { $or: [{ tenantId }, { tenantId: 'default' }] }
+      : {};
+    
+    const tour = await Tour.findOne({ slug, ...tenantFilter })
+      .select('title description metaTitle metaDescription keywords image destination')
+      .populate('destination', 'name')
+      .sort({ tenantId: tenantId !== 'default' ? -1 : 1 })
+      .lean();
 
-  if (!result) {
+    if (!tour) {
+      return { title: 'Tour Not Found' };
+    }
+
+    const destination = typeof tour.destination === 'object' ? (tour.destination as any) : null;
+
     return {
-      title: 'Tour Not Found',
+      title: tour.metaTitle || `${tour.title} | ${destination?.name || 'Travel'} Tours`,
+      description: tour.metaDescription || tour.description?.substring(0, 160),
+      openGraph: {
+        title: tour.title,
+        description: tour.description?.substring(0, 160),
+        images: tour.image ? [{ url: tour.image, alt: tour.title }] : [],
+        type: 'website',
+      },
     };
+  } catch (error) {
+    console.error('Error generating tour metadata:', error);
+    return { title: 'Tour' };
   }
-
-  const { tour } = result;
-  const destination = typeof tour.destination === 'object' ? (tour.destination as any) : null;
-
-  return {
-    title: tour.metaTitle || `${tour.title} | ${destination?.name || 'Travel'} Tours`,
-    description: tour.metaDescription || tour.description,
-    keywords: tour.keywords || [tour.title, destination?.name].filter(Boolean),
-    openGraph: {
-      title: tour.title,
-      description: tour.description,
-      images: tour.image ? [{ url: tour.image, alt: tour.title }] : [],
-      type: 'website',
-    },
-  };
 }
 
 // Skip static generation at build time to avoid MongoDB connection issues on Netlify

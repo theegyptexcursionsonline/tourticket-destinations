@@ -6,7 +6,7 @@ import TourModel from '@/lib/models/Tour';
 import CategoryModel from '@/lib/models/Category';
 import ReviewModel from '@/lib/models/Review';
 import DestinationPageClient from './DestinationPageClient';
-import { getTenantFromRequest, getTenantConfig, buildTenantQuery } from '@/lib/tenant';
+import { getTenantFromRequest } from '@/lib/tenant';
 
 // Enable ISR with 60 second revalidation for fast page loads
 export const revalidate = 60;
@@ -18,32 +18,23 @@ export async function generateStaticParams() {
   return [];
 }
 
-// Generate metadata for SEO (tenant-aware)
+// Generate metadata for SEO (tenant-aware) - OPTIMIZED
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   try {
     const { slug } = await params;
     const tenantId = await getTenantFromRequest();
-    const tenantConfig = await getTenantConfig(tenantId);
-    const siteName = tenantConfig?.name || 'Egypt Excursions Online';
     
     await dbConnect();
     
-    // Find destination by slug with tenant fallback
-    let destination = await DestinationModel.findOne({ slug, tenantId })
+    // OPTIMIZED: Single query with $or for tenant fallback
+    const tenantFilter = tenantId !== 'default' 
+      ? { $or: [{ tenantId }, { tenantId: 'default' }] }
+      : { tenantId: 'default' };
+    
+    const destination = await DestinationModel.findOne({ slug, ...tenantFilter })
       .select('name description image country')
+      .sort({ tenantId: tenantId !== 'default' ? -1 : 1 })
       .lean();
-    
-    if (!destination && tenantId !== 'default') {
-      destination = await DestinationModel.findOne({ slug, tenantId: 'default' })
-        .select('name description image country')
-        .lean();
-    }
-    
-    if (!destination) {
-      destination = await DestinationModel.findOne({ slug })
-        .select('name description image country')
-        .lean();
-    }
 
     if (!destination) {
       return {
@@ -53,7 +44,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     }
 
     return {
-      title: `${destination.name}, ${destination.country} - Tours & Activities | ${siteName}`,
+      title: `${destination.name}, ${destination.country} - Tours & Activities`,
       description: destination.description?.substring(0, 160) || `Discover the best tours and activities in ${destination.name}`,
       openGraph: {
         title: `${destination.name}, ${destination.country}`,
@@ -65,8 +56,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   } catch (error) {
     console.error('Error generating metadata:', error);
     return {
-      title: 'Destination - Egypt Excursions Online',
-      description: 'Explore amazing destinations in Egypt',
+      title: 'Destination',
+      description: 'Explore amazing destinations',
     };
   }
 }
@@ -75,115 +66,67 @@ async function getPageData(slug: string, tenantId: string) {
   try {
     await dbConnect();
 
-    console.log(`[Destination] Looking for: ${slug}, tenantId: ${tenantId}`);
-
-    // Find destination by slug, first try tenant-specific, then fallback to default/global
-    let destination = await DestinationModel.findOne({ slug, tenantId }).lean();
-  
-  // Fallback: try default tenant
-  if (!destination && tenantId !== 'default') {
-    destination = await DestinationModel.findOne({ slug, tenantId: 'default' }).lean();
-  }
-  
-  // Final fallback: any destination with this slug (backward compatibility)
-  if (!destination) {
-    destination = await DestinationModel.findOne({ slug }).lean();
-  }
-  
-  if (!destination) {
-    return {
-      destination: null,
-      destinationTours: [],
-      allCategories: [],
-      reviews: [],
-      relatedDestinations: []
-    };
-  }
-
-  // Fetch published tours for this destination (filtered by tenant)
-  const tourQuery = buildTenantQuery({
-    destination: destination._id,
-    isPublished: true
-  }, tenantId);
-  
-  const destinationTours = await TourModel.find(tourQuery).lean();
-
-  // Fetch categories (filtered by tenant)
-  const categoryQuery = buildTenantQuery({}, tenantId);
-  const allCategories = await CategoryModel.find(categoryQuery).lean();
-
-  // Fetch reviews for tours in this destination
-  const tourIds = destinationTours.map(tour => tour._id);
-  const reviews = await ReviewModel.find({
-    tour: { $in: tourIds },
-    verified: true
-  })
-    .sort({ createdAt: -1 })
-    .limit(6)
-    .lean();
-
-  // Fetch related destinations (same country or similar, with tours for this tenant)
-  // Try tenant-specific destinations first, then fall back to default tenant
-  let relatedDestinationsRaw = await DestinationModel.find({
-    _id: { $ne: destination._id },
-    tenantId: tenantId,
-    $or: [
-      { country: destination.country },
-      { featured: true }
-    ]
-  })
-    .limit(8)
-    .lean();
-  
-  // If no tenant-specific destinations found, try default tenant
-  if (relatedDestinationsRaw.length === 0 && tenantId !== 'default') {
-    relatedDestinationsRaw = await DestinationModel.find({
-      _id: { $ne: destination._id },
-      tenantId: 'default',
-      $or: [
-        { country: destination.country },
-        { featured: true }
-      ]
+    // OPTIMIZED: Single query with $or for tenant fallback instead of 3 sequential queries
+    const tenantFilter = tenantId !== 'default' 
+      ? { $or: [{ tenantId }, { tenantId: 'default' }] }
+      : { tenantId: 'default' };
+    
+    const destination = await DestinationModel.findOne({ 
+      slug, 
+      ...tenantFilter 
     })
-      .limit(8)
+      .sort({ tenantId: tenantId !== 'default' ? -1 : 1 }) // Prefer tenant-specific
       .lean();
-  }
-
-  // Calculate tour count for each related destination (filtered by tenant)
-  const relatedDestinations = await Promise.all(
-    relatedDestinationsRaw.map(async (dest) => {
-      const countQuery = buildTenantQuery({
-        destination: dest._id,
-        isPublished: true
-      }, tenantId);
-      
-      const tourCount = await TourModel.countDocuments(countQuery);
-      return {
-        ...dest,
-        tourCount
-      };
-    })
-  );
   
-  // Filter out destinations with no tours for this tenant and limit to 4
-  const filteredRelatedDestinations = relatedDestinations
-    .filter(d => d.tourCount > 0)
-    .slice(0, 4);
+    if (!destination) {
+      return {
+        destination: null,
+        destinationTours: [],
+        allCategories: [],
+        reviews: [],
+        relatedDestinations: []
+      };
+    }
 
-  const serializedDestination = JSON.parse(JSON.stringify(destination));
-  const serializedTours = JSON.parse(JSON.stringify(destinationTours));
-  const serializedCategories = JSON.parse(JSON.stringify(allCategories));
-  const serializedReviews = JSON.parse(JSON.stringify(reviews));
-  const serializedRelatedDest = JSON.parse(JSON.stringify(filteredRelatedDestinations));
+    // OPTIMIZED: Run all queries in parallel
+    const [destinationTours, allCategories, relatedDestinationsRaw] = await Promise.all([
+      // Tours for this destination
+      TourModel.find({
+        destination: destination._id,
+        isPublished: true,
+        tenantId
+      }).lean(),
+      
+      // Categories for tenant
+      CategoryModel.find({ tenantId }).limit(20).lean(),
+      
+      // Related destinations (limit to 4, no need for tour count loop)
+      DestinationModel.find({
+        _id: { $ne: destination._id },
+        tenantId,
+        $or: [{ country: destination.country }, { featured: true }]
+      }).limit(4).lean()
+    ]);
 
-    console.log(`[Destination] Found: ${destination.name}, Tours: ${destinationTours.length}`);
+    // Fetch reviews only if we have tours (skip if none)
+    let reviews: any[] = [];
+    if (destinationTours.length > 0) {
+      const tourIds = destinationTours.map(tour => tour._id);
+      reviews = await ReviewModel.find({
+        tour: { $in: tourIds },
+        verified: true
+      })
+        .sort({ createdAt: -1 })
+        .limit(6)
+        .lean();
+    }
 
     return {
-      destination: serializedDestination,
-      destinationTours: serializedTours,
-      allCategories: serializedCategories,
-      reviews: serializedReviews,
-      relatedDestinations: serializedRelatedDest
+      destination: JSON.parse(JSON.stringify(destination)),
+      destinationTours: JSON.parse(JSON.stringify(destinationTours)),
+      allCategories: JSON.parse(JSON.stringify(allCategories)),
+      reviews: JSON.parse(JSON.stringify(reviews)),
+      relatedDestinations: JSON.parse(JSON.stringify(relatedDestinationsRaw))
     };
   } catch (error) {
     console.error(`[Destination] Error fetching page data for ${slug}:`, error);
