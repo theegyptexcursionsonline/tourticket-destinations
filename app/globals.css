@@ -262,7 +262,8 @@
 }
 
 /* Speedboat Theme - Header Styling */
-.theme-speedboat header {
+/* Don't override when header is intentionally transparent (EEO-like) */
+.theme-speedboat header:not(.bg-transparent) {
   background: var(--header-bg) !important;
 }
 
