@@ -19,46 +19,58 @@ interface PageProps {
  * First tries to find tour for the current tenant, then falls back to global search
  */
 async function getTourBySlug(slug: string, tenantId: string): Promise<{ tour: ITour; reviews: any[] } | null> {
-  await dbConnect();
-  
-  // First, try to find tour for this specific tenant
-  let tour = await Tour.findOne({ slug, tenantId })
-    .populate('destination', 'name slug')
-    .populate('category', 'name slug')
-    .lean();
-
-  // If not found and tenant is not default, try finding in default tenant or globally
-  // This allows shared tours to work across tenants
-  if (!tour && tenantId !== 'default') {
-    // Try default tenant first
-    tour = await Tour.findOne({ slug, tenantId: 'default' })
+  try {
+    await dbConnect();
+    
+    console.log(`[Tour] Looking for tour with slug: ${slug}, tenantId: ${tenantId}`);
+    
+    // First, try to find tour for this specific tenant
+    let tour = await Tour.findOne({ slug, tenantId })
       .populate('destination', 'name slug')
       .populate('category', 'name slug')
       .lean();
-    
-    // If still not found, fall back to global search (backward compatibility)
-    if (!tour) {
-      tour = await Tour.findOne({ slug })
+
+    // If not found and tenant is not default, try finding in default tenant or globally
+    // This allows shared tours to work across tenants
+    if (!tour && tenantId !== 'default') {
+      console.log(`[Tour] Not found for tenant ${tenantId}, trying default...`);
+      // Try default tenant first
+      tour = await Tour.findOne({ slug, tenantId: 'default' })
         .populate('destination', 'name slug')
         .populate('category', 'name slug')
         .lean();
+      
+      // If still not found, fall back to global search (backward compatibility)
+      if (!tour) {
+        console.log(`[Tour] Not found in default, trying global search...`);
+        tour = await Tour.findOne({ slug })
+          .populate('destination', 'name slug')
+          .populate('category', 'name slug')
+          .lean();
+      }
     }
-  }
 
-  if (!tour) {
+    if (!tour) {
+      console.log(`[Tour] Tour not found: ${slug}`);
+      return null;
+    }
+
+    console.log(`[Tour] Found tour: ${tour.title} (tenantId: ${(tour as any).tenantId})`);
+
+    // Fetch reviews separately
+    const reviews = await Review.find({ tour: tour._id })
+      .populate('user', 'firstName lastName picture')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return {
+      tour: JSON.parse(JSON.stringify(tour)),
+      reviews: JSON.parse(JSON.stringify(reviews))
+    };
+  } catch (error) {
+    console.error(`[Tour] Error fetching tour ${slug}:`, error);
     return null;
   }
-
-  // Fetch reviews separately
-  const reviews = await Review.find({ tour: tour._id })
-    .populate('user', 'firstName lastName picture')
-    .sort({ createdAt: -1 })
-    .lean();
-
-  return {
-    tour: JSON.parse(JSON.stringify(tour)),
-    reviews: JSON.parse(JSON.stringify(reviews))
-  };
 }
 
 /**
@@ -66,40 +78,55 @@ async function getTourBySlug(slug: string, tenantId: string): Promise<{ tour: IT
  * Filters by tenant to show only relevant tours
  */
 async function getRelatedTours(categoryIds: string | string[] | any, currentTourId: string, tenantId: string): Promise<ITour[]> {
-  await dbConnect();
+  try {
+    await dbConnect();
 
-  // Extract category IDs from populated categories or use the IDs directly
-  let categoryIdArray: string[] = [];
-  if (Array.isArray(categoryIds)) {
-    categoryIdArray = categoryIds.map(cat => typeof cat === 'object' ? cat._id?.toString() : cat?.toString()).filter(Boolean);
-  } else if (categoryIds) {
-    const catId = typeof categoryIds === 'object' ? categoryIds._id?.toString() : categoryIds?.toString();
-    if (catId) categoryIdArray = [catId];
-  }
+    // Extract category IDs from populated categories or use the IDs directly
+    let categoryIdArray: string[] = [];
+    if (Array.isArray(categoryIds)) {
+      categoryIdArray = categoryIds.map(cat => typeof cat === 'object' ? cat._id?.toString() : cat?.toString()).filter(Boolean);
+    } else if (categoryIds) {
+      const catId = typeof categoryIds === 'object' ? categoryIds._id?.toString() : categoryIds?.toString();
+      if (catId) categoryIdArray = [catId];
+    }
 
-  if (categoryIdArray.length === 0) {
+    if (categoryIdArray.length === 0) {
+      return [];
+    }
+
+    // Build query with tenant filter
+    const query: Record<string, unknown> = {
+      category: { $in: categoryIdArray },
+      _id: { $ne: currentTourId },
+      isPublished: true
+    };
+    
+    // Filter by tenant if not default
+    if (tenantId && tenantId !== 'default') {
+      query.tenantId = tenantId;
+    }
+
+    let relatedTours = await Tour.find(query)
+      .populate('destination', 'name')
+      .populate('category', 'name')
+      .limit(3)
+      .lean();
+
+    // If no related tours found for tenant, try without tenant filter
+    if (relatedTours.length === 0 && tenantId !== 'default') {
+      delete query.tenantId;
+      relatedTours = await Tour.find(query)
+        .populate('destination', 'name')
+        .populate('category', 'name')
+        .limit(3)
+        .lean();
+    }
+
+    return JSON.parse(JSON.stringify(relatedTours));
+  } catch (error) {
+    console.error('[Tour] Error fetching related tours:', error);
     return [];
   }
-
-  // Build query with tenant filter
-  const query: Record<string, unknown> = {
-    category: { $in: categoryIdArray },
-    _id: { $ne: currentTourId },
-    isPublished: true
-  };
-  
-  // Filter by tenant if not default
-  if (tenantId && tenantId !== 'default') {
-    query.tenantId = tenantId;
-  }
-
-  const relatedTours = await Tour.find(query)
-    .populate('destination', 'name')
-    .populate('category', 'name')
-    .limit(3)
-    .lean();
-
-  return JSON.parse(JSON.stringify(relatedTours));
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
