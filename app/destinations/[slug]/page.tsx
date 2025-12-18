@@ -27,9 +27,23 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     const siteName = tenantConfig?.name || 'Egypt Excursions Online';
     
     await dbConnect();
-    const destination = await DestinationModel.findOne({ slug })
+    
+    // Find destination by slug with tenant fallback
+    let destination = await DestinationModel.findOne({ slug, tenantId })
       .select('name description image country')
       .lean();
+    
+    if (!destination && tenantId !== 'default') {
+      destination = await DestinationModel.findOne({ slug, tenantId: 'default' })
+        .select('name description image country')
+        .lean();
+    }
+    
+    if (!destination) {
+      destination = await DestinationModel.findOne({ slug })
+        .select('name description image country')
+        .lean();
+    }
 
     if (!destination) {
       return {
@@ -60,7 +74,19 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 async function getPageData(slug: string, tenantId: string) {
   await dbConnect();
 
-  const destination = await DestinationModel.findOne({ slug }).lean();
+  // Find destination by slug, first try tenant-specific, then fallback to default/global
+  let destination = await DestinationModel.findOne({ slug, tenantId }).lean();
+  
+  // Fallback: try default tenant
+  if (!destination && tenantId !== 'default') {
+    destination = await DestinationModel.findOne({ slug, tenantId: 'default' }).lean();
+  }
+  
+  // Final fallback: any destination with this slug (backward compatibility)
+  if (!destination) {
+    destination = await DestinationModel.findOne({ slug }).lean();
+  }
+  
   if (!destination) {
     return {
       destination: null,
@@ -94,15 +120,31 @@ async function getPageData(slug: string, tenantId: string) {
     .lean();
 
   // Fetch related destinations (same country or similar, with tours for this tenant)
-  const relatedDestinationsRaw = await DestinationModel.find({
+  // Try tenant-specific destinations first, then fall back to default tenant
+  let relatedDestinationsRaw = await DestinationModel.find({
     _id: { $ne: destination._id },
+    tenantId: tenantId,
     $or: [
       { country: destination.country },
       { featured: true }
     ]
   })
-    .limit(8) // Fetch more to filter
+    .limit(8)
     .lean();
+  
+  // If no tenant-specific destinations found, try default tenant
+  if (relatedDestinationsRaw.length === 0 && tenantId !== 'default') {
+    relatedDestinationsRaw = await DestinationModel.find({
+      _id: { $ne: destination._id },
+      tenantId: 'default',
+      $or: [
+        { country: destination.country },
+        { featured: true }
+      ]
+    })
+      .limit(8)
+      .lean();
+  }
 
   // Calculate tour count for each related destination (filtered by tenant)
   const relatedDestinations = await Promise.all(
