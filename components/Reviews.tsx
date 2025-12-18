@@ -3,6 +3,7 @@
 import React, { useEffect } from 'react';
 import Script from 'next/script';
 import { Star } from 'lucide-react';
+import { useTenant } from '@/contexts/TenantContext';
 
 type Review = {
   name: string;
@@ -12,33 +13,60 @@ type Review = {
   datePublished?: string;
 };
 
-const reviewsData: Review[] = [
-  {
-    name: 'Aisha',
-    country: 'Egypt',
-    review:
-      'Amazing Nile sunset cruise—the guide was exceptional and the dinner unforgettable.',
-    rating: 5,
-    datePublished: '2024-11-12',
-  },
-  {
-    name: 'Luca',
-    country: 'Italy',
-    review:
-      'Private pyramid tour at sunrise was once-in-a-lifetime. Highly recommended.',
-    rating: 5,
-    datePublished: '2024-10-02',
-  },
-  {
-    name: 'Maya',
-    country: 'UK',
-    review:
-      'Seamless booking and the felucca ride on the Nile was so peaceful and beautiful.',
-    rating: 5,
-    datePublished: '2024-09-15',
-  },
- 
-];
+const TENANT_REVIEWS: Record<string, Review[]> = {
+  'hurghada-speedboat': [
+    {
+      name: 'Sophie',
+      country: 'Germany',
+      review:
+        'Best speedboat trip ever! The snorkeling at Giftun Island was incredible. So many colorful fish!',
+      rating: 5,
+      datePublished: '2024-11-20',
+    },
+    {
+      name: 'James',
+      country: 'UK',
+      review:
+        'Swimming with dolphins at Dolphin House was a dream come true. Captain Ahmed was fantastic!',
+      rating: 5,
+      datePublished: '2024-11-05',
+    },
+    {
+      name: 'Anna',
+      country: 'Russia',
+      review:
+        'Orange Bay is paradise! Crystal clear water, white sand beach. Perfect day trip from Hurghada.',
+      rating: 5,
+      datePublished: '2024-10-28',
+    },
+  ],
+  'default': [
+    {
+      name: 'Aisha',
+      country: 'Egypt',
+      review:
+        'Amazing Nile sunset cruise—the guide was exceptional and the dinner unforgettable.',
+      rating: 5,
+      datePublished: '2024-11-12',
+    },
+    {
+      name: 'Luca',
+      country: 'Italy',
+      review:
+        'Private pyramid tour at sunrise was once-in-a-lifetime. Highly recommended.',
+      rating: 5,
+      datePublished: '2024-10-02',
+    },
+    {
+      name: 'Maya',
+      country: 'UK',
+      review:
+        'Seamless booking and the felucca ride on the Nile was so peaceful and beautiful.',
+      rating: 5,
+      datePublished: '2024-09-15',
+    },
+  ],
+};
 
 const initials = (name: string) =>
   name
@@ -69,6 +97,10 @@ export default function Reviews({
 }: {
   elfsightAppId?: string;
 }) {
+  const { tenant } = useTenant();
+  const tenantId = tenant?.tenantId || 'default';
+  const reviewsData = TENANT_REVIEWS[tenantId] || TENANT_REVIEWS['default'];
+
   useEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const w = window as any;
