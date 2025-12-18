@@ -72,10 +72,13 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 }
 
 async function getPageData(slug: string, tenantId: string) {
-  await dbConnect();
+  try {
+    await dbConnect();
 
-  // Find destination by slug, first try tenant-specific, then fallback to default/global
-  let destination = await DestinationModel.findOne({ slug, tenantId }).lean();
+    console.log(`[Destination] Looking for: ${slug}, tenantId: ${tenantId}`);
+
+    // Find destination by slug, first try tenant-specific, then fallback to default/global
+    let destination = await DestinationModel.findOne({ slug, tenantId }).lean();
   
   // Fallback: try default tenant
   if (!destination && tenantId !== 'default') {
@@ -173,31 +176,48 @@ async function getPageData(slug: string, tenantId: string) {
   const serializedReviews = JSON.parse(JSON.stringify(reviews));
   const serializedRelatedDest = JSON.parse(JSON.stringify(filteredRelatedDestinations));
 
-  return {
-    destination: serializedDestination,
-    destinationTours: serializedTours,
-    allCategories: serializedCategories,
-    reviews: serializedReviews,
-    relatedDestinations: serializedRelatedDest
-  };
+    console.log(`[Destination] Found: ${destination.name}, Tours: ${destinationTours.length}`);
+
+    return {
+      destination: serializedDestination,
+      destinationTours: serializedTours,
+      allCategories: serializedCategories,
+      reviews: serializedReviews,
+      relatedDestinations: serializedRelatedDest
+    };
+  } catch (error) {
+    console.error(`[Destination] Error fetching page data for ${slug}:`, error);
+    return {
+      destination: null,
+      destinationTours: [],
+      allCategories: [],
+      reviews: [],
+      relatedDestinations: []
+    };
+  }
 }
 
 export default async function DestinationPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
-  const tenantId = await getTenantFromRequest();
-  const { destination, destinationTours, allCategories, reviews, relatedDestinations } = await getPageData(slug, tenantId);
+  try {
+    const { slug } = await params;
+    const tenantId = await getTenantFromRequest();
+    const { destination, destinationTours, allCategories, reviews, relatedDestinations } = await getPageData(slug, tenantId);
 
-  if (!destination) {
+    if (!destination) {
+      notFound();
+    }
+
+    return (
+      <DestinationPageClient
+        destination={destination}
+        destinationTours={destinationTours}
+        allCategories={allCategories}
+        reviews={reviews}
+        relatedDestinations={relatedDestinations}
+      />
+    );
+  } catch (error) {
+    console.error('[Destination] Page error:', error);
     notFound();
   }
-
-  return (
-    <DestinationPageClient
-      destination={destination}
-      destinationTours={destinationTours}
-      allCategories={allCategories}
-      reviews={reviews}
-      relatedDestinations={relatedDestinations}
-    />
-  );
 }
