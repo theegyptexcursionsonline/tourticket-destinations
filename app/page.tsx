@@ -16,8 +16,8 @@ export const metadata: Metadata = {
   description: 'Discover Egypt\'s wonders with unforgettable tours and experiences. Book your next adventure today.',
 };
 
-// Set to 0 for coming soon (no caching), change to 60 for normal mode with ISR
-export const revalidate = 0;
+// ISR: 5 minute cache for fast initial loads with background revalidation
+export const revalidate = 300;
 
 export default function HomePage() {
   if (COMING_SOON_MODE) {

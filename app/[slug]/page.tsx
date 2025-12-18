@@ -1,6 +1,7 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
+import { unstable_cache } from 'next/cache';
 import dbConnect from '@/lib/dbConnect';
 import Tour from '@/lib/models/Tour';
 import Review from '@/lib/models/Review';
@@ -9,88 +10,105 @@ import Footer from '@/components/Footer';
 import TourDetailClientPage from './TourDetailClientPage';
 import { ITour } from '@/lib/models/Tour';
 import { getTenantFromRequest } from '@/lib/tenant';
+import { CACHE_DURATIONS, CACHE_TAGS } from '@/lib/cache';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
 /**
- * Get tour by slug with multi-tenant support (OPTIMIZED)
- * Uses single query with $or for tenant fallback
+ * Get tour by slug with ISR caching
+ * Cached for 5 minutes, revalidated on-demand
  */
-async function getTourBySlug(slug: string, tenantId: string): Promise<{ tour: ITour; reviews: any[] } | null> {
-  try {
-    await dbConnect();
-    
-    // OPTIMIZED: Single query with $or for tenant fallback instead of 3 sequential queries
-    const tenantFilter = tenantId !== 'default' 
-      ? { $or: [{ tenantId }, { tenantId: 'default' }] }
-      : {};
-    
-    const tour = await Tour.findOne({ slug, ...tenantFilter })
-      .populate('destination', 'name slug')
-      .populate('category', 'name slug')
-      .sort({ tenantId: tenantId !== 'default' ? -1 : 1 }) // Prefer tenant-specific
-      .lean();
+const getTourBySlug = (slug: string, tenantId: string) => {
+  return unstable_cache(
+    async (): Promise<{ tour: ITour; reviews: any[] } | null> => {
+      try {
+        await dbConnect();
+        
+        const tenantFilter = tenantId !== 'default' 
+          ? { $or: [{ tenantId }, { tenantId: 'default' }] }
+          : {};
+        
+        const tour = await Tour.findOne({ slug, ...tenantFilter })
+          .populate('destination', 'name slug')
+          .populate('category', 'name slug')
+          .sort({ tenantId: tenantId !== 'default' ? -1 : 1 })
+          .lean();
 
-    if (!tour) {
-      return null;
+        if (!tour) return null;
+
+        const reviews = await Review.find({ tour: tour._id })
+          .populate('user', 'firstName lastName picture')
+          .sort({ createdAt: -1 })
+          .limit(20)
+          .lean();
+
+        return {
+          tour: JSON.parse(JSON.stringify(tour)),
+          reviews: JSON.parse(JSON.stringify(reviews))
+        };
+      } catch (error) {
+        console.error(`[Tour] Error fetching tour ${slug}:`, error);
+        return null;
+      }
+    },
+    [`tour-${slug}-${tenantId}`],
+    {
+      revalidate: CACHE_DURATIONS.MEDIUM,
+      tags: [CACHE_TAGS.TOURS, `tour-${slug}`],
     }
-
-    // Fetch reviews in parallel with returning
-    const reviews = await Review.find({ tour: tour._id })
-      .populate('user', 'firstName lastName picture')
-      .sort({ createdAt: -1 })
-      .limit(20) // Limit reviews for performance
-      .lean();
-
-    return {
-      tour: JSON.parse(JSON.stringify(tour)),
-      reviews: JSON.parse(JSON.stringify(reviews))
-    };
-  } catch (error) {
-    console.error(`[Tour] Error fetching tour ${slug}:`, error);
-    return null;
-  }
-}
+  )();
+};
 
 /**
- * Get related tours with multi-tenant support (OPTIMIZED)
- * Uses single query with tenant filter
+ * Get related tours with ISR caching
  */
-async function getRelatedTours(categoryIds: string | string[] | any, currentTourId: string, tenantId: string): Promise<ITour[]> {
-  try {
-    // Extract category IDs
-    let categoryIdArray: string[] = [];
-    if (Array.isArray(categoryIds)) {
-      categoryIdArray = categoryIds.map(cat => typeof cat === 'object' ? cat._id?.toString() : cat?.toString()).filter(Boolean);
-    } else if (categoryIds) {
-      const catId = typeof categoryIds === 'object' ? categoryIds._id?.toString() : categoryIds?.toString();
-      if (catId) categoryIdArray = [catId];
-    }
-
-    if (categoryIdArray.length === 0) {
-      return [];
-    }
-
-    // OPTIMIZED: Single query with tenant filter
-    const relatedTours = await Tour.find({
-      category: { $in: categoryIdArray },
-      _id: { $ne: currentTourId },
-      isPublished: true,
-      tenantId
-    })
-      .select('title slug image discountPrice originalPrice duration destination category rating reviewCount')
-      .populate('destination', 'name')
-      .limit(3)
-      .lean();
-
-    return JSON.parse(JSON.stringify(relatedTours));
-  } catch (error) {
-    console.error('[Tour] Error fetching related tours:', error);
-    return [];
+const getRelatedTours = (categoryIds: string | string[] | any, currentTourId: string, tenantId: string) => {
+  // Extract category IDs first (sync operation)
+  let categoryIdArray: string[] = [];
+  if (Array.isArray(categoryIds)) {
+    categoryIdArray = categoryIds.map(cat => typeof cat === 'object' ? cat._id?.toString() : cat?.toString()).filter(Boolean);
+  } else if (categoryIds) {
+    const catId = typeof categoryIds === 'object' ? categoryIds._id?.toString() : categoryIds?.toString();
+    if (catId) categoryIdArray = [catId];
   }
-}
+
+  if (categoryIdArray.length === 0) {
+    return Promise.resolve([]);
+  }
+
+  const cacheKey = `related-${currentTourId}-${tenantId}`;
+  
+  return unstable_cache(
+    async (): Promise<ITour[]> => {
+      try {
+        await dbConnect();
+        
+        const relatedTours = await Tour.find({
+          category: { $in: categoryIdArray },
+          _id: { $ne: currentTourId },
+          isPublished: true,
+          tenantId
+        })
+          .select('title slug image discountPrice originalPrice duration destination category rating reviewCount')
+          .populate('destination', 'name')
+          .limit(3)
+          .lean();
+
+        return JSON.parse(JSON.stringify(relatedTours));
+      } catch (error) {
+        console.error('[Tour] Error fetching related tours:', error);
+        return [];
+      }
+    },
+    [cacheKey],
+    {
+      revalidate: CACHE_DURATIONS.MEDIUM,
+      tags: [CACHE_TAGS.TOURS],
+    }
+  )();
+};
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   try {
