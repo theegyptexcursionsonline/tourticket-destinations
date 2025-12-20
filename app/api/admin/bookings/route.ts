@@ -1,20 +1,30 @@
 // app/api/admin/bookings/route.ts
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Booking from '@/lib/models/Booking';
 import Tour from '@/lib/models/Tour';
 import User from '@/lib/models/user';
 import Destination from '@/lib/models/Destination';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   await dbConnect();
 
   try {
-    const bookings = await Booking.find({})
+    // Support optional tenant filtering for multi-tenant admin
+    const { searchParams } = new URL(request.url);
+    const tenantId = searchParams.get('tenantId');
+    
+    // Build query with optional tenant filter
+    const query: Record<string, unknown> = {};
+    if (tenantId && tenantId !== 'all') {
+      query.tenantId = tenantId;
+    }
+
+    const bookings = await Booking.find(query)
       .populate({ 
         path: 'tour', 
         model: Tour, 
-        select: 'title image duration destination',
+        select: 'title image duration destination tenantId',
         populate: {
           path: 'destination',
           model: Destination,

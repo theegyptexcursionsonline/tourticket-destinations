@@ -5,33 +5,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
-    <title>Booking Confirmation</title>
+    <title>Booking Confirmation - {{companyName}}</title>
     <style>
         body { margin: 0; padding: 0; width: 100% !important; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; font-family: 'Helvetica Neue', Arial, sans-serif; background: #eef2f7; color: #0f172a; }
         table { border-collapse: collapse; }
         img { border: 0; outline: none; display: block; max-width: 100%; }
-        a { color: #2563eb; text-decoration: none; }
+        a { color: {{primaryColor}}; text-decoration: none; }
 
         .wrapper { width: 100%; padding: 32px 0; background: #eef2f7; }
         .container { max-width: 680px; width: 100%; background: #fff; border-radius: 36px; overflow: hidden; box-shadow: 0 35px 70px rgba(15,23,42,0.2); }
+        
+        .header { text-align: center; padding: 24px 32px; background: {{secondaryColor}}; }
+        .header img { max-height: 48px; margin: 0 auto; }
+        .header-text { color: #fff; font-size: 14px; margin: 8px 0 0; }
+        
         .success-header { text-align: center; padding: 40px 32px 0; }
         .status-icon { width: 76px; height: 76px; border-radius: 999px; margin: 0 auto 18px; background: radial-gradient(circle at 30% 30%, #34d399, #059669); color: #fff; font-size: 38px; line-height: 76px; font-weight: 700; }
         .success-title { font-size: 30px; margin: 0; font-weight: 800; color: #0f172a; }
         .success-text { color: #475569; font-size: 16px; margin: 12px 0 0; }
 
         .ticket-card { margin: 32px; border: 1px solid #e2e8f0; border-radius: 30px; overflow: hidden; box-shadow: inset 0 0 0 1px rgba(226,232,240,0.4); }
-        .ticket-gradient { height: 6px; background: linear-gradient(90deg, #f43f5e, #f97316, #f59e0b); }
+        .ticket-gradient { height: 6px; background: linear-gradient(90deg, {{primaryColor}}, {{accentColor}}); }
         .ticket-body { padding: 32px; }
         .badges { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
         .badge { display: inline-block; padding: 6px 14px; border-radius: 999px; font-size: 11px; letter-spacing: 1px; font-weight: 700; text-transform: uppercase; }
         .badge-confirmed { background: #d1fae5; color: #047857; }
         .badge-soft { background: #e2e8f0; color: #475569; }
         .tour-title { font-size: 24px; margin: 0 0 6px; font-weight: 800; color: #0f172a; }
-        .tour-option { margin: 0 0 4px; color: #2563eb; font-weight: 600; }
+        .tour-option { margin: 0 0 4px; color: {{primaryColor}}; font-weight: 600; }
         .booking-reference { margin: 0; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; color: #94a3b8; font-weight: 600; }
         .ticket-date { text-align: right; }
         .date-pill { border: 1px solid #e2e8f0; border-radius: 22px; padding: 12px; width: 90px; text-align: center; }
-        .date-day { font-size: 11px; letter-spacing: 1px; color: #f43f5e; font-weight: 700; }
+        .date-day { font-size: 11px; letter-spacing: 1px; color: {{primaryColor}}; font-weight: 700; }
         .date-number { font-size: 30px; font-weight: 800; color: #0f172a; line-height: 1.1; }
         .date-month { font-size: 12px; letter-spacing: 1px; color: #475569; font-weight: 600; }
 
@@ -43,7 +48,7 @@
         .status { display: flex; align-items: center; gap: 6px; }
         .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; display: inline-block; }
 
-        .countdown-card { background: linear-gradient(135deg, #0f172a, #1e293b); border-radius: 22px; padding: 20px; margin-top: 24px; color: #fff; text-align: center; }
+        .countdown-card { background: linear-gradient(135deg, {{secondaryColor}}, #1e293b); border-radius: 22px; padding: 20px; margin-top: 24px; color: #fff; text-align: center; }
         .countdown-label { margin: 0 0 12px; text-transform: uppercase; font-size: 11px; letter-spacing: 1px; color: rgba(255,255,255,0.7); }
         .countdown-grid { display: flex; justify-content: center; gap: 18px; }
         .countdown-unit { min-width: 70px; }
@@ -68,7 +73,7 @@
         .order-details { flex: 1; min-width: 0; }
         .order-title { font-weight: 700; margin: 0; color: #0f172a; }
         .order-meta { font-size: 13px; color: #94a3b8; margin: 4px 0; }
-        .order-option { font-size: 12px; font-weight: 600; color: #2563eb; }
+        .order-option { font-size: 12px; font-weight: 600; color: {{primaryColor}}; }
         .order-price { font-weight: 800; font-size: 16px; color: #0f172a; }
 
         .pricing-card { border: 1px solid #e2e8f0; border-radius: 18px; padding: 18px; }
@@ -83,10 +88,14 @@
         .qr-card img { width: 160px; height: 160px; margin: 0 auto 12px; border-radius: 16px; border: 1px solid #e2e8f0; padding: 12px; background: #fff; }
 
         .cta { text-align: center; }
-        .btn { display: inline-block; padding: 16px 48px; border-radius: 999px; background: linear-gradient(120deg, #ef4444, #ec4899); color: #fff; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 18px 35px rgba(236,72,153,0.35); }
+        .btn { display: inline-block; padding: 16px 48px; border-radius: 999px; background: {{primaryColor}}; color: #fff; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 18px 35px rgba(0,0,0,0.2); }
 
         .footer { padding: 24px; text-align: center; border-top: 1px solid #e2e8f0; background: #f8fafc; }
         .footer-text { margin: 0; font-size: 12px; color: #94a3b8; }
+        .footer-links { margin: 12px 0 0; }
+        .footer-links a { color: #64748b; margin: 0 8px; font-size: 12px; }
+        .social-links { margin: 16px 0 0; }
+        .social-links a { display: inline-block; margin: 0 6px; }
 
         @media screen and (max-width: 640px) {
             .container { border-radius: 0; }
@@ -102,6 +111,19 @@
         <tr>
             <td align="center">
                 <table role="presentation" class="container" width="680" cellpadding="0" cellspacing="0">
+                    <!-- Header with Logo -->
+                    <tr>
+                        <td>
+                            <div class="header">
+                                {{#if companyLogo}}
+                                <img src="{{companyLogo}}" alt="{{companyName}}">
+                                {{else}}
+                                <div style="color: #fff; font-size: 24px; font-weight: 800;">{{companyName}}</div>
+                                {{/if}}
+                            </div>
+                        </td>
+                    </tr>
+                    
                     <tr>
                         <td>
                             <div class="success-header">
@@ -292,9 +314,9 @@
                                 <div class="qr-card">
                                     {{#if qrCodeCid}}
                                     <img src="cid:{{qrCodeCid}}" alt="Booking QR Code">
-                                    <p class="body-text">Show this QR code at the meeting point or <a class="link" href="{{verificationUrl}}">view your booking online</a>.</p>
+                                    <p class="body-text" style="color: #475569;">Show this QR code at the meeting point or <a class="link" href="{{verificationUrl}}">view your booking online</a>.</p>
                                     {{else}}
-                                    <p class="body-text">You can revisit your booking any time at <a class="link" href="{{baseUrl}}/user/bookings">{{baseUrl}}/user/bookings</a>.</p>
+                                    <p class="body-text" style="color: #475569;">You can revisit your booking any time at <a class="link" href="{{baseUrl}}/user/bookings">{{baseUrl}}/user/bookings</a>.</p>
                                     {{/if}}
                                 </div>
                             </div>
@@ -305,17 +327,29 @@
                         <td>
                             <div class="section cta">
                                 <a class="btn" href="{{baseUrl}}/user/bookings">View My Booking</a>
-                                {{#if contactNumber}}
-                                <p class="success-text" style="margin-top:16px;">Need changes? Reply to this email or WhatsApp {{contactNumber}}.</p>
+                                {{#if contactPhone}}
+                                <p class="success-text" style="margin-top:16px;">Need changes? Reply to this email or WhatsApp <a href="https://wa.me/{{contactPhone}}">{{contactPhone}}</a>.</p>
                                 {{/if}}
                             </div>
                         </td>
                     </tr>
 
+                    <!-- Footer -->
                     <tr>
                         <td>
                             <div class="footer">
-                                <p class="footer-text">© {{year}} Egypt Excursions Online · Cairo, Egypt</p>
+                                <p class="footer-text">© {{year}} {{companyName}}</p>
+                                <div class="footer-links">
+                                    {{#if website}}<a href="{{website}}">Website</a>{{/if}}
+                                    {{#if contactEmail}}<a href="mailto:{{contactEmail}}">Contact Us</a>{{/if}}
+                                </div>
+                                {{#if (or facebookUrl instagramUrl twitterUrl)}}
+                                <div class="social-links">
+                                    {{#if facebookUrl}}<a href="{{facebookUrl}}">Facebook</a>{{/if}}
+                                    {{#if instagramUrl}}<a href="{{instagramUrl}}">Instagram</a>{{/if}}
+                                    {{#if twitterUrl}}<a href="{{twitterUrl}}">Twitter</a>{{/if}}
+                                </div>
+                                {{/if}}
                             </div>
                         </td>
                     </tr>
@@ -325,4 +359,3 @@
     </table>
 </body>
 </html>
-

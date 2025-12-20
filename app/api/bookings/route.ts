@@ -7,6 +7,7 @@ import Tour from '@/lib/models/Tour';
 import User from '@/lib/models/user';
 import { verifyToken } from '@/lib/jwt';
 import { verifyFirebaseToken } from '@/lib/firebase/admin';
+import { getTenantConfigCached } from '@/lib/tenant';
 
 export async function GET(request: NextRequest) {
   await dbConnect();
@@ -219,9 +220,31 @@ export async function POST(request: NextRequest) {
 
     const totalGuests = adults + children + infants;
 
+    // Get tenant config for booking reference prefix
+    const tenantId = tour.tenantId || 'default';
+    const tenantConfig = await getTenantConfigCached(tenantId);
+    
+    // Generate tenant-specific booking reference
+    let prefix = 'BKG';
+    if (tenantConfig?.name) {
+      prefix = tenantConfig.name
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase())
+        .join('')
+        .slice(0, 4) || 'BKG';
+    } else if (tenantId !== 'default') {
+      prefix = tenantId.replace(/-/g, '').slice(0, 4).toUpperCase() || 'BKG';
+    }
+    
+    const timestamp = Date.now().toString().slice(-8);
+    const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const bookingReference = `${prefix}-${timestamp}-${random}`;
+
     const booking = await Booking.create({
+      tenantId: tour.tenantId || 'default', // Inherit tenant from tour
+      bookingReference,
       tour: tourId,
-      user: userId,
+      user: user._id, // Use the ObjectId from the user document
       date: new Date(date),
       time,
       guests: totalGuests,

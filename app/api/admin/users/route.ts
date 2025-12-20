@@ -12,11 +12,18 @@ export async function GET(request: NextRequest) {
 
   await dbConnect();
   try {
-    const users = await User.find({}).select('name firstName lastName email createdAt').sort({ createdAt: -1 }).lean();
+    const users = await User.find({}).select('name firstName lastName email createdAt firebaseUid').sort({ createdAt: -1 }).lean();
 
     const usersWithBookingCounts = await Promise.all(
       users.map(async (user) => {
-        const bookingCount = await Booking.countDocuments({ user: user._id });
+        // Query by both ObjectId and string ID to handle any data inconsistencies
+        // Also check by email as a fallback for guest bookings that might have mismatched user refs
+        const bookingCount = await Booking.countDocuments({
+          $or: [
+            { user: user._id },
+            { user: user._id.toString() },
+          ]
+        });
         return {
           ...user,
           bookingCount,

@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="format-detection" content="telephone=no, email=no, address=no">
-    <title>Booking Cancellation</title>
+    <title>Booking Cancellation - {{companyName}}</title>
     <style>
         body { margin: 0; padding: 0; background: #f5f6fb; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #0f172a; -webkit-font-smoothing: antialiased; }
         img { border: none; display: block; max-width: 100%; }
         .wrapper { width: 100%; padding: 32px 0; }
         .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 30px 55px rgba(15,23,42,0.12); }
 
-        .hero { background: linear-gradient(135deg, #1f2937 0%, #991b1b 100%); padding: 36px 40px; color: #fef2f2; text-align: center; }
-        .logo { width: 110px; margin: 0 auto 20px; }
+        .hero { background: linear-gradient(135deg, {{secondaryColor}} 0%, #991b1b 100%); padding: 36px 40px; color: #fef2f2; text-align: center; }
+        .logo { max-width: 180px; max-height: 60px; margin: 0 auto 20px; }
         .hero-eyebrow { font-size: 12px; letter-spacing: 1px; text-transform: uppercase; opacity: 0.8; }
         .hero-title { font-size: 28px; font-weight: 700; margin: 12px 0 6px; letter-spacing: -0.4px; }
         .hero-meta { font-size: 15px; opacity: 0.85; }
@@ -43,18 +43,19 @@
         .option-title { font-size: 13px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px; }
         .option { display: flex; gap: 12px; margin-bottom: 12px; }
         .option:last-child { margin-bottom: 0; }
-        .option-bullet { width: 20px; height: 20px; border-radius: 50%; border: 2px solid #e11d48; }
+        .option-bullet { width: 20px; height: 20px; border-radius: 50%; border: 2px solid {{primaryColor}}; flex-shrink: 0; }
         .option-text { font-size: 14px; color: #1f2937; line-height: 1.5; }
 
         .cta { text-align: center; margin: 32px 0; }
-        .cta-button { display: inline-block; padding: 15px 38px; border-radius: 10px; border: 1px solid #991b1b; color: #991b1b; font-size: 15px; font-weight: 600; text-decoration: none; }
+        .cta-button { display: inline-block; padding: 15px 38px; border-radius: 10px; border: 1px solid {{primaryColor}}; color: {{primaryColor}}; font-size: 15px; font-weight: 600; text-decoration: none; }
 
-        .support { border: 1px solid #ffe4e6; border-radius: 16px; background: #fff7fb; padding: 22px 24px; text-align: center; }
-        .support strong { display: block; font-size: 15px; color: #be123c; margin-bottom: 6px; }
-        .support span { font-size: 14px; color: #9f1239; }
+        .support { border: 1px solid #e2e8f0; border-radius: 16px; background: #f8fafc; padding: 22px 24px; text-align: center; }
+        .support strong { display: block; font-size: 15px; color: #0f172a; margin-bottom: 6px; }
+        .support span { font-size: 14px; color: #475569; }
+        .support a { color: {{primaryColor}}; text-decoration: none; }
 
         .footer { background: #f8fafc; padding: 28px 40px; text-align: center; border-top: 1px solid #e2e8f0; }
-        .footer-links a { color: #94a3b8; font-size: 13px; margin: 0 10px; text-decoration: none; font-weight: 600; }
+        .footer-links a { color: #64748b; font-size: 13px; margin: 0 10px; text-decoration: none; font-weight: 600; }
         .footer p { color: #94a3b8; font-size: 12px; margin: 10px 0; }
 
         @media (max-width: 600px) {
@@ -72,7 +73,11 @@
     <div class="wrapper">
         <div class="container">
             <div class="hero">
-                <img src="https://egypt-excursionsonline.com/EEO-logo.png" alt="Egypt Excursions Online" class="logo">
+                {{#if companyLogo}}
+                <img src="{{companyLogo}}" alt="{{companyName}}" class="logo">
+                {{else}}
+                <div style="font-size: 24px; font-weight: 800; margin-bottom: 20px;">{{companyName}}</div>
+                {{/if}}
                 <div class="hero-eyebrow">Booking {{bookingId}}</div>
                 <div class="hero-title">Cancellation confirmed</div>
                 <div class="hero-meta">{{tourTitle}} · {{bookingDate}}</div>
@@ -80,7 +85,7 @@
 
             <div class="content">
                 <div class="greeting">Hi {{customerName}},</div>
-                <p class="intro">We’ve finalized your cancellation request. Below is a snapshot of what was cancelled and how any refund will be handled.</p>
+                <p class="intro">We've finalized your cancellation request. Below is a snapshot of what was cancelled and how any refund will be handled.</p>
 
                 <div class="alert">
                     <div class="alert-icon">⚠️</div>
@@ -129,11 +134,11 @@
                     <div class="option-title">Need to travel soon?</div>
                     <div class="option">
                         <div class="option-bullet"></div>
-                        <div class="option-text">Reply to this email and we’ll help you find a new date or tour instantly.</div>
+                        <div class="option-text">Reply to this email and we'll help you find a new date or tour instantly.</div>
                     </div>
                     <div class="option">
                         <div class="option-bullet"></div>
-                        <div class="option-text">Browse fresh experiences in your account dashboard whenever you’re ready.</div>
+                        <div class="option-text">Browse fresh experiences in your account dashboard whenever you're ready.</div>
                     </div>
                 </div>
 
@@ -143,17 +148,16 @@
 
                 <div class="support">
                     <strong>Concierge support</strong>
-                    <span>booking@egypt-excursionsonline.com • WhatsApp +20 11 42255624</span>
+                    <span><a href="mailto:{{contactEmail}}">{{contactEmail}}</a>{{#if contactPhone}} • WhatsApp <a href="https://wa.me/{{contactPhone}}">{{contactPhone}}</a>{{/if}}</span>
                 </div>
             </div>
 
             <div class="footer">
                 <div class="footer-links">
                     <a href="{{baseUrl}}/user/bookings">My Bookings</a>
-                    <a href="{{baseUrl}}/help">Help Center</a>
-                    <a href="{{baseUrl}}/terms">Terms</a>
+                    {{#if website}}<a href="{{website}}">Website</a>{{/if}}
                 </div>
-                <p>© {{year}} Egypt Excursions Online • Cairo, Egypt</p>
+                <p>© {{year}} {{companyName}}</p>
             </div>
         </div>
     </div>

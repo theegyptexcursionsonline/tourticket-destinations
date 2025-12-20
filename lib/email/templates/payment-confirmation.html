@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="format-detection" content="telephone=no, email=no, address=no">
-    <title>Payment Confirmation</title>
+    <title>Payment Confirmation - {{companyName}}</title>
     <style>
         body { margin: 0; padding: 0; background: #eef2f7; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #0f172a; -webkit-font-smoothing: antialiased; }
         img { border: none; display: block; max-width: 100%; }
@@ -13,8 +13,8 @@
         .wrapper { width: 100%; padding: 32px 0; }
         .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 25px 45px rgba(15,23,42,0.15); }
 
-        .hero { background: linear-gradient(135deg, #0f172a 0%, #1d4ed8 70%, #2563eb 100%); padding: 36px 40px; color: #ffffff; text-align: center; position: relative; }
-        .logo { width: 120px; margin: 0 auto 24px; }
+        .hero { background: linear-gradient(135deg, {{secondaryColor}} 0%, {{primaryColor}} 100%); padding: 36px 40px; color: #ffffff; text-align: center; position: relative; }
+        .logo { max-width: 180px; max-height: 60px; margin: 0 auto 24px; }
         .hero-status { display: inline-block; padding: 8px 18px; border-radius: 999px; font-size: 12px; letter-spacing: 1px; text-transform: uppercase; font-weight: 700; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); }
         .hero-title { font-size: 28px; font-weight: 700; letter-spacing: -0.6px; margin: 18px 0 8px; }
         .hero-meta { color: rgba(255,255,255,0.8); font-size: 15px; }
@@ -42,16 +42,17 @@
         .badge { padding: 8px 14px; border-radius: 12px; border: 1px solid #e5e7eb; font-size: 13px; font-weight: 600; color: #475569; background: #f8fafc; }
 
         .cta { text-align: center; margin: 32px 0 20px; }
-        .cta-button { display: inline-block; padding: 16px 40px; border-radius: 10px; background: #2563eb; color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; box-shadow: 0 15px 30px rgba(37,99,235,0.25); }
+        .cta-button { display: inline-block; padding: 16px 40px; border-radius: 10px; background: {{primaryColor}}; color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; box-shadow: 0 15px 30px rgba(0,0,0,0.15); }
         .cta-note { margin-top: 12px; font-size: 13px; color: #64748b; }
 
-        .support { border: 1px solid #e0e7ff; border-radius: 16px; padding: 22px 24px; background: #f8fafc; display: flex; gap: 16px; align-items: center; margin-bottom: 32px; }
+        .support { border: 1px solid #e2e8f0; border-radius: 16px; padding: 22px 24px; background: #f8fafc; display: flex; gap: 16px; align-items: center; margin-bottom: 32px; }
         .support-icon { font-size: 26px; }
         .support-text strong { display: block; font-size: 15px; color: #0f172a; }
         .support-text span { font-size: 14px; color: #475569; }
+        .support-text a { color: {{primaryColor}}; text-decoration: none; }
 
         .footer { background: #f8fafc; padding: 28px 40px; text-align: center; border-top: 1px solid #e2e8f0; }
-        .footer-links a { color: #94a3b8; font-size: 13px; margin: 0 10px; text-decoration: none; font-weight: 600; }
+        .footer-links a { color: #64748b; font-size: 13px; margin: 0 10px; text-decoration: none; font-weight: 600; }
         .footer p { color: #94a3b8; font-size: 12px; margin: 10px 0; }
 
         @media (max-width: 640px) {
@@ -69,7 +70,11 @@
     <div class="wrapper">
         <div class="container">
             <div class="hero">
-                <img src="https://egypt-excursionsonline.com/EEO-logo.png" alt="Egypt Excursions Online" class="logo">
+                {{#if companyLogo}}
+                <img src="{{companyLogo}}" alt="{{companyName}}" class="logo">
+                {{else}}
+                <div style="font-size: 24px; font-weight: 800; margin-bottom: 24px;">{{companyName}}</div>
+                {{/if}}
                 <div class="hero-status">Payment received</div>
                 <div class="hero-title">Transaction successful</div>
                 <div class="hero-meta">Booking {{bookingId}} · {{tourTitle}}</div>
@@ -78,7 +83,7 @@
             <div class="content">
                 <div class="greeting">Hi {{customerName}},</div>
                 <p class="intro">
-                    We’ve received your payment and your booking is fully secured. Below is a quick summary of the transaction for your records.
+                    We've received your payment and your booking is fully secured. Below is a quick summary of the transaction for your records.
                 </p>
 
                 <div class="badges-row">
@@ -121,7 +126,7 @@
                     <div class="card-body">
                         <p style="margin: 0 0 12px; font-size: 14px; color: #475569;">• A receipt has been saved in your account.</p>
                         <p style="margin: 0 0 12px; font-size: 14px; color: #475569;">• Your booking dashboard shows all upcoming experiences.</p>
-                        <p style="margin: 0; font-size: 14px; color: #475569;">• We’ll remind you 24 hours before your tour with final instructions.</p>
+                        <p style="margin: 0; font-size: 14px; color: #475569;">• We'll remind you 24 hours before your tour with final instructions.</p>
                     </div>
                 </div>
 
@@ -134,7 +139,7 @@
                     <div class="support-icon">💳</div>
                     <div class="support-text">
                         <strong>Questions about this charge?</strong>
-                        <span>Email booking@egypt-excursionsonline.com or WhatsApp +20 11 42255624</span>
+                        <span>Email <a href="mailto:{{contactEmail}}">{{contactEmail}}</a>{{#if contactPhone}} or WhatsApp <a href="https://wa.me/{{contactPhone}}">{{contactPhone}}</a>{{/if}}</span>
                     </div>
                 </div>
             </div>
@@ -142,10 +147,10 @@
             <div class="footer">
                 <div class="footer-links">
                     <a href="{{baseUrl}}/user/bookings">My Bookings</a>
-                    <a href="{{baseUrl}}/help">Help Center</a>
-                    <a href="{{baseUrl}}/terms">Terms</a>
+                    {{#if website}}<a href="{{website}}">Website</a>{{/if}}
+                    {{#if contactEmail}}<a href="mailto:{{contactEmail}}">Contact</a>{{/if}}
                 </div>
-                <p>© {{year}} Egypt Excursions Online • Cairo, Egypt</p>
+                <p>© {{year}} {{companyName}}</p>
             </div>
         </div>
     </div>

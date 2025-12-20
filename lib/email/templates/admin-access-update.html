@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="UTF-8" />
-    <title>Admin Access Update</title>
+    <title>Admin Access Update - {{companyName}}</title>
     <style>
       body {
         font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -16,9 +16,24 @@
         margin: 0 auto;
         padding: 32px 20px;
       }
+      .header {
+        text-align: center;
+        padding: 24px;
+        background: {{secondaryColor}};
+        border-radius: 18px 18px 0 0;
+      }
+      .header img {
+        max-height: 48px;
+        margin: 0 auto;
+      }
+      .header-text {
+        color: #fff;
+        font-size: 20px;
+        font-weight: 800;
+      }
       .card {
         background: #ffffff;
-        border-radius: 18px;
+        border-radius: 0 0 18px 18px;
         padding: 36px;
         box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
       }
@@ -46,8 +61,12 @@
         border-radius: 12px;
         text-decoration: none;
         font-weight: 600;
-        background: #0f172a;
+        background: {{primaryColor}};
         color: #fff;
+      }
+      a {
+        color: {{primaryColor}};
+        text-decoration: none;
       }
       footer {
         text-align: center;
@@ -59,6 +78,13 @@
   </head>
   <body>
     <div class="wrapper">
+      <div class="header">
+        {{#if companyLogo}}
+        <img src="{{companyLogo}}" alt="{{companyName}}">
+        {{else}}
+        <div class="header-text">{{companyName}}</div>
+        {{/if}}
+      </div>
       <div class="card">
         <span class="badge {{#if isActivated}}badge--activated{{else}}badge--deactivated{{/if}}">
           {{#if (eq action 'permissions_updated')}}
@@ -104,12 +130,14 @@
 
         <p>
           If you have any questions or believe this change was made in error, reach out to
-          {{supportEmail}} and we'll sort it out quickly.
+          <a href="mailto:{{contactEmail}}">{{contactEmail}}</a> and we'll sort it out quickly.
         </p>
       </div>
 
-      <footer>Egypt Excursions Online · Security first</footer>
+      <footer>
+        © {{year}} {{companyName}} · Security first
+        {{#if website}}<br><a href="{{website}}">{{website}}</a>{{/if}}
+      </footer>
     </div>
   </body>
 </html>
-

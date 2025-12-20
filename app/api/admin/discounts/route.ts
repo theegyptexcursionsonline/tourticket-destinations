@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Discount from '@/lib/models/Discount';
 // import { isAdmin } from '@/lib/auth'; // Hypothetical auth check
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   // if (!isAdmin(request)) {
   //   return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   // }
@@ -11,7 +11,17 @@ export async function GET(request: Request) {
   await dbConnect();
 
   try {
-    const discounts = await Discount.find({}).sort({ createdAt: -1 });
+    // Support optional tenant filtering for multi-tenant admin
+    const { searchParams } = new URL(request.url);
+    const tenantId = searchParams.get('tenantId');
+    
+    // Build query with optional tenant filter
+    const query: Record<string, unknown> = {};
+    if (tenantId && tenantId !== 'all') {
+      query.tenantId = tenantId;
+    }
+
+    const discounts = await Discount.find(query).sort({ createdAt: -1 });
     return NextResponse.json({ success: true, data: discounts });
   } catch (error) {
     console.error('Failed to fetch discounts:', error);
@@ -19,7 +29,7 @@ export async function GET(request: Request) {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   // if (!isAdmin(request)) {
   //   return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   // }
@@ -28,6 +38,15 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
+    
+    // Ensure tenantId is provided for new discounts
+    if (!body.tenantId) {
+      return NextResponse.json(
+        { success: false, error: 'tenantId is required for creating discounts' },
+        { status: 400 }
+      );
+    }
+    
     const newDiscount = await Discount.create(body);
     return NextResponse.json({ success: true, data: newDiscount }, { status: 201 });
   } catch (error) {

@@ -5,23 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
-    <title>New Booking Alert</title>
+    <title>New Booking Alert - {{companyName}}</title>
     <style>
         body { margin: 0; padding: 0; width: 100% !important; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; font-family: 'Helvetica Neue', Arial, sans-serif; background: #eef2f7; color: #0f172a; }
         table { border-collapse: collapse; }
         img { border: 0; outline: none; display: block; max-width: 100%; }
-        a { color: #2563eb; text-decoration: none; }
+        a { color: {{primaryColor}}; text-decoration: none; }
 
         .wrapper { width: 100%; padding: 32px 0; background: #eef2f7; }
         .container { max-width: 700px; width: 100%; background: #fff; border-radius: 36px; overflow: hidden; box-shadow: 0 35px 70px rgba(15,23,42,0.18); }
+        
+        .header { text-align: center; padding: 20px 32px; background: {{secondaryColor}}; }
+        .header img { max-height: 40px; margin: 0 auto; }
+        .header-text { color: #fff; font-size: 12px; margin: 6px 0 0; opacity: 0.8; }
+        
         .success-header { text-align: center; padding: 40px 32px 0; }
-        .status-icon { width: 76px; height: 76px; border-radius: 999px; margin: 0 auto 18px; background: radial-gradient(circle at 30% 30%, #38bdf8, #6366f1); color: #fff; font-size: 34px; line-height: 76px; font-weight: 700; }
-        .status-chip { display: inline-block; padding: 6px 14px; border-radius: 999px; background: rgba(99,102,241,0.12); color: #4c1d95; font-size: 11px; letter-spacing: 1px; font-weight: 700; text-transform: uppercase; }
+        .status-icon { width: 76px; height: 76px; border-radius: 999px; margin: 0 auto 18px; background: radial-gradient(circle at 30% 30%, {{primaryColor}}, {{accentColor}}); color: #fff; font-size: 34px; line-height: 76px; font-weight: 700; }
+        .status-chip { display: inline-block; padding: 6px 14px; border-radius: 999px; background: rgba(99,102,241,0.12); color: {{primaryColor}}; font-size: 11px; letter-spacing: 1px; font-weight: 700; text-transform: uppercase; }
         .success-title { font-size: 28px; margin: 12px 0 6px; font-weight: 800; color: #0f172a; }
         .success-text { color: #475569; font-size: 15px; margin: 0; }
 
         .ticket-card { margin: 32px; border: 1px solid #e2e8f0; border-radius: 30px; overflow: hidden; box-shadow: inset 0 0 0 1px rgba(226,232,240,0.4); }
-        .ticket-gradient { height: 6px; background: linear-gradient(90deg, #6366f1, #8b5cf6, #ec4899); }
+        .ticket-gradient { height: 6px; background: linear-gradient(90deg, {{primaryColor}}, {{accentColor}}); }
         .ticket-body { padding: 32px; }
         .top-row { display: flex; gap: 16px; flex-wrap: wrap; }
         .ticket-info { flex: 1 1 240px; }
@@ -30,11 +35,11 @@
         .badge-primary { background: #e0e7ff; color: #312e81; }
         .badge-soft { background: #e2e8f0; color: #475569; }
         .tour-title { font-size: 22px; margin: 0 0 6px; font-weight: 800; color: #0f172a; }
-        .tour-option { margin: 0 0 4px; color: #2563eb; font-weight: 600; }
+        .tour-option { margin: 0 0 4px; color: {{primaryColor}}; font-weight: 600; }
         .booking-reference { margin: 0; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; color: #94a3b8; font-weight: 600; }
         .ticket-date { text-align: right; }
         .date-pill { border: 1px solid #e2e8f0; border-radius: 22px; padding: 12px; width: 90px; text-align: center; }
-        .date-day { font-size: 11px; letter-spacing: 1px; color: #ec4899; font-weight: 700; }
+        .date-day { font-size: 11px; letter-spacing: 1px; color: {{primaryColor}}; font-weight: 700; }
         .date-number { font-size: 30px; font-weight: 800; color: #0f172a; line-height: 1.1; }
         .date-month { font-size: 12px; letter-spacing: 1px; color: #475569; font-weight: 600; }
 
@@ -45,7 +50,7 @@
         .value.mono { font-family: 'SFMono-Regular', Menlo, monospace; letter-spacing: 0.5px; }
         .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; display: inline-block; margin-right: 6px; }
 
-        .countdown-card { background: linear-gradient(135deg, #0f172a, #312e81); border-radius: 22px; padding: 20px; margin-top: 24px; color: #fff; text-align: center; }
+        .countdown-card { background: linear-gradient(135deg, {{secondaryColor}}, #1e293b); border-radius: 22px; padding: 20px; margin-top: 24px; color: #fff; text-align: center; }
         .countdown-label { margin: 0 0 12px; text-transform: uppercase; font-size: 11px; letter-spacing: 1px; color: rgba(255,255,255,0.7); }
         .countdown-grid { display: flex; justify-content: center; gap: 18px; }
         .countdown-unit { min-width: 70px; }
@@ -61,15 +66,14 @@
         .pickup { background: linear-gradient(135deg, rgba(191,219,254,0.65), rgba(199,210,254,0.65)); border-color: #93c5fd; }
         .pickup-map { margin-top: 16px; border-radius: 18px; overflow: hidden; border: 1px solid rgba(99,102,241,0.3); }
         .note { background: linear-gradient(135deg, rgba(254,215,170,0.6), rgba(253,230,138,0.6)); border-color: #fcd34d; }
+        .body-text { margin: 0; font-size: 14px; color: #475569; }
 
         .tour-item { border: 1px solid #e2e8f0; border-radius: 18px; padding: 18px; margin-bottom: 12px; }
-        .tour-title { font-weight: 700; margin: 0 0 6px; color: #0f172a; }
         .tour-meta { font-size: 13px; color: #94a3b8; margin: 2px 0; }
-        .tour-option { font-size: 12px; font-weight: 600; color: #2563eb; }
         .tour-price { font-weight: 800; font-size: 16px; color: #0f172a; text-align: right; }
 
-        .action-card { border: 1px dashed #c7d2fe; border-radius: 22px; padding: 20px; text-align: center; background: #eef2ff; }
-        .btn { display: inline-block; padding: 15px 42px; border-radius: 999px; background: linear-gradient(120deg, #6366f1, #8b5cf6); color: #fff; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 18px 35px rgba(99,102,241,0.35); }
+        .action-card { border: 1px dashed #e2e8f0; border-radius: 22px; padding: 20px; text-align: center; background: #f8fafc; }
+        .btn { display: inline-block; padding: 15px 42px; border-radius: 999px; background: {{primaryColor}}; color: #fff; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 18px 35px rgba(0,0,0,0.15); }
 
         .footer { padding: 24px; text-align: center; border-top: 1px solid #e2e8f0; background: #f8fafc; font-size: 12px; color: #94a3b8; }
 
@@ -86,6 +90,20 @@
         <tr>
             <td align="center">
                 <table role="presentation" class="container" width="700" cellpadding="0" cellspacing="0">
+                    <!-- Header with Logo -->
+                    <tr>
+                        <td>
+                            <div class="header">
+                                {{#if companyLogo}}
+                                <img src="{{companyLogo}}" alt="{{companyName}}">
+                                {{else}}
+                                <div style="color: #fff; font-size: 20px; font-weight: 800;">{{companyName}}</div>
+                                {{/if}}
+                                <div class="header-text">Admin Notification</div>
+                            </div>
+                        </td>
+                    </tr>
+                    
                     <tr>
                         <td>
                             <div class="success-header">
@@ -244,7 +262,7 @@
                             <div class="section">
                                 <div class="section-title">Next Steps</div>
                                 <div class="action-card">
-                                    <p style="margin:0 0 16px; color:#312e81; font-weight:600;">Verify logistics, confirm pickup and notify ops.</p>
+                                    <p style="margin:0 0 16px; color:#475569; font-weight:600;">Verify logistics, confirm pickup and notify ops.</p>
                                     {{#if adminDashboardLink}}
                                     <a class="btn" href="{{adminDashboardLink}}">Open in Dashboard</a>
                                     {{/if}}
@@ -256,7 +274,7 @@
                     <tr>
                         <td>
                             <div class="footer">
-                                System notification • © {{year}} Egypt Excursions Online
+                                System notification • © {{year}} {{companyName}}
                             </div>
                         </td>
                     </tr>
@@ -266,4 +284,3 @@
     </table>
 </body>
 </html>
-

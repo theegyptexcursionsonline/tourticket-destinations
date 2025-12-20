@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="format-detection" content="telephone=no, email=no, address=no">
-    <title>Trip Reminder</title>
+    <title>Trip Reminder - {{companyName}}</title>
     <style>
         body { margin: 0; padding: 0; background: #f3f6fb; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #0f172a; -webkit-font-smoothing: antialiased; }
         img { border: none; display: block; max-width: 100%; }
         .wrapper { width: 100%; padding: 32px 0; }
         .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 30px 55px rgba(15,23,42,0.12); }
 
-        .hero { background: linear-gradient(135deg, #0f172a 0%, #2563eb 50%, #38bdf8 100%); padding: 36px 40px; color: #f8fafc; text-align: center; }
-        .logo { width: 110px; margin: 0 auto 20px; }
+        .hero { background: linear-gradient(135deg, {{secondaryColor}} 0%, {{primaryColor}} 100%); padding: 36px 40px; color: #f8fafc; text-align: center; }
+        .logo { max-width: 180px; max-height: 60px; margin: 0 auto 20px; }
         .hero-eyebrow { font-size: 12px; letter-spacing: 1px; text-transform: uppercase; opacity: 0.8; }
         .hero-title { font-size: 28px; font-weight: 700; margin: 12px 0 6px; }
         .hero-meta { font-size: 15px; opacity: 0.85; }
@@ -32,30 +32,31 @@
         .info-label { font-size: 13px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.6px; }
         .info-value { font-size: 16px; font-weight: 600; color: #0f172a; }
 
-        .timeline { border: 1px dashed #cbd5f5; border-radius: 16px; padding: 24px 20px; margin-bottom: 28px; }
+        .timeline { border: 1px dashed #e2e8f0; border-radius: 16px; padding: 24px 20px; margin-bottom: 28px; }
         .timeline-step { display: flex; gap: 12px; margin-bottom: 16px; }
         .timeline-step:last-child { margin-bottom: 0; }
-        .timeline-dot { width: 12px; height: 12px; border-radius: 50%; background: #2563eb; margin-top: 4px; }
+        .timeline-dot { width: 12px; height: 12px; border-radius: 50%; background: {{primaryColor}}; margin-top: 4px; flex-shrink: 0; }
         .timeline-text { font-size: 14px; color: #1f2937; line-height: 1.5; }
 
         .essentials { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 28px; }
-        .essential-item { border: 1px solid #e0e7ff; border-radius: 12px; padding: 14px; text-align: center; background: #f8fafc; }
+        .essential-item { border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; text-align: center; background: #f8fafc; }
         .essential-icon { font-size: 20px; margin-bottom: 6px; }
         .essential-label { font-size: 13px; color: #475569; font-weight: 600; }
 
-        .checklist { border: 1px solid #dbeafe; border-radius: 16px; padding: 22px 24px; margin-bottom: 28px; background: #eff6ff; }
-        .checklist-title { font-size: 13px; letter-spacing: 0.8px; text-transform: uppercase; color: #1d4ed8; font-weight: 700; margin-bottom: 12px; }
+        .checklist { border: 1px solid #e2e8f0; border-radius: 16px; padding: 22px 24px; margin-bottom: 28px; background: #f8fafc; }
+        .checklist-title { font-size: 13px; letter-spacing: 0.8px; text-transform: uppercase; color: {{primaryColor}}; font-weight: 700; margin-bottom: 12px; }
         .checklist-item { font-size: 14px; color: #1e293b; margin-bottom: 8px; padding-left: 22px; position: relative; }
         .checklist-item:before { content: '✓'; position: absolute; left: 0; color: #22c55e; font-weight: 700; }
 
         .weather { border: 1px solid #bae6fd; border-radius: 14px; padding: 18px 20px; margin-bottom: 24px; background: #e0f2fe; font-size: 14px; color: #0c4a6e; }
 
-        .support { border: 1px solid #e2e8f0; border-radius: 16px; padding: 22px 24px; background: #0f172a; color: #f8fafc; text-align: center; }
+        .support { border: 1px solid #e2e8f0; border-radius: 16px; padding: 22px 24px; background: {{secondaryColor}}; color: #f8fafc; text-align: center; }
         .support strong { display: block; font-size: 15px; margin-bottom: 6px; }
         .support span { font-size: 14px; color: rgba(248,250,252,0.85); }
+        .support a { color: #fff; text-decoration: none; }
 
         .footer { background: #f8fafc; padding: 28px 40px; text-align: center; border-top: 1px solid #e2e8f0; }
-        .footer-links a { color: #94a3b8; font-size: 13px; margin: 0 10px; text-decoration: none; font-weight: 600; }
+        .footer-links a { color: #64748b; font-size: 13px; margin: 0 10px; text-decoration: none; font-weight: 600; }
         .footer p { color: #94a3b8; font-size: 12px; margin: 10px 0; }
 
         @media (max-width: 600px) {
@@ -71,7 +72,11 @@
     <div class="wrapper">
         <div class="container">
             <div class="hero">
-                <img src="https://egypt-excursionsonline.com/EEO-logo.png" alt="Egypt Excursions Online" class="logo">
+                {{#if companyLogo}}
+                <img src="{{companyLogo}}" alt="{{companyName}}" class="logo">
+                {{else}}
+                <div style="font-size: 24px; font-weight: 800; margin-bottom: 20px;">{{companyName}}</div>
+                {{/if}}
                 <div class="hero-eyebrow">Tour starts in 24 hours</div>
                 <div class="hero-title">Tomorrow is the day!</div>
                 <div class="hero-meta">{{tourTitle}} · {{bookingDate}} · {{bookingTime}}</div>
@@ -79,7 +84,7 @@
 
             <div class="content">
                 <div class="greeting">Hi {{customerName}},</div>
-                <p class="intro">Your Egyptian adventure begins tomorrow. Here’s a quick briefing to make arrival effortless.</p>
+                <p class="intro">Your adventure begins tomorrow. Here's a quick briefing to make arrival effortless.</p>
 
                 <div class="countdown">
                     <div class="countdown-label">Countdown</div>
@@ -160,17 +165,16 @@
 
                 <div class="support">
                     <strong>Need us on the day?</strong>
-                    <span>Guide contact: {{contactNumber}} · WhatsApp: +20 11 42255624</span>
+                    <span>{{#if contactPhone}}<a href="https://wa.me/{{contactPhone}}">WhatsApp: {{contactPhone}}</a>{{/if}}{{#if contactEmail}} · <a href="mailto:{{contactEmail}}">{{contactEmail}}</a>{{/if}}</span>
                 </div>
             </div>
 
             <div class="footer">
                 <div class="footer-links">
                     <a href="{{baseUrl}}/user/bookings">My Bookings</a>
-                    <a href="{{baseUrl}}/help">Help Center</a>
-                    <a href="{{baseUrl}}/terms">Terms</a>
+                    {{#if website}}<a href="{{website}}">Website</a>{{/if}}
                 </div>
-                <p>© {{year}} Egypt Excursions Online • Cairo, Egypt</p>
+                <p>© {{year}} {{companyName}}</p>
             </div>
         </div>
     </div>

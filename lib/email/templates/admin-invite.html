@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="UTF-8" />
-    <title>Admin Invitation</title>
+    <title>Admin Invitation - {{companyName}}</title>
     <style>
       body {
         font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -16,9 +16,24 @@
         margin: 0 auto;
         padding: 32px 20px;
       }
+      .header {
+        text-align: center;
+        padding: 24px;
+        background: {{secondaryColor}};
+        border-radius: 20px 20px 0 0;
+      }
+      .header img {
+        max-height: 48px;
+        margin: 0 auto;
+      }
+      .header-text {
+        color: #fff;
+        font-size: 20px;
+        font-weight: 800;
+      }
       .card {
         background: #ffffff;
-        border-radius: 20px;
+        border-radius: 0 0 20px 20px;
         padding: 40px;
         box-shadow: 0 14px 40px rgba(15, 23, 42, 0.08);
       }
@@ -28,7 +43,7 @@
         border-radius: 999px;
         text-decoration: none;
         font-weight: 600;
-        background: linear-gradient(135deg, #f97316, #ef4444);
+        background: {{primaryColor}};
         color: #fff;
       }
       .muted {
@@ -45,7 +60,7 @@
         margin: 4px 6px 0 0;
       }
       .credentials {
-        background: #0f172a;
+        background: {{secondaryColor}};
         color: #fff;
         border-radius: 16px;
         padding: 18px 24px;
@@ -64,15 +79,26 @@
         color: #94a3b8;
         font-size: 13px;
       }
+      footer a {
+        color: {{primaryColor}};
+        text-decoration: none;
+      }
     </style>
   </head>
   <body>
     <div class="wrapper">
+      <div class="header">
+        {{#if companyLogo}}
+        <img src="{{companyLogo}}" alt="{{companyName}}">
+        {{else}}
+        <div class="header-text">{{companyName}}</div>
+        {{/if}}
+      </div>
       <div class="card">
         <p class="muted">Private invite</p>
         <h1>Hi {{inviteeName}},</h1>
         <p>
-          {{inviterName}} just invited you to help manage Egypt Excursions Online. Click the button
+          {{inviterName}} just invited you to help manage {{companyName}}. Click the button
           below to accept your invitation and set your password.
         </p>
 
@@ -107,14 +133,14 @@
         </div>
 
         <p style="margin-top: 24px; font-size: 14px; color: #64748b;">
-          Need help? Reply to this email or contact {{supportEmail}}.
+          Need help? Reply to this email or contact <a href="mailto:{{contactEmail}}" style="color: {{primaryColor}};">{{contactEmail}}</a>.
         </p>
       </div>
 
       <footer>
-        © Egypt Excursions Online · Secure admin access only
+        © {{year}} {{companyName}} · Secure admin access only
+        {{#if website}}<br><a href="{{website}}">{{website}}</a>{{/if}}
       </footer>
     </div>
   </body>
 </html>
-

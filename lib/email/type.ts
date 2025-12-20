@@ -1,8 +1,32 @@
 // lib/email/types.ts
 
+// Tenant branding for emails
+export interface TenantEmailBranding {
+  tenantId: string;
+  companyName: string;
+  logo?: string;
+  primaryColor: string;
+  secondaryColor?: string;
+  accentColor?: string;
+  contactEmail: string;
+  contactPhone: string;
+  website?: string;
+  supportEmail?: string;
+  socialLinks?: {
+    facebook?: string;
+    instagram?: string;
+    twitter?: string;
+  };
+  // Email sender config
+  fromName?: string;
+  fromEmail?: string;
+}
+
 export interface BaseEmailData {
   customerName: string;
   customerEmail: string;
+  // Tenant branding - optional for backward compatibility
+  tenantBranding?: TenantEmailBranding;
 }
 
 export interface BookingEmailData extends BaseEmailData {

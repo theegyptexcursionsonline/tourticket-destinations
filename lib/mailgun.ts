@@ -33,12 +33,19 @@ interface EmailOptions {
   replyTo?: string;
   inlineAttachments?: InlineAttachment[];
   attachments?: Attachment[];
+  // Tenant-specific sender (optional)
+  fromName?: string;
+  fromEmail?: string;
 }
 
 export async function sendEmail(options: EmailOptions): Promise<void> {
   try {
+    // Use tenant-specific from name/email if provided, otherwise fall back to defaults
+    const senderName = options.fromName || 'Egypt Excursions Online';
+    const senderEmail = options.fromEmail || FROM_EMAIL;
+    
     const messageData: any = {
-      from: `Egypt Excursions Online <${FROM_EMAIL}>`,
+      from: `${senderName} <${senderEmail}>`,
       to: [options.to],
       subject: options.subject,
       html: options.html,

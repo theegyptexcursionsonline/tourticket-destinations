@@ -9,8 +9,36 @@ import { EmailService } from '@/lib/email/emailService';
 import Stripe from 'stripe';
 import { parseLocalDate, ensureDateOnlyString } from '@/utils/date';
 import { buildGoogleMapsLink, buildStaticMapImageUrl } from '@/lib/utils/mapImage';
+import { getTenantConfigCached } from '@/lib/tenant';
+import { ITenant } from '@/lib/models/Tenant';
+import { TenantEmailBranding } from '@/lib/email/type';
 
-// Initialize Stripe
+// Helper to convert tenant config to email branding
+function getTenantEmailBranding(tenantConfig: ITenant | null, baseUrl: string): TenantEmailBranding | undefined {
+  if (!tenantConfig) return undefined;
+  
+  return {
+    tenantId: tenantConfig.tenantId,
+    companyName: tenantConfig.name,
+    logo: tenantConfig.branding?.logo,
+    primaryColor: tenantConfig.branding?.primaryColor || '#E63946',
+    secondaryColor: tenantConfig.branding?.secondaryColor || '#1D3557',
+    accentColor: tenantConfig.branding?.accentColor || '#F4A261',
+    contactEmail: tenantConfig.contact?.email || 'info@tours.com',
+    contactPhone: tenantConfig.contact?.phone || '+20 000 000 0000',
+    website: baseUrl || tenantConfig.domain,
+    supportEmail: tenantConfig.contact?.supportEmail || tenantConfig.contact?.email,
+    socialLinks: {
+      facebook: tenantConfig.socialLinks?.facebook,
+      instagram: tenantConfig.socialLinks?.instagram,
+      twitter: tenantConfig.socialLinks?.twitter,
+    },
+    fromName: tenantConfig.email?.fromName || tenantConfig.name,
+    fromEmail: tenantConfig.email?.fromEmail,
+  };
+}
+
+// Initialize default Stripe (will be overridden per-tenant if configured)
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-08-27.basil',
 });
@@ -28,18 +56,32 @@ function formatBookingDate(dateString: string | Date | undefined): string {
   });
 }
 
-// Helper function to generate unique booking reference
-async function generateUniqueBookingReference(): Promise<string> {
+// Helper function to generate unique booking reference with tenant prefix
+async function generateUniqueBookingReference(tenantId: string, tenantConfig?: ITenant | null): Promise<string> {
   const maxAttempts = 10;
   
+  // Use tenant-specific prefix or derive from tenantId
+  // Format: First letters of tenant name or tenantId abbreviation
+  let prefix = 'BKG'; // Default fallback
+  if (tenantConfig?.name) {
+    // Create abbreviation from tenant name (e.g., "Egypt Excursions Online" -> "EEO")
+    prefix = tenantConfig.name
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase())
+      .join('')
+      .slice(0, 4) || 'BKG';
+  } else if (tenantId) {
+    // Use first 3-4 chars of tenantId uppercase
+    prefix = tenantId.replace(/-/g, '').slice(0, 4).toUpperCase() || 'BKG';
+  }
+  
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const prefix = 'EEO';
     const timestamp = Date.now().toString().slice(-8);
     const random = Math.random().toString(36).substring(2, 8).toUpperCase();
     const reference = `${prefix}-${timestamp}-${random}`;
     
-    // Check if this reference already exists
-    const existing = await Booking.findOne({ bookingReference: reference }).lean();
+    // Check if this reference already exists for this tenant
+    const existing = await Booking.findOne({ tenantId, bookingReference: reference }).lean();
     
     if (!existing) {
       return reference;
@@ -50,7 +92,7 @@ async function generateUniqueBookingReference(): Promise<string> {
   }
   
   // Fallback with extra randomness
-  return `EEO-${Date.now()}-${Math.random().toString(36).substring(2, 12).toUpperCase()}`;
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).substring(2, 12).toUpperCase()}`;
 }
 
 const formatCurrencyValue = (value: number | undefined, symbol = '$'): string => {
@@ -92,7 +134,8 @@ export async function POST(request: Request) {
       paymentDetails,
       userId,
       isGuest = false,
-      discountCode = null
+      discountCode = null,
+      tenantId: requestTenantId // Optional: can be passed from frontend
     } = body;
 
     // Validation
@@ -109,6 +152,14 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+
+    // Get tenantId from first cart item's tour (will be validated later when we fetch the tour)
+    // This ensures all bookings are for the same tenant
+    const firstTour = await Tour.findById(cart[0]._id || cart[0].id).select('tenantId').lean();
+    const tenantId = firstTour?.tenantId || requestTenantId || 'default';
+    
+    // Get tenant configuration for tenant-specific settings
+    const tenantConfig = await getTenantConfigCached(tenantId);
 
     let user = null;
 
@@ -127,21 +178,25 @@ export async function POST(request: Request) {
             password: 'guest-' + Math.random().toString(36).substring(2, 15),
           });
           
-          // Send Welcome Email for New Guest Users with real tours
+          // Send Welcome Email for New Guest Users with real tours (filtered by tenant)
           try {
-            // Fetch recommended tours from database
+            // Fetch recommended tours from database (tenant-specific)
             const Tour = (await import('@/lib/models/Tour')).default;
-            const recommendedTours = await Tour.find({})
+            const recommendedTours = await Tour.find({ 
+              tenantId: tenantId,
+              isPublished: true 
+            })
               .select('title slug images pricing')
               .limit(3)
               .lean();
 
             const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+            const currencySymbol = tenantConfig?.payments?.currencySymbol || '$';
 
             const tourRecommendations = recommendedTours.map((tour: any) => ({
               title: tour.title,
               image: tour.images?.[0]?.url || `${baseUrl}/pyramid.png`,
-              price: tour.pricing?.adult ? `From $${tour.pricing.adult}` : 'From $99',
+              price: tour.pricing?.adult ? `From ${currencySymbol}${tour.pricing.adult}` : `From ${currencySymbol}99`,
               link: `${baseUrl}/tour/${tour.slug}`
             }));
 
@@ -160,7 +215,8 @@ export async function POST(request: Request) {
               customerEmail: customer.email,
               dashboardLink: `${baseUrl}/user/dashboard`,
               recommendedTours: tourRecommendations,
-              baseUrl
+              baseUrl,
+              tenantBranding: getTenantEmailBranding(tenantConfig, baseUrl)
             });
           } catch (emailError) {
             console.error('Failed to send welcome email:', emailError);
@@ -273,11 +329,14 @@ export async function POST(request: Request) {
       }
     }
 
-    // Increment discount usage counter if a discount was applied
+    // Increment discount usage counter if a discount was applied (tenant-specific)
     if (discountCode) {
       try {
         await Discount.findOneAndUpdate(
-          { code: discountCode.toUpperCase() },
+          { 
+            code: discountCode.toUpperCase(),
+            tenantId: tenantId // Filter by tenant to ensure discount belongs to this tenant
+          },
           { $inc: { timesUsed: 1 } }
         );
       } catch (discountError) {
@@ -289,7 +348,17 @@ export async function POST(request: Request) {
     // Send Payment Confirmation or Bank Transfer Instructions or Pay Later Instructions
     try {
       if (isBankTransfer) {
+        // Get tenant-specific bank details or use defaults
+        const bankDetails = tenantConfig?.payments?.bankDetails || {
+          bankName: 'Commercial International Bank (CIB)',
+          accountName: tenantConfig?.name || 'Egypt Excursions Online',
+          accountNumber: '1001234567890',
+          iban: 'EG380001001001234567890',
+          swiftCode: 'CIBEEGCX',
+        };
+        
         // Send bank transfer instructions email
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || '';
         await EmailService.sendBankTransferInstructions({
           customerName: `${customer.firstName} ${customer.lastName}`,
           customerEmail: customer.email,
@@ -298,32 +367,35 @@ export async function POST(request: Request) {
           bookingDate: formatBookingDate(cart[0]?.selectedDate),
           bookingTime: cart[0]?.selectedTime || '10:00',
           participants: `${cart.reduce((sum: number, item: any) => sum + (item.quantity || 0) + (item.childQuantity || 0) + (item.infantQuantity || 0), 0)} participant(s)`,
-          totalPrice: `$${pricing.total.toFixed(2)}`,
-          bankName: 'Commercial International Bank (CIB)',
-          accountName: 'Egypt Excursions Online',
-          accountNumber: '1001234567890',
-          iban: 'EG380001001001234567890',
-          swiftCode: 'CIBEEGCX',
+          totalPrice: `${tenantConfig?.payments?.currencySymbol || '$'}${pricing.total.toFixed(2)}`,
+          bankName: bankDetails.bankName,
+          accountName: bankDetails.accountName,
+          accountNumber: bankDetails.accountNumber,
+          iban: bankDetails.iban,
+          swiftCode: bankDetails.swiftCode,
           currency: paymentResult.currency,
           specialRequests: customer.specialRequests,
           hotelPickupDetails: customer.hotelPickupDetails,
-          baseUrl: process.env.NEXT_PUBLIC_BASE_URL || ''
+          baseUrl,
+          tenantBranding: getTenantEmailBranding(tenantConfig, baseUrl)
         });
       } else if (isPayLater) {
         // Pay later - no payment email needed, booking confirmation will be sent separately
         console.log('Pay Later booking - skipping payment confirmation email');
       } else {
         // Send regular payment confirmation for card payments
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || '';
         await EmailService.sendPaymentConfirmation({
           customerName: `${customer.firstName} ${customer.lastName}`,
           customerEmail: customer.email,
           paymentId: paymentResult.paymentId,
           paymentMethod: paymentMethod,
-          amount: `$${pricing.total.toFixed(2)}`,
+          amount: `${tenantConfig?.payments?.currencySymbol || '$'}${pricing.total.toFixed(2)}`,
           currency: paymentResult.currency,
           bookingId: `BOOKING-${Date.now()}`,
           tourTitle: cart.length === 1 ? cart[0].title : `${cart.length} Tours`,
-          baseUrl: process.env.NEXT_PUBLIC_BASE_URL || ''
+          baseUrl,
+          tenantBranding: getTenantEmailBranding(tenantConfig, baseUrl)
         });
       }
     } catch (emailError) {
@@ -377,10 +449,11 @@ export async function POST(request: Request) {
 
         const itemTotalPrice = calculateItemTotal();
 
-        // Generate unique booking reference
-        const bookingReference = await generateUniqueBookingReference();
+        // Generate unique booking reference with tenant-specific prefix
+        const bookingReference = await generateUniqueBookingReference(tenantId, tenantConfig);
 
         const booking = await Booking.create({
+          tenantId: tour.tenantId || 'default', // Inherit tenant from tour
           bookingReference, // Provide the reference explicitly
           tour: tour._id,
           user: user._id,
@@ -506,6 +579,7 @@ export async function POST(request: Request) {
         participantParts.push(`${infantCount} x Infant${infantCount > 1 ? 's' : ''} (Free)`);
       }
 
+      const emailBaseUrl = process.env.NEXT_PUBLIC_BASE_URL || '';
       await EmailService.sendBookingConfirmation({
         customerName: `${customer.firstName} ${customer.lastName}`,
         customerEmail: customer.email,
@@ -524,14 +598,15 @@ export async function POST(request: Request) {
         hotelPickupMapImage: hotelPickupMapImage || undefined,
         hotelPickupMapLink: hotelPickupMapLink || undefined,
         meetingPoint: mainTour?.meetingPoint || "Meeting point will be confirmed 24 hours before tour",
-        contactNumber: "+20 11 42255624",
+        contactNumber: tenantConfig?.contact?.phone || "+20 11 42255624",
         tourImage: mainTour?.image,
-        baseUrl: process.env.NEXT_PUBLIC_BASE_URL || '',
+        baseUrl: emailBaseUrl,
         orderedItems: orderedItemsSummary,
         pricingDetails,
         timeUntil: timeUntilTour || undefined,
         customerPhone: customer.phone,
         dateBadge,
+        tenantBranding: getTenantEmailBranding(tenantConfig, emailBaseUrl)
       });
     } catch (emailError) {
       console.error('Failed to send booking confirmation email:', emailError);
@@ -622,7 +697,9 @@ export async function POST(request: Request) {
         baseUrl,
         tours: tourDetails,
         timeUntil: timeUntilTour || undefined,
-        dateBadge
+        dateBadge,
+        tenantBranding: getTenantEmailBranding(tenantConfig, baseUrl),
+        adminEmail: tenantConfig?.contact?.email // Use tenant admin email if available
       });
     } catch (emailError) {
       console.error('Failed to send admin alert email:', emailError);

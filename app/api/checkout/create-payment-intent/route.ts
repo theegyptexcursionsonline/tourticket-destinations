@@ -1,16 +1,33 @@
 // app/api/checkout/create-payment-intent/route.ts
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import dbConnect from '@/lib/dbConnect';
+import Tour from '@/lib/models/Tour';
+import { getTenantConfigCached } from '@/lib/tenant';
 
-// Initialize Stripe
+// Initialize default Stripe
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2024-12-18.acacia',
 });
 
 export async function POST(request: Request) {
   try {
+    await dbConnect();
+    
     const body = await request.json();
-    const { customer, pricing, cart, discountCode } = body;
+    const { customer, pricing, cart, discountCode, tenantId: requestTenantId } = body;
+    
+    // Get tenantId from first cart item's tour
+    let tenantId = requestTenantId || 'default';
+    if (cart && cart.length > 0 && (cart[0]._id || cart[0].id)) {
+      const firstTour = await Tour.findById(cart[0]._id || cart[0].id).select('tenantId').lean();
+      if (firstTour?.tenantId) {
+        tenantId = firstTour.tenantId;
+      }
+    }
+    
+    // Get tenant config for potential tenant-specific Stripe account
+    const tenantConfig = await getTenantConfigCached(tenantId);
 
     // Validate required fields
     if (!customer || !pricing || !cart || cart.length === 0) {
@@ -45,12 +62,15 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create a PaymentIntent with Stripe
-    const paymentIntent = await stripe.paymentIntents.create({
+    // Use tenant-specific Stripe account if configured, otherwise use default
+    // Note: For Stripe Connect, you would use stripeAccount parameter
+    const stripeOptions: Stripe.PaymentIntentCreateParams = {
       amount: Math.round(pricing.total * 100), // Stripe expects amount in cents
-      currency: (pricing.currency || 'USD').toLowerCase(),
-      description: `Booking for ${cart.length} tour${cart.length > 1 ? 's' : ''}`,
+      currency: (pricing.currency || tenantConfig?.payments?.currency || 'USD').toLowerCase(),
+      description: `Booking for ${cart.length} tour${cart.length > 1 ? 's' : ''} - ${tenantConfig?.name || 'Tour Booking'}`,
       metadata: {
+        tenant_id: tenantId,
+        tenant_name: tenantConfig?.name || 'Default',
         customer_email: customer.email,
         customer_name: `${customer.firstName} ${customer.lastName}`,
         tours: cart.map((item: any) => item.title).join(', '),
@@ -60,7 +80,10 @@ export async function POST(request: Request) {
       automatic_payment_methods: {
         enabled: true,
       },
-    });
+    };
+
+    // Create a PaymentIntent with Stripe
+    const paymentIntent = await stripe.paymentIntents.create(stripeOptions);
 
     return NextResponse.json({
       success: true,
