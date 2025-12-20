@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
 
   await dbConnect();
   try {
-    const users = await User.find({}).select('name firstName lastName email createdAt').lean();
+    const users = await User.find({}).select('name firstName lastName email createdAt').sort({ createdAt: -1 }).lean();
 
     const usersWithBookingCounts = await Promise.all(
       users.map(async (user) => {
