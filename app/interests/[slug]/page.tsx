@@ -6,6 +6,7 @@ import InterestLandingPage from '@/components/InterestLandingPage';
 import dbConnect from '@/lib/dbConnect';
 import Category from '@/lib/models/Category';
 import AttractionPage from '@/lib/models/AttractionPage';
+import { getTenantFromRequest, getTenantPublicConfig } from '@/lib/tenant';
 
 // Types
 interface InterestPageProps {
@@ -91,6 +92,10 @@ export async function generateMetadata(
   { params }: InterestPageProps
 ): Promise<Metadata> {
   const resolvedParams = await params;
+  const tenantId = await getTenantFromRequest();
+  const tenant = await getTenantPublicConfig(tenantId);
+  const siteName = tenant?.name || 'Tours';
+  
   const interest = await getInterestData(resolvedParams.slug);
 
   if (!interest) {
@@ -101,14 +106,15 @@ export async function generateMetadata(
   }
 
   return {
-    title: `${interest.name} Tours in Egypt | Egypt Excursions Online`,
-    description: `Discover the best ${interest.name.toLowerCase()} tours and experiences in Egypt. ${interest.totalTours} amazing tours available.`,
-    keywords: [interest.name, 'tours', 'Egypt', 'travel'].join(', '),
+    title: `${interest.name} Tours | ${siteName}`,
+    description: `Discover the best ${interest.name.toLowerCase()} tours and experiences with ${siteName}. ${interest.totalTours} amazing tours available.`,
+    keywords: [interest.name, 'tours', 'travel', siteName].join(', '),
     openGraph: {
-      title: `${interest.name} Tours in Egypt`,
+      title: `${interest.name} Tours`,
       description: `Discover the best ${interest.name.toLowerCase()} tours.`,
-      images: [interest.heroImage],
+      images: interest.heroImage ? [interest.heroImage] : (tenant?.seo.ogImage ? [tenant.seo.ogImage] : []),
       type: 'website',
+      siteName: siteName,
     },
     alternates: {
       canonical: `/interests/${resolvedParams.slug}`,

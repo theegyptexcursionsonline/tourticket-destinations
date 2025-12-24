@@ -6,20 +6,39 @@ import dbConnect from '@/lib/dbConnect';
 import Category from '@/lib/models/Category';
 import Destination from '@/lib/models/Destination';
 import { Loader2 } from 'lucide-react';
+import { getTenantFromRequest, getTenantPublicConfig } from '@/lib/tenant';
 
 // Enable ISR with 60 second revalidation for instant page loads
 export const dynamic = 'force-dynamic';
 
-// Generate metadata for SEO
-export const metadata: Metadata = {
-  title: 'Search Tours & Activities | Egypt Excursions Online',
-  description: 'Search and filter through our extensive collection of tours and experiences in Egypt. Find your perfect adventure.',
-  openGraph: {
-    title: 'Search Tours & Activities | Egypt Excursions Online',
-    description: 'Search and filter through our extensive collection of tours and experiences in Egypt.',
-    type: 'website',
-  },
-};
+// Generate dynamic metadata based on tenant
+export async function generateMetadata(): Promise<Metadata> {
+  try {
+    const tenantId = await getTenantFromRequest();
+    const tenant = await getTenantPublicConfig(tenantId);
+    
+    if (tenant) {
+      return {
+        title: `Search Tours & Activities | ${tenant.name}`,
+        description: `Search and filter through our extensive collection of tours and experiences. Find your perfect adventure with ${tenant.name}.`,
+        openGraph: {
+          title: `Search Tours & Activities | ${tenant.name}`,
+          description: 'Search and filter through our extensive collection of tours and experiences.',
+          type: 'website',
+          siteName: tenant.name,
+          images: [tenant.seo.ogImage],
+        },
+      };
+    }
+  } catch (error) {
+    console.error('Error generating search page metadata:', error);
+  }
+  
+  return {
+    title: 'Search Tours & Activities',
+    description: 'Search and filter through our extensive collection of tours and experiences.',
+  };
+}
 
 async function getFilters() {
     await dbConnect();

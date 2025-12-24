@@ -6,6 +6,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import BlogPostClient from './BlogPostClient';
 import type { IBlog } from '@/lib/models/Blog';
+import { getTenantFromRequest, getTenantPublicConfig } from '@/lib/tenant';
 
 type Params = { slug: string };
 
@@ -21,6 +22,10 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: { params: Promise<Params> }) {
   try {
+    const tenantId = await getTenantFromRequest();
+    const tenant = await getTenantPublicConfig(tenantId);
+    const siteName = tenant?.name || 'Blog';
+    
     await dbConnect();
     const { slug } = await params;
     const blog = await Blog.findOne({ slug, status: 'published' }).lean();
@@ -28,13 +33,14 @@ export async function generateMetadata({ params }: { params: Promise<Params> }) 
     if (!blog) return { title: 'Blog Post Not Found' };
 
     return {
-      title: blog.metaTitle || blog.title,
+      title: blog.metaTitle || `${blog.title} | ${siteName}`,
       description: blog.metaDescription || blog.excerpt,
       openGraph: {
         title: blog.metaTitle || blog.title,
         description: blog.metaDescription || blog.excerpt,
-        images: blog.featuredImage ? [blog.featuredImage] : undefined,
+        images: blog.featuredImage ? [blog.featuredImage] : (tenant?.seo.ogImage ? [tenant.seo.ogImage] : undefined),
         type: 'article',
+        siteName: siteName,
         publishedTime: blog.publishedAt?.toISOString(),
         authors: blog.author ? [blog.author] : undefined,
       },

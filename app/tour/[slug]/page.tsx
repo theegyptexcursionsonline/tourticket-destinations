@@ -9,6 +9,7 @@ import ReviewModel from '@/lib/models/Review';
 import UserModel from '@/lib/models/user';
 import { Tour, Review } from '@/types';
 import TourPageClient from './TourPageClient';
+import { getTenantFromRequest, getTenantPublicConfig } from '@/lib/tenant';
 
 // Enable ISR with 60 second revalidation for instant page loads
 export const dynamic = 'force-dynamic';
@@ -83,6 +84,10 @@ async function getTourData(slug: string): Promise<{ tour: Tour | null; relatedTo
 // Generate metadata for SEO and social sharing
 export async function generateMetadata({ params }: { params: { slug: string } }) {
   try {
+    const tenantId = await getTenantFromRequest();
+    const tenant = await getTenantPublicConfig(tenantId);
+    const siteName = tenant?.name || 'Tours';
+    
     await dbConnect();
     const tour = await TourModel.findOne({ slug: params.slug })
       .select('title description image discountPrice originalPrice')
@@ -95,15 +100,15 @@ export async function generateMetadata({ params }: { params: { slug: string } })
       };
     }
 
-    const price = tour.discountPrice || tour.originalPrice || 0;
     return {
-      title: `${tour.title} - Egypt Excursions Online`,
-      description: tour.description?.substring(0, 160) || `Book ${tour.title} with Egypt Excursions Online`,
+      title: `${tour.title} | ${siteName}`,
+      description: tour.description?.substring(0, 160) || `Book ${tour.title} with ${siteName}`,
       openGraph: {
         title: tour.title,
         description: tour.description?.substring(0, 160),
-        images: tour.image ? [tour.image] : [],
+        images: tour.image ? [tour.image] : (tenant?.seo.ogImage ? [tenant.seo.ogImage] : []),
         type: 'website',
+        siteName: siteName,
       },
       twitter: {
         card: 'summary_large_image',
@@ -115,8 +120,8 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   } catch (error) {
     console.error('Error generating metadata:', error);
     return {
-      title: 'Tour - Egypt Excursions Online',
-      description: 'Discover amazing tours and experiences in Egypt',
+      title: 'Tour',
+      description: 'Discover amazing tours and experiences',
     };
   }
 }

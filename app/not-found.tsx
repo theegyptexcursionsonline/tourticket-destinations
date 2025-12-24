@@ -1,6 +1,19 @@
 import Link from 'next/link';
+import { getTenantFromRequest, getTenantPublicConfig } from '@/lib/tenant';
 
-const NotFoundPage = () => {
+export default async function NotFoundPage() {
+  // Get tenant info for branding
+  let siteName = 'our team';
+  try {
+    const tenantId = await getTenantFromRequest();
+    const tenant = await getTenantPublicConfig(tenantId);
+    if (tenant?.name) {
+      siteName = tenant.name;
+    }
+  } catch (error) {
+    // Use default
+  }
+
   return (
     <main className="flex flex-col items-center justify-center min-h-screen bg-gray-50 text-gray-800 px-4 md:px-0">
       <div className="text-center p-8 max-w-lg mx-auto">
@@ -38,12 +51,12 @@ const NotFoundPage = () => {
           404
         </h1>
         <p className="text-2xl md:text-3xl font-bold mt-4">
-          Looks like you're off the beaten path.
+          Looks like you&apos;re off the beaten path.
         </p>
         <p className="text-gray-500 mt-4 mb-8 text-md md:text-lg">
-          The travel itinerary you're looking for might be on a secret expedition,
-          or perhaps it never existed. Don't worry! The{' '}
-          <span className="font-semibold text-gray-700">Egypt Excursions Online</span> crew
+          The travel itinerary you&apos;re looking for might be on a secret expedition,
+          or perhaps it never existed. Don&apos;t worry! The{' '}
+          <span className="font-semibold text-gray-700">{siteName}</span> crew
           is here to get you back on track.
         </p>
 
@@ -64,6 +77,4 @@ const NotFoundPage = () => {
       </div>
     </main>
   );
-};
-
-export default NotFoundPage;
+}

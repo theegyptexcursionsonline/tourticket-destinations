@@ -1,18 +1,32 @@
 import { Metadata } from 'next';
 import ForgotPasswordClient from './ForgotPasswordClient';
+import { getTenantFromRequest, getTenantPublicConfig } from '@/lib/tenant';
 
-// Enable static generation for fast page loads
-export const dynamic = 'force-static';
-
-// Generate metadata for SEO
-export const metadata: Metadata = {
-  title: 'Forgot Password | Egypt Excursions Online',
-  description: 'Reset your password to regain access to your account. Enter your email and we will send you a password reset link.',
-  robots: {
-    index: true,
-    follow: true,
-  },
-};
+// Generate dynamic metadata based on tenant
+export async function generateMetadata(): Promise<Metadata> {
+  try {
+    const tenantId = await getTenantFromRequest();
+    const tenant = await getTenantPublicConfig(tenantId);
+    
+    if (tenant) {
+      return {
+        title: `Forgot Password | ${tenant.name}`,
+        description: `Reset your ${tenant.name} password to regain access to your account.`,
+        robots: {
+          index: true,
+          follow: true,
+        },
+      };
+    }
+  } catch (error) {
+    console.error('Error generating forgot password page metadata:', error);
+  }
+  
+  return {
+    title: 'Forgot Password',
+    description: 'Reset your password to regain access to your account.',
+  };
+}
 
 export default function ForgotPasswordPage() {
   return <ForgotPasswordClient />;

@@ -5,20 +5,39 @@ import CareersClientPage from "./CareersClientPage";
 import dbConnect from "@/lib/dbConnect";
 import Job from "@/lib/models/Job";
 import { Job as JobType } from "@/types";
+import { getTenantFromRequest, getTenantPublicConfig } from "@/lib/tenant";
 
 // Enable ISR with 60 second revalidation for instant page loads
 export const revalidate = 60;
 
-// Generate metadata for SEO
-export const metadata: Metadata = {
-  title: 'Careers - Join Our Team | Egypt Excursions Online',
-  description: 'Explore exciting career opportunities at Egypt Excursions Online. Join our team and help create unforgettable travel experiences.',
-  openGraph: {
-    title: 'Careers - Join Our Team | Egypt Excursions Online',
-    description: 'Explore exciting career opportunities at Egypt Excursions Online.',
-    type: 'website',
-  },
-};
+// Generate dynamic metadata based on tenant
+export async function generateMetadata(): Promise<Metadata> {
+  try {
+    const tenantId = await getTenantFromRequest();
+    const tenant = await getTenantPublicConfig(tenantId);
+    
+    if (tenant) {
+      return {
+        title: `Careers - Join Our Team | ${tenant.name}`,
+        description: `Explore exciting career opportunities at ${tenant.name}. Join our team and help create unforgettable travel experiences.`,
+        openGraph: {
+          title: `Careers - Join Our Team | ${tenant.name}`,
+          description: `Explore exciting career opportunities at ${tenant.name}.`,
+          type: 'website',
+          siteName: tenant.name,
+          images: [tenant.seo.ogImage],
+        },
+      };
+    }
+  } catch (error) {
+    console.error('Error generating careers page metadata:', error);
+  }
+  
+  return {
+    title: 'Careers - Join Our Team',
+    description: 'Explore exciting career opportunities. Join our team and help create unforgettable travel experiences.',
+  };
+}
 
 async function getJobs(): Promise<JobType[]> {
     await dbConnect();

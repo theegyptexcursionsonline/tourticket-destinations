@@ -7,6 +7,7 @@ import type { CategoryPageData } from '@/types';
 import dbConnect from '@/lib/dbConnect';
 import AttractionPageModel from '@/lib/models/AttractionPage';
 import Category from '@/lib/models/Category';
+import { getTenantFromRequest, getTenantPublicConfig } from '@/lib/tenant';
 
 interface AttractionPageProps {
   params: Promise<{ slug: string }>;
@@ -42,6 +43,10 @@ async function getAttractionPage(slug: string): Promise<CategoryPageData | null>
 
 export async function generateMetadata({ params }: AttractionPageProps): Promise<Metadata> {
   const { slug } = await params;
+  const tenantId = await getTenantFromRequest();
+  const tenant = await getTenantPublicConfig(tenantId);
+  const siteName = tenant?.name || 'Tours';
+  
   const page = await getAttractionPage(slug);
 
   if (!page) {
@@ -52,14 +57,15 @@ export async function generateMetadata({ params }: AttractionPageProps): Promise
   }
 
   return {
-    title: page.metaTitle || `${page.title} | Egypt Excursions Online`,
+    title: page.metaTitle || `${page.title} | ${siteName}`,
     description: page.metaDescription || page.description,
     keywords: page.keywords?.join(', '),
     openGraph: {
       title: page.metaTitle || page.title,
       description: page.metaDescription || page.description,
-      images: page.heroImage ? [page.heroImage] : [],
+      images: page.heroImage ? [page.heroImage] : (tenant?.seo.ogImage ? [tenant.seo.ogImage] : []),
       type: 'website',
+      siteName: siteName,
       url: `/attraction/${page.slug}`,
     },
     twitter: {

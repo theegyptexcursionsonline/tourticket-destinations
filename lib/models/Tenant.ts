@@ -17,6 +17,154 @@ export interface IBranding {
   borderRadius?: string;
 }
 
+// Extended Theme configuration interface for distinct UI/UX per tenant
+export interface IThemeConfig {
+  // Theme identity
+  themeId: string; // e.g., 'ocean-adventure', 'desert-gold', 'modern-minimal'
+  themeName: string;
+  
+  // Color palette (extended)
+  colors: {
+    primary: string;
+    primaryHover: string;
+    primaryLight: string;
+    secondary: string;
+    secondaryHover?: string;
+    accent: string;
+    accentHover?: string;
+    success: string;
+    warning: string;
+    error: string;
+    info: string;
+    background: string;
+    backgroundAlt: string;
+    surface: string;
+    surfaceHover?: string;
+    text: string;
+    textMuted: string;
+    textInverse: string;
+    border: string;
+    borderHover?: string;
+    divider: string;
+    rating: string;
+  };
+  
+  // Gradients
+  gradients: {
+    primary: string;
+    secondary: string;
+    hero: string;
+    card?: string;
+    button?: string;
+    overlay?: string;
+  };
+  
+  // Shadows
+  shadows: {
+    sm: string;
+    md: string;
+    lg: string;
+    xl: string;
+    primary: string;
+    card: string;
+    button?: string;
+    dropdown?: string;
+  };
+  
+  // Typography
+  typography: {
+    fontFamily: string;
+    fontFamilyHeading: string;
+    fontFamilyMono?: string;
+    baseFontSize: string;
+    lineHeight: string;
+    headingLineHeight?: string;
+    fontWeightNormal: number;
+    fontWeightMedium: number;
+    fontWeightSemibold: number;
+    fontWeightBold: number;
+    letterSpacing?: string;
+    headingLetterSpacing?: string;
+  };
+  
+  // Spacing & Layout
+  layout: {
+    borderRadius: string;
+    borderRadiusSm: string;
+    borderRadiusLg: string;
+    borderRadiusXl: string;
+    borderRadiusFull: string;
+    containerMaxWidth: string;
+    headerHeight: string;
+    footerStyle: 'minimal' | 'standard' | 'expanded';
+  };
+  
+  // Component-specific theming
+  components: {
+    // Header styles
+    header: {
+      background: string;
+      backgroundScrolled?: string;
+      textColor: string;
+      style: 'transparent' | 'solid' | 'gradient';
+      position: 'fixed' | 'sticky' | 'static';
+      blur?: boolean;
+    };
+    // Footer styles
+    footer: {
+      background: string;
+      textColor: string;
+      style: 'dark' | 'light' | 'colored';
+    };
+    // Button styles
+    buttons: {
+      style: 'rounded' | 'pill' | 'square';
+      primaryBg: string;
+      primaryText: string;
+      primaryHoverBg: string;
+      secondaryBg: string;
+      secondaryText: string;
+      outlineBorderColor: string;
+    };
+    // Card styles
+    cards: {
+      style: 'elevated' | 'bordered' | 'flat';
+      background: string;
+      hoverTransform?: string;
+      imageBorderRadius: string;
+    };
+    // Badge/Chip styles
+    badges: {
+      background: string;
+      textColor: string;
+      style: 'rounded' | 'pill' | 'square';
+    };
+    // Input styles
+    inputs: {
+      background: string;
+      borderColor: string;
+      focusBorderColor: string;
+      style: 'outlined' | 'filled' | 'underlined';
+    };
+  };
+  
+  // Animation settings
+  animations: {
+    enabled: boolean;
+    duration: string;
+    durationFast: string;
+    durationSlow: string;
+    easing: string;
+    hoverScale?: string;
+  };
+  
+  // Dark mode support
+  darkMode?: {
+    enabled: boolean;
+    colors?: Partial<IThemeConfig['colors']>;
+  };
+}
+
 // SEO configuration interface
 export interface ISEO {
   defaultTitle: string;
@@ -149,6 +297,9 @@ export interface ITenant extends Document {
   
   // Branding
   branding: IBranding;
+  
+  // Extended Theme (for distinct UI/UX per tenant)
+  theme?: IThemeConfig;
   
   // SEO
   seo: ISEO;
@@ -568,6 +719,145 @@ const HomepageConfigSchema = new Schema<IHomepageConfig>({
   }],
 }, { _id: false });
 
+// Theme Config Schema - Extended theming for distinct UI/UX per tenant
+const ThemeColorsSchema = new Schema({
+  primary: { type: String, default: '#E63946' },
+  primaryHover: { type: String, default: '#D32F3F' },
+  primaryLight: { type: String, default: '#FEE2E2' },
+  secondary: { type: String, default: '#1D3557' },
+  secondaryHover: { type: String },
+  accent: { type: String, default: '#F4A261' },
+  accentHover: { type: String },
+  success: { type: String, default: '#10B981' },
+  warning: { type: String, default: '#F59E0B' },
+  error: { type: String, default: '#EF4444' },
+  info: { type: String, default: '#3B82F6' },
+  background: { type: String, default: '#FFFFFF' },
+  backgroundAlt: { type: String, default: '#F9FAFB' },
+  surface: { type: String, default: '#FFFFFF' },
+  surfaceHover: { type: String },
+  text: { type: String, default: '#1F2937' },
+  textMuted: { type: String, default: '#6B7280' },
+  textInverse: { type: String, default: '#FFFFFF' },
+  border: { type: String, default: '#E5E7EB' },
+  borderHover: { type: String },
+  divider: { type: String, default: '#E5E7EB' },
+  rating: { type: String, default: '#FBBF24' },
+}, { _id: false });
+
+const ThemeGradientsSchema = new Schema({
+  primary: { type: String, default: 'linear-gradient(135deg, #E63946 0%, #D32F3F 100%)' },
+  secondary: { type: String, default: 'linear-gradient(135deg, #1D3557 0%, #457B9D 100%)' },
+  hero: { type: String, default: 'linear-gradient(180deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 100%)' },
+  card: { type: String },
+  button: { type: String },
+  overlay: { type: String },
+}, { _id: false });
+
+const ThemeShadowsSchema = new Schema({
+  sm: { type: String, default: '0 1px 2px 0 rgba(0, 0, 0, 0.05)' },
+  md: { type: String, default: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' },
+  lg: { type: String, default: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' },
+  xl: { type: String, default: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' },
+  primary: { type: String, default: '0 4px 14px 0 rgba(230, 57, 70, 0.25)' },
+  card: { type: String, default: '0 4px 20px rgba(0, 0, 0, 0.1)' },
+  button: { type: String },
+  dropdown: { type: String },
+}, { _id: false });
+
+const ThemeTypographySchema = new Schema({
+  fontFamily: { type: String, default: 'Inter' },
+  fontFamilyHeading: { type: String, default: 'Inter' },
+  fontFamilyMono: { type: String, default: 'SFMono-Regular, Menlo, monospace' },
+  baseFontSize: { type: String, default: '16px' },
+  lineHeight: { type: String, default: '1.5' },
+  headingLineHeight: { type: String, default: '1.2' },
+  fontWeightNormal: { type: Number, default: 400 },
+  fontWeightMedium: { type: Number, default: 500 },
+  fontWeightSemibold: { type: Number, default: 600 },
+  fontWeightBold: { type: Number, default: 700 },
+  letterSpacing: { type: String, default: '0' },
+  headingLetterSpacing: { type: String, default: '-0.02em' },
+}, { _id: false });
+
+const ThemeLayoutSchema = new Schema({
+  borderRadius: { type: String, default: '8px' },
+  borderRadiusSm: { type: String, default: '4px' },
+  borderRadiusLg: { type: String, default: '12px' },
+  borderRadiusXl: { type: String, default: '16px' },
+  borderRadiusFull: { type: String, default: '9999px' },
+  containerMaxWidth: { type: String, default: '1280px' },
+  headerHeight: { type: String, default: '72px' },
+  footerStyle: { type: String, enum: ['minimal', 'standard', 'expanded'], default: 'standard' },
+}, { _id: false });
+
+const ThemeComponentsSchema = new Schema({
+  header: {
+    background: { type: String, default: 'rgba(255, 255, 255, 0.95)' },
+    backgroundScrolled: { type: String },
+    textColor: { type: String, default: '#1F2937' },
+    style: { type: String, enum: ['transparent', 'solid', 'gradient'], default: 'solid' },
+    position: { type: String, enum: ['fixed', 'sticky', 'static'], default: 'sticky' },
+    blur: { type: Boolean, default: true },
+  },
+  footer: {
+    background: { type: String, default: '#1F2937' },
+    textColor: { type: String, default: '#FFFFFF' },
+    style: { type: String, enum: ['dark', 'light', 'colored'], default: 'dark' },
+  },
+  buttons: {
+    style: { type: String, enum: ['rounded', 'pill', 'square'], default: 'rounded' },
+    primaryBg: { type: String, default: '#E63946' },
+    primaryText: { type: String, default: '#FFFFFF' },
+    primaryHoverBg: { type: String, default: '#D32F3F' },
+    secondaryBg: { type: String, default: '#1D3557' },
+    secondaryText: { type: String, default: '#FFFFFF' },
+    outlineBorderColor: { type: String, default: '#E5E7EB' },
+  },
+  cards: {
+    style: { type: String, enum: ['elevated', 'bordered', 'flat'], default: 'elevated' },
+    background: { type: String, default: '#FFFFFF' },
+    hoverTransform: { type: String, default: 'translateY(-4px)' },
+    imageBorderRadius: { type: String, default: '8px' },
+  },
+  badges: {
+    background: { type: String, default: '#E63946' },
+    textColor: { type: String, default: '#FFFFFF' },
+    style: { type: String, enum: ['rounded', 'pill', 'square'], default: 'rounded' },
+  },
+  inputs: {
+    background: { type: String, default: '#FFFFFF' },
+    borderColor: { type: String, default: '#E5E7EB' },
+    focusBorderColor: { type: String, default: '#E63946' },
+    style: { type: String, enum: ['outlined', 'filled', 'underlined'], default: 'outlined' },
+  },
+}, { _id: false });
+
+const ThemeAnimationsSchema = new Schema({
+  enabled: { type: Boolean, default: true },
+  duration: { type: String, default: '200ms' },
+  durationFast: { type: String, default: '150ms' },
+  durationSlow: { type: String, default: '300ms' },
+  easing: { type: String, default: 'cubic-bezier(0.4, 0, 0.2, 1)' },
+  hoverScale: { type: String, default: '1.02' },
+}, { _id: false });
+
+const ThemeConfigSchema = new Schema<IThemeConfig>({
+  themeId: { type: String, required: true, default: 'default' },
+  themeName: { type: String, required: true, default: 'Default Theme' },
+  colors: { type: ThemeColorsSchema, default: {} },
+  gradients: { type: ThemeGradientsSchema, default: {} },
+  shadows: { type: ThemeShadowsSchema, default: {} },
+  typography: { type: ThemeTypographySchema, default: {} },
+  layout: { type: ThemeLayoutSchema, default: {} },
+  components: { type: ThemeComponentsSchema, default: {} },
+  animations: { type: ThemeAnimationsSchema, default: {} },
+  darkMode: {
+    enabled: { type: Boolean, default: false },
+    colors: { type: Schema.Types.Mixed },
+  },
+}, { _id: false });
+
 // Main Tenant Schema
 const TenantSchema: Schema<ITenant> = new Schema({
   // Identity
@@ -617,6 +907,10 @@ const TenantSchema: Schema<ITenant> = new Schema({
   branding: {
     type: BrandingSchema,
     required: true,
+  },
+  theme: {
+    type: ThemeConfigSchema,
+    default: null,
   },
   seo: {
     type: SEOSchema,

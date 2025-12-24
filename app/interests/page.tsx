@@ -8,20 +8,39 @@ import Footer from '@/components/Footer';
 import AISearchWidget from '@/components/AISearchWidget';
 import InterestsClientPage from './InterestsClientPage';
 import { ICategory } from '@/lib/models/Category';
+import { getTenantFromRequest, getTenantPublicConfig } from '@/lib/tenant';
 
 // Enable ISR with 60 second revalidation for instant page loads
 export const dynamic = 'force-dynamic';
 
-// Generate metadata for SEO
-export const metadata: Metadata = {
-  title: 'All Categories & Interests | Egypt Excursions Online',
-  description: 'Explore all tour categories and interests in Egypt. Discover adventure tours, cultural experiences, boat tours, desert experiences, and more.',
-  openGraph: {
-    title: 'All Categories & Interests | Egypt Excursions Online',
-    description: 'Explore all tour categories and interests in Egypt.',
-    type: 'website',
-  },
-};
+// Generate dynamic metadata based on tenant
+export async function generateMetadata(): Promise<Metadata> {
+  try {
+    const tenantId = await getTenantFromRequest();
+    const tenant = await getTenantPublicConfig(tenantId);
+    
+    if (tenant) {
+      return {
+        title: `All Categories & Interests | ${tenant.name}`,
+        description: `Explore all tour categories and interests. Discover adventure tours, cultural experiences, boat tours, desert experiences, and more with ${tenant.name}.`,
+        openGraph: {
+          title: `All Categories & Interests | ${tenant.name}`,
+          description: 'Explore all tour categories and interests.',
+          type: 'website',
+          siteName: tenant.name,
+          images: [tenant.seo.ogImage],
+        },
+      };
+    }
+  } catch (error) {
+    console.error('Error generating interests page metadata:', error);
+  }
+  
+  return {
+    title: 'All Categories & Interests',
+    description: 'Explore all tour categories and interests.',
+  };
+}
 
 interface CategoryWithCount extends ICategory {
   tourCount: number;

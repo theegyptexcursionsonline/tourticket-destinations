@@ -6,7 +6,7 @@ import TourModel from '@/lib/models/Tour';
 import CategoryModel from '@/lib/models/Category';
 import ReviewModel from '@/lib/models/Review';
 import DestinationPageClient from './DestinationPageClient';
-import { getTenantFromRequest } from '@/lib/tenant';
+import { getTenantFromRequest, getTenantPublicConfig } from '@/lib/tenant';
 
 // Force dynamic rendering to fix 500 errors
 export const dynamic = 'force-dynamic';
@@ -22,6 +22,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   try {
     const { slug } = await params;
     const tenantId = await getTenantFromRequest();
+    const tenant = await getTenantPublicConfig(tenantId);
+    const siteName = tenant?.name || 'Tours & Activities';
     
     await dbConnect();
     
@@ -43,13 +45,14 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     }
 
     return {
-      title: `${destination.name}, ${destination.country} - Tours & Activities`,
-      description: destination.description?.substring(0, 160) || `Discover the best tours and activities in ${destination.name}`,
+      title: `${destination.name}, ${destination.country} - Tours & Activities | ${siteName}`,
+      description: destination.description?.substring(0, 160) || `Discover the best tours and activities in ${destination.name} with ${siteName}`,
       openGraph: {
         title: `${destination.name}, ${destination.country}`,
         description: destination.description?.substring(0, 160),
-        images: destination.image ? [destination.image] : [],
+        images: destination.image ? [destination.image] : (tenant?.seo.ogImage ? [tenant.seo.ogImage] : []),
         type: 'website',
+        siteName: siteName,
       },
     };
   } catch (error) {

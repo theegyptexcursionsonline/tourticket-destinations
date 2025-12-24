@@ -6,20 +6,39 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import BlogClientPage from './BlogClientPage';
 import { IBlog } from '@/lib/models/Blog';
+import { getTenantFromRequest, getTenantPublicConfig } from '@/lib/tenant';
 
 // Enable ISR with 60 second revalidation for instant page loads
 export const dynamic = 'force-dynamic';
 
-// Generate metadata for SEO
-export const metadata: Metadata = {
-  title: 'Travel Blog - Tips, Guides & Stories | Egypt Excursions Online',
-  description: 'Discover travel tips, destination guides, and inspiring stories from Egypt. Expert advice for planning your perfect Egyptian adventure.',
-  openGraph: {
-    title: 'Travel Blog | Egypt Excursions Online',
-    description: 'Discover travel tips, destination guides, and inspiring stories from Egypt.',
-    type: 'website',
-  },
-};
+// Generate dynamic metadata based on tenant
+export async function generateMetadata(): Promise<Metadata> {
+  try {
+    const tenantId = await getTenantFromRequest();
+    const tenant = await getTenantPublicConfig(tenantId);
+    
+    if (tenant) {
+      return {
+        title: `Travel Blog - Tips, Guides & Stories | ${tenant.name}`,
+        description: `Discover travel tips, destination guides, and inspiring stories. Expert advice for planning your perfect adventure with ${tenant.name}.`,
+        openGraph: {
+          title: `Travel Blog | ${tenant.name}`,
+          description: 'Discover travel tips, destination guides, and inspiring stories.',
+          type: 'website',
+          siteName: tenant.name,
+          images: [tenant.seo.ogImage],
+        },
+      };
+    }
+  } catch (error) {
+    console.error('Error generating blog page metadata:', error);
+  }
+  
+  return {
+    title: 'Travel Blog - Tips, Guides & Stories',
+    description: 'Discover travel tips, destination guides, and inspiring stories.',
+  };
+}
 
 const categories = [
   { value: 'travel-tips', label: 'Travel Tips' },

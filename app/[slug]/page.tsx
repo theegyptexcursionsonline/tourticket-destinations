@@ -8,7 +8,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import TourDetailClientPage from './TourDetailClientPage';
 import { ITour } from '@/lib/models/Tour';
-import { getTenantFromRequest } from '@/lib/tenant';
+import { getTenantFromRequest, getTenantPublicConfig } from '@/lib/tenant';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -98,6 +98,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   try {
     const { slug } = await params;
     const tenantId = await getTenantFromRequest();
+    const tenant = await getTenantPublicConfig(tenantId);
+    const siteName = tenant?.name || 'Tours';
     
     await dbConnect();
     
@@ -119,13 +121,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const destination = typeof tour.destination === 'object' ? (tour.destination as any) : null;
 
     return {
-      title: tour.metaTitle || `${tour.title} | ${destination?.name || 'Travel'} Tours`,
+      title: tour.metaTitle || `${tour.title} | ${siteName}`,
       description: tour.metaDescription || tour.description?.substring(0, 160),
       openGraph: {
         title: tour.title,
         description: tour.description?.substring(0, 160),
-        images: tour.image ? [{ url: tour.image, alt: tour.title }] : [],
+        images: tour.image ? [{ url: tour.image, alt: tour.title }] : (tenant?.seo.ogImage ? [tenant.seo.ogImage] : []),
         type: 'website',
+        siteName: siteName,
       },
     };
   } catch (error) {

@@ -10,21 +10,39 @@ import Link from "next/link";
 // Import the reusable Header and Footer components
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { getTenantFromRequest, getTenantPublicConfig } from "@/lib/tenant";
 
 // Enable ISR with 60 second revalidation for instant page loads
 export const revalidate = 60;
 
-// Generate metadata for SEO
-export const metadata: Metadata = {
-  title: 'About Us - Your Best Travel Buddy | Egypt Excursions Online',
-  description: 'Learn about Egypt Excursions Online, your trusted partner for extraordinary travel experiences with 15 years of expertise in tourism.',
-  openGraph: {
-    title: 'About Us | Egypt Excursions Online',
-    description: 'Your trusted partner for extraordinary travel experiences with 15 years of expertise.',
-    type: 'website',
-    images: ['/about.png'],
-  },
-};
+// Generate dynamic metadata based on tenant
+export async function generateMetadata(): Promise<Metadata> {
+  try {
+    const tenantId = await getTenantFromRequest();
+    const tenant = await getTenantPublicConfig(tenantId);
+    
+    if (tenant) {
+      return {
+        title: `About Us - Your Best Travel Buddy | ${tenant.name}`,
+        description: `Learn about ${tenant.name}, your trusted partner for extraordinary travel experiences with 15 years of expertise in tourism.`,
+        openGraph: {
+          title: `About Us | ${tenant.name}`,
+          description: 'Your trusted partner for extraordinary travel experiences with 15 years of expertise.',
+          type: 'website',
+          siteName: tenant.name,
+          images: [tenant.seo.ogImage || '/about.png'],
+        },
+      };
+    }
+  } catch (error) {
+    console.error('Error generating about page metadata:', error);
+  }
+  
+  return {
+    title: 'About Us - Your Best Travel Buddy',
+    description: 'Your trusted partner for extraordinary travel experiences with 15 years of expertise in tourism.',
+  };
+}
 
 // =================================================================
 // --- DARK HERO SECTION COMPONENT ---
