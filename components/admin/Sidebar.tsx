@@ -25,8 +25,11 @@ import {
   ImageIcon,
   Shield,
   Globe,
+  CalendarDays,
 } from "lucide-react";
 import { useAdminAuth } from "@/contexts/AdminAuthContext";
+import { useAdminTenant } from "@/contexts/AdminTenantContext";
+import { APP_VERSION } from "@/lib/constants/version";
 
 // ✅ Updated navItems with Hero Settings and Tenants
 const navItems = [
@@ -35,7 +38,9 @@ const navItems = [
   { href: "/admin/hero-settings", label: "Hero Settings", icon: ImageIcon, permissions: ["manageContent"] },
   { href: "/admin/bookings", label: "Bookings", icon: FileText, permissions: ["manageBookings"] },
   { href: "/admin/manifests", label: "Manifest", icon: ListPlus, permissions: ["manageBookings"] },
+  { href: "/admin/availability", label: "Availability", icon: CalendarDays, permissions: ["manageTours"] },
   { href: "/admin/discounts", label: "Discounts", icon: Percent, permissions: ["manageDiscounts"] },
+  { href: "/admin/special-offers", label: "Special Offers", icon: Sparkles, permissions: ["manageDiscounts"] },
   { href: "/admin/reviews", label: "Reviews", icon: MessageSquare, permissions: ["manageContent"] },
   { href: "/admin/reports", label: "Reports", icon: TrendingUp, permissions: ["manageReports"] },
   { href: "/admin/tours", label: "Tours", icon: Compass, permissions: ["manageTours"] },
@@ -54,6 +59,14 @@ const AdminSidebar = () => {
   const pathname = usePathname();
   const showLabel = isOpen || (isMobile && isMobileOpen);
   const { hasAnyPermission } = useAdminAuth();
+  const { getSelectedTenant, isAllTenantsSelected, isLoading: isTenantLoading } = useAdminTenant();
+  const selectedTenant = getSelectedTenant();
+  const brandName = isTenantLoading
+    ? "Loading…"
+    : isAllTenantsSelected()
+      ? "All Brands"
+      : selectedTenant?.name || "Brand";
+  const brandDomain = selectedTenant?.domain;
   const logoWidthClass = showLabel ? "w-36" : "w-12";
   const headerPaddingClass = showLabel ? "px-6" : "px-4";
 
@@ -102,9 +115,9 @@ const AdminSidebar = () => {
       if (isShortcut) {
         event.preventDefault();
         if (isMobile) {
-          setIsMobileOpen((prev) => !prev);
+          setIsMobileOpen((prev: boolean) => !prev);
         } else {
-          setIsOpen((prev) => !prev);
+          setIsOpen((prev: boolean) => !prev);
         }
         return;
       }
@@ -161,33 +174,44 @@ const AdminSidebar = () => {
       >
         {/* Header */}
         <div
-          className={`flex items-center justify-between ${headerPaddingClass} py-6 border-b border-slate-100 flex-shrink-0`}
+          className={`flex ${showLabel ? "items-start justify-between" : "items-center justify-center"} ${headerPaddingClass} py-6 border-b border-slate-100 flex-shrink-0`}
         >
-          <div className="flex items-center gap-3 min-w-0">
-            {/* Logo */}
-            <div className={`relative h-10 flex-shrink-0 transition-all duration-300 ${logoWidthClass}`}>
-              <Image
-                src="/EEO-logo.png"
-                alt="Egypt Excursions Online logo"
-                fill
-                sizes={showLabel ? "144px" : "48px"}
-                className="object-contain"
-                priority
-              />
-            </div>
+          <div className={`${showLabel ? "flex-1 min-w-0" : ""}`}>
+            <div className={`flex flex-col ${showLabel ? "items-start" : "items-center"} gap-3 min-w-0`}>
+              {/* Logo */}
+              <div className={`relative h-10 flex-shrink-0 transition-all duration-300 ${logoWidthClass}`}>
+                <Image
+                  src="/EEO-logo.png"
+                  alt="Egypt Excursions Online logo"
+                  fill
+                  sizes={showLabel ? "144px" : "48px"}
+                  className="object-contain"
+                  priority
+                />
+              </div>
 
-            {/* Title */}
-            <div
-              className={`transition-all duration-300 min-w-0 ${
-                !isOpen && !isMobile && "opacity-0 translate-x-2 overflow-hidden"
-              }`}
-            >
-              <h1 className="text-lg font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent truncate">
-                AdminPanel
-              </h1>
-              <p className="text-xs text-slate-500 -mt-0.5 truncate">
-                Egypt Excursions
-              </p>
+              {/* Title (stacked under logo for better UX) */}
+              {showLabel && (
+                <div className="min-w-0 w-full">
+                  <h1 className="text-lg font-bold text-slate-800 truncate leading-tight">
+                    Admin Panel
+                  </h1>
+                  <p className="text-[11px] text-slate-400 truncate leading-snug mb-1">
+                    Tour & Booking Management
+                  </p>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <p className="text-xs text-slate-600 font-medium truncate leading-snug">
+                      {brandName}
+                    </p>
+                  </div>
+                  {!isAllTenantsSelected() && brandDomain && (
+                    <p className="text-[11px] text-slate-400 truncate leading-snug mt-0.5">
+                      {brandDomain}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -307,60 +331,12 @@ const AdminSidebar = () => {
             </div>
           )}
 
-          {/* Bottom Tenants quick access */}
-          {hasAnyPermission(["manageTenants"]) && (
-            <div className="mt-6 pt-6 border-t border-slate-100/70">
-              <Link
-                href="/admin/tenants"
-                className={`relative group flex items-center rounded-2xl transition-all duration-200 overflow-hidden ${
-                  showLabel ? "gap-4 px-4 py-3.5" : "justify-center p-3.5 mx-auto w-14"
-                } ${
-                  pathname.startsWith("/admin/tenants")
-                    ? "bg-gradient-to-r from-blue-50 to-purple-50 text-blue-700 shadow-sm border border-blue-100/50"
-                    : "hover:bg-slate-50 text-slate-700 hover:text-slate-900"
-                } ${!showLabel ? "hover:scale-105" : "hover:translate-x-1"}`}
-              >
-                {pathname.startsWith("/admin/tenants") && (
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-gradient-to-b from-blue-500 to-purple-500 rounded-full" />
-                )}
-
-                <div
-                  className={`p-2 rounded-xl transition-all duration-200 flex-shrink-0 ${
-                    pathname.startsWith("/admin/tenants")
-                      ? "bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/25"
-                      : "bg-slate-100 text-slate-500 group-hover:bg-slate-200 group-hover:text-slate-600"
-                  }`}
-                >
-                  <Globe className="h-4 w-4" />
-                </div>
-
-                {showLabel && (
-                  <span
-                    className={`font-medium transition-all duration-300 truncate min-w-0 ${
-                      pathname.startsWith("/admin/tenants")
-                        ? "text-slate-800"
-                        : "text-slate-600 group-hover:text-slate-800"
-                    }`}
-                  >
-                    Tenants
-                  </span>
-                )}
-
-                {!showLabel && (
-                  <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 bg-slate-900 text-white text-sm px-3 py-2 rounded-xl opacity-0 group-hover:opacity-100 pointer-events-none shadow-2xl transition-all duration-200 z-50 whitespace-nowrap">
-                    Tenants
-                    <div className="absolute right-full top-1/2 -translate-y-1/2 w-2 h-2 bg-slate-900 rotate-45" />
-                  </div>
-                )}
-              </Link>
-            </div>
-          )}
         </nav>
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex-shrink-0">
           {showLabel ? (
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col items-start gap-2">
               <div className="relative h-10 w-28 flex-shrink-0">
                 <Image
                   src="/EEO-logo.png"
@@ -370,17 +346,22 @@ const AdminSidebar = () => {
                   className="object-contain"
                 />
               </div>
-              <div className="min-w-0">
+              <div className="min-w-0 w-full">
                 <p className="text-xs font-medium text-slate-700 truncate">
-                  Egypt Excursions Online
+                  {brandName}
                 </p>
-                <p className="text-xs text-slate-500 truncate">
-                  © 2025 All rights reserved
-                </p>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-slate-500 truncate">
+                    © {new Date().getFullYear()} All rights reserved
+                  </p>
+                  <span className="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
+                    v{APP_VERSION.version}
+                  </span>
+                </div>
               </div>
             </div>
           ) : (
-            <div className="flex justify-center">
+            <div className="flex flex-col items-center gap-1">
               <div className="relative h-8 w-20">
                 <Image
                   src="/EEO-logo.png"
@@ -390,6 +371,7 @@ const AdminSidebar = () => {
                   className="object-contain"
                 />
               </div>
+              <span className="text-[9px] text-slate-400">v{APP_VERSION.version}</span>
             </div>
           )}
         </div>

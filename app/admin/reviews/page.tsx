@@ -1,10 +1,11 @@
 // app/admin/reviews/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import withAuth from '@/components/admin/withAuth';
 import { Star, MessageSquare, User, Map, Trash2, CheckCircle, ShieldCheck, Clock, TrendingUp, Users, Filter } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useAdminTenant } from '@/contexts/AdminTenantContext';
 
 // --- Type Definitions ---
 interface Review {
@@ -58,6 +59,10 @@ const ReviewsPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Get tenant filter from context
+  const { selectedTenantId, getSelectedTenant, isAllTenantsSelected } = useAdminTenant();
+  const selectedTenant = getSelectedTenant();
+
   // --- Calculate stats from reviews ---
   const calculateStats = (reviewsData: Review[]): ReviewStats => {
     const totalReviews = reviewsData.length;
@@ -70,24 +75,34 @@ const ReviewsPage = () => {
     return { totalReviews, pendingReviews, approvedReviews, averageRating };
   };
 
-  // --- Fetch all reviews ---
-  useEffect(() => {
-    const fetchReviews = async () => {
-      setIsLoading(true);
-      try {
-        const response = await fetch('/api/admin/reviews');
-        if (!response.ok) throw new Error('Failed to fetch reviews');
-        const data = await response.json();
-        setReviews(data);
-        setStats(calculateStats(data));
-      } catch (err) {
-        setError((err as Error).message);
-      } finally {
-        setIsLoading(false);
+  // --- Fetch reviews with tenant filter ---
+  const fetchReviews = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      // Build query params with tenant filter
+      const params = new URLSearchParams();
+      if (selectedTenantId && selectedTenantId !== 'all') {
+        params.set('tenantId', selectedTenantId);
       }
-    };
+      const queryString = params.toString();
+      const url = `/api/admin/reviews${queryString ? `?${queryString}` : ''}`;
+      
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Failed to fetch reviews');
+      const data = await response.json();
+      setReviews(data);
+      setStats(calculateStats(data));
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [selectedTenantId]);
+
+  // Fetch reviews when tenant changes
+  useEffect(() => {
     fetchReviews();
-  }, []);
+  }, [fetchReviews]);
 
   // --- Recalculate stats whenever reviews change ---
   useEffect(() => {
@@ -227,7 +242,13 @@ const ReviewsPage = () => {
         </div>
         <div>
           <h1 className="text-3xl font-extrabold text-slate-800">Review Management</h1>
-          <p className="text-slate-500 mt-1">Monitor and manage customer reviews</p>
+          <p className="text-slate-500 mt-1">
+            {isAllTenantsSelected() ? (
+              <>Showing reviews from <span className="font-semibold text-slate-700">all brands</span>.</>
+            ) : (
+              <>Showing reviews for <span className="font-semibold text-indigo-600">{selectedTenant?.name || selectedTenantId}</span>.</>
+            )}
+          </p>
         </div>
       </div>
 

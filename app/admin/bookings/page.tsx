@@ -1,11 +1,12 @@
 // app/admin/bookings/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import withAuth from '@/components/admin/withAuth';
 import { useRouter } from 'next/navigation';
-import { Search, Calendar, Users, DollarSign, Filter, RefreshCw, Eye, Download, AlertTriangle, Loader2, Trash2, X } from 'lucide-react';
+import { Search, Calendar, Users, DollarSign, Filter, RefreshCw, Eye, Download, AlertTriangle, Loader2, Trash2, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useAdminTenant } from '@/contexts/AdminTenantContext';
 
 interface BookingUser {
   _id: string;
@@ -29,9 +30,11 @@ interface BookingTour {
 
 interface Booking {
   _id: string;
+  bookingReference?: string;
   tour: BookingTour | null;
   user: BookingUser | null;
   date: string;
+  dateString?: string;
   time: string;
   guests: number;
   totalPrice: number;
@@ -43,6 +46,23 @@ interface Booking {
   specialRequests?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+interface BookingsResponse {
+  success: boolean;
+  data: Booking[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
+interface TourOption {
+  id: string;
+  title: string;
+  tenantId?: string;
 }
 
 // Helper to format dates consistently and avoid timezone issues
@@ -73,12 +93,26 @@ const formatDisplayDate = (dateString: string | undefined, options?: Intl.DateTi
 
 const BookingsPage = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [filteredBookings, setFilteredBookings] = useState<Booking[]>([]);
+  const [totalBookings, setTotalBookings] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [dateFilter, setDateFilter] = useState<string>('all');
+  const [tourId, setTourId] = useState<string>('all');
+  const [purchaseFrom, setPurchaseFrom] = useState<string>(''); // createdAt
+  const [purchaseTo, setPurchaseTo] = useState<string>('');
+  const [activityFrom, setActivityFrom] = useState<string>(''); // booking date
+  const [activityTo, setActivityTo] = useState<string>('');
+  const [sort, setSort] = useState<string>('createdAt_desc');
+
+  // Pagination
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState<number>(10);
+
+  // Product options (lightweight list)
+  const [tourOptions, setTourOptions] = useState<TourOption[]>([]);
+  const [tourOptionsLoading, setTourOptionsLoading] = useState(false);
 
   // Bulk selection state
   const [selectedBookings, setSelectedBookings] = useState<Set<string>>(new Set());
@@ -86,73 +120,96 @@ const BookingsPage = () => {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const router = useRouter();
+  
+  // Get tenant filter from context
+  const { selectedTenantId, getSelectedTenant, isAllTenantsSelected } = useAdminTenant();
+  const selectedTenant = getSelectedTenant();
 
-  const fetchBookings = async () => {
+  const fetchTourOptions = useCallback(async () => {
+    setTourOptionsLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (selectedTenantId && selectedTenantId !== 'all') params.set('tenantId', selectedTenantId);
+      params.set('limit', '200');
+      const url = `/api/admin/tours/options?${params.toString()}`;
+      const response = await fetch(url);
+      const data = await response.json();
+      if (data?.success) {
+        setTourOptions(data.data || []);
+      }
+    } catch (e) {
+      // Non-blocking
+      console.warn('Failed to load tour options:', e);
+    } finally {
+      setTourOptionsLoading(false);
+    }
+  }, [selectedTenantId]);
+
+  const buildBookingsUrl = useCallback((effectiveSearch: string) => {
+    const params = new URLSearchParams();
+    if (selectedTenantId && selectedTenantId !== 'all') params.set('tenantId', selectedTenantId);
+    params.set('page', String(page));
+    params.set('limit', String(perPage));
+    if (effectiveSearch) params.set('search', effectiveSearch);
+    if (statusFilter && statusFilter !== 'all') params.set('status', statusFilter);
+    if (tourId && tourId !== 'all') params.set('tourId', tourId);
+    if (purchaseFrom) params.set('purchaseFrom', purchaseFrom);
+    if (purchaseTo) params.set('purchaseTo', purchaseTo);
+    if (activityFrom) params.set('activityFrom', activityFrom);
+    if (activityTo) params.set('activityTo', activityTo);
+    if (sort) params.set('sort', sort);
+    return `/api/admin/bookings?${params.toString()}`;
+  }, [activityFrom, activityTo, page, perPage, purchaseFrom, purchaseTo, selectedTenantId, sort, statusFilter, tourId]);
+
+  const fetchBookings = useCallback(async (effectiveSearch: string) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/admin/bookings');
-      if (!response.ok) {
-        throw new Error('Failed to fetch bookings');
-      }
-      const data = await response.json();
-      setBookings(data);
-      setFilteredBookings(data);
+      const url = buildBookingsUrl(effectiveSearch);
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Failed to fetch bookings');
+      const data: BookingsResponse = await response.json();
+      if (!data?.success) throw new Error('Failed to fetch bookings');
+
+      setBookings(data.data || []);
+      setTotalBookings(data.meta?.total || 0);
+      setTotalPages(data.meta?.totalPages || 1);
     } catch (err) {
       setError((err as Error).message);
       console.error('Error fetching bookings:', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [buildBookingsUrl]);
+
+  // Load tour options when tenant changes
+  useEffect(() => {
+    fetchTourOptions();
+  }, [fetchTourOptions]);
+
+  // Debounced fetch when filters change
+  useEffect(() => {
+    const t = setTimeout(() => {
+      fetchBookings(searchTerm.trim());
+    }, 250);
+    return () => clearTimeout(t);
+  }, [fetchBookings, searchTerm, statusFilter, tourId, purchaseFrom, purchaseTo, activityFrom, activityTo, sort, page, perPage]);
+
+  // Reset page + selection when filters (not page) change
+  const filtersKey = useMemo(
+    () => [selectedTenantId, statusFilter, tourId, purchaseFrom, purchaseTo, activityFrom, activityTo, sort, searchTerm.trim()].join('|'),
+    [activityFrom, activityTo, purchaseFrom, purchaseTo, searchTerm, selectedTenantId, sort, statusFilter, tourId]
+  );
 
   useEffect(() => {
-    fetchBookings();
-  }, []);
+    setPage(1);
+    setSelectedBookings(new Set());
+  }, [filtersKey]);
 
+  // Clear bulk selection when changing pages
   useEffect(() => {
-    let filtered = bookings;
-
-    if (searchTerm) {
-      filtered = filtered.filter(booking => 
-        booking.tour?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        booking.user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        booking.user?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        booking._id.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(booking => booking.status === statusFilter);
-    }
-
-    if (dateFilter !== 'all') {
-      const now = new Date();
-      
-      switch (dateFilter) {
-        case 'today':
-          filtered = filtered.filter(booking => {
-            const createdDate = new Date(booking.createdAt);
-            return createdDate.toDateString() === now.toDateString();
-          });
-          break;
-        case 'week':
-          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-          filtered = filtered.filter(booking => 
-            new Date(booking.createdAt) >= weekAgo
-          );
-          break;
-        case 'month':
-          const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-          filtered = filtered.filter(booking => 
-            new Date(booking.createdAt) >= monthAgo
-          );
-          break;
-      }
-    }
-
-    setFilteredBookings(filtered);
-  }, [bookings, searchTerm, statusFilter, dateFilter]);
+    setSelectedBookings(new Set());
+  }, [page]);
 
   const handleRowClick = (id: string) => {
     router.push(`/admin/bookings/${id}`);
@@ -278,10 +335,10 @@ const BookingsPage = () => {
 
   // Selection handlers
   const handleSelectAll = () => {
-    if (selectedBookings.size === filteredBookings.length) {
+    if (selectedBookings.size === bookings.length) {
       setSelectedBookings(new Set());
     } else {
-      setSelectedBookings(new Set(filteredBookings.map(b => b._id)));
+      setSelectedBookings(new Set(bookings.map(b => b._id)));
     }
   };
 
@@ -331,8 +388,11 @@ const BookingsPage = () => {
     }
   };
 
-  const isAllSelected = filteredBookings.length > 0 && selectedBookings.size === filteredBookings.length;
-  const isSomeSelected = selectedBookings.size > 0 && selectedBookings.size < filteredBookings.length;
+  const isAllSelected = bookings.length > 0 && selectedBookings.size === bookings.length;
+  const isSomeSelected = selectedBookings.size > 0 && selectedBookings.size < bookings.length;
+
+  const showingFrom = totalBookings === 0 ? 0 : (page - 1) * perPage + 1;
+  const showingTo = Math.min(totalBookings, (page - 1) * perPage + bookings.length);
 
   if (loading) {
     return (
@@ -356,7 +416,7 @@ const BookingsPage = () => {
           <h3 className="text-red-800 font-semibold">Error loading bookings</h3>
           <p className="text-red-600 mt-1">{error}</p>
           <button 
-            onClick={fetchBookings}
+            onClick={() => fetchBookings(searchTerm.trim())}
             className="mt-3 px-4 py-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors"
           >
             Try Again
@@ -372,7 +432,13 @@ const BookingsPage = () => {
         <div>
           <h1 className="text-3xl font-bold text-slate-800">Bookings Management</h1>
           <p className="text-slate-600 mt-1">
-            {filteredBookings.length} of {bookings.length} bookings
+            {isAllTenantsSelected() ? (
+              <>Showing bookings from <span className="font-semibold text-slate-700">all brands</span>. </>
+            ) : (
+              <>Showing bookings for <span className="font-semibold text-indigo-600">{selectedTenant?.name || selectedTenantId}</span>. </>
+            )}
+            Showing <span className="font-semibold text-slate-700">{showingFrom}-{showingTo}</span> of{' '}
+            <span className="font-semibold text-slate-700">{totalBookings}</span> bookings
             {selectedBookings.size > 0 && (
               <span className="ml-2 text-blue-600 font-medium">
                 ({selectedBookings.size} selected)
@@ -400,7 +466,7 @@ const BookingsPage = () => {
             </>
           )}
           <button
-            onClick={fetchBookings}
+            onClick={() => fetchBookings(searchTerm.trim())}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors"
           >
             <RefreshCw size={16} />
@@ -414,12 +480,12 @@ const BookingsPage = () => {
       </div>
 
       <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={16} />
             <input
               type="text"
-              placeholder="Search bookings..."
+              placeholder="Name or reference..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -443,41 +509,129 @@ const BookingsPage = () => {
           <div className="relative">
             <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={16} />
             <select
-              value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
+              value={tourId}
+              onChange={(e) => setTourId(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
             >
-              <option value="all">All Time</option>
-              <option value="today">Today</option>
-              <option value="week">This Week</option>
-              <option value="month">This Month</option>
+              <option value="all">All products</option>
+              {tourOptionsLoading && <option value="loading" disabled>Loading...</option>}
+              {tourOptions.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.title}
+                </option>
+              ))}
             </select>
           </div>
 
-          {(searchTerm || statusFilter !== 'all' || dateFilter !== 'all') && (
+          <div className="flex items-center gap-2">
+            <div className="flex-1">
+              <label className="sr-only">Purchase date from</label>
+              <input
+                type="date"
+                value={purchaseFrom}
+                onChange={(e) => setPurchaseFrom(e.target.value)}
+                className="w-full px-4 py-2 border border-slate-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Purchase from"
+              />
+            </div>
+            <div className="flex-1">
+              <label className="sr-only">Purchase date to</label>
+              <input
+                type="date"
+                value={purchaseTo}
+                onChange={(e) => setPurchaseTo(e.target.value)}
+                className="w-full px-4 py-2 border border-slate-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Purchase to"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="flex-1">
+              <label className="sr-only">Activity date from</label>
+              <input
+                type="date"
+                value={activityFrom}
+                onChange={(e) => setActivityFrom(e.target.value)}
+                className="w-full px-4 py-2 border border-slate-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Activity from"
+              />
+            </div>
+            <div className="flex-1">
+              <label className="sr-only">Activity date to</label>
+              <input
+                type="date"
+                value={activityTo}
+                onChange={(e) => setActivityTo(e.target.value)}
+                className="w-full px-4 py-2 border border-slate-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Activity to"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 md:col-span-5">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-slate-600">Sort</span>
+              <select
+                value={sort}
+                onChange={(e) => setSort(e.target.value)}
+                className="px-4 py-2 border border-slate-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
+              >
+                <option value="createdAt_desc">Purchase date (newest)</option>
+                <option value="createdAt_asc">Purchase date (oldest)</option>
+                <option value="activityDate_desc">Activity date (newest)</option>
+                <option value="activityDate_asc">Activity date (oldest)</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-slate-600">Per page</span>
+              <select
+                value={perPage}
+                onChange={(e) => {
+                  setPerPage(Number(e.target.value));
+                  setPage(1);
+                  setSelectedBookings(new Set());
+                }}
+                className="px-4 py-2 border border-slate-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
+              >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+              </select>
+            </div>
+
+            <div className="ml-auto">
+              {(searchTerm || statusFilter !== 'all' || tourId !== 'all' || purchaseFrom || purchaseTo || activityFrom || activityTo) && (
             <button
               onClick={() => {
                 setSearchTerm('');
                 setStatusFilter('all');
-                setDateFilter('all');
+                    setTourId('all');
+                    setPurchaseFrom('');
+                    setPurchaseTo('');
+                    setActivityFrom('');
+                    setActivityTo('');
               }}
               className="px-4 py-2 text-slate-600 border border-slate-300 rounded-full hover:bg-slate-50 transition-colors"
             >
               Clear Filters
             </button>
           )}
+            </div>
+          </div>
         </div>
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        {filteredBookings.length === 0 ? (
+        {bookings.length === 0 ? (
           <div className="p-8 text-center">
             <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Calendar className="w-8 h-8 text-slate-400" />
             </div>
             <h3 className="text-lg font-semibold text-slate-700 mb-2">No bookings found</h3>
             <p className="text-slate-500">
-              {searchTerm || statusFilter !== 'all' || dateFilter !== 'all'
+              {searchTerm || statusFilter !== 'all' || tourId !== 'all' || purchaseFrom || purchaseTo || activityFrom || activityTo
                 ? 'Try adjusting your filters'
                 : 'No bookings have been made yet'
               }
@@ -520,7 +674,7 @@ const BookingsPage = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-slate-200">
-                {filteredBookings.map((booking) => {
+                {bookings.map((booking) => {
                   const tourTitle = getTourTitle(booking);
                   const userName = formatUserName(booking.user);
                   const destinationName = getDestinationName(booking);
@@ -604,54 +758,52 @@ const BookingsPage = () => {
         )}
       </div>
 
-      {bookings.length > 0 && (
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
-            <div className="flex items-center">
-              <div className="flex-1">
-                <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Total Bookings</p>
-                <p className="text-2xl font-bold text-slate-900">{bookings.length}</p>
-              </div>
-              <Calendar className="w-8 h-8 text-blue-500" />
-            </div>
+      {/* Pagination */}
+      {totalBookings > 0 && (
+        <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="text-sm text-slate-600">
+            Showing <span className="font-semibold text-slate-700">{showingFrom}-{showingTo}</span> of{' '}
+            <span className="font-semibold text-slate-700">{totalBookings}</span>
           </div>
           
-          <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
-            <div className="flex items-center">
-              <div className="flex-1">
-                <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Confirmed</p>
-                <p className="text-2xl font-bold text-green-600">
-                  {bookings.filter(b => b.status === 'Confirmed').length}
-                </p>
-              </div>
-              <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-              </div>
-            </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPage(1)}
+              disabled={page <= 1}
+              className="h-10 w-10 rounded-full border border-slate-300 flex items-center justify-center hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="First page"
+            >
+              <ChevronsLeft size={16} />
+            </button>
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page <= 1}
+              className="h-10 w-10 rounded-full border border-slate-300 flex items-center justify-center hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Previous page"
+            >
+              <ChevronLeft size={16} />
+            </button>
+
+            <div className="px-3 text-sm text-slate-700">
+              Page <span className="font-semibold">{page}</span> of <span className="font-semibold">{totalPages}</span>
           </div>
           
-          <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
-            <div className="flex items-center">
-              <div className="flex-1">
-                <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Total Revenue</p>
-                <p className="text-2xl font-bold text-slate-900">
-                  ${bookings.reduce((sum, b) => sum + b.totalPrice, 0).toFixed(2)}
-                </p>
-              </div>
-              <DollarSign className="w-8 h-8 text-green-500" />
-            </div>
-          </div>
-          
-          <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
-            <div className="flex items-center">
-              <div className="flex-1">
-                <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Total Guests</p>
-                <p className="text-2xl font-bold text-slate-900">
-                  {bookings.reduce((sum, b) => sum + b.guests, 0)}
-                </p>
-              </div>
-              <Users className="w-8 h-8 text-purple-500" />
-            </div>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page >= totalPages}
+              className="h-10 w-10 rounded-full border border-slate-300 flex items-center justify-center hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Next page"
+            >
+              <ChevronRight size={16} />
+            </button>
+            <button
+              onClick={() => setPage(totalPages)}
+              disabled={page >= totalPages}
+              className="h-10 w-10 rounded-full border border-slate-300 flex items-center justify-center hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Last page"
+            >
+              <ChevronsRight size={16} />
+            </button>
           </div>
         </div>
       )}

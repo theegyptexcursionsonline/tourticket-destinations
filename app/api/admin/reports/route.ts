@@ -1,13 +1,23 @@
 // app/api/admin/reports/route.ts
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Booking from '@/lib/models/Booking';
 import Tour from '@/lib/models/Tour';
 import { startOfMonth, endOfMonth, subMonths, format } from 'date-fns';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     await dbConnect();
+
+    // Get tenant filter from query params
+    const { searchParams } = new URL(request.url);
+    const tenantId = searchParams.get('tenantId');
+    
+    // Build filter for tenant-specific queries
+    const tenantFilter: Record<string, unknown> = {};
+    if (tenantId && tenantId !== 'all') {
+      tenantFilter.tenantId = tenantId;
+    }
 
     // --- 1. Monthly Revenue for the Last 6 Months ---
     const monthlyRevenueData = [];
@@ -22,7 +32,8 @@ export async function GET() {
         {
           $match: {
             createdAt: { $gte: monthStart, $lte: monthEnd },
-            status: { $in: ['Confirmed', 'Pending'] }
+            status: { $in: ['Confirmed', 'Pending'] },
+            ...tenantFilter
           },
         },
         {
@@ -43,7 +54,8 @@ export async function GET() {
     const topToursData = await Booking.aggregate([
       {
         $match: {
-          status: { $in: ['Confirmed', 'Pending'] }
+          status: { $in: ['Confirmed', 'Pending'] },
+          ...tenantFilter
         }
       },
       {
@@ -84,14 +96,15 @@ export async function GET() {
     const totalRevenueResult = await Booking.aggregate([
       {
         $match: {
-          status: { $in: ['Confirmed', 'Pending'] }
+          status: { $in: ['Confirmed', 'Pending'] },
+          ...tenantFilter
         }
       },
       { $group: { _id: null, total: { $sum: '$totalPrice' } } }
     ]);
     
     const totalRevenue = totalRevenueResult.length > 0 ? totalRevenueResult[0].total : 0;
-    const totalBookings = await Booking.countDocuments({ status: { $in: ['Confirmed', 'Pending'] } });
+    const totalBookings = await Booking.countDocuments({ status: { $in: ['Confirmed', 'Pending'] }, ...tenantFilter });
     const averageBookingValue = totalBookings > 0 ? totalRevenue / totalBookings : 0;
 
     const kpis = {

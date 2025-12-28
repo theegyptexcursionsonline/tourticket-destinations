@@ -361,6 +361,7 @@ export interface ITenant extends Document {
   // Status
   isActive: boolean;
   isDefault: boolean;
+  websiteStatus: 'active' | 'coming_soon' | 'maintenance' | 'offline';
   
   // Timestamps
   createdAt: Date;
@@ -1005,6 +1006,12 @@ const TenantSchema: Schema<ITenant> = new Schema({
   isDefault: {
     type: Boolean,
     default: false,
+    index: true,
+  },
+  websiteStatus: {
+    type: String,
+    enum: ['active', 'coming_soon', 'maintenance', 'offline'],
+    default: 'active',
     index: true,
   },
 }, {

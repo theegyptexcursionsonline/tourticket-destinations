@@ -22,6 +22,16 @@ export async function GET(request: NextRequest) {
       return authResult;
     }
 
+    // Get tenant filter from query params
+    const { searchParams } = new URL(request.url);
+    const tenantId = searchParams.get('tenantId');
+    
+    // Build filter for tenant-specific queries
+    const tenantFilter: Record<string, unknown> = {};
+    if (tenantId && tenantId !== 'all') {
+      tenantFilter.tenantId = tenantId;
+    }
+
     // Connect to database with timeout
     const dbConnection = await Promise.race([
       dbConnect(),
@@ -37,10 +47,11 @@ export async function GET(request: NextRequest) {
       recentBookingsCount,
       recentBookings
     ] = await Promise.allSettled([
-      Tour.countDocuments({ isPublished: true }),
-      Booking.countDocuments(),
-      User.countDocuments(),
+      Tour.countDocuments({ isPublished: true, ...tenantFilter }),
+      Booking.countDocuments(tenantFilter),
+      User.countDocuments(), // Users are not tenant-specific
       Booking.aggregate([
+        { $match: tenantFilter },
         { $group: { _id: null, totalRevenue: { $sum: '$totalPrice' } } },
       ]),
       (async () => {
@@ -48,9 +59,10 @@ export async function GET(request: NextRequest) {
         twentyFourHoursAgo.setDate(twentyFourHoursAgo.getDate() - 1);
         return await Booking.countDocuments({
           createdAt: { $gte: twentyFourHoursAgo },
+          ...tenantFilter,
         });
       })(),
-      Booking.find()
+      Booking.find(tenantFilter)
         .sort({ createdAt: -1 })
         .limit(5)
         .populate({ path: 'tour', model: Tour, select: 'title' })

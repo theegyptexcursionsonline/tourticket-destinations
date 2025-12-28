@@ -4,14 +4,45 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 // ============================================================================
-// COMING SOON MODE: Set to `true` to redirect all routes to coming soon page
+// WEBSITE STATUS TYPES
 // ============================================================================
-const COMING_SOON_MODE = false;
+type WebsiteStatus = 'active' | 'coming_soon' | 'maintenance' | 'offline';
+
+// ============================================================================
+// GLOBAL COMING SOON MODE (Legacy - overrides per-tenant status)
+// Set to `true` to redirect ALL tenants to coming soon page
+// ============================================================================
+const GLOBAL_COMING_SOON_MODE = false;
 // ============================================================================
 
-// Paths that should still work in Coming Soon mode
+// Per-tenant website status from environment variable
+// Format: { "tenant-id": "status" }
+// Example: {"hurghada": "coming_soon", "cairo": "active"}
+function getTenantStatusMapping(): Record<string, WebsiteStatus> {
+  const envStatus = process.env.TENANT_WEBSITE_STATUS;
+  
+  if (envStatus) {
+    try {
+      return JSON.parse(envStatus);
+    } catch (e) {
+      console.error('Failed to parse TENANT_WEBSITE_STATUS env variable:', e);
+    }
+  }
+  
+  // Default: all tenants are active
+  return {};
+}
+
+// Get website status for a tenant
+function getTenantWebsiteStatus(tenantId: string): WebsiteStatus {
+  const statusMapping = getTenantStatusMapping();
+  return statusMapping[tenantId] || 'active';
+}
+
+// Paths that should still work in Coming Soon/Maintenance mode
 const COMING_SOON_ALLOWED_PATHS = [
-  '/',                    // Homepage (Coming Soon page)
+  '/coming-soon',         // Coming Soon page
+  '/maintenance',         // Maintenance page  
   '/api/subscribe',       // Email subscription API
   '/api/auth',            // Auth APIs (in case needed)
   '/_next',               // Next.js assets
@@ -315,12 +346,16 @@ export function middleware(request: NextRequest) {
   const tenantId = getTenantIdFromDomain(hostname);
 
   // ============================================
-  // COMING SOON MODE - Redirect all routes to homepage
+  // WEBSITE STATUS CHECK (Per-Tenant or Global)
   // ============================================
-  if (COMING_SOON_MODE) {
+  const websiteStatus = GLOBAL_COMING_SOON_MODE ? 'coming_soon' : getTenantWebsiteStatus(tenantId);
+  
+  // Handle non-active website statuses
+  if (websiteStatus !== 'active') {
+    // Always allow admin paths
     if (isAdminPath(pathname)) {
       const requestHeaders = new Headers(request.headers);
-      requestHeaders.set('x-coming-soon-exempt', 'true');
+      requestHeaders.set('x-website-status', websiteStatus);
       requestHeaders.set('x-tenant-id', tenantId);
       requestHeaders.set('x-tenant-domain', hostname);
       
@@ -330,7 +365,7 @@ export function middleware(request: NextRequest) {
         },
       });
       
-      response.headers.set('x-coming-soon-exempt', 'true');
+      response.headers.set('x-website-status', websiteStatus);
       response.headers.set('x-tenant-id', tenantId);
       response.cookies.set('tenantId', tenantId, {
         httpOnly: false,
@@ -347,9 +382,22 @@ export function middleware(request: NextRequest) {
       return applyTenantContext(tenantId);
     }
     
-    // Redirect everything else to homepage (Coming Soon page)
+    // Determine redirect destination based on status
+    let redirectPath = '/coming-soon';
+    if (websiteStatus === 'maintenance') {
+      redirectPath = '/maintenance';
+    } else if (websiteStatus === 'offline') {
+      redirectPath = '/offline';
+    }
+    
+    // Don't redirect if already on the status page
+    if (pathname === redirectPath) {
+      return applyTenantContext(tenantId);
+    }
+    
+    // Redirect to appropriate status page
     const url = request.nextUrl.clone();
-    url.pathname = '/';
+    url.pathname = redirectPath;
     const redirectResponse = NextResponse.redirect(url);
     redirectResponse.cookies.set('tenantId', tenantId, {
       httpOnly: false,

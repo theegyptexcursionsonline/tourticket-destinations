@@ -19,8 +19,10 @@ import {
   Sparkles,
   ArrowUpRight,
   Calendar,
-  Zap
+  Zap,
+  Building2
 } from 'lucide-react';
+import { useAdminTenant } from '@/contexts/AdminTenantContext';
 
 // Lazy load charts for better initial load performance
 const AreaChart = dynamic(
@@ -216,6 +218,10 @@ const AdminDashboard = () => {
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Get tenant filter from context
+  const { selectedTenantId, getSelectedTenant, isAllTenantsSelected } = useAdminTenant();
+  const selectedTenant = getSelectedTenant();
 
   // Memoized fetch function with retry logic
   const fetchDashboardData = useCallback(async (retryCount = 0) => {
@@ -234,6 +240,15 @@ const AdminDashboard = () => {
         'Authorization': `Bearer ${token}`,
         'Cache-Control': 'no-cache'
       };
+
+      // Build query params with tenant filter
+      const params = new URLSearchParams();
+      if (selectedTenantId && selectedTenantId !== 'all') {
+        params.set('tenantId', selectedTenantId);
+      }
+      const queryString = params.toString();
+      const dashboardUrl = `/api/admin/dashboard${queryString ? `?${queryString}` : ''}`;
+      const reportsUrl = `/api/admin/reports${queryString ? `?${queryString}` : ''}`;
 
       // Add timeout to fetch requests (10 seconds)
       const fetchWithTimeout = async (url: string, options: RequestInit) => {
@@ -258,8 +273,8 @@ const AdminDashboard = () => {
 
       // Parallel fetching with timeout
       const [dashboardRes, reportRes] = await Promise.all([
-        fetchWithTimeout('/api/admin/dashboard', { headers }),
-        fetchWithTimeout('/api/admin/reports', { headers })
+        fetchWithTimeout(dashboardUrl, { headers }),
+        fetchWithTimeout(reportsUrl, { headers })
       ]);
 
       if (!dashboardRes.ok) {
@@ -313,8 +328,9 @@ const AdminDashboard = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [selectedTenantId]);
 
+  // Fetch data when tenant changes
   useEffect(() => {
     fetchDashboardData();
     
@@ -369,7 +385,13 @@ const AdminDashboard = () => {
               <span className="text-xs font-medium text-emerald-700">Live</span>
             </div>
           </div>
-          <p className="text-slate-600 text-lg">Welcome back! Here's what's happening with your business today.</p>
+          <p className="text-slate-600 text-lg">
+            {isAllTenantsSelected() ? (
+              <>Welcome back! Showing data from <span className="font-semibold text-slate-700">all brands</span>.</>
+            ) : (
+              <>Showing data for <span className="font-semibold text-indigo-600">{selectedTenant?.name || selectedTenantId}</span>.</>
+            )}
+          </p>
         </div>
         <Link 
           href="/admin/tours/new" 

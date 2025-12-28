@@ -23,6 +23,7 @@ interface TenantData {
   domains: string[];
   isActive: boolean;
   isDefault: boolean;
+  websiteStatus: 'active' | 'coming_soon' | 'maintenance' | 'offline';
   branding: {
     logo: string;
     logoAlt: string;
@@ -712,10 +713,64 @@ function GeneralTab({ tenant, updateField }: { tenant: TenantData; updateField: 
             />
             <div>
               <div className="font-semibold text-slate-900">Default brand</div>
-              <div className="text-sm text-slate-500">Used as the fallback when a domain doesn’t match.</div>
+              <div className="text-sm text-slate-500">Used as the fallback when a domain doesn't match.</div>
             </div>
           </label>
         </div>
+      </div>
+
+      {/* Website Status */}
+      <div className="rounded-3xl border border-slate-200 bg-slate-50/60 p-5">
+        <label className="block text-sm font-semibold text-slate-700 mb-3">Website Status</label>
+        <p className="text-sm text-slate-500 mb-4">Control whether the website is accessible to visitors.</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {[
+            { value: 'active', label: 'Active', desc: 'Website fully functional', color: 'green' },
+            { value: 'coming_soon', label: 'Coming Soon', desc: 'Show coming soon page', color: 'blue' },
+            { value: 'maintenance', label: 'Maintenance', desc: 'Show maintenance page', color: 'amber' },
+            { value: 'offline', label: 'Offline', desc: 'Website disabled', color: 'red' },
+          ].map((status) => (
+            <label
+              key={status.value}
+              className={`relative flex flex-col p-4 rounded-2xl border-2 cursor-pointer transition-all ${
+                tenant.websiteStatus === status.value
+                  ? status.color === 'green' ? 'border-green-500 bg-green-50'
+                  : status.color === 'blue' ? 'border-blue-500 bg-blue-50'
+                  : status.color === 'amber' ? 'border-amber-500 bg-amber-50'
+                  : 'border-red-500 bg-red-50'
+                  : 'border-slate-200 bg-white hover:border-slate-300'
+              }`}
+            >
+              <input
+                type="radio"
+                name="websiteStatus"
+                value={status.value}
+                checked={tenant.websiteStatus === status.value}
+                onChange={(e) => updateField('websiteStatus', e.target.value)}
+                className="sr-only"
+              />
+              <div className={`w-3 h-3 rounded-full mb-2 ${
+                status.color === 'green' ? 'bg-green-500'
+                : status.color === 'blue' ? 'bg-blue-500'
+                : status.color === 'amber' ? 'bg-amber-500'
+                : 'bg-red-500'
+              }`} />
+              <div className="font-semibold text-slate-900 text-sm">{status.label}</div>
+              <div className="text-xs text-slate-500 mt-1">{status.desc}</div>
+              {tenant.websiteStatus === status.value && (
+                <CheckCircle2 className={`absolute top-3 right-3 w-5 h-5 ${
+                  status.color === 'green' ? 'text-green-500'
+                  : status.color === 'blue' ? 'text-blue-500'
+                  : status.color === 'amber' ? 'text-amber-500'
+                  : 'text-red-500'
+                }`} />
+              )}
+            </label>
+          ))}
+        </div>
+        <p className="text-xs text-slate-500 mt-3">
+          Note: To enable per-tenant status, add the TENANT_WEBSITE_STATUS environment variable with format: {`{"tenant-id": "status"}`}
+        </p>
       </div>
     </div>
   );
