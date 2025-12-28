@@ -172,41 +172,48 @@ SpecialOfferSchema.statics.findActiveOffers = async function(
   categoryId?: string
 ) {
   const now = new Date();
+  
+  // Build the $and array for complex conditions
+  const andConditions: Record<string, unknown>[] = [];
+  
+  // Base query
   const query: Record<string, unknown> = {
     tenantId,
     isActive: true,
     startDate: { $lte: now },
     endDate: { $gte: now },
+    // Usage limit check
+    $or: [
+      { usageLimit: { $exists: false } },
+      { usageLimit: null },
+      { $expr: { $lt: ['$usedCount', '$usageLimit'] } },
+    ],
   };
 
-  // Only add usage limit check if it exists
-  query.$or = [
-    { usageLimit: { $exists: false } },
-    { usageLimit: null },
-    { $expr: { $lt: ['$usedCount', '$usageLimit'] } },
-  ];
-
   if (tourId) {
-    query.$and = query.$and || [];
-    query.$and.push({
+    andConditions.push({
       $or: [
         { applicableTours: { $size: 0 } },
         { applicableTours: tourId },
       ],
     });
-    query.$and.push({
+    andConditions.push({
       excludedTours: { $ne: tourId },
     });
   }
 
   if (categoryId) {
-    query.$and = query.$and || [];
-    query.$and.push({
+    andConditions.push({
       $or: [
         { applicableCategories: { $size: 0 } },
         { applicableCategories: categoryId },
       ],
     });
+  }
+
+  // Add $and conditions if any exist
+  if (andConditions.length > 0) {
+    query.$and = andConditions;
   }
 
   return this.find(query).sort({ priority: -1, discountValue: -1 });

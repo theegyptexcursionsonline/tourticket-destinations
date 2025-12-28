@@ -38,10 +38,20 @@ function getTenantEmailBranding(tenantConfig: ITenant | null, baseUrl: string): 
   };
 }
 
-// Initialize default Stripe (will be overridden per-tenant if configured)
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-08-27.basil',
-});
+// Lazy initialization to avoid build-time errors when env vars are missing
+let _stripe: Stripe | null = null;
+function getStripe(): Stripe {
+  if (!_stripe) {
+    const secretKey = process.env.STRIPE_SECRET_KEY;
+    if (!secretKey) {
+      throw new Error('STRIPE_SECRET_KEY environment variable is not set');
+    }
+    _stripe = new Stripe(secretKey, {
+      apiVersion: '2025-08-27.basil',
+    });
+  }
+  return _stripe;
+}
 
 // Format date consistently for display
 function formatBookingDate(dateString: string | Date | undefined): string {
@@ -273,6 +283,7 @@ export async function POST(request: Request) {
       try {
         // If paymentIntentId is provided, verify the payment
         if (paymentDetails?.paymentIntentId) {
+          const stripe = getStripe();
           const paymentIntent = await stripe.paymentIntents.retrieve(paymentDetails.paymentIntentId);
 
           if (paymentIntent.status !== 'succeeded') {
@@ -293,6 +304,7 @@ export async function POST(request: Request) {
           };
         } else {
           // Fallback: Create and auto-confirm PaymentIntent (for backward compatibility)
+          const stripe = getStripe();
           const paymentIntent = await stripe.paymentIntents.create({
             amount: Math.round(pricing.total * 100),
             currency: (pricing.currency || 'USD').toLowerCase(),

@@ -5,10 +5,20 @@ import dbConnect from '@/lib/dbConnect';
 import Tour from '@/lib/models/Tour';
 import { getTenantConfigCached } from '@/lib/tenant';
 
-// Initialize default Stripe
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-12-18.acacia',
-});
+// Lazy initialization to avoid build-time errors when env vars are missing
+let _stripe: Stripe | null = null;
+function getStripe(): Stripe {
+  if (!_stripe) {
+    const secretKey = process.env.STRIPE_SECRET_KEY;
+    if (!secretKey) {
+      throw new Error('STRIPE_SECRET_KEY environment variable is not set');
+    }
+    _stripe = new Stripe(secretKey, {
+      apiVersion: '2024-12-18.acacia',
+    });
+  }
+  return _stripe;
+}
 
 export async function POST(request: Request) {
   try {
@@ -83,6 +93,7 @@ export async function POST(request: Request) {
     };
 
     // Create a PaymentIntent with Stripe
+    const stripe = getStripe();
     const paymentIntent = await stripe.paymentIntents.create(stripeOptions);
 
     return NextResponse.json({

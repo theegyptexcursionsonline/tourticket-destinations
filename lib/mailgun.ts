@@ -3,10 +3,22 @@ import formData from 'form-data';
 import Mailgun from 'mailgun.js';
 
 const mailgun = new Mailgun(formData);
-const mg = mailgun.client({
-  username: 'api',
-  key: process.env.MAILGUN_API_KEY || '',
-});
+
+// Lazy initialization to avoid build-time errors when env vars are missing
+let _mg: ReturnType<typeof mailgun.client> | null = null;
+function getMg() {
+  if (!_mg) {
+    const apiKey = process.env.MAILGUN_API_KEY;
+    if (!apiKey) {
+      throw new Error('MAILGUN_API_KEY environment variable is not set');
+    }
+    _mg = mailgun.client({
+      username: 'api',
+      key: apiKey,
+    });
+  }
+  return _mg;
+}
 
 const DOMAIN = process.env.MAILGUN_DOMAIN || '';
 const FROM_EMAIL = process.env.MAILGUN_FROM_EMAIL || 'booking@egypt-excursionsonline.com';
@@ -83,6 +95,7 @@ export async function sendEmail(options: EmailOptions): Promise<void> {
     }
 
     console.log(`📧 Sending email with inline: ${messageData.inline?.length || 0}, attachments: ${messageData.attachment?.length || 0}`);
+    const mg = getMg();
     const result = await mg.messages.create(DOMAIN, messageData);
     console.log(`📮 Mailgun response ID: ${result.id}`);
 
