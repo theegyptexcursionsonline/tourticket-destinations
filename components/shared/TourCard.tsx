@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 import {
   Star, Clock, Users, MapPin, Heart, ShoppingCart, ArrowRight,
   Languages, Award, Zap, Mountain,
-  Smartphone, CheckCircle
+  Smartphone, CheckCircle, Tag, Sparkles, Timer
 } from 'lucide-react';
 import { Tour } from '@/types';
 import { useSettings } from '@/hooks/useSettings';
@@ -17,6 +17,21 @@ import { useTenant } from '@/contexts/TenantContext';
 import toast from 'react-hot-toast';
 import { toDateOnlyString } from '@/utils/date';
 
+// Offer badge data interface
+export interface OfferBadgeData {
+  _id: string;
+  name: string;
+  type: string;
+  discountValue: number;
+  displayText: string;
+  badgeColor: { bg: string; text: string };
+  isFeatured: boolean;
+  featuredBadgeText?: string;
+  timeRemaining?: string;
+  showUrgency?: boolean;
+  endDate?: string;
+}
+
 interface TourCardProps {
   tour: Tour;
   index?: number;
@@ -24,6 +39,9 @@ interface TourCardProps {
   showQuickAdd?: boolean;
   className?: string;
   onAddToCartClick?: (tour: Tour) => void;
+  // New: Special offer data
+  offerBadge?: OfferBadgeData;
+  hasOffer?: boolean;
 }
 
 const TourCard: React.FC<TourCardProps> = ({
@@ -31,7 +49,9 @@ const TourCard: React.FC<TourCardProps> = ({
   index = 0,
   showQuickAdd = true,
   className = '',
-  onAddToCartClick
+  onAddToCartClick,
+  offerBadge,
+  hasOffer = false
 }) => {
   const { formatPrice, t } = useSettings();
   const { addToWishlist, removeFromWishlist, isWishlisted } = useWishlist();
@@ -46,6 +66,9 @@ const TourCard: React.FC<TourCardProps> = ({
   const primaryBg = isSpeedboat ? 'bg-cyan-500' : 'bg-red-600';
   const primaryHoverBg = isSpeedboat ? 'hover:bg-cyan-600' : 'hover:bg-red-700';
   const hoverTextColor = isSpeedboat ? 'group-hover:text-cyan-500' : 'group-hover:text-red-600';
+  
+  // Calculate if there's a discount to show (from offer or original price)
+  const showOfferBadge = hasOffer && offerBadge;
 
   const destination = typeof tour.destination === 'object' ? tour.destination : null;
 
@@ -155,14 +178,40 @@ const TourCard: React.FC<TourCardProps> = ({
             
             {/* Top Badges */}
             <div className="absolute top-4 left-4 flex flex-col gap-2">
-              {tour.isFeatured && (
+              {/* Special Offer Badge - Priority Display */}
+              {showOfferBadge && offerBadge && (
+                <motion.div 
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className={`${offerBadge.badgeColor.bg} ${offerBadge.badgeColor.text} px-3 py-1.5 text-xs font-bold rounded-full shadow-lg flex items-center gap-1.5`}
+                >
+                  {offerBadge.type === 'percentage' || offerBadge.type === 'early_bird' || offerBadge.type === 'last_minute' ? (
+                    <Tag size={12} />
+                  ) : offerBadge.type === 'group' ? (
+                    <Users size={12} />
+                  ) : (
+                    <Sparkles size={12} />
+                  )}
+                  {offerBadge.displayText}
+                </motion.div>
+              )}
+              
+              {/* Urgency Indicator */}
+              {showOfferBadge && offerBadge?.showUrgency && offerBadge.timeRemaining && (
+                <div className="bg-black/70 backdrop-blur-sm text-amber-400 px-2 py-1 text-[10px] font-medium rounded-full flex items-center gap-1">
+                  <Timer size={10} className="animate-pulse" />
+                  {offerBadge.timeRemaining}
+                </div>
+              )}
+              
+              {tour.isFeatured && !showOfferBadge && (
                 <div className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-3 py-1 text-xs font-bold rounded-full shadow-lg flex items-center gap-1">
                   <Award size={12} />
                   {t('tourCard.featured')}
                 </div>
               )}
               
-              {tour.tags && tour.tags.slice(0, 1).map((tag, i) => (
+              {!showOfferBadge && tour.tags && tour.tags.slice(0, 1).map((tag, i) => (
                 <div key={i} className={`px-3 py-1 text-xs font-semibold rounded-full shadow-lg ${
                   tag.includes('%') || tag.toLowerCase().includes('deal') || tag.toLowerCase().includes('discount')
                     ? isSpeedboat ? 'bg-orange-500 text-white' : 'bg-red-600 text-white'

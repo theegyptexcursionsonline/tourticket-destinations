@@ -4,9 +4,10 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import withAuth from '@/components/admin/withAuth';
 import { useRouter } from 'next/navigation';
-import { Search, Calendar, Users, DollarSign, Filter, RefreshCw, Eye, Download, AlertTriangle, Loader2, Trash2, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { Search, Calendar, Users, DollarSign, Filter, RefreshCw, Eye, Download, AlertTriangle, Loader2, Trash2, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAdminTenant } from '@/contexts/AdminTenantContext';
+import { BOOKING_STATUS, toBookingStatusCode } from '@/lib/constants/bookingStatus';
 
 interface BookingUser {
   _id: string;
@@ -31,6 +32,8 @@ interface BookingTour {
 interface Booking {
   _id: string;
   bookingReference?: string;
+  source?: 'online' | 'manual';
+  paymentStatus?: 'paid' | 'pending' | 'pay_on_arrival';
   tour: BookingTour | null;
   user: BookingUser | null;
   date: string;
@@ -38,7 +41,7 @@ interface Booking {
   time: string;
   guests: number;
   totalPrice: number;
-  status: 'Confirmed' | 'Pending' | 'Cancelled';
+  status: 'Confirmed' | 'Pending' | 'Completed' | 'Cancelled' | 'Refunded' | 'Partial Refunded' | string;
   adultGuests?: number;
   childGuests?: number;
   infantGuests?: number;
@@ -124,6 +127,7 @@ const BookingsPage = () => {
   // Get tenant filter from context
   const { selectedTenantId, getSelectedTenant, isAllTenantsSelected } = useAdminTenant();
   const selectedTenant = getSelectedTenant();
+  const tenantQuery = selectedTenantId && selectedTenantId !== 'all' ? `?tenantId=${encodeURIComponent(selectedTenantId)}` : '';
 
   const fetchTourOptions = useCallback(async () => {
     setTourOptionsLoading(true);
@@ -217,12 +221,19 @@ const BookingsPage = () => {
 
   const getStatusBadge = (status: string) => {
     const baseClasses = "px-2 py-1 text-xs font-semibold rounded-full";
-    switch (status) {
-      case 'Confirmed':
+    const code = toBookingStatusCode(status) || BOOKING_STATUS.CONFIRMED;
+    switch (code) {
+      case BOOKING_STATUS.CONFIRMED:
         return `${baseClasses} bg-green-100 text-green-800`;
-      case 'Pending':
+      case BOOKING_STATUS.PENDING:
         return `${baseClasses} bg-yellow-100 text-yellow-800`;
-      case 'Cancelled':
+      case BOOKING_STATUS.COMPLETED:
+        return `${baseClasses} bg-emerald-100 text-emerald-800`;
+      case BOOKING_STATUS.REFUNDED:
+        return `${baseClasses} bg-orange-100 text-orange-800`;
+      case BOOKING_STATUS.PARTIAL_REFUNDED:
+        return `${baseClasses} bg-orange-50 text-orange-700`;
+      case BOOKING_STATUS.CANCELLED:
         return `${baseClasses} bg-red-100 text-red-800`;
       default:
         return `${baseClasses} bg-gray-100 text-gray-800`;
@@ -280,16 +291,24 @@ const BookingsPage = () => {
           onChange={(e) => handleChange(e.target.value)}
           disabled={isUpdating}
           className={`appearance-none text-xs font-semibold px-3 py-2 pr-8 rounded-full border-0 focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
-            booking.status === 'Confirmed' 
-              ? 'bg-green-100 text-green-800' 
-              : booking.status === 'Pending'
-              ? 'bg-yellow-100 text-yellow-800'
-              : 'bg-red-100 text-red-800'
+            (() => {
+              const code = toBookingStatusCode(booking.status) || BOOKING_STATUS.CONFIRMED;
+              if (code === BOOKING_STATUS.CONFIRMED) return 'bg-green-100 text-green-800';
+              if (code === BOOKING_STATUS.PENDING) return 'bg-yellow-100 text-yellow-800';
+              if (code === BOOKING_STATUS.COMPLETED) return 'bg-emerald-100 text-emerald-800';
+              if (code === BOOKING_STATUS.REFUNDED) return 'bg-orange-100 text-orange-800';
+              if (code === BOOKING_STATUS.PARTIAL_REFUNDED) return 'bg-orange-50 text-orange-700';
+              if (code === BOOKING_STATUS.CANCELLED) return 'bg-red-100 text-red-800';
+              return 'bg-gray-100 text-gray-800';
+            })()
           }`}
         >
-          <option value="Confirmed">Confirmed</option>
           <option value="Pending">Pending</option>
+          <option value="Confirmed">Confirmed</option>
+          <option value="Completed">Completed</option>
           <option value="Cancelled">Cancelled</option>
+          <option value="Refunded">Refunded</option>
+          <option value="Partial Refunded">Partial Refunded</option>
         </select>
         <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
           {isUpdating ? (
@@ -306,7 +325,7 @@ const BookingsPage = () => {
 
   const handleStatusChange = async (bookingId: string, newStatus: string) => {
     try {
-      const response = await fetch(`/api/admin/bookings/${bookingId}`, {
+      const response = await fetch(`/api/admin/bookings/${bookingId}${tenantQuery}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -321,7 +340,7 @@ const BookingsPage = () => {
       setBookings(prevBookings =>
         prevBookings.map(booking =>
           booking._id === bookingId
-            ? { ...booking, status: newStatus as 'Confirmed' | 'Pending' | 'Cancelled' }
+            ? { ...booking, status: newStatus }
             : booking
         )
       );
@@ -357,7 +376,7 @@ const BookingsPage = () => {
 
     setIsDeleting(true);
     try {
-      const response = await fetch('/api/admin/bookings/bulk-delete', {
+      const response = await fetch(`/api/admin/bookings/bulk-delete${tenantQuery}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -447,6 +466,13 @@ const BookingsPage = () => {
           </p>
         </div>
         <div className="flex items-center gap-3 mt-4 sm:mt-0">
+          <button
+            onClick={() => router.push('/admin/bookings/create')}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition-colors"
+          >
+            <Plus size={16} />
+            Create Booking
+          </button>
           {selectedBookings.size > 0 && (
             <>
               <button
@@ -480,41 +506,47 @@ const BookingsPage = () => {
       </div>
 
       <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={16} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+          {/* Search */}
+          <div className="relative sm:col-span-2 lg:col-span-2">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
             <input
               type="text"
-              placeholder="Name or reference..."
+              placeholder="Search name, email, or reference…"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full h-10 pl-10 pr-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
 
+          {/* Status */}
           <div className="relative">
-            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={16} />
+            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
+              className="w-full h-10 pl-10 pr-10 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
             >
-              <option value="all">All Status</option>
-              <option value="Confirmed">Confirmed</option>
-              <option value="Pending">Pending</option>
-              <option value="Cancelled">Cancelled</option>
+              <option value="all">All</option>
+              <option value={BOOKING_STATUS.PENDING}>Pending</option>
+              <option value={BOOKING_STATUS.CONFIRMED}>Confirmed</option>
+              <option value={BOOKING_STATUS.COMPLETED}>Completed</option>
+              <option value={BOOKING_STATUS.CANCELLED}>Cancelled</option>
+              <option value={BOOKING_STATUS.REFUNDED}>Refunded</option>
+              <option value={BOOKING_STATUS.PARTIAL_REFUNDED}>Partial Refunded</option>
             </select>
           </div>
 
+          {/* Tour */}
           <div className="relative">
-            <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={16} />
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
             <select
               value={tourId}
               onChange={(e) => setTourId(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
+              className="w-full h-10 pl-10 pr-10 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
             >
-              <option value="all">All products</option>
-              {tourOptionsLoading && <option value="loading" disabled>Loading...</option>}
+              <option value="all">All tours</option>
+              {tourOptionsLoading && <option value="loading" disabled>Loading…</option>}
               {tourOptions.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.title}
@@ -523,59 +555,52 @@ const BookingsPage = () => {
             </select>
           </div>
 
-          <div className="flex items-center gap-2">
-            <div className="flex-1">
-              <label className="sr-only">Purchase date from</label>
+          {/* Purchase date range */}
+          <div className="lg:col-span-2">
+            <div className="text-xs font-medium text-slate-600 mb-1">Purchase date</div>
+            <div className="grid grid-cols-2 gap-2">
               <input
                 type="date"
                 value={purchaseFrom}
                 onChange={(e) => setPurchaseFrom(e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Purchase from"
+                className="w-full h-10 px-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
-            </div>
-            <div className="flex-1">
-              <label className="sr-only">Purchase date to</label>
               <input
                 type="date"
                 value={purchaseTo}
                 onChange={(e) => setPurchaseTo(e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Purchase to"
+                className="w-full h-10 px-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <div className="flex-1">
-              <label className="sr-only">Activity date from</label>
+          {/* Activity date range */}
+          <div className="lg:col-span-2">
+            <div className="text-xs font-medium text-slate-600 mb-1">Activity date</div>
+            <div className="grid grid-cols-2 gap-2">
               <input
                 type="date"
                 value={activityFrom}
                 onChange={(e) => setActivityFrom(e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Activity from"
+                className="w-full h-10 px-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
-            </div>
-            <div className="flex-1">
-              <label className="sr-only">Activity date to</label>
               <input
                 type="date"
                 value={activityTo}
                 onChange={(e) => setActivityTo(e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Activity to"
+                className="w-full h-10 px-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
           </div>
 
-          <div className="flex items-center gap-3 md:col-span-5">
-            <div className="flex items-center gap-2">
+          {/* Sort / Per page / Clear */}
+          <div className="sm:col-span-2 lg:col-span-6 flex flex-col sm:flex-row sm:items-center gap-3 pt-1">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-sm text-slate-600">Sort</span>
               <select
                 value={sort}
                 onChange={(e) => setSort(e.target.value)}
-                className="px-4 py-2 border border-slate-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
+                className="h-10 px-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
               >
                 <option value="createdAt_desc">Purchase date (newest)</option>
                 <option value="createdAt_asc">Purchase date (oldest)</option>
@@ -584,7 +609,7 @@ const BookingsPage = () => {
               </select>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-sm text-slate-600">Per page</span>
               <select
                 value={perPage}
@@ -593,7 +618,7 @@ const BookingsPage = () => {
                   setPage(1);
                   setSelectedBookings(new Set());
                 }}
-                className="px-4 py-2 border border-slate-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
+                className="h-10 px-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
               >
                 <option value={10}>10</option>
                 <option value={20}>20</option>
@@ -601,23 +626,23 @@ const BookingsPage = () => {
               </select>
             </div>
 
-            <div className="ml-auto">
+            <div className="sm:ml-auto">
               {(searchTerm || statusFilter !== 'all' || tourId !== 'all' || purchaseFrom || purchaseTo || activityFrom || activityTo) && (
-            <button
-              onClick={() => {
-                setSearchTerm('');
-                setStatusFilter('all');
+                <button
+                  onClick={() => {
+                    setSearchTerm('');
+                    setStatusFilter('all');
                     setTourId('all');
                     setPurchaseFrom('');
                     setPurchaseTo('');
                     setActivityFrom('');
                     setActivityTo('');
-              }}
-              className="px-4 py-2 text-slate-600 border border-slate-300 rounded-full hover:bg-slate-50 transition-colors"
-            >
-              Clear Filters
-            </button>
-          )}
+                  }}
+                  className="h-10 px-4 text-slate-700 border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors"
+                >
+                  Clear Filters
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -703,6 +728,11 @@ const BookingsPage = () => {
                           }`}>
                             {isDeleted && <AlertTriangle size={14} />}
                             {tourTitle}
+                            {booking.source === 'manual' && (
+                              <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-100 text-emerald-700 rounded-full">
+                                Manual
+                              </span>
+                            )}
                           </div>
                           <div className="text-sm text-slate-500">
                             {userName}

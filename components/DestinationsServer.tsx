@@ -15,12 +15,12 @@ interface DestinationsServerProps {
 }
 
 export default function DestinationsServer({ destinations }: DestinationsServerProps) {
+  const { tenant } = useTenant();
+  const isSpeedboat = tenant?.tenantId === 'hurghada-speedboat';
+
   if (!destinations || destinations.length === 0) {
     return null;
   }
-
-  const { tenant } = useTenant();
-  const isSpeedboat = tenant?.tenantId === 'hurghada-speedboat';
 
   return (
     <section

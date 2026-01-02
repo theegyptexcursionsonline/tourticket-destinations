@@ -4,12 +4,21 @@ import Tour from '@/lib/models/Tour';
 import { NextResponse } from 'next/server';
 import { syncTourToAlgolia } from '@/lib/algolia';
 
+function generateOptionId() {
+  return globalThis.crypto?.randomUUID?.() || `opt-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
 // Helper function to clean booking options
 function cleanBookingOptions(bookingOptions: any[]): any[] {
   if (!Array.isArray(bookingOptions)) return [];
   
   return bookingOptions.map(option => {
     const cleanedOption = { ...option };
+
+    // Ensure stable option id exists (required for option-level stop-sale)
+    if (!cleanedOption.id) {
+      cleanedOption.id = generateOptionId();
+    }
     
     // Remove empty or invalid difficulty values
     if (!cleanedOption.difficulty || cleanedOption.difficulty.trim() === '') {

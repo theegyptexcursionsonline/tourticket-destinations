@@ -150,6 +150,8 @@ interface TourOption {
   badge?: string;
   discount?: number;
   isRecommended?: boolean;
+  isStopSale?: boolean;
+  stopSaleReason?: string;
 }
 
 interface SpecialOffer {
@@ -522,13 +524,22 @@ const TourOptionCard: React.FC<{
     <motion.div
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`relative border-2 rounded-2xl p-5 transition-all cursor-pointer bg-white hover:shadow-lg ${
+      className={`relative border-2 rounded-2xl p-5 transition-all bg-white hover:shadow-lg ${
         option.isRecommended
           ? 'border-red-400 bg-gradient-to-br from-red-50 to-orange-50 ring-2 ring-red-200 shadow-md'
           : 'border-gray-200 hover:border-red-300 hover:bg-gray-50'
-      }`}
-      whileHover={{ scale: 1.01 }}
+      } ${option.isStopSale ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'}`}
+      whileHover={{ scale: option.isStopSale ? 1 : 1.01 }}
     >
+      {option.isStopSale && (
+        <div className="mb-4 flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-900 px-3 py-2 rounded-2xl text-sm">
+          <AlertCircle size={16} className="text-amber-600" />
+          <div className="flex-1">
+            <div className="font-semibold">Unavailable (Stop-sale)</div>
+            {option.stopSaleReason && <div className="text-xs text-amber-800 mt-0.5">{option.stopSaleReason}</div>}
+          </div>
+        </div>
+      )}
       {/* Header with Badges */}
       <div className="flex items-start justify-between mb-4 gap-3">
         <div className="flex-1 min-w-0">
@@ -661,18 +672,19 @@ const TourOptionCard: React.FC<{
             const isSelected = selectedTimeSlot?.id === timeSlot.id;
             const isLowAvailability = timeSlot.available <= 3;
             const isSoldOut = timeSlot.available === 0;
+            const isDisabled = isSoldOut || Boolean(option.isStopSale);
 
             return (
               <motion.button
                 key={timeSlot.id}
-                onClick={() => !isSoldOut && onSelect(timeSlot)}
-                disabled={isSoldOut}
-                whileHover={{ scale: isSoldOut ? 1 : 1.02 }}
-                whileTap={{ scale: isSoldOut ? 1 : 0.98 }}
+                onClick={() => !isDisabled && onSelect(timeSlot)}
+                disabled={isDisabled}
+                whileHover={{ scale: isDisabled ? 1 : 1.02 }}
+                whileTap={{ scale: isDisabled ? 1 : 0.98 }}
                 className={`relative p-4 rounded-full text-sm font-medium transition-all border-2 ${
                   isSelected
                     ? 'bg-gradient-to-r from-red-600 to-orange-600 text-white border-red-600 shadow-lg'
-                    : isSoldOut
+                    : isDisabled
                     ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
                     : 'bg-white border-gray-300 text-gray-800 hover:border-red-400 hover:shadow-md hover:bg-red-50'
                 }`}
@@ -1276,6 +1288,29 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour }
             isRecommended: true,
           }
         ];
+      }
+
+      // Apply option-level stop-sale (if any) for the selected date
+      try {
+        const dateKey = date.toISOString().split('T')[0];
+        const stopRes = await fetch(`/api/availability/${tourId}?date=${encodeURIComponent(dateKey)}`);
+        const stopJson = await stopRes.json();
+        if (stopJson?.success) {
+          const status = stopJson.data?.stopSaleStatus as 'none' | 'partial' | 'full';
+          const stoppedIds = new Set<string>(stopJson.data?.stoppedOptionIds || []);
+          const reasons = (stopJson.data?.reasons || {}) as Record<string, string>;
+
+          tourOptions = tourOptions.map((opt) => {
+            const isStopped = status === 'full' ? true : stoppedIds.has(opt.id);
+            return {
+              ...opt,
+              isStopSale: isStopped,
+              stopSaleReason: status === 'full' ? reasons.all : reasons[opt.id],
+            };
+          });
+        }
+      } catch {
+        // If stop-sale lookup fails, we fall back to showing all options
       }
 
       // Use pre-fetched addOns from tour prop (SSR) if available

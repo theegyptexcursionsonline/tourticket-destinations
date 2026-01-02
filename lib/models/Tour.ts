@@ -1,6 +1,7 @@
 // lib/models/Tour.ts
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import mongoose, { Document, Schema, Model } from 'mongoose';
+import crypto from 'crypto';
 import './Review';
 
 export interface IItineraryItem {
@@ -35,6 +36,7 @@ export interface IFAQ {
 }
 
 export interface IBookingOption {
+  id?: string; // Stable option id used for option-level stop-sale
   type: string;
   label: string;
   price: number;
@@ -252,6 +254,11 @@ const FAQSchema = new Schema<IFAQ>({
 }, { _id: false });
 
 const BookingOptionSchema = new Schema<IBookingOption>({
+  id: {
+    type: String,
+    default: () => crypto.randomUUID(),
+    index: true,
+  },
   type: {
     type: String,
     required: true,
@@ -316,6 +323,7 @@ const BookingOptionSchema = new Schema<IBookingOption>({
     max: [100, 'Discount cannot exceed 100%']
   },
   isRecommended: { type: Boolean, default: false },
+  // NOTE: keep _id disabled; we use `id` as the stable identifier
 }, { _id: false });
 
 const AddOnSchema = new Schema<IAddOn>({

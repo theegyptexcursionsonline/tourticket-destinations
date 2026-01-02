@@ -7,16 +7,22 @@ import { startOfMonth, endOfMonth, subMonths, format } from 'date-fns';
 
 export async function GET(request: NextRequest) {
   try {
-    await dbConnect();
-
     // Get tenant filter from query params
     const { searchParams } = new URL(request.url);
-    const tenantId = searchParams.get('tenantId');
+    const tenantId =
+      searchParams.get('tenantId') ||
+      searchParams.get('brandId') ||
+      searchParams.get('brand_id');
+    const effectiveTenantId = tenantId && tenantId !== 'all' ? tenantId : undefined;
+
+    // IMPORTANT: connect to tenant-specific DB when a specific brand is selected
+    await dbConnect(effectiveTenantId || undefined);
     
     // Build filter for tenant-specific queries
     const tenantFilter: Record<string, unknown> = {};
-    if (tenantId && tenantId !== 'all') {
-      tenantFilter.tenantId = tenantId;
+    if (effectiveTenantId) {
+      // Be tolerant of legacy records that might have missing tenantId in a tenant DB
+      tenantFilter.$or = [{ tenantId: effectiveTenantId }, { tenantId: { $exists: false } }, { tenantId: null }];
     }
 
     // --- 1. Monthly Revenue for the Last 6 Months ---
@@ -32,7 +38,7 @@ export async function GET(request: NextRequest) {
         {
           $match: {
             createdAt: { $gte: monthStart, $lte: monthEnd },
-            status: { $in: ['Confirmed', 'Pending'] },
+            status: { $in: ['Confirmed', 'Pending', 'Completed', 'Partial Refunded'] },
             ...tenantFilter
           },
         },
@@ -54,7 +60,7 @@ export async function GET(request: NextRequest) {
     const topToursData = await Booking.aggregate([
       {
         $match: {
-          status: { $in: ['Confirmed', 'Pending'] },
+          status: { $in: ['Confirmed', 'Pending', 'Completed', 'Partial Refunded'] },
           ...tenantFilter
         }
       },
@@ -96,7 +102,7 @@ export async function GET(request: NextRequest) {
     const totalRevenueResult = await Booking.aggregate([
       {
         $match: {
-          status: { $in: ['Confirmed', 'Pending'] },
+          status: { $in: ['Confirmed', 'Pending', 'Completed', 'Partial Refunded'] },
           ...tenantFilter
         }
       },
@@ -104,7 +110,7 @@ export async function GET(request: NextRequest) {
     ]);
     
     const totalRevenue = totalRevenueResult.length > 0 ? totalRevenueResult[0].total : 0;
-    const totalBookings = await Booking.countDocuments({ status: { $in: ['Confirmed', 'Pending'] }, ...tenantFilter });
+    const totalBookings = await Booking.countDocuments({ status: { $in: ['Confirmed', 'Pending', 'Completed', 'Partial Refunded'] }, ...tenantFilter });
     const averageBookingValue = totalBookings > 0 ? totalRevenue / totalBookings : 0;
 
     const kpis = {

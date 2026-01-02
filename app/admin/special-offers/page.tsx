@@ -5,11 +5,25 @@ import { useState, useEffect, useCallback } from 'react';
 import withAuth from '@/components/admin/withAuth';
 import { 
   Sparkles, Plus, Pencil, Trash2, X, Calendar, Tag, Users, 
-  Percent, DollarSign, Clock, Star, Search, Filter, Loader2,
-  CheckCircle, XCircle, Copy
+  Percent, DollarSign, Clock, Star, Search, Loader2,
+  CheckCircle, XCircle, Copy, ChevronDown, ChevronUp, Package,
+  AlertCircle, Eye, EyeOff
 } from 'lucide-react';
 import { useAdminTenant } from '@/contexts/AdminTenantContext';
 import toast from 'react-hot-toast';
+
+interface BookingOption {
+  type: string;
+  label: string;
+  price: number;
+  description?: string;
+}
+
+interface TourOptionSelection {
+  tourId: string;
+  selectedOptions: string[];
+  allOptions: boolean;
+}
 
 interface SpecialOffer {
   _id: string;
@@ -30,13 +44,17 @@ interface SpecialOffer {
   featuredBadgeText?: string;
   priority: number;
   tenantId: string;
-  applicableTours: { _id: string; title: string }[];
+  applicableTours: { _id: string; title: string; bookingOptions?: BookingOption[] }[];
+  tourOptionSelections?: TourOptionSelection[];
+  tourCount?: number;
+  appliesToAllTours?: boolean;
   terms?: string[];
 }
 
 interface Tour {
   _id: string;
   title: string;
+  bookingOptions?: BookingOption[];
 }
 
 const offerTypeLabels: Record<string, string> = {
@@ -66,6 +84,7 @@ const SpecialOffersPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [expandedOffers, setExpandedOffers] = useState<Set<string>>(new Set());
 
   const { selectedTenantId, getSelectedTenant, isAllTenantsSelected } = useAdminTenant();
   const selectedTenant = getSelectedTenant();
@@ -84,6 +103,7 @@ const SpecialOffersPage = () => {
         setOffers(data.data || []);
       }
     } catch (error) {
+      console.error('Failed to fetch offers:', error);
       toast.error('Failed to fetch offers');
     } finally {
       setIsLoading(false);
@@ -103,7 +123,7 @@ const SpecialOffersPage = () => {
         setTours(data.data || []);
       }
     } catch (error) {
-      console.error('Failed to fetch tours');
+      console.error('Failed to fetch tours:', error);
     }
   }, [selectedTenantId]);
 
@@ -128,6 +148,7 @@ const SpecialOffersPage = () => {
         toast.error(data.error || 'Failed to delete');
       }
     } catch (error) {
+      console.error('Delete error:', error);
       toast.error('Failed to delete offer');
     }
   };
@@ -146,6 +167,7 @@ const SpecialOffersPage = () => {
         fetchOffers();
       }
     } catch (error) {
+      console.error('Toggle status error:', error);
       toast.error('Failed to update status');
     }
   };
@@ -154,6 +176,19 @@ const SpecialOffersPage = () => {
   const copyCode = (code: string) => {
     navigator.clipboard.writeText(code);
     toast.success('Code copied!');
+  };
+
+  // Toggle expanded state for offer card
+  const toggleExpanded = (offerId: string) => {
+    setExpandedOffers(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(offerId)) {
+        newSet.delete(offerId);
+      } else {
+        newSet.add(offerId);
+      }
+      return newSet;
+    });
   };
 
   // Filtered offers
@@ -198,15 +233,35 @@ const SpecialOffersPage = () => {
         
         <button
           onClick={() => {
+            if (isAllTenantsSelected()) {
+              toast.error('Please select a specific brand to create an offer');
+              return;
+            }
             setEditingOffer(null);
             setShowModal(true);
           }}
-          className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-xl hover:bg-amber-700 transition-colors"
+          disabled={isAllTenantsSelected()}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-colors ${
+            isAllTenantsSelected() 
+              ? 'bg-slate-300 text-slate-500 cursor-not-allowed' 
+              : 'bg-amber-600 text-white hover:bg-amber-700'
+          }`}
         >
           <Plus className="w-5 h-5" />
           Create Offer
         </button>
       </div>
+
+      {/* Warning for All Brands */}
+      {isAllTenantsSelected() && (
+        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <h4 className="font-medium text-amber-800">Select a Brand</h4>
+            <p className="text-sm text-amber-700">Please select a specific brand from the header to create or manage offers.</p>
+          </div>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="mb-6 flex flex-col sm:flex-row gap-4">
@@ -283,12 +338,23 @@ const SpecialOffersPage = () => {
                       {offerTypeLabels[offer.type]}
                     </span>
                   </div>
-                  {offer.isFeatured && (
-                    <div className="flex items-center gap-1 px-2 py-0.5 bg-white/20 rounded-full text-white text-xs">
-                      <Star className="w-3 h-3" />
-                      Featured
+                  <div className="flex items-center gap-2">
+                    {/* Tour Count Badge */}
+                    <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${
+                      offer.appliesToAllTours 
+                        ? 'bg-white/20 text-white' 
+                        : 'bg-white/30 text-white'
+                    }`}>
+                      <Package className="w-3 h-3" />
+                      {offer.appliesToAllTours ? 'All Tours' : `${offer.tourCount || offer.applicableTours?.length || 0} Tours`}
                     </div>
-                  )}
+                    {offer.isFeatured && (
+                      <div className="flex items-center gap-1 px-2 py-0.5 bg-white/20 rounded-full text-white text-xs">
+                        <Star className="w-3 h-3" />
+                        Featured
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -322,7 +388,7 @@ const SpecialOffersPage = () => {
                 )}
 
                 {/* Stats */}
-                <div className="flex items-center gap-4 text-sm text-slate-500 mb-4">
+                <div className="flex items-center gap-4 text-sm text-slate-500 mb-3">
                   <span className="flex items-center gap-1">
                     <Calendar className="w-4 h-4" />
                     {new Date(offer.startDate).toLocaleDateString()} - {new Date(offer.endDate).toLocaleDateString()}
@@ -330,7 +396,7 @@ const SpecialOffersPage = () => {
                 </div>
 
                 {offer.usageLimit && (
-                  <div className="mb-4">
+                  <div className="mb-3">
                     <div className="flex justify-between text-sm mb-1">
                       <span className="text-slate-500">Usage</span>
                       <span className="font-medium text-slate-700">{offer.usedCount} / {offer.usageLimit}</span>
@@ -341,6 +407,44 @@ const SpecialOffersPage = () => {
                         style={{ width: `${Math.min((offer.usedCount / offer.usageLimit) * 100, 100)}%` }}
                       />
                     </div>
+                  </div>
+                )}
+
+                {/* Expandable Tours List */}
+                {offer.applicableTours && offer.applicableTours.length > 0 && (
+                  <div className="mb-3">
+                    <button
+                      onClick={() => toggleExpanded(offer._id)}
+                      className="flex items-center justify-between w-full px-3 py-2 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors"
+                    >
+                      <span className="text-sm font-medium text-slate-700">
+                        View {offer.applicableTours.length} applicable tour{offer.applicableTours.length > 1 ? 's' : ''}
+                      </span>
+                      {expandedOffers.has(offer._id) ? (
+                        <ChevronUp className="w-4 h-4 text-slate-500" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4 text-slate-500" />
+                      )}
+                    </button>
+                    
+                    {expandedOffers.has(offer._id) && (
+                      <div className="mt-2 max-h-40 overflow-y-auto">
+                        {offer.applicableTours.map((tour) => (
+                          <div key={tour._id} className="py-2 px-3 border-b border-slate-100 last:border-0">
+                            <p className="text-sm font-medium text-slate-700">{tour.title}</p>
+                            {tour.bookingOptions && tour.bookingOptions.length > 0 && (
+                              <div className="mt-1 flex flex-wrap gap-1">
+                                {tour.bookingOptions.map((opt, idx) => (
+                                  <span key={idx} className="text-xs px-2 py-0.5 bg-slate-100 rounded-full text-slate-600">
+                                    {opt.label}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -355,9 +459,9 @@ const SpecialOffersPage = () => {
                     }`}
                   >
                     {offer.isActive ? (
-                      <><XCircle className="w-4 h-4" /> Deactivate</>
+                      <><EyeOff className="w-4 h-4" /> Deactivate</>
                     ) : (
-                      <><CheckCircle className="w-4 h-4" /> Activate</>
+                      <><Eye className="w-4 h-4" /> Activate</>
                     )}
                   </button>
                   <button
@@ -403,7 +507,7 @@ const SpecialOffersPage = () => {
   );
 };
 
-// Offer Modal Component
+// Offer Modal Component with Option-Level Selection
 function OfferModal({
   offer,
   tours,
@@ -426,6 +530,10 @@ function OfferModal({
     minBookingValue: offer?.minBookingValue || '',
     maxDiscount: offer?.maxDiscount || '',
     minGroupSize: offer?.minGroupSize || 2,
+    // Early bird: days in advance required
+    minDaysInAdvance: (offer as { minDaysInAdvance?: number })?.minDaysInAdvance || 7,
+    // Last minute: days before tour allowed
+    maxDaysBeforeTour: (offer as { maxDaysBeforeTour?: number })?.maxDaysBeforeTour || 2,
     startDate: offer?.startDate ? new Date(offer.startDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
     endDate: offer?.endDate ? new Date(offer.endDate).toISOString().split('T')[0] : '',
     usageLimit: offer?.usageLimit || '',
@@ -433,21 +541,140 @@ function OfferModal({
     isFeatured: offer?.isFeatured || false,
     featuredBadgeText: offer?.featuredBadgeText || 'Special Offer',
     priority: offer?.priority || 0,
-    applicableTours: offer?.applicableTours?.map(t => t._id) || [],
   });
+  
+  // Tour and option selections state
+  const [tourSelections, setTourSelections] = useState<Map<string, { allOptions: boolean; selectedOptions: string[] }>>(
+    () => {
+      const map = new Map();
+      // Initialize from existing offer
+      if (offer?.applicableTours) {
+        offer.applicableTours.forEach(tour => {
+          map.set(tour._id, { allOptions: true, selectedOptions: [] });
+        });
+      }
+      if (offer?.tourOptionSelections) {
+        offer.tourOptionSelections.forEach(selection => {
+          map.set(selection.tourId, {
+            allOptions: selection.allOptions,
+            selectedOptions: selection.selectedOptions || [],
+          });
+        });
+      }
+      return map;
+    }
+  );
+  
+  const [expandedTours, setExpandedTours] = useState<Set<string>>(new Set());
   const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Toggle tour selection
+  const toggleTourSelection = (tourId: string) => {
+    setTourSelections(prev => {
+      const newMap = new Map(prev);
+      if (newMap.has(tourId)) {
+        newMap.delete(tourId);
+      } else {
+        newMap.set(tourId, { allOptions: true, selectedOptions: [] });
+      }
+      return newMap;
+    });
+  };
+
+  // Toggle option selection for a tour
+  const toggleOptionSelection = (tourId: string, optionType: string) => {
+    setTourSelections(prev => {
+      const newMap = new Map(prev);
+      const current = newMap.get(tourId);
+      if (!current) return prev;
+
+      const newSelectedOptions = current.selectedOptions.includes(optionType)
+        ? current.selectedOptions.filter(o => o !== optionType)
+        : [...current.selectedOptions, optionType];
+      
+      newMap.set(tourId, {
+        allOptions: newSelectedOptions.length === 0,
+        selectedOptions: newSelectedOptions,
+      });
+      return newMap;
+    });
+  };
+
+  // Toggle all options for a tour
+  const toggleAllOptions = (tourId: string) => {
+    setTourSelections(prev => {
+      const newMap = new Map(prev);
+      const current = newMap.get(tourId);
+      if (!current) return prev;
+      
+      newMap.set(tourId, {
+        allOptions: !current.allOptions,
+        selectedOptions: [],
+      });
+      return newMap;
+    });
+  };
+
+  // Toggle expanded state for tour in modal
+  const toggleTourExpanded = (tourId: string) => {
+    setExpandedTours(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(tourId)) {
+        newSet.delete(tourId);
+      } else {
+        newSet.add(tourId);
+      }
+      return newSet;
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
+    setError(null);
+
+    // Validate
+    if (!formData.name.trim()) {
+      setError('Offer name is required');
+      setIsSaving(false);
+      return;
+    }
+
+    if (!formData.endDate) {
+      setError('End date is required');
+      setIsSaving(false);
+      return;
+    }
+
+    if (new Date(formData.endDate) <= new Date(formData.startDate)) {
+      setError('End date must be after start date');
+      setIsSaving(false);
+      return;
+    }
+
+    if (formData.type === 'percentage' && (formData.discountValue < 0 || formData.discountValue > 100)) {
+      setError('Percentage must be between 0 and 100');
+      setIsSaving(false);
+      return;
+    }
 
     try {
+      // Build tour option selections array
+      const tourOptionSelections = Array.from(tourSelections.entries()).map(([tourId, selection]) => ({
+        tourId,
+        allOptions: selection.allOptions,
+        selectedOptions: selection.selectedOptions,
+      }));
+
       const payload = {
         ...formData,
         tenantId,
         minBookingValue: formData.minBookingValue ? Number(formData.minBookingValue) : undefined,
         maxDiscount: formData.maxDiscount ? Number(formData.maxDiscount) : undefined,
         usageLimit: formData.usageLimit ? Number(formData.usageLimit) : undefined,
+        applicableTours: Array.from(tourSelections.keys()),
+        tourOptionSelections,
         _id: offer?._id,
       };
 
@@ -462,9 +689,12 @@ function OfferModal({
         toast.success(offer ? 'Offer updated' : 'Offer created');
         onSave();
       } else {
+        setError(data.error || 'Failed to save');
         toast.error(data.error || 'Failed to save');
       }
-    } catch (error) {
+    } catch (err) {
+      console.error('Save error:', err);
+      setError('Failed to save offer');
       toast.error('Failed to save offer');
     } finally {
       setIsSaving(false);
@@ -473,16 +703,29 @@ function OfferModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-      <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-hidden">
         {/* Header */}
-        <div className="p-4 border-b border-slate-200 flex items-center justify-between">
-          <h3 className="text-lg font-bold text-slate-800">
-            {offer ? 'Edit Offer' : 'Create Special Offer'}
-          </h3>
+        <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-gradient-to-r from-amber-50 to-orange-50">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-amber-500 rounded-lg">
+              <Sparkles className="w-5 h-5 text-white" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-800">
+              {offer ? 'Edit Offer' : 'Create Special Offer'}
+            </h3>
+          </div>
           <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg">
             <X className="w-5 h-5 text-slate-500" />
           </button>
         </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="mx-4 mt-4 p-3 bg-rose-50 border border-rose-200 rounded-lg flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 text-rose-600 flex-shrink-0" />
+            <span className="text-sm text-rose-700">{error}</span>
+          </div>
+        )}
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-4 max-h-[70vh] overflow-y-auto">
@@ -495,7 +738,7 @@ function OfferModal({
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                 placeholder="e.g., Summer Sale 20% Off"
               />
             </div>
@@ -507,7 +750,7 @@ function OfferModal({
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={2}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                 placeholder="Brief description of the offer..."
               />
             </div>
@@ -518,7 +761,7 @@ function OfferModal({
               <select
                 value={formData.type}
                 onChange={(e) => setFormData({ ...formData, type: e.target.value as SpecialOffer['type'] })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
               >
                 <option value="percentage">Percentage Off</option>
                 <option value="fixed">Fixed Amount</option>
@@ -540,10 +783,70 @@ function OfferModal({
                 onChange={(e) => setFormData({ ...formData, discountValue: Number(e.target.value) })}
                 required
                 min="0"
-                max={formData.type === 'percentage' ? 100 : undefined}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+                max={formData.type === 'percentage' || formData.type === 'early_bird' || formData.type === 'last_minute' ? 100 : undefined}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
               />
             </div>
+
+            {/* Early Bird: Days in Advance */}
+            {formData.type === 'early_bird' && (
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Min. Days in Advance *
+                </label>
+                <input
+                  type="number"
+                  value={formData.minDaysInAdvance}
+                  onChange={(e) => setFormData({ ...formData, minDaysInAdvance: Number(e.target.value) })}
+                  min="1"
+                  max="365"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  Customer must book at least this many days before the tour
+                </p>
+              </div>
+            )}
+
+            {/* Last Minute: Days Before Tour */}
+            {formData.type === 'last_minute' && (
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Max. Days Before Tour *
+                </label>
+                <input
+                  type="number"
+                  value={formData.maxDaysBeforeTour}
+                  onChange={(e) => setFormData({ ...formData, maxDaysBeforeTour: Number(e.target.value) })}
+                  min="0"
+                  max="30"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  Offer applies when booking within this many days of the tour
+                </p>
+              </div>
+            )}
+
+            {/* Group: Min Group Size */}
+            {formData.type === 'group' && (
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Min. Group Size *
+                </label>
+                <input
+                  type="number"
+                  value={formData.minGroupSize}
+                  onChange={(e) => setFormData({ ...formData, minGroupSize: Number(e.target.value) })}
+                  min="2"
+                  max="100"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  Minimum number of people required for discount
+                </p>
+              </div>
+            )}
 
             {/* Code */}
             <div>
@@ -552,7 +855,7 @@ function OfferModal({
                 type="text"
                 value={formData.code}
                 onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 font-mono"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent font-mono"
                 placeholder="e.g., SUMMER20"
               />
             </div>
@@ -565,7 +868,7 @@ function OfferModal({
                 value={formData.minBookingValue}
                 onChange={(e) => setFormData({ ...formData, minBookingValue: e.target.value })}
                 min="0"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                 placeholder="No minimum"
               />
             </div>
@@ -578,7 +881,7 @@ function OfferModal({
                 value={formData.startDate}
                 onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                 required
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
               />
             </div>
 
@@ -590,7 +893,7 @@ function OfferModal({
                 value={formData.endDate}
                 onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
                 required
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
               />
             </div>
 
@@ -602,7 +905,7 @@ function OfferModal({
                 value={formData.usageLimit}
                 onChange={(e) => setFormData({ ...formData, usageLimit: e.target.value })}
                 min="0"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                 placeholder="Unlimited"
               />
             </div>
@@ -614,28 +917,109 @@ function OfferModal({
                 type="number"
                 value={formData.priority}
                 onChange={(e) => setFormData({ ...formData, priority: Number(e.target.value) })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
               />
               <p className="text-xs text-slate-500 mt-1">Higher priority offers are shown first</p>
             </div>
 
-            {/* Applicable Tours */}
+            {/* Applicable Tours with Option Selection */}
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-slate-700 mb-1">Applicable Tours</label>
-              <select
-                multiple
-                value={formData.applicableTours}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  applicableTours: Array.from(e.target.selectedOptions, option => option.value)
-                })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 min-h-[100px]"
-              >
-                {tours.map(tour => (
-                  <option key={tour._id} value={tour._id}>{tour.title}</option>
-                ))}
-              </select>
-              <p className="text-xs text-slate-500 mt-1">Leave empty to apply to all tours. Hold Ctrl/Cmd to select multiple.</p>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Applicable Tours & Options
+              </label>
+              <p className="text-xs text-slate-500 mb-3">
+                Select tours and optionally specify which booking options the offer applies to. 
+                Leave empty to apply to all tours.
+              </p>
+              
+              <div className="border border-slate-200 rounded-lg max-h-64 overflow-y-auto">
+                {tours.length === 0 ? (
+                  <div className="p-4 text-center text-slate-500 text-sm">
+                    No tours available for this brand
+                  </div>
+                ) : (
+                  tours.map(tour => {
+                    const isSelected = tourSelections.has(tour._id);
+                    const selection = tourSelections.get(tour._id);
+                    const hasOptions = tour.bookingOptions && tour.bookingOptions.length > 0;
+                    const isExpanded = expandedTours.has(tour._id);
+
+                    return (
+                      <div key={tour._id} className="border-b border-slate-100 last:border-0">
+                        {/* Tour Row */}
+                        <div className="flex items-center gap-3 p-3 hover:bg-slate-50">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleTourSelection(tour._id)}
+                            className="w-5 h-5 rounded border-slate-300 text-amber-600 focus:ring-amber-500"
+                          />
+                          <div className="flex-1">
+                            <span className="text-sm font-medium text-slate-700">{tour.title}</span>
+                            {hasOptions && isSelected && (
+                              <span className="ml-2 text-xs text-slate-500">
+                                ({selection?.allOptions ? 'All options' : `${selection?.selectedOptions.length} options`})
+                              </span>
+                            )}
+                          </div>
+                          {hasOptions && isSelected && (
+                            <button
+                              type="button"
+                              onClick={() => toggleTourExpanded(tour._id)}
+                              className="p-1 text-slate-400 hover:text-slate-600"
+                            >
+                              {isExpanded ? (
+                                <ChevronUp className="w-4 h-4" />
+                              ) : (
+                                <ChevronDown className="w-4 h-4" />
+                              )}
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Options Submenu */}
+                        {hasOptions && isSelected && isExpanded && (
+                          <div className="bg-slate-50 px-4 py-2 border-t border-slate-100">
+                            <div className="flex items-center gap-2 mb-2">
+                              <input
+                                type="checkbox"
+                                checked={selection?.allOptions ?? true}
+                                onChange={() => toggleAllOptions(tour._id)}
+                                className="w-4 h-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500"
+                              />
+                              <span className="text-xs font-medium text-slate-600">Apply to all options</span>
+                            </div>
+                            
+                            {!selection?.allOptions && (
+                              <div className="ml-6 space-y-2">
+                                {tour.bookingOptions!.map((option, idx) => (
+                                  <label key={idx} className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                      type="checkbox"
+                                      checked={selection?.selectedOptions.includes(option.type) ?? false}
+                                      onChange={() => toggleOptionSelection(tour._id, option.type)}
+                                      className="w-4 h-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500"
+                                    />
+                                    <span className="text-xs text-slate-600">
+                                      {option.label} - ${option.price}
+                                    </span>
+                                  </label>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+              
+              {tourSelections.size > 0 && (
+                <p className="text-xs text-amber-600 mt-2">
+                  {tourSelections.size} tour{tourSelections.size > 1 ? 's' : ''} selected
+                </p>
+              )}
             </div>
 
             {/* Toggles */}
@@ -663,18 +1047,18 @@ function OfferModal({
         </form>
 
         {/* Footer */}
-        <div className="p-4 border-t border-slate-200 flex justify-end gap-3">
+        <div className="p-4 border-t border-slate-200 flex justify-end gap-3 bg-slate-50">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+            className="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-xl transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={isSaving}
-            className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-xl hover:bg-amber-700 transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-5 py-2 bg-amber-600 text-white rounded-xl hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
             {offer ? 'Update' : 'Create'} Offer
@@ -686,4 +1070,3 @@ function OfferModal({
 }
 
 export default withAuth(SpecialOffersPage, { permissions: ['manageDiscounts'] });
-

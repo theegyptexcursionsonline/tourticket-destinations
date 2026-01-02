@@ -4,7 +4,14 @@ import Booking from '@/lib/models/Booking';
 
 export async function POST(request: NextRequest) {
   try {
-    await dbConnect();
+    const { searchParams } = new URL(request.url);
+    const tenantId =
+      searchParams.get('tenantId') ||
+      searchParams.get('brandId') ||
+      searchParams.get('brand_id');
+    const effectiveTenantId = tenantId && tenantId !== 'all' ? tenantId : undefined;
+
+    await dbConnect(effectiveTenantId || undefined);
 
     const { bookingIds } = await request.json();
 

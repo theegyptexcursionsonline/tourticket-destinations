@@ -74,10 +74,20 @@ interface Availability {
 }
 
 interface BookingOption {
+    id?: string; // Stable id used for option-level stop-sale
     type: string;
     label: string;
     price: number;
+    originalPrice?: number;
     description?: string;
+    duration?: string;
+    languages?: string[];
+    highlights?: string[];
+    groupSize?: string;
+    difficulty?: string;
+    badge?: string;
+    discount?: number;
+    isRecommended?: boolean;
 }
 
 interface ItineraryItem {
@@ -152,6 +162,9 @@ const SmallHint = ({ children, className = "" }: { children: React.ReactNode; cl
 
 const inputBase = "block w-full px-4 py-3 border border-slate-300 rounded-xl shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent sm:text-sm disabled:bg-slate-50 disabled:cursor-not-allowed transition-all duration-200 font-medium text-slate-700";
 const textareaBase = "block w-full px-4 py-3 border border-slate-300 rounded-xl shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent sm:text-sm disabled:bg-slate-50 disabled:cursor-not-allowed transition-all duration-200 font-medium text-slate-700 resize-vertical min-h-[100px]";
+
+const generateBookingOptionId = () =>
+    (globalThis.crypto as any)?.randomUUID?.() || `opt-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
 // --- Availability Manager Sub-Component ---
 const AvailabilityManager = ({ availability, setAvailability }: { availability: Availability, setAvailability: (data: Availability) => void }) => {
@@ -398,6 +411,7 @@ export default function TourForm({ tourToEdit, onSave }: { tourToEdit?: Tour, on
                 faqs: (tourToEdit.faq || tourToEdit.faqs)?.length > 0 ? (tourToEdit.faq || tourToEdit.faqs) : [{ question: '', answer: '' }],
                 bookingOptions: tourToEdit.bookingOptions?.length > 0
                     ? tourToEdit.bookingOptions.map((option: BookingOption) => ({
+                        id: (option as any).id || generateBookingOptionId(),
                         type: option.type || 'Per Person',
                         label: option.label || '',
                         price: option.price || 0,
@@ -413,6 +427,7 @@ export default function TourForm({ tourToEdit, onSave }: { tourToEdit?: Tour, on
                         isRecommended: option.isRecommended || false
                     }))
                     : [{ 
+                        id: generateBookingOptionId(),
                         type: 'Per Person', 
                         label: '', 
                         price: 0, 
@@ -537,7 +552,7 @@ export default function TourForm({ tourToEdit, onSave }: { tourToEdit?: Tour, on
             whatsNotIncluded: [''],
             itinerary: [{ day: 1, title: '', description: '' }],
             faqs: [{ question: '', answer: '' }],
-            bookingOptions: [{ type: 'Per Person', label: '', price: 0 }],
+            bookingOptions: [{ id: generateBookingOptionId(), type: 'Per Person', label: '', price: 0 }],
            addOns: [],
         isPublished: false,
         difficulty: '',
@@ -686,7 +701,7 @@ const addItineraryItem = () => {
     const addBookingOption = () => {
         setFormData((p) => ({ 
             ...p, 
-            bookingOptions: [...p.bookingOptions, { type: 'Per Person', label: '', price: 0 }] 
+            bookingOptions: [...p.bookingOptions, { id: generateBookingOptionId(), type: 'Per Person', label: '', price: 0 }] 
         }));
         setExpandedOptionIndex(formData.bookingOptions.length);
     };

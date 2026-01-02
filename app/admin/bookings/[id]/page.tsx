@@ -23,6 +23,8 @@ import {
   Download,
   RefreshCw,
   AlertTriangle,
+  Loader2,
+  X,
   Package,
   Receipt,
   QrCode,
@@ -31,6 +33,9 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import QRCode from 'qrcode';
+import toast from 'react-hot-toast';
+import { useAdminAuth } from '@/contexts/AdminAuthContext';
+import { useAdminTenant } from '@/contexts/AdminTenantContext';
 
 // Enhanced interfaces matching your booking model
 interface BookingUser {
@@ -59,15 +64,32 @@ interface BookingTour {
 }
 
 interface BookingDetails {
+  dateString?: string;
   _id: string;
   bookingReference?: string;
+  source?: 'online' | 'manual';
+  paymentStatus?: 'paid' | 'pending' | 'pay_on_arrival';
+  amountPaid?: number;
+  customerPhone?: string;
+  customerCountry?: string;
+  internalNotes?: string;
+  pickupLocation?: string;
+  pickupAddress?: string;
+  appliedOffer?: {
+    id: string;
+    name: string;
+    offerType: string;
+    discountAmount: number;
+    discountValue: number;
+    endDate?: string;
+  };
   tour: BookingTour;
   user: BookingUser;
   date: string;
   time: string;
   guests: number;
   totalPrice: number;
-  status: 'Confirmed' | 'Pending' | 'Cancelled';
+  status: 'Confirmed' | 'Pending' | 'Completed' | 'Cancelled' | 'Refunded' | 'Partial Refunded' | string;
   // Enhanced fields
   adultGuests?: number;
   childGuests?: number;
@@ -85,7 +107,7 @@ interface BookingDetails {
   };
   selectedAddOns?: { [key: string]: number };
   selectedBookingOption?: {
-    _id: string;
+    id: string;
     title: string;
     price: number;
     originalPrice?: number;
@@ -141,6 +163,27 @@ const BookingDetailPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
+  const { token } = useAdminAuth();
+  const { selectedTenantId } = useAdminTenant();
+  const tenantQuery = selectedTenantId && selectedTenantId !== 'all' ? `?tenantId=${encodeURIComponent(selectedTenantId)}` : '';
+  const [showManualEdit, setShowManualEdit] = useState(false);
+  const [manualEdit, setManualEdit] = useState({
+    date: '',
+    time: '',
+    adults: 1,
+    children: 0,
+    infants: 0,
+    bookingOptionType: '',
+    paymentStatus: 'paid' as 'paid' | 'pending' | 'pay_on_arrival',
+    paymentMethod: 'cash' as 'cash' | 'card' | 'bank' | 'pay_later' | 'other',
+    amountPaid: '' as string,
+    pickupLocation: '',
+    pickupAddress: '',
+    hotelPickupDetails: '',
+    specialRequests: '',
+    internalNotes: '',
+  });
+  const [savingManualEdit, setSavingManualEdit] = useState(false);
   
   const params = useParams();
   const router = useRouter();
@@ -169,7 +212,7 @@ const BookingDetailPage = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/admin/bookings/${id}`);
+      const response = await fetch(`/api/admin/bookings/${id}${tenantQuery}`);
       if (!response.ok) {
         if (response.status === 404) {
           throw new Error('Booking not found');
@@ -192,12 +235,83 @@ const BookingDetailPage = () => {
     }
   }, [id]);
 
+  // Initialize manual edit form when booking loads
+  useEffect(() => {
+    if (!booking) return;
+    if (booking.source !== 'manual') return;
+    const dateStr =
+      (booking.dateString && String(booking.dateString).slice(0, 10)) ||
+      (booking.date ? String(booking.date).slice(0, 10) : '');
+    setManualEdit({
+      date: dateStr || new Date().toISOString().slice(0, 10),
+      time: booking.time || '',
+      adults: booking.adultGuests ?? 1,
+      children: booking.childGuests ?? 0,
+      infants: booking.infantGuests ?? 0,
+      bookingOptionType: booking.selectedBookingOption?.id || '',
+      paymentStatus: booking.paymentStatus || 'paid',
+      paymentMethod: (booking.paymentMethod as any) || 'cash',
+      amountPaid: booking.amountPaid !== undefined ? String(booking.amountPaid) : '',
+      pickupLocation: booking.pickupLocation || '',
+      pickupAddress: booking.pickupAddress || '',
+      hotelPickupDetails: booking.hotelPickupDetails || '',
+      specialRequests: booking.specialRequests || '',
+      internalNotes: booking.internalNotes || '',
+    });
+  }, [booking]);
+
+  const saveManualEdits = async () => {
+    if (!booking) return;
+    if (booking.source !== 'manual') return;
+    if (!token) {
+      toast.error('Admin session missing. Please log in again.');
+      return;
+    }
+    setSavingManualEdit(true);
+    try {
+      const res = await fetch(`/api/bookings/manual/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          date: manualEdit.date,
+          time: manualEdit.time,
+          adults: manualEdit.adults,
+          children: manualEdit.children,
+          infants: manualEdit.infants,
+          bookingOptionType: manualEdit.bookingOptionType,
+          paymentStatus: manualEdit.paymentStatus,
+          paymentMethod: manualEdit.paymentMethod,
+          amountPaid: manualEdit.amountPaid,
+          pickupLocation: manualEdit.pickupLocation,
+          pickupAddress: manualEdit.pickupAddress,
+          hotelPickupDetails: manualEdit.hotelPickupDetails,
+          specialRequests: manualEdit.specialRequests,
+          internalNotes: manualEdit.internalNotes,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.error || 'Failed to update manual booking');
+      }
+      toast.success('Manual booking updated');
+      setShowManualEdit(false);
+      await fetchBooking();
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to update booking');
+    } finally {
+      setSavingManualEdit(false);
+    }
+  };
+
   const updateBookingStatus = async (newStatus: string) => {
     if (!booking) return;
     
     setUpdating(true);
     try {
-      const response = await fetch(`/api/admin/bookings/${id}`, {
+      const response = await fetch(`/api/admin/bookings/${id}${tenantQuery}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -226,8 +340,14 @@ const BookingDetailPage = () => {
         return `${baseClasses} bg-green-100 text-green-800`;
       case 'Pending':
         return `${baseClasses} bg-yellow-100 text-yellow-800`;
+      case 'Completed':
+        return `${baseClasses} bg-emerald-100 text-emerald-800`;
       case 'Cancelled':
         return `${baseClasses} bg-red-100 text-red-800`;
+      case 'Refunded':
+        return `${baseClasses} bg-orange-100 text-orange-800`;
+      case 'Partial Refunded':
+        return `${baseClasses} bg-orange-50 text-orange-700`;
       default:
         return `${baseClasses} bg-gray-100 text-gray-800`;
     }
@@ -404,11 +524,16 @@ const BookingDetailPage = () => {
           </button>
           <div>
             <h1 className="text-3xl font-bold text-slate-800">Booking Details</h1>
-            <p className="text-slate-500 text-sm">
+            <p className="text-slate-500 text-sm flex items-center gap-2 flex-wrap">
               {booking.bookingReference ? (
                 <>Reference: <span className="font-mono font-semibold">{booking.bookingReference}</span></>
               ) : (
                 <>ID: {booking._id}</>
+              )}
+              {booking.source === 'manual' && (
+                <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-100 text-emerald-700 rounded-full">
+                  Manual
+                </span>
               )}
             </p>
           </div>
@@ -419,6 +544,15 @@ const BookingDetailPage = () => {
             <Download size={16} />
             Export
           </button>
+          {booking.source === 'manual' && (
+            <button
+              onClick={() => setShowManualEdit(true)}
+              className="flex items-center gap-2 px-4 py-2 border border-emerald-300 text-emerald-700 rounded-lg hover:bg-emerald-50 transition-colors"
+            >
+              <Edit size={16} />
+              Edit Manual
+            </button>
+          )}
           <button 
             onClick={fetchBooking}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -504,9 +638,12 @@ const BookingDetailPage = () => {
                 disabled={updating}
                 className="w-full appearance-none bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
               >
-                <option value="Confirmed">Confirmed</option>
                 <option value="Pending">Pending</option>
+                <option value="Confirmed">Confirmed</option>
+                <option value="Completed">Completed</option>
                 <option value="Cancelled">Cancelled</option>
+                <option value="Refunded">Refunded</option>
+                <option value="Partial Refunded">Partial Refunded</option>
               </select>
             </div>
           </div>
@@ -852,6 +989,184 @@ const BookingDetailPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Manual Edit Modal */}
+      {showManualEdit && booking?.source === 'manual' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
+            <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-emerald-50">
+              <div>
+                <h3 className="text-lg font-bold text-slate-800">Edit Manual Booking</h3>
+                <p className="text-xs text-slate-600">Server will re-calculate totals and best offer.</p>
+              </div>
+              <button onClick={() => setShowManualEdit(false)} className="p-2 hover:bg-white/60 rounded-lg">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-4 max-h-[70vh] overflow-y-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Date</label>
+                  <input
+                    type="date"
+                    value={manualEdit.date}
+                    onChange={(e) => setManualEdit({ ...manualEdit, date: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Time</label>
+                  <input
+                    type="time"
+                    value={manualEdit.time}
+                    onChange={(e) => setManualEdit({ ...manualEdit, time: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Adults</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={manualEdit.adults}
+                    onChange={(e) => setManualEdit({ ...manualEdit, adults: Number(e.target.value) })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Children</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={manualEdit.children}
+                    onChange={(e) => setManualEdit({ ...manualEdit, children: Number(e.target.value) })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Infants</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={manualEdit.infants}
+                    onChange={(e) => setManualEdit({ ...manualEdit, infants: Number(e.target.value) })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Booking Option Type</label>
+                  <input
+                    value={manualEdit.bookingOptionType}
+                    onChange={(e) => setManualEdit({ ...manualEdit, bookingOptionType: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500"
+                    placeholder="Must match tour booking option type"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Payment Status</label>
+                  <select
+                    value={manualEdit.paymentStatus}
+                    onChange={(e) => setManualEdit({ ...manualEdit, paymentStatus: e.target.value as any })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="paid">Paid</option>
+                    <option value="pending">Pending</option>
+                    <option value="pay_on_arrival">Pay on Arrival</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Payment Method</label>
+                  <select
+                    value={manualEdit.paymentMethod}
+                    onChange={(e) => setManualEdit({ ...manualEdit, paymentMethod: e.target.value as any })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="cash">Cash</option>
+                    <option value="card">Card</option>
+                    <option value="bank">Bank Transfer</option>
+                    <option value="pay_later">Pay Later</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Amount Paid</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={manualEdit.amountPaid}
+                    onChange={(e) => setManualEdit({ ...manualEdit, amountPaid: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Pickup Location</label>
+                  <input
+                    value={manualEdit.pickupLocation}
+                    onChange={(e) => setManualEdit({ ...manualEdit, pickupLocation: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Hotel / Address</label>
+                  <input
+                    value={manualEdit.pickupAddress}
+                    onChange={(e) => setManualEdit({ ...manualEdit, pickupAddress: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Hotel Pickup Details</label>
+                  <input
+                    value={manualEdit.hotelPickupDetails}
+                    onChange={(e) => setManualEdit({ ...manualEdit, hotelPickupDetails: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Special Requests</label>
+                  <textarea
+                    rows={3}
+                    value={manualEdit.specialRequests}
+                    onChange={(e) => setManualEdit({ ...manualEdit, specialRequests: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Internal Notes</label>
+                  <textarea
+                    rows={3}
+                    value={manualEdit.internalNotes}
+                    onChange={(e) => setManualEdit({ ...manualEdit, internalNotes: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-slate-200 flex justify-end gap-3 bg-slate-50">
+              <button
+                onClick={() => setShowManualEdit(false)}
+                className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl"
+                disabled={savingManualEdit}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveManualEdits}
+                disabled={savingManualEdit}
+                className="flex items-center gap-2 px-5 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-50"
+              >
+                {savingManualEdit && <Loader2 className="w-4 h-4 animate-spin" />}
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -24,17 +24,21 @@ export async function GET(request: NextRequest) {
 
     // Get tenant filter from query params
     const { searchParams } = new URL(request.url);
-    const tenantId = searchParams.get('tenantId');
+    const tenantId =
+      searchParams.get('tenantId') ||
+      searchParams.get('brandId') ||
+      searchParams.get('brand_id');
+    const effectiveTenantId = tenantId && tenantId !== 'all' ? tenantId : undefined;
     
     // Build filter for tenant-specific queries
     const tenantFilter: Record<string, unknown> = {};
-    if (tenantId && tenantId !== 'all') {
-      tenantFilter.tenantId = tenantId;
+    if (effectiveTenantId) {
+      tenantFilter.$or = [{ tenantId: effectiveTenantId }, { tenantId: { $exists: false } }, { tenantId: null }];
     }
 
     // Connect to database with timeout
     const dbConnection = await Promise.race([
-      dbConnect(),
+      dbConnect(effectiveTenantId || undefined),
       new Promise((_, reject) => setTimeout(() => reject(new Error('Database connection timeout')), 10000))
     ]);
 

@@ -54,11 +54,11 @@ const AdminHeader = () => {
 
     return (
         <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200/60 shadow-sm">
-            <div className="max-w-7xl mx-auto px-6 py-4">
-                <div className="flex items-center justify-between">
+            <div className="w-full px-4 sm:px-6 lg:px-8 py-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                     {/* Enhanced Breadcrumbs */}
-                    <div className="flex items-center space-x-1">
-                        <nav className="flex items-center space-x-1 text-sm">
+                    <div className="min-w-0 flex-1">
+                        <nav className="flex items-center space-x-1 text-sm overflow-x-auto whitespace-nowrap pr-2">
                             {/* Home/Admin Root */}
                             <Link 
                                 href="/admin" 
@@ -107,7 +107,7 @@ const AdminHeader = () => {
                     </div>
 
                     {/* Tenant Selector and User Menu */}
-                    <div className="flex items-center gap-4">
+                    <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
                         {/* Tenant/Brand Selector */}
                         <TenantSelector variant="header" />
                         
@@ -132,15 +132,15 @@ const AdminHeader = () => {
                         </div>
 
                         {/* User Info */}
-                        <div className="hidden md:flex items-center gap-3 px-4 py-2 bg-gradient-to-r from-slate-50 to-indigo-50 rounded-xl border border-slate-200/60">
+                        <div className="hidden md:flex items-center gap-3 px-4 py-2 bg-gradient-to-r from-slate-50 to-indigo-50 rounded-xl border border-slate-200/60 min-w-0 max-w-[240px]">
                             <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg shadow-sm">
                                 <Shield className="h-4 w-4 text-white" />
                             </div>
-                            <div>
-                                <div className="text-sm font-semibold text-slate-700">
+                            <div className="min-w-0">
+                                <div className="text-sm font-semibold text-slate-700 truncate">
                                     {user?.firstName ? `${user.firstName} ${user.lastName ?? ''}`.trim() : 'Admin User'}
                                 </div>
-                                <div className="text-xs text-slate-500 capitalize">
+                                <div className="text-xs text-slate-500 capitalize truncate">
                                     {user?.role?.replace('_', ' ') || 'Administrator'}
                                 </div>
                             </div>

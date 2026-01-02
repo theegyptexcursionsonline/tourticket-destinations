@@ -26,6 +26,9 @@ interface AvailabilityData {
   slots: Slot[];
   stopSale: boolean;
   stopSaleReason?: string;
+  stopSaleStatus?: 'none' | 'partial' | 'full';
+  stoppedOptionIds?: string[];
+  stopSaleReasons?: Record<string, string>;
 }
 
 interface Tour {
@@ -57,10 +60,15 @@ const AvailabilityPage = () => {
   const [isToursLoading, setIsToursLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [modalDate, setModalDate] = useState<string | null>(null);
+  const [showStopSaleRangeModal, setShowStopSaleRangeModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   
   const { selectedTenantId, getSelectedTenant, isAllTenantsSelected } = useAdminTenant();
   const selectedTenant = getSelectedTenant();
+  const effectiveTenantId =
+    selectedTenantId && selectedTenantId !== 'all'
+      ? selectedTenantId
+      : tours.find((t) => t._id === selectedTour)?.tenantId || 'default';
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -163,7 +171,8 @@ const AvailabilityPage = () => {
   const getDateStatus = (dateStr: string) => {
     const avail = availability.get(dateStr);
     if (!avail) return 'default';
-    if (avail.stopSale) return 'blocked';
+    if (avail.stopSaleStatus === 'full' || avail.stopSale) return 'stopSaleFull';
+    if (avail.stopSaleStatus === 'partial') return 'stopSalePartial';
     
     const totalCapacity = avail.slots.reduce((sum, s) => sum + s.capacity, 0);
     const totalBooked = avail.slots.reduce((sum, s) => sum + s.booked, 0);
@@ -186,7 +195,7 @@ const AvailabilityPage = () => {
           tourId: selectedTour,
           dates: Array.from(selectedDates),
           action,
-          tenantId: selectedTenantId || 'default',
+          tenantId: effectiveTenantId,
           stopSaleReason: action === 'block' ? 'Manually blocked' : '',
         }),
       });
@@ -218,7 +227,9 @@ const AvailabilityPage = () => {
     available: 'bg-emerald-50 hover:bg-emerald-100 border-emerald-200 text-emerald-700',
     limited: 'bg-amber-50 hover:bg-amber-100 border-amber-200 text-amber-700',
     sold_out: 'bg-rose-50 hover:bg-rose-100 border-rose-200 text-rose-700',
-    blocked: 'bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-500',
+    stopSaleFull: 'bg-rose-100 hover:bg-rose-200 border-rose-300 text-rose-800',
+    stopSalePartial: 'bg-amber-100 hover:bg-amber-200 border-amber-300 text-amber-800',
+    blocked: 'bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-500', // legacy
   };
 
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -267,6 +278,13 @@ const AvailabilityPage = () => {
             className="p-2 border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors"
           >
             <RefreshCw className={`w-5 h-5 text-slate-600 ${isLoading ? 'animate-spin' : ''}`} />
+          </button>
+          <button
+            onClick={() => setShowStopSaleRangeModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-rose-600 text-white rounded-xl hover:bg-rose-700 transition-colors"
+          >
+            <Lock className="w-4 h-4" />
+            Stop Sale
           </button>
         </div>
       </div>
@@ -321,8 +339,12 @@ const AvailabilityPage = () => {
           <span className="text-slate-600">Sold Out</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded bg-slate-200 border border-slate-300" />
-          <span className="text-slate-600">Blocked</span>
+          <div className="w-4 h-4 rounded bg-rose-200 border border-rose-300" />
+          <span className="text-slate-600">Stop-sale (All options)</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 rounded bg-amber-200 border border-amber-300" />
+          <span className="text-slate-600">Stop-sale (Some options)</span>
         </div>
       </div>
 
@@ -390,8 +412,7 @@ const AvailabilityPage = () => {
                 } ${isSelected ? 'ring-2 ring-indigo-500 ring-inset' : ''} ${
                   isPast ? 'opacity-50' : ''
                 }`}
-                onClick={() => !isPast && toggleDateSelection(dateStr)}
-                onDoubleClick={() => !isPast && openSlotEditor(dateStr)}
+                onClick={() => !isPast && openSlotEditor(dateStr)}
               >
                 <div className="flex items-start justify-between">
                   <span className={`text-sm font-medium ${
@@ -399,12 +420,27 @@ const AvailabilityPage = () => {
                   }`}>
                     {day}
                   </span>
-                  {avail?.stopSale && (
-                    <Lock className="w-3 h-3 text-slate-400" />
-                  )}
+                  <div className="flex items-center gap-2">
+                    {!isPast && (
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleDateSelection(dateStr)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                        aria-label={`Select ${dateStr} for bulk actions`}
+                      />
+                    )}
+                    {(avail?.stopSaleStatus === 'full' || avail?.stopSale) && (
+                      <Lock className="w-3 h-3 text-rose-700" />
+                    )}
+                    {avail?.stopSaleStatus === 'partial' && (
+                      <AlertCircle className="w-3 h-3 text-amber-700" />
+                    )}
+                  </div>
                 </div>
                 
-                {avail && !avail.stopSale && (
+                {avail && !avail.stopSale && avail.stopSaleStatus !== 'full' && (
                   <div className="mt-1 text-xs">
                     <div className="flex items-center gap-1">
                       <Users className="w-3 h-3" />
@@ -416,9 +452,14 @@ const AvailabilityPage = () => {
                   </div>
                 )}
                 
-                {avail?.stopSale && (
-                  <div className="mt-1 text-xs text-slate-400">
-                    Blocked
+                {(avail?.stopSaleStatus === 'full' || avail?.stopSale) && (
+                  <div className="mt-1 text-xs text-rose-800">
+                    Stop-sale
+                  </div>
+                )}
+                {avail?.stopSaleStatus === 'partial' && (
+                  <div className="mt-1 text-xs text-amber-800">
+                    Partial ({avail.stoppedOptionIds?.length || 0})
                   </div>
                 )}
               </div>
@@ -431,9 +472,9 @@ const AvailabilityPage = () => {
       <div className="mt-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
         <h3 className="font-semibold text-slate-700 mb-2">Quick Tips</h3>
         <ul className="text-sm text-slate-600 space-y-1">
-          <li>• <strong>Click</strong> on a date to select it for bulk actions</li>
-          <li>• <strong>Double-click</strong> on a date to edit slots</li>
-          <li>• Select multiple dates, then use the action bar to block/unblock</li>
+          <li>• <strong>Click</strong> a date to manage option-level stop-sale & slots</li>
+          <li>• Use the <strong>checkbox</strong> in the corner to select dates for bulk actions</li>
+          <li>• Select multiple dates, then use the action bar to block/unblock (all options)</li>
         </ul>
       </div>
 
@@ -442,7 +483,7 @@ const AvailabilityPage = () => {
         <SlotEditorModal
           date={modalDate}
           tourId={selectedTour}
-          tenantId={selectedTenantId || 'default'}
+          tenantId={effectiveTenantId}
           existingData={availability.get(modalDate)}
           onClose={() => {
             setShowModal(false);
@@ -455,9 +496,214 @@ const AvailabilityPage = () => {
           }}
         />
       )}
+
+      {showStopSaleRangeModal && (
+        <StopSaleRangeModal
+          tours={tours}
+          initialTourId={selectedTour}
+          tenantId={effectiveTenantId}
+          onClose={() => setShowStopSaleRangeModal(false)}
+          onApplied={() => {
+            fetchAvailability();
+            setShowStopSaleRangeModal(false);
+          }}
+        />
+      )}
     </div>
   );
 };
+
+function StopSaleRangeModal({
+  tours,
+  initialTourId,
+  tenantId,
+  onClose,
+  onApplied,
+}: {
+  tours: Tour[];
+  initialTourId: string;
+  tenantId: string;
+  onClose: () => void;
+  onApplied: () => void;
+}) {
+  const [tourId, setTourId] = useState(initialTourId);
+  const [options, setOptions] = useState<Array<{ id: string; title: string }>>([]);
+  const [allOptions, setAllOptions] = useState(true);
+  const [selectedOptionIds, setSelectedOptionIds] = useState<Set<string>>(new Set());
+  const [startDate, setStartDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [reason, setReason] = useState('');
+  const [isWorking, setIsWorking] = useState(false);
+
+  useEffect(() => {
+    const load = async () => {
+      if (!tourId) return;
+      try {
+        const res = await fetch(`/api/tours/${tourId}/options`);
+        const data = await res.json();
+        const opts = Array.isArray(data) ? data : [];
+        setOptions(opts.map((o: any) => ({ id: o.id, title: o.title })));
+      } catch {
+        setOptions([]);
+      }
+    };
+    load();
+  }, [tourId]);
+
+  const toggleOption = (id: string) => {
+    const next = new Set(selectedOptionIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelectedOptionIds(next);
+  };
+
+  const submit = async (method: 'PUT' | 'DELETE') => {
+    if (!tourId) return;
+    setIsWorking(true);
+    try {
+      const optionIds = allOptions ? [] : Array.from(selectedOptionIds);
+      const res = await fetch('/api/availability/stop-sale', {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tourId,
+          optionIds,
+          startDate,
+          endDate,
+          reason,
+          tenantId,
+        }),
+      });
+      const json = await res.json();
+      if (!json?.success) {
+        toast.error(json?.error || 'Failed to update stop-sale');
+        return;
+      }
+      toast.success(method === 'PUT' ? 'Stop-sale applied' : 'Stop-sale removed');
+      onApplied();
+    } catch {
+      toast.error('Failed to update stop-sale');
+    } finally {
+      setIsWorking(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+      <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-hidden">
+        <div className="p-4 border-b border-slate-200 flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-bold text-slate-800">Stop Sale</h3>
+            <p className="text-sm text-slate-500">Apply stop-sale by option over a date range</p>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg">
+            <X className="w-5 h-5 text-slate-500" />
+          </button>
+        </div>
+
+        <div className="p-4 max-h-[60vh] overflow-y-auto space-y-4">
+          <div>
+            <label className="text-sm font-medium text-slate-700">Tour</label>
+            <select
+              value={tourId}
+              onChange={(e) => setTourId(e.target.value)}
+              className="mt-2 w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+            >
+              {tours.map((t) => (
+                <option key={t._id} value={t._id}>
+                  {t.title}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-slate-700">Options</label>
+            <div className="mt-2 space-y-2">
+              <label className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={allOptions}
+                  onChange={(e) => {
+                    setAllOptions(e.target.checked);
+                    if (e.target.checked) setSelectedOptionIds(new Set());
+                  }}
+                  className="w-4 h-4 rounded border-slate-300 text-rose-600 focus:ring-rose-500"
+                />
+                <span className="text-sm font-medium text-slate-800">All Options</span>
+              </label>
+              {!allOptions && (
+                <div className="pl-7 space-y-2">
+                  {options.map((opt) => (
+                    <label key={opt.id} className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedOptionIds.has(opt.id)}
+                        onChange={() => toggleOption(opt.id)}
+                        className="w-4 h-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500"
+                      />
+                      <span className="text-sm text-slate-700">{opt.title}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm font-medium text-slate-700">Start date</label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="mt-2 w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-slate-700">End date</label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="mt-2 w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-slate-700">Reason</label>
+            <input
+              type="text"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Optional reason…"
+              className="mt-2 w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+        </div>
+
+        <div className="p-4 border-t border-slate-200 flex justify-end gap-3">
+          <button
+            onClick={() => submit('DELETE')}
+            disabled={isWorking}
+            className="px-4 py-2 border border-slate-300 text-slate-700 rounded-xl hover:bg-slate-50 disabled:opacity-50"
+          >
+            Remove
+          </button>
+          <button
+            onClick={() => submit('PUT')}
+            disabled={isWorking}
+            className="flex items-center gap-2 px-4 py-2 bg-rose-600 text-white rounded-xl hover:bg-rose-700 transition-colors disabled:opacity-50"
+          >
+            {isWorking ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
+            Apply
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // Slot Editor Modal Component
 function SlotEditorModal({
@@ -478,9 +724,108 @@ function SlotEditorModal({
   const [slots, setSlots] = useState<Slot[]>(
     existingData?.slots || [{ time: '09:00', capacity: 10, booked: 0, blocked: false }]
   );
-  const [stopSale, setStopSale] = useState(existingData?.stopSale || false);
+  const [stopSale, setStopSale] = useState(existingData?.stopSale || false); // full (all options) for this date
   const [stopSaleReason, setStopSaleReason] = useState(existingData?.stopSaleReason || '');
   const [isSaving, setIsSaving] = useState(false);
+
+  const [isStopSaleLoading, setIsStopSaleLoading] = useState(false);
+  const [stopSaleStatus, setStopSaleStatus] = useState<'none' | 'partial' | 'full'>(
+    existingData?.stopSaleStatus || (existingData?.stopSale ? 'full' : 'none')
+  );
+  const [tourOptions, setTourOptions] = useState<Array<{ id: string; label: string }>>([]);
+  const [stoppedOptionIds, setStoppedOptionIds] = useState<Set<string>>(
+    new Set(existingData?.stoppedOptionIds || [])
+  );
+  const [showOptions, setShowOptions] = useState(true);
+
+  const refreshStopSaleInfo = useCallback(async () => {
+    setIsStopSaleLoading(true);
+    try {
+      const params = new URLSearchParams({ date, tenantId });
+      const res = await fetch(`/api/availability/${tourId}?${params.toString()}`);
+      const json = await res.json();
+      if (json?.success) {
+        setTourOptions(json.data?.options || []);
+        setStopSaleStatus(json.data?.stopSaleStatus || 'none');
+        setStoppedOptionIds(new Set(json.data?.stoppedOptionIds || []));
+
+        // Keep the legacy checkbox in sync with effective "full" status
+        const full = json.data?.stopSaleStatus === 'full';
+        setStopSale(full);
+        if (full && typeof json.data?.reasons?.all === 'string' && !stopSaleReason) {
+          setStopSaleReason(json.data.reasons.all);
+        }
+      }
+    } catch (e) {
+      // silent; keep existing UI state
+    } finally {
+      setIsStopSaleLoading(false);
+    }
+  }, [date, tenantId, tourId, stopSaleReason]);
+
+  useEffect(() => {
+    refreshStopSaleInfo();
+  }, [refreshStopSaleInfo]);
+
+  const setAllOptionsStopSale = async (enabled: boolean) => {
+    setIsStopSaleLoading(true);
+    try {
+      const method = enabled ? 'PUT' : 'DELETE';
+      const res = await fetch('/api/availability/stop-sale', {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tourId,
+          optionIds: [],
+          startDate: date,
+          endDate: date,
+          reason: stopSaleReason || (enabled ? 'Blocked' : ''),
+          tenantId,
+        }),
+      });
+      const json = await res.json();
+      if (!json?.success) {
+        toast.error(json?.error || 'Failed to update stop-sale');
+      } else {
+        toast.success(enabled ? 'Stop-sale applied (all options)' : 'Stop-sale removed (all options)');
+      }
+      await refreshStopSaleInfo();
+    } catch (e) {
+      toast.error('Failed to update stop-sale');
+    } finally {
+      setIsStopSaleLoading(false);
+    }
+  };
+
+  const setOptionStopSale = async (optionId: string, enabled: boolean) => {
+    setIsStopSaleLoading(true);
+    try {
+      const method = enabled ? 'PUT' : 'DELETE';
+      const res = await fetch('/api/availability/stop-sale', {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tourId,
+          optionIds: [optionId],
+          startDate: date,
+          endDate: date,
+          reason: stopSaleReason || (enabled ? 'Blocked' : ''),
+          tenantId,
+        }),
+      });
+      const json = await res.json();
+      if (!json?.success) {
+        toast.error(json?.error || 'Failed to update stop-sale');
+      } else {
+        toast.success(enabled ? 'Option stop-sale applied' : 'Option stop-sale removed');
+      }
+      await refreshStopSaleInfo();
+    } catch (e) {
+      toast.error('Failed to update stop-sale');
+    } finally {
+      setIsStopSaleLoading(false);
+    }
+  };
 
   const addSlot = () => {
     setSlots([...slots, { time: '12:00', capacity: 10, booked: 0, blocked: false }]);
@@ -544,21 +889,31 @@ function SlotEditorModal({
 
         {/* Content */}
         <div className="p-4 max-h-[60vh] overflow-y-auto">
-          {/* Stop Sale Toggle */}
+          {/* Stop-sale (option-level) */}
           <div className="mb-6">
             <label className="flex items-center gap-3 cursor-pointer">
               <input
                 type="checkbox"
-                checked={stopSale}
-                onChange={(e) => setStopSale(e.target.checked)}
+                checked={stopSaleStatus === 'full' || stopSale}
+                disabled={isStopSaleLoading}
+                onChange={(e) => setAllOptionsStopSale(e.target.checked)}
                 className="w-5 h-5 rounded border-slate-300 text-rose-600 focus:ring-rose-500"
               />
               <div>
                 <span className="font-medium text-slate-800">Stop Sale</span>
-                <p className="text-sm text-slate-500">Block all bookings for this date</p>
+                <p className="text-sm text-slate-500">Block bookings for all options on this date</p>
               </div>
             </label>
-            {stopSale && (
+            <div className="mt-3">
+              <button
+                type="button"
+                onClick={() => setShowOptions((v) => !v)}
+                className="text-sm text-indigo-600 hover:text-indigo-800"
+              >
+                {showOptions ? 'Hide options' : 'Show options'}
+              </button>
+            </div>
+            {(stopSaleStatus !== 'none' || showOptions) && (
               <input
                 type="text"
                 value={stopSaleReason}
@@ -569,8 +924,44 @@ function SlotEditorModal({
             )}
           </div>
 
+          {showOptions && (
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="font-medium text-slate-800">Options</h4>
+                {isStopSaleLoading && <span className="text-xs text-slate-500">Updating…</span>}
+              </div>
+              <div className="space-y-2">
+                {tourOptions.length === 0 ? (
+                  <div className="text-sm text-slate-500">No options found for this tour.</div>
+                ) : (
+                  tourOptions.map((opt) => {
+                    const isFull = stopSaleStatus === 'full' || stopSale;
+                    const checked = isFull || stoppedOptionIds.has(opt.id);
+                    return (
+                      <label key={opt.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          disabled={isFull || isStopSaleLoading}
+                          onChange={(e) => setOptionStopSale(opt.id, e.target.checked)}
+                          className="w-4 h-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500"
+                        />
+                        <div className="flex-1">
+                          <div className="text-sm font-medium text-slate-800">{opt.label}</div>
+                          {stoppedOptionIds.has(opt.id) && stopSaleStatus === 'partial' && (
+                            <div className="text-xs text-amber-700">Stopped</div>
+                          )}
+                        </div>
+                      </label>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Time Slots */}
-          {!stopSale && (
+          {!(stopSaleStatus === 'full' || stopSale) && (
             <div>
               <div className="flex items-center justify-between mb-3">
                 <h4 className="font-medium text-slate-800">Time Slots</h4>

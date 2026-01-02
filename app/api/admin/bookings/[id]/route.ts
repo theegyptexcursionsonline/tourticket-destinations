@@ -5,6 +5,7 @@ import Booking from '@/lib/models/Booking';
 import Tour from '@/lib/models/Tour';
 import User from '@/lib/models/user';
 import { EmailService } from '@/lib/email/emailService';
+import { BOOKING_STATUSES_DB, toBookingStatusDb } from '@/lib/constants/bookingStatus';
 
 // Helper to format dates consistently and avoid timezone issues
 function formatBookingDate(dateString: string | Date | undefined): string {
@@ -38,7 +39,14 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  await dbConnect();
+  const { searchParams } = new URL(request.url);
+  const tenantId =
+    searchParams.get('tenantId') ||
+    searchParams.get('brandId') ||
+    searchParams.get('brand_id');
+  const effectiveTenantId = tenantId && tenantId !== 'all' ? tenantId : undefined;
+
+  await dbConnect(effectiveTenantId || undefined);
 
   try {
     const { id } = await params;
@@ -108,7 +116,14 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  await dbConnect();
+  const { searchParams } = new URL(request.url);
+  const tenantId =
+    searchParams.get('tenantId') ||
+    searchParams.get('brandId') ||
+    searchParams.get('brand_id');
+  const effectiveTenantId = tenantId && tenantId !== 'all' ? tenantId : undefined;
+
+  await dbConnect(effectiveTenantId || undefined);
 
   try {
     const { id } = await params;
@@ -116,7 +131,8 @@ export async function PATCH(
     const { status } = body;
 
     // Validate status
-    if (!status || !['Confirmed', 'Pending', 'Cancelled'].includes(status)) {
+    const normalizedStatus = typeof status === 'string' ? (toBookingStatusDb(status) || status) : '';
+    if (!normalizedStatus || !BOOKING_STATUSES_DB.includes(normalizedStatus as any)) {
       return NextResponse.json(
         { success: false, message: 'Invalid status value' },
         { status: 400 }
@@ -152,7 +168,7 @@ export async function PATCH(
     const oldStatus = currentBooking.status;
 
     // Update booking
-    currentBooking.status = status;
+    currentBooking.status = normalizedStatus as any;
     await currentBooking.save();
 
     // Reload with lean for response
@@ -195,7 +211,7 @@ export async function PATCH(
         const bookingTime = updatedBooking.time;
         const bookingId = updatedBooking._id.toString();
 
-        if (status === 'Cancelled') {
+        if (normalizedStatus === 'Cancelled') {
           // Calculate potential refund for cancellation email
           const bookingDateObj = new Date(updatedBooking.date);
           const now = new Date();
@@ -227,6 +243,9 @@ export async function PATCH(
           const statusMessages = {
             'Confirmed': '✓ Your booking has been confirmed! Get ready for an amazing experience.',
             'Pending': '⏳ Your booking is currently pending. We\'ll update you soon.',
+            'Completed': '🌟 Thanks for joining us! Your booking has been marked as completed.',
+            'Refunded': '💳 Your booking has been refunded. If you have any questions, reply to this email.',
+            'Partial Refunded': '💳 A partial refund has been processed for your booking. If you have questions, reply to this email.',
           };
 
           await EmailService.sendBookingStatusUpdate({
@@ -236,15 +255,15 @@ export async function PATCH(
             bookingDate,
             bookingTime,
             bookingId,
-            newStatus: status,
-            statusMessage: statusMessages[status as keyof typeof statusMessages] || 'Your booking status has been updated.',
-            additionalInfo: status === 'Confirmed'
+            newStatus: normalizedStatus,
+            statusMessage: statusMessages[normalizedStatus as keyof typeof statusMessages] || 'Your booking status has been updated.',
+            additionalInfo: normalizedStatus === 'Confirmed'
               ? 'Please make sure to arrive at the meeting point 15 minutes before the scheduled time.'
               : undefined,
             baseUrl: process.env.NEXT_PUBLIC_BASE_URL || ''
           });
 
-          console.log(`✅ Status update email sent to ${customerEmail} - Status: ${status}`);
+          console.log(`✅ Status update email sent to ${customerEmail} - Status: ${normalizedStatus}`);
         }
       } catch (emailError) {
         console.error('❌ Failed to send email notification:', emailError);
@@ -293,7 +312,14 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  await dbConnect();
+  const { searchParams } = new URL(request.url);
+  const tenantId =
+    searchParams.get('tenantId') ||
+    searchParams.get('brandId') ||
+    searchParams.get('brand_id');
+  const effectiveTenantId = tenantId && tenantId !== 'all' ? tenantId : undefined;
+
+  await dbConnect(effectiveTenantId || undefined);
 
   try {
     const { id } = await params;

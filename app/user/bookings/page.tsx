@@ -24,7 +24,14 @@ interface Booking {
   bookingTime: string;
   participants: number;
   totalPrice: number;
-  status: 'Confirmed' | 'Pending' | 'Cancelled';
+  status:
+    | 'Confirmed'
+    | 'Pending'
+    | 'Completed'
+    | 'Cancelled'
+    | 'Refunded'
+    | 'Partial Refunded'
+    | string;
   createdAt: string;
   adultGuests?: number;
   childGuests?: number;
@@ -90,8 +97,14 @@ const BookingCard = ({ booking }: { booking: Booking }) => {
         return 'bg-green-100 text-green-800 border-green-200';
       case 'Pending':
         return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'Completed':
+        return 'bg-emerald-100 text-emerald-800 border-emerald-200';
       case 'Cancelled':
         return 'bg-red-100 text-red-800 border-red-200';
+      case 'Refunded':
+        return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 'Partial Refunded':
+        return 'bg-orange-50 text-orange-700 border-orange-200';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }

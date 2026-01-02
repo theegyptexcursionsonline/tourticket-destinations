@@ -81,18 +81,13 @@ export default function TenantSelector({ variant = 'header', className = '' }: T
 
   // Default: header variant
   return (
-    <div className={`flex items-center gap-3 ${className}`}>
-      <div className="hidden sm:flex items-center gap-2 px-3 py-2 bg-slate-100 rounded-2xl border border-slate-200">
-        <Building2 className="w-4 h-4 text-slate-500" />
-        <span className="text-xs font-semibold text-slate-600">Brand</span>
-      </div>
-
+    <div className={`flex items-center gap-2 ${className}`}>
       <div className="relative">
         <select
           value={selectedTenantId}
           onChange={(e) => setSelectedTenantId(e.target.value)}
           disabled={isLoading}
-          className="appearance-none bg-white border border-slate-200 rounded-2xl px-4 py-2.5 pr-10 text-sm font-semibold text-slate-800 hover:border-slate-300 focus:outline-none focus:ring-4 focus:ring-indigo-500/15 focus:border-indigo-500 cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed min-w-[200px]"
+          className="appearance-none bg-white border border-slate-200 rounded-2xl px-4 py-2.5 pr-10 text-sm font-semibold text-slate-800 hover:border-slate-300 focus:outline-none focus:ring-4 focus:ring-indigo-500/15 focus:border-indigo-500 cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed w-[240px] max-w-[60vw]"
         >
           <option value={ALL_TENANTS_VALUE}>All Brands</option>
           {tenants.map((tenant) => (
@@ -105,7 +100,7 @@ export default function TenantSelector({ variant = 'header', className = '' }: T
       </div>
 
       {selectedTenant && (
-        <div className="hidden lg:flex items-center gap-2 px-3 py-2 bg-white rounded-2xl border border-slate-200">
+        <div className="hidden xl:flex items-center gap-2 px-3 py-2 bg-white rounded-2xl border border-slate-200 max-w-[220px] min-w-0">
           {selectedTenant.branding?.logo ? (
             <img
               src={selectedTenant.branding.logo}
@@ -120,7 +115,7 @@ export default function TenantSelector({ variant = 'header', className = '' }: T
               {selectedTenant.name.charAt(0)}
             </div>
           )}
-          <span className="text-xs font-semibold text-slate-700 max-w-[180px] truncate">{selectedTenant.domain}</span>
+          <span className="text-xs font-semibold text-slate-700 truncate">{selectedTenant.domain}</span>
         </div>
       )}
 

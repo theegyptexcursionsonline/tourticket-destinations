@@ -9,14 +9,37 @@ export interface IBooking extends Document {
   bookingReference: string;
   tour: mongoose.Schema.Types.ObjectId;
   user: mongoose.Schema.Types.ObjectId;
+  // Booking source tracking
+  source?: 'online' | 'manual';
+  createdBy?: mongoose.Schema.Types.ObjectId; // Admin user who created manual booking
+
+  // Customer contact (snapshot at booking time; user profile may change)
+  customerPhone?: string;
+  customerCountry?: string;
+
   date: Date;
   dateString?: string; // YYYY-MM-DD format - timezone-safe for display
   time: string;
   guests: number;
   totalPrice: number;
-  status: 'Confirmed' | 'Pending' | 'Cancelled';
+  status:
+    | 'Confirmed'
+    | 'Pending'
+    | 'Completed'
+    | 'Cancelled'
+    | 'Refunded'
+    | 'Partial Refunded'
+    // Backward compatibility if any records stored codes
+    | 'confirmed'
+    | 'pending'
+    | 'completed'
+    | 'cancelled'
+    | 'refunded'
+    | 'partial_refunded';
   paymentId?: string;
   paymentMethod?: string;
+  paymentStatus?: 'paid' | 'pending' | 'pay_on_arrival';
+  amountPaid?: number;
   specialRequests?: string;
   emergencyContact?: string;
   hotelPickupDetails?: string;
@@ -25,6 +48,19 @@ export interface IBooking extends Document {
     lat: number;
     lng: number;
     placeId?: string;
+  };
+  pickupLocation?: string;
+  pickupAddress?: string;
+  internalNotes?: string; // Not visible to customer
+
+  // Offer/discount snapshot applied at booking time (optional)
+  appliedOffer?: {
+    id: string;
+    name: string;
+    offerType: string;
+    discountAmount: number;
+    discountValue: number;
+    endDate?: Date;
   };
   adultGuests?: number;
   childGuests?: number;
@@ -88,6 +124,30 @@ const BookingSchema: Schema<IBooking> = new Schema({
       message: 'Invalid user ID format'
     }
   },
+
+  source: {
+    type: String,
+    enum: ['online', 'manual'],
+    default: 'online',
+    index: true,
+  },
+
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    index: true,
+    required: false,
+  },
+
+  customerPhone: {
+    type: String,
+    maxlength: 50,
+  },
+
+  customerCountry: {
+    type: String,
+    maxlength: 100,
+  },
   
   date: {
     type: Date,
@@ -120,7 +180,21 @@ const BookingSchema: Schema<IBooking> = new Schema({
   
   status: {
     type: String,
-    enum: ['Confirmed', 'Pending', 'Cancelled'],
+    enum: [
+      'Confirmed',
+      'Pending',
+      'Completed',
+      'Cancelled',
+      'Refunded',
+      'Partial Refunded',
+      // accept codes too
+      'confirmed',
+      'pending',
+      'completed',
+      'cancelled',
+      'refunded',
+      'partial_refunded',
+    ],
     default: 'Confirmed',
   },
   
@@ -130,8 +204,20 @@ const BookingSchema: Schema<IBooking> = new Schema({
   
   paymentMethod: {
     type: String,
-    enum: ['card', 'paypal', 'bank', 'cash', 'pay_later'],
+    enum: ['card', 'paypal', 'bank', 'cash', 'pay_later', 'other'],
     default: 'card',
+  },
+
+  paymentStatus: {
+    type: String,
+    enum: ['paid', 'pending', 'pay_on_arrival'],
+    default: 'paid',
+    index: true,
+  },
+
+  amountPaid: {
+    type: Number,
+    min: 0,
   },
   
   specialRequests: {
@@ -154,6 +240,33 @@ const BookingSchema: Schema<IBooking> = new Schema({
     lat: Number,
     lng: Number,
     placeId: String,
+  },
+
+  pickupLocation: {
+    type: String,
+    maxlength: 200,
+  },
+
+  pickupAddress: {
+    type: String,
+    maxlength: 300,
+  },
+
+  internalNotes: {
+    type: String,
+    maxlength: 2000,
+  },
+
+  appliedOffer: {
+    type: {
+      id: String,
+      name: String,
+      offerType: String,
+      discountAmount: Number,
+      discountValue: Number,
+      endDate: Date,
+    },
+    required: false,
   },
   
   adultGuests: {
@@ -224,6 +337,7 @@ BookingSchema.index({ tenantId: 1, user: 1, createdAt: -1 });
 BookingSchema.index({ tenantId: 1, tour: 1, date: 1 });
 BookingSchema.index({ tenantId: 1, status: 1 });
 BookingSchema.index({ tenantId: 1, createdAt: -1 });
+BookingSchema.index({ tenantId: 1, source: 1, createdAt: -1 });
 
 const Booking: Model<IBooking> = mongoose.models.Booking || mongoose.model<IBooking>('Booking', BookingSchema);
 

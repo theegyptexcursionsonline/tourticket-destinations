@@ -3,13 +3,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Booking from '@/lib/models/Booking';
 import mongoose from 'mongoose';
+import { toBookingStatusDb } from '@/lib/constants/bookingStatus';
 
 export async function GET(request: NextRequest) {
-  await dbConnect();
-
   try {
     const { searchParams } = new URL(request.url);
-    const tenantId = searchParams.get('tenantId');
+    const tenantId =
+      searchParams.get('tenantId') ||
+      searchParams.get('brandId') ||
+      searchParams.get('brand_id');
+    const effectiveTenantId = tenantId && tenantId !== 'all' ? tenantId : undefined;
+
+    // IMPORTANT: connect to tenant-specific DB when a specific brand is selected
+    await dbConnect(effectiveTenantId || undefined);
     const pageParam = searchParams.get('page');
     const limitParam = searchParams.get('limit');
     const search = (searchParams.get('search') || '').trim();
@@ -29,11 +35,12 @@ export async function GET(request: NextRequest) {
 
     const baseMatch: Record<string, unknown> = {};
 
-    // Tenant filter (multi-tenant admin)
-    if (tenantId && tenantId !== 'all') baseMatch.tenantId = tenantId;
-
     // Status filter
-    if (status && status !== 'all') baseMatch.status = status;
+    if (status && status !== 'all') {
+      // Accept both status codes (e.g. refunded) and DB labels (e.g. Refunded)
+      const mapped = toBookingStatusDb(status);
+      baseMatch.status = mapped || status;
+    }
 
     // Product filter
     if (tourId && mongoose.Types.ObjectId.isValid(tourId)) {
@@ -93,6 +100,16 @@ export async function GET(request: NextRequest) {
         },
       },
       { $unwind: { path: '$tour', preserveNullAndEmptyArrays: true } },
+      // Tenant filter (apply after join too, to handle any legacy bookings missing tenantId)
+      ...(effectiveTenantId
+        ? [
+            {
+              $match: {
+                $or: [{ tenantId: effectiveTenantId }, { 'tour.tenantId': effectiveTenantId }],
+              },
+            },
+          ]
+        : []),
       // Join Destination (optional)
       {
         $lookup: {
@@ -151,6 +168,8 @@ export async function GET(request: NextRequest) {
                 _id: 1,
                 tenantId: 1,
                 bookingReference: 1,
+                  source: 1,
+                  createdBy: 1,
                 date: 1,
                 dateString: 1,
                 time: 1,
@@ -161,6 +180,9 @@ export async function GET(request: NextRequest) {
                 totalPrice: 1,
                 status: 1,
                 paymentMethod: 1,
+                  paymentStatus: 1,
+                  amountPaid: 1,
+                  appliedOffer: 1,
                 createdAt: 1,
                 updatedAt: 1,
                 tour: {

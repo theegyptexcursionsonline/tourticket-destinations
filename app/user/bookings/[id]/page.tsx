@@ -63,7 +63,14 @@ interface BookingDetails {
   time: string;
   guests: number;
   totalPrice: number;
-  status: 'Confirmed' | 'Pending' | 'Cancelled';
+  status:
+    | 'Confirmed'
+    | 'Pending'
+    | 'Completed'
+    | 'Cancelled'
+    | 'Refunded'
+    | 'Partial Refunded'
+    | string;
   adultGuests?: number;
   childGuests?: number;
   infantGuests?: number;
@@ -274,7 +281,7 @@ const UserBookingDetailPage = () => {
 
   const canCancelBooking = () => {
     if (!booking) return false;
-    if (booking.status === 'Cancelled') return false;
+    if (['Cancelled', 'Refunded', 'Partial Refunded', 'Completed'].includes(String(booking.status))) return false;
 
     // Use dateString for timezone-safe date parsing
     const dateSource = booking.dateString || booking.date;

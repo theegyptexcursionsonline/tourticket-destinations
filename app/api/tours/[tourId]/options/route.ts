@@ -21,13 +21,13 @@ export async function GET(
   try {
     await dbConnect();
 
-    let tour = null;
+    let tour: any = null;
 
     // Check if tourId is an ObjectId or a slug
     if (isValidObjectId(tourId)) {
-      tour = await Tour.findById(tourId).lean();
+      tour = await Tour.findById(tourId);
     } else {
-      tour = await Tour.findOne({ slug: tourId }).lean();
+      tour = await Tour.findOne({ slug: tourId });
     }
 
     if (!tour) {
@@ -38,9 +38,23 @@ export async function GET(
     let tourOptions;
 
     if (tour.bookingOptions && tour.bookingOptions.length > 0) {
+      // Ensure stable ids exist (bookingOptions[].id)
+      let changed = false;
+      tour.bookingOptions = tour.bookingOptions.map((opt: any) => {
+        if (!opt) return opt;
+        if (!opt.id) {
+          changed = true;
+          return { ...opt, id: globalThis.crypto?.randomUUID?.() || `opt-${Date.now()}-${Math.random().toString(16).slice(2)}` };
+        }
+        return opt;
+      });
+      if (changed) {
+        await tour.save();
+      }
+
       // Use real booking options from database
       tourOptions = tour.bookingOptions.map((option: any, index: number) => ({
-        id: option._id?.toString() || `option-${index}`,
+        id: option.id || `option-${index}`,
         title: option.label || `${tour.title} - ${option.type}`,
         type: option.type || 'Per Person',
         price: option.price || tour.discountPrice,

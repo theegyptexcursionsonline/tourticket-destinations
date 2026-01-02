@@ -6,6 +6,10 @@ import Category from "@/lib/models/Category";
 import mongoose from "mongoose";
 import { syncTourToAlgolia, deleteTourFromAlgolia } from "@/lib/algolia";
 
+function generateOptionId() {
+    return globalThis.crypto?.randomUUID?.() || `opt-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
 // Helper function to find a tour by ID or Slug with safe population
 async function findTour(identifier: string) {
     try {
@@ -61,6 +65,11 @@ function cleanBookingOptions(bookingOptions: any[]): any[] {
     
     return bookingOptions.map(option => {
         const cleanedOption = { ...option };
+
+        // Ensure stable option id exists (required for option-level stop-sale)
+        if (!cleanedOption.id) {
+            cleanedOption.id = generateOptionId();
+        }
         
         // Remove empty or invalid difficulty values
         if (!cleanedOption.difficulty || cleanedOption.difficulty.trim() === '') {

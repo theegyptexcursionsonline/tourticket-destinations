@@ -110,6 +110,7 @@ export interface FAQ {
 }
 
 export interface BookingOption {
+  id?: string; // Stable id used for option-level stop-sale
   type: string;
   label: string;
   price: number;
@@ -331,7 +332,20 @@ export interface Booking {
   children: number;
   infants: number;
   totalPrice: number;
-  status: 'Confirmed' | 'Pending' | 'Cancelled';
+  status:
+    | 'Confirmed'
+    | 'Pending'
+    | 'Completed'
+    | 'Cancelled'
+    | 'Refunded'
+    | 'Partial Refunded'
+    // Backward compatibility
+    | 'confirmed'
+    | 'pending'
+    | 'completed'
+    | 'cancelled'
+    | 'refunded'
+    | 'partial_refunded';
   paymentId?: string;
   paymentMethod?: string;
   specialRequests?: string;

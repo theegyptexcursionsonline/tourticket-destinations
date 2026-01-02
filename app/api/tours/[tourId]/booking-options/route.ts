@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Tour from '@/lib/models/Tour';
 
+function generateOptionId() {
+  return globalThis.crypto?.randomUUID?.() || `opt-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ tourId: string }> }
@@ -22,11 +26,18 @@ export async function PUT(
       tour.bookingOptions = [];
     }
 
-    // Update or add the option at the specified index
+    const incoming = { ...(option || {}) };
+
+    // Preserve existing id if caller didn't send it
     if (index < tour.bookingOptions.length) {
-      tour.bookingOptions[index] = option;
+      const existing: any = tour.bookingOptions[index];
+      if (!incoming.id && existing?.id) incoming.id = existing.id;
+      if (!incoming.id) incoming.id = generateOptionId();
+
+      tour.bookingOptions[index] = incoming;
     } else {
-      tour.bookingOptions.push(option);
+      if (!incoming.id) incoming.id = generateOptionId();
+      tour.bookingOptions.push(incoming);
     }
 
     await tour.save();
