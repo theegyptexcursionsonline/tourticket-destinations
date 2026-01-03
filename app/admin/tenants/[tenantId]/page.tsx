@@ -1303,7 +1303,7 @@ function PaymentsTab({ tenant, updateField }: { tenant: TenantData; updateField:
             >
               <input
                 type="checkbox"
-                checked={(tenant.payments as Record<string, boolean>)?.[key] || false}
+                checked={Boolean((tenant.payments as any)?.[key])}
                 onChange={(e) => updateField(`payments.${key}`, e.target.checked)}
                 className={`${UI.checkbox} mt-0.5`}
               />

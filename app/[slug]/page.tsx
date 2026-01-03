@@ -7,7 +7,7 @@ import Review from '@/lib/models/Review';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import TourDetailClientPage from './TourDetailClientPage';
-import { ITour } from '@/lib/models/Tour';
+import type { Review as ReviewType, Tour as TourType } from '@/types';
 import { getTenantFromRequest, getTenantPublicConfig } from '@/lib/tenant';
 
 interface PageProps {
@@ -17,7 +17,7 @@ interface PageProps {
 /**
  * Get tour by slug with multi-tenant support
  */
-async function getTourBySlug(slug: string, tenantId: string): Promise<{ tour: ITour; reviews: any[] } | null> {
+async function getTourBySlug(slug: string, tenantId: string): Promise<{ tour: TourType; reviews: ReviewType[] } | null> {
   try {
     await dbConnect();
     
@@ -48,9 +48,9 @@ async function getTourBySlug(slug: string, tenantId: string): Promise<{ tour: IT
       .limit(20)
       .lean();
     
-    return { 
-      tour: JSON.parse(JSON.stringify(tour)), 
-      reviews: JSON.parse(JSON.stringify(reviews)) 
+    return {
+      tour: JSON.parse(JSON.stringify(tour)) as TourType,
+      reviews: JSON.parse(JSON.stringify(reviews)) as ReviewType[],
     };
   } catch (error) {
     console.error('[Tour] Error fetching tour:', error);
@@ -61,7 +61,7 @@ async function getTourBySlug(slug: string, tenantId: string): Promise<{ tour: IT
 /**
  * Get related tours
  */
-async function getRelatedTours(categoryIds: string | string[] | any, currentTourId: string, tenantId: string): Promise<ITour[]> {
+async function getRelatedTours(categoryIds: string | string[] | any, currentTourId: string, tenantId: string): Promise<TourType[]> {
   try {
     await dbConnect();
     
@@ -87,7 +87,7 @@ async function getRelatedTours(categoryIds: string | string[] | any, currentTour
       .limit(3)
       .lean();
 
-    return JSON.parse(JSON.stringify(relatedTours));
+    return JSON.parse(JSON.stringify(relatedTours)) as TourType[];
   } catch (error) {
     console.error('[Tour] Error fetching related tours:', error);
     return [];

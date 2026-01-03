@@ -20,7 +20,7 @@ import { toDateOnlyString } from '@/utils/date';
 
 // Enhanced Types with database compatibility
 interface Tour {
-  id?: string;
+  id?: string | number;
   _id?: string;
   title: string;
   image: string;
@@ -34,7 +34,7 @@ interface Tour {
   duration?: string;
   rating?: number;
   bookings?: number;
-  reviews?: number;
+  reviews?: number | any[];
   description?: string;
   longDescription?: string;
   slug?: string;
@@ -44,13 +44,13 @@ interface Tour {
   whatsIncluded?: string[];
   whatsNotIncluded?: string[];
   bookingOptions?: BookingOption[];
-  addOns?: AddOnTour[];
+  addOns?: any[];
   location?: {
     lat: number;
     lng: number;
     address: string;
   } | string;
-  difficulty?: 'Easy' | 'Moderate' | 'Challenging';
+  difficulty?: string;
   category?: {
     _id: string;
     name: string;
@@ -59,9 +59,9 @@ interface Tour {
   tags?: string[];
   isFeatured?: boolean;
   availability?: {
-    type: string;
-    availableDays: number[];
-    slots: { time: string; capacity: number }[];
+    type?: string;
+    availableDays?: number[];
+    slots?: { time: string; capacity: number }[];
     blockedDates?: string[];
     startDate?: string;
     endDate?: string;
@@ -97,6 +97,7 @@ interface TimeSlot {
   time: string;
   available: number;
   price: number;
+  originalPrice?: number;
   isPopular?: boolean;
   originalAvailable?: number;
   discount?: number;
@@ -517,7 +518,8 @@ const TourOptionCard: React.FC<{
 
   // Use real tour data instead of hardcoded values
   const rating = tour.rating || 4.5;
-  const totalBookings = tour.bookings || tour.reviews || 0;
+  const reviewsCount = Array.isArray(tour.reviews) ? tour.reviews.length : tour.reviews;
+  const totalBookings = tour.bookings || reviewsCount || 0;
   const maxParticipants = tour.maxGroupSize || 15;
 
   return (
@@ -896,7 +898,7 @@ const BookingSummaryCard: React.FC<{
     image: tour.image,
     duration: tour.duration,
     rating: tour.rating || 4.5,
-    bookings: tour.bookings || tour.reviews || 0,
+    bookings: tour.bookings || (Array.isArray(tour.reviews) ? tour.reviews.length : tour.reviews) || 0,
     destination: typeof tour.destination === 'string' 
       ? tour.destination 
       : tour.destination?.name || 'Unknown',
@@ -1191,7 +1193,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour }
       image: tour.image,
       duration: tour.duration,
       rating: tour.rating || 4.5,
-      bookings: tour.bookings || tour.reviews || 0,
+      bookings: tour.bookings || (Array.isArray(tour.reviews) ? tour.reviews.length : tour.reviews) || 0,
       destination: typeof tour.destination === 'string' 
         ? tour.destination 
         : tour.destination?.name || 'Unknown',
@@ -1690,7 +1692,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour }
         totalPrice: 0,
       };
 
-      addToCart(newCartItem, false);
+      addToCart(newCartItem as any, false);
 
       toast.dismiss(loadingToast);
       onClose();
@@ -1742,7 +1744,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour }
         setCurrentStep(1);
         break;
       case 'language':
-        toast.info('Language selection coming soon!');
+        toast.success('Language selection coming soon!');
         break;
     }
     setAnimationKey(prev => prev + 1);
@@ -1754,6 +1756,8 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour }
       setTimeout(() => {
         const scrollContainer = scrollableContentRef.current;
         const elementToScrollTo = datePickerRef.current;
+
+        if (!scrollContainer || !elementToScrollTo) return;
 
         const topPosition = elementToScrollTo.offsetTop;
 

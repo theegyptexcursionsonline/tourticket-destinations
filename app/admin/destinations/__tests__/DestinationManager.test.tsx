@@ -31,7 +31,7 @@ jest.mock('react-hot-toast', () => ({
 }))
 
 describe('DestinationManager', () => {
-  const mockDestinations: IDestination[] = [
+  const mockDestinations = [
     {
       _id: '1',
       name: 'Cairo',
@@ -90,7 +90,7 @@ describe('DestinationManager', () => {
       tags: [],
       tourCount: 30,
     },
-  ]
+  ] as unknown as IDestination[]
 
   beforeEach(() => {
     jest.clearAllMocks()
@@ -149,7 +149,7 @@ describe('DestinationManager', () => {
     })
 
     it('should display placeholder for missing images', () => {
-      const noImage = [{ ...mockDestinations[0], image: '' }]
+      const noImage = [{ ...(mockDestinations[0] as any), image: '' }] as any
       render(<DestinationManager initialDestinations={noImage} />)
 
       const placeholders = screen.getAllByRole('img').filter(img =>

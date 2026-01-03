@@ -415,9 +415,7 @@ const AvailabilityPage = () => {
                 onClick={() => !isPast && openSlotEditor(dateStr)}
               >
                 <div className="flex items-start justify-between">
-                  <span className={`text-sm font-medium ${
-                    status === 'blocked' ? 'text-slate-400' : ''
-                  }`}>
+                  <span className="text-sm font-medium">
                     {day}
                   </span>
                   <div className="flex items-center gap-2">

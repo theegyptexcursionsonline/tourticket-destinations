@@ -28,7 +28,7 @@ import ElfsightWidget from '@/components/ElfsightWidget';
 import { useSettings } from '@/hooks/useSettings';
 import { useCart } from '@/hooks/useCart';
 import { useWishlist } from '@/contexts/WishlistContext';
-import { ITour } from '@/lib/models/Tour';
+import type { CartItem, Review, Tour } from '@/types';
 import toast from 'react-hot-toast';
 import { toDateOnlyString } from '@/utils/date';
 
@@ -61,12 +61,6 @@ interface FAQ {
   answer: string;
 }
 
-interface Review {
-  _id: string;
-  rating: number;
-  [key: string]: unknown;
-}
-
 interface TourEnhancement {
   itinerary?: ItineraryItem[];
   whatToBring?: string[];
@@ -86,7 +80,7 @@ interface TourEnhancement {
 }
 
 // Extract enhancement data from the actual tour object with SMART fallbacks
-const extractEnhancementData = (tour: ITour): TourEnhancement => {
+const extractEnhancementData = (tour: Tour): TourEnhancement => {
   return {
     itinerary: tour.itinerary && tour.itinerary.length > 0 ? tour.itinerary.map(item => ({
       ...item,
@@ -395,7 +389,7 @@ const ItineraryIcon = ({ iconType, className = "w-5 h-5" }: { iconType?: string,
   return icons[iconType || 'location'] || icons.location;
 };
 
-const ItinerarySection = ({ itinerary, tourTitle, sectionRef }: { itinerary: ItineraryItem[], tourTitle: string, sectionRef: React.RefObject<HTMLDivElement> }) => {
+const ItinerarySection = ({ itinerary, tourTitle, sectionRef }: { itinerary: ItineraryItem[], tourTitle: string, sectionRef: React.RefObject<HTMLDivElement | null> }) => {
   // Extract locations for map
   const locations = itinerary
     .filter(item => item.location)
@@ -531,7 +525,7 @@ const ItinerarySection = ({ itinerary, tourTitle, sectionRef }: { itinerary: Iti
   );
 };
 
-const PracticalInfoSection = ({ enhancement, sectionRef }: { enhancement: TourEnhancement, sectionRef: React.RefObject<HTMLDivElement> }) => (
+const PracticalInfoSection = ({ enhancement, sectionRef }: { enhancement: TourEnhancement, sectionRef: React.RefObject<HTMLDivElement | null> }) => (
   <div ref={sectionRef} id="practical" className="space-y-8 scroll-mt-24">
     <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
       <Backpack size={24} className="text-blue-600" />
@@ -603,7 +597,7 @@ const PracticalInfoSection = ({ enhancement, sectionRef }: { enhancement: TourEn
   </div>
 );
 
-const AccessibilitySection = ({ enhancement, sectionRef }: { enhancement: TourEnhancement, sectionRef: React.RefObject<HTMLDivElement> }) => (
+const AccessibilitySection = ({ enhancement, sectionRef }: { enhancement: TourEnhancement, sectionRef: React.RefObject<HTMLDivElement | null> }) => (
   <div ref={sectionRef} id="accessibility" className="space-y-6 scroll-mt-24">
     <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
       <Accessibility size={24} className="text-purple-600" />
@@ -648,7 +642,7 @@ const AccessibilitySection = ({ enhancement, sectionRef }: { enhancement: TourEn
   </div>
 );
 
-const PoliciesSection = ({ enhancement, sectionRef }: { enhancement: TourEnhancement, sectionRef: React.RefObject<HTMLDivElement> }) => (
+const PoliciesSection = ({ enhancement, sectionRef }: { enhancement: TourEnhancement, sectionRef: React.RefObject<HTMLDivElement | null> }) => (
   <div ref={sectionRef} id="policies" className="space-y-6 scroll-mt-24">
     <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
       <Shield size={24} className="text-red-600" />
@@ -690,7 +684,7 @@ const PoliciesSection = ({ enhancement, sectionRef }: { enhancement: TourEnhance
   </div>
 );
 
-const CulturalSection = ({ enhancement, sectionRef }: { enhancement: TourEnhancement, sectionRef: React.RefObject<HTMLDivElement> }) => (
+const CulturalSection = ({ enhancement, sectionRef }: { enhancement: TourEnhancement, sectionRef: React.RefObject<HTMLDivElement | null> }) => (
   <div ref={sectionRef} id="cultural" className="space-y-6 scroll-mt-24">
     <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
       <Heart size={24} className="text-teal-600" />
@@ -740,7 +734,7 @@ const CulturalSection = ({ enhancement, sectionRef }: { enhancement: TourEnhance
   </div>
 );
 
-const EnhancedFAQ = ({ faqs, sectionRef }: { faqs: FAQ[], sectionRef: React.RefObject<HTMLDivElement> }) => {
+const EnhancedFAQ = ({ faqs, sectionRef }: { faqs: FAQ[], sectionRef: React.RefObject<HTMLDivElement | null> }) => {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   const faqsToShow = faqs && faqs.length > 0 ? faqs : [
@@ -809,10 +803,10 @@ const EnhancedFAQ = ({ faqs, sectionRef }: { faqs: FAQ[], sectionRef: React.RefO
 };
 
 const ReviewsSection = ({ tour, reviews, onReviewSubmitted, sectionRef }: {
-  tour: ITour,
+  tour: Tour,
   reviews: Review[],
   onReviewSubmitted: (review: Review) => void,
-  sectionRef: React.RefObject<HTMLDivElement>
+  sectionRef: React.RefObject<HTMLDivElement | null>
 }) => {
   const [currentReviews, setCurrentReviews] = useState<Review[]>(reviews);
 
@@ -861,7 +855,7 @@ const ReviewsSection = ({ tour, reviews, onReviewSubmitted, sectionRef }: {
         />
         
         <div className="border-t border-slate-200 p-6">
-          <ReviewForm tourId={tour._id!} onReviewSubmitted={handleNewReview} />
+          <ReviewForm tourId={tour._id} onReviewSubmitted={handleNewReview} />
         </div>
         
         <div className="container mx-auto px-4 my-8">
@@ -872,7 +866,7 @@ const ReviewsSection = ({ tour, reviews, onReviewSubmitted, sectionRef }: {
   );
 };
 
-const OverviewSection = ({ tour, sectionRef }: { tour: ITour, sectionRef: React.RefObject<HTMLDivElement> }) => (
+const OverviewSection = ({ tour, sectionRef }: { tour: Tour, sectionRef: React.RefObject<HTMLDivElement | null> }) => (
   <div ref={sectionRef} id="overview" className="space-y-8 scroll-mt-24">
     <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
       <h2 className="text-2xl md:text-3xl font-bold text-slate-800 mb-4">About this experience</h2>
@@ -931,8 +925,8 @@ const OverviewSection = ({ tour, sectionRef }: { tour: ITour, sectionRef: React.
 
 // Main interface
 interface TourPageClientProps {
-  tour: ITour;
-  relatedTours: ITour[];
+  tour: Tour;
+  relatedTours: Tour[];
   initialReviews?: Review[];
 }
 
@@ -946,7 +940,7 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
   
   const [reviews, setReviews] = useState<Review[]>(initialReviews);
 
-  const tourIsWishlisted = isWishlisted(tour._id!);
+  const tourIsWishlisted = isWishlisted(tour._id);
 
   const handleReviewSubmitted = (newReview: Review) => {
     setReviews(prevReviews => [newReview, ...prevReviews]);
@@ -956,7 +950,7 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
   const handleWishlistToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (tourIsWishlisted) {
-      removeFromWishlist(tour._id!);
+      removeFromWishlist(tour._id);
       toast.success('Removed from wishlist');
     } else {
       addToWishlist(tour);
@@ -997,16 +991,16 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
 
   const { isVisible: isHeaderVisible } = useScrollDirection();
 
-  const overviewRef = useRef<HTMLDivElement>(null);
-  const itineraryRef = useRef<HTMLDivElement>(null);
-  const practicalRef = useRef<HTMLDivElement>(null);
-  const accessibilityRef = useRef<HTMLDivElement>(null);
-  const policiesRef = useRef<HTMLDivElement>(null);
-  const culturalRef = useRef<HTMLDivElement>(null);
-  const reviewsRef = useRef<HTMLDivElement>(null);
-  const faqRef = useRef<HTMLDivElement>(null);
+  const overviewRef = useRef<HTMLDivElement | null>(null);
+  const itineraryRef = useRef<HTMLDivElement | null>(null);
+  const practicalRef = useRef<HTMLDivElement | null>(null);
+  const accessibilityRef = useRef<HTMLDivElement | null>(null);
+  const policiesRef = useRef<HTMLDivElement | null>(null);
+  const culturalRef = useRef<HTMLDivElement | null>(null);
+  const reviewsRef = useRef<HTMLDivElement | null>(null);
+  const faqRef = useRef<HTMLDivElement | null>(null);
 
-  const inViewOptions = { threshold: 0.1 };
+  const inViewOptions = { amount: 0.1 } as const;
   const isOverviewInView = useInView(overviewRef, inViewOptions);
   const isItineraryInView = useInView(itineraryRef, inViewOptions);
   const isPracticalInView = useInView(practicalRef, inViewOptions);
@@ -1069,11 +1063,12 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
     setLiveMessage('Adding tour to cart');
 
     try {
-      const quickAddCartItem = {
+      const quickAddCartItem: CartItem = {
         ...tour,
         uniqueId: `${tour._id}-quick-add-${Date.now()}`,
         quantity: 1,
         childQuantity: 0,
+        infantQuantity: 0,
         selectedDate: toDateOnlyString(new Date()),
         selectedTime: 'Anytime',
         selectedAddOns: {},
@@ -1286,7 +1281,7 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
                         <p className="font-semibold text-slate-800">{tour.meetingPoint}</p>
                         <p className="text-sm text-slate-600 mt-1">Check-in 15 minutes before departure time</p>
                         <button
-                          onClick={() => window.open(`https://www.google.com/maps/search/${encodeURIComponent(tour.meetingPoint)}`, '_blank')}
+                          onClick={() => window.open(`https://www.google.com/maps/search/${encodeURIComponent(tour.meetingPoint!)}`, '_blank')}
                           className="text-red-600 hover:underline text-sm font-medium mt-2 inline-flex items-center gap-1"
                         >
                           <Navigation size={14} />
@@ -1304,7 +1299,7 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
                         loading="lazy"
                         allowFullScreen
                         referrerPolicy="no-referrer-when-downgrade"
-                        src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${encodeURIComponent(tour.meetingPoint)}&zoom=15`}
+                        src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${encodeURIComponent(tour.meetingPoint!)}&zoom=15`}
                       ></iframe>
                     </div>
                   </div>
