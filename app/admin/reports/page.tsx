@@ -10,9 +10,31 @@ import {
 import { 
   DollarSign, BookOpen, Percent, TrendingUp, Crown, Star, 
   XCircle, Calendar, Users, Ticket, ArrowUpRight, ArrowDownRight,
-  RefreshCw, Download, Filter
+  RefreshCw, Download, Filter, ChevronDown, X, Check, AlertCircle
 } from 'lucide-react';
 import { useAdminTenant } from '@/contexts/AdminTenantContext';
+
+// Date range presets
+const DATE_RANGE_PRESETS = [
+  { value: 'today', label: 'Today' },
+  { value: 'yesterday', label: 'Yesterday' },
+  { value: '7d', label: 'Last 7 days' },
+  { value: '30d', label: 'Last 30 days' },
+  { value: 'this_month', label: 'This month' },
+  { value: 'last_month', label: 'Last month' },
+  { value: 'this_year', label: 'This year' },
+  { value: 'custom', label: 'Custom range' },
+] as const;
+
+// Helper to format date for display
+const formatDateDisplay = (date: string) => {
+  if (!date) return '';
+  return new Date(date).toLocaleDateString('en-US', { 
+    month: 'short', 
+    day: 'numeric', 
+    year: 'numeric' 
+  });
+};
 
 // --- Type Definitions ---
 interface KpiData {
@@ -150,9 +172,83 @@ const ReportsPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState('30d');
   
+  // Custom date range state
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+  const [appliedCustomRange, setAppliedCustomRange] = useState<{ start: string; end: string } | null>(null);
+  const [dateValidationError, setDateValidationError] = useState<string | null>(null);
+  
   // Tenant filtering
   const { selectedTenantId, getSelectedTenant, isAllTenantsSelected } = useAdminTenant();
   const selectedTenant = getSelectedTenant();
+
+  // Get display label for current date range
+  const getDateRangeLabel = () => {
+    if (dateRange === 'custom' && appliedCustomRange) {
+      return `${formatDateDisplay(appliedCustomRange.start)} – ${formatDateDisplay(appliedCustomRange.end)}`;
+    }
+    return DATE_RANGE_PRESETS.find(p => p.value === dateRange)?.label || 'Last 30 days';
+  };
+
+  // Validate custom date range
+  const validateCustomDates = (start: string, end: string): string | null => {
+    if (!start || !end) return 'Please select both start and end dates';
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    if (endDate < startDate) return 'End date must be after start date';
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    if (endDate > today) return 'End date cannot be in the future';
+    return null;
+  };
+
+  // Handle preset selection
+  const handlePresetSelect = (preset: string) => {
+    if (preset === 'custom') {
+      setShowDatePicker(true);
+      // Pre-fill with last 30 days if no custom range set
+      if (!customStartDate && !customEndDate) {
+        const end = new Date();
+        const start = new Date();
+        start.setDate(start.getDate() - 30);
+        setCustomStartDate(start.toISOString().split('T')[0]);
+        setCustomEndDate(end.toISOString().split('T')[0]);
+      }
+    } else {
+      setDateRange(preset);
+      setShowDatePicker(false);
+      setAppliedCustomRange(null);
+      setDateValidationError(null);
+    }
+  };
+
+  // Apply custom date range
+  const applyCustomRange = () => {
+    const error = validateCustomDates(customStartDate, customEndDate);
+    if (error) {
+      setDateValidationError(error);
+      return;
+    }
+    setDateValidationError(null);
+    setDateRange('custom');
+    setAppliedCustomRange({ start: customStartDate, end: customEndDate });
+    setShowDatePicker(false);
+  };
+
+  // Cancel custom date picker
+  const cancelCustomRange = () => {
+    setShowDatePicker(false);
+    setDateValidationError(null);
+    // Reset to previous values if no custom range was applied
+    if (!appliedCustomRange) {
+      setCustomStartDate('');
+      setCustomEndDate('');
+    } else {
+      setCustomStartDate(appliedCustomRange.start);
+      setCustomEndDate(appliedCustomRange.end);
+    }
+  };
 
   const fetchReportData = useCallback(async () => {
     setIsLoading(true);
@@ -162,7 +258,14 @@ const ReportsPage = () => {
       if (selectedTenantId && selectedTenantId !== 'all') {
         params.set('tenantId', selectedTenantId);
       }
-      params.set('range', dateRange);
+      
+      // Handle custom date range
+      if (dateRange === 'custom' && appliedCustomRange) {
+        params.set('startDate', appliedCustomRange.start);
+        params.set('endDate', appliedCustomRange.end);
+      } else {
+        params.set('range', dateRange);
+      }
       
       const response = await fetch(`/api/admin/reports?${params.toString()}`);
       if (!response.ok) throw new Error('Failed to fetch report data');
@@ -173,7 +276,7 @@ const ReportsPage = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [selectedTenantId, dateRange]);
+  }, [selectedTenantId, dateRange, appliedCustomRange]);
 
   useEffect(() => {
     fetchReportData();
@@ -259,27 +362,163 @@ const ReportsPage = () => {
         </div>
         
         {/* Controls */}
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Date Range Selector */}
           <div className="relative">
-            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <select
-              value={dateRange}
-              onChange={(e) => setDateRange(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-transparent appearance-none bg-white"
+            <button
+              onClick={() => setShowDatePicker(!showDatePicker)}
+              className="flex items-center gap-2 pl-3 pr-3 py-2 border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors bg-white min-w-[180px]"
             >
-              <option value="7d">Last 7 days</option>
-              <option value="30d">Last 30 days</option>
-              <option value="90d">Last 90 days</option>
-              <option value="365d">Last 12 months</option>
-            </select>
+              <Calendar className="w-4 h-4 text-slate-500" />
+              <span className="text-sm font-medium text-slate-700 truncate flex-1 text-left">
+                {getDateRangeLabel()}
+              </span>
+              <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${showDatePicker ? 'rotate-180' : ''}`} />
+            </button>
+
+            {/* Date Range Dropdown */}
+            {showDatePicker && (
+              <>
+                {/* Backdrop */}
+                <div 
+                  className="fixed inset-0 z-40" 
+                  onClick={cancelCustomRange}
+                />
+                
+                {/* Dropdown Panel */}
+                <div className="absolute right-0 top-full mt-2 z-50 bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden w-80">
+                  {/* Preset Options */}
+                  <div className="p-2 border-b border-slate-100">
+                    <p className="px-3 py-1.5 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                      Presets
+                    </p>
+                    <div className="grid grid-cols-2 gap-1">
+                      {DATE_RANGE_PRESETS.filter(p => p.value !== 'custom').map((preset) => (
+                        <button
+                          key={preset.value}
+                          onClick={() => handlePresetSelect(preset.value)}
+                          className={`px-3 py-2 text-sm rounded-lg text-left transition-colors ${
+                            dateRange === preset.value && !appliedCustomRange
+                              ? 'bg-sky-100 text-sky-700 font-medium'
+                              : 'text-slate-600 hover:bg-slate-50'
+                          }`}
+                        >
+                          {preset.label}
+                          {dateRange === preset.value && !appliedCustomRange && (
+                            <Check className="inline-block w-4 h-4 ml-1 text-sky-600" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Custom Range Section */}
+                  <div className="p-4">
+                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
+                      Custom Range
+                    </p>
+                    
+                    <div className="space-y-3">
+                      {/* Start Date */}
+                      <div>
+                        <label className="block text-xs font-medium text-slate-600 mb-1">
+                          Start Date
+                        </label>
+                        <input
+                          type="date"
+                          value={customStartDate}
+                          onChange={(e) => {
+                            setCustomStartDate(e.target.value);
+                            setDateValidationError(null);
+                          }}
+                          max={new Date().toISOString().split('T')[0]}
+                          className="w-full h-10 px-3 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                        />
+                      </div>
+
+                      {/* End Date */}
+                      <div>
+                        <label className="block text-xs font-medium text-slate-600 mb-1">
+                          End Date
+                        </label>
+                        <input
+                          type="date"
+                          value={customEndDate}
+                          onChange={(e) => {
+                            setCustomEndDate(e.target.value);
+                            setDateValidationError(null);
+                          }}
+                          min={customStartDate || undefined}
+                          max={new Date().toISOString().split('T')[0]}
+                          className="w-full h-10 px-3 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                        />
+                      </div>
+
+                      {/* Validation Error */}
+                      {dateValidationError && (
+                        <div className="flex items-center gap-2 p-2 bg-rose-50 border border-rose-200 rounded-lg">
+                          <AlertCircle className="w-4 h-4 text-rose-500 flex-shrink-0" />
+                          <p className="text-xs text-rose-600">{dateValidationError}</p>
+                        </div>
+                      )}
+
+                      {/* Applied Custom Range Indicator */}
+                      {appliedCustomRange && dateRange === 'custom' && (
+                        <div className="flex items-center gap-2 p-2 bg-sky-50 border border-sky-200 rounded-lg">
+                          <Check className="w-4 h-4 text-sky-500 flex-shrink-0" />
+                          <p className="text-xs text-sky-700">
+                            Currently showing: {formatDateDisplay(appliedCustomRange.start)} – {formatDateDisplay(appliedCustomRange.end)}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Action Buttons */}
+                      <div className="flex items-center gap-2 pt-2">
+                        <button
+                          onClick={cancelCustomRange}
+                          className="flex-1 h-10 px-4 text-sm font-medium text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={applyCustomRange}
+                          disabled={!customStartDate || !customEndDate}
+                          className="flex-1 h-10 px-4 text-sm font-medium text-white bg-sky-600 rounded-xl hover:bg-sky-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Apply Range
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
+
+          {/* Clear custom range button (when custom range is applied) */}
+          {dateRange === 'custom' && appliedCustomRange && (
+            <button
+              onClick={() => {
+                setDateRange('30d');
+                setAppliedCustomRange(null);
+                setCustomStartDate('');
+                setCustomEndDate('');
+              }}
+              className="flex items-center gap-1 px-3 py-2 text-sm text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors"
+            >
+              <X className="w-4 h-4" />
+              Clear
+            </button>
+          )}
+
           <button
             onClick={fetchReportData}
             className="p-2 border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors"
+            title="Refresh data"
           >
-            <RefreshCw className="w-5 h-5 text-slate-600" />
+            <RefreshCw className={`w-5 h-5 text-slate-600 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
-          <button className="p-2 border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors">
+          <button className="p-2 border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors" title="Download report">
             <Download className="w-5 h-5 text-slate-600" />
           </button>
         </div>

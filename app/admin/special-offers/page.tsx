@@ -13,6 +13,7 @@ import { useAdminTenant } from '@/contexts/AdminTenantContext';
 import toast from 'react-hot-toast';
 
 interface BookingOption {
+  id?: string;
   type: string;
   label: string;
   price: number;
@@ -543,6 +544,11 @@ function OfferModal({
     priority: offer?.priority || 0,
   });
   
+  // Helper to get option ID from booking option (moved outside for initialization)
+  const getOptionIdFromOption = (option: BookingOption, idx: number): string => {
+    return option.id || `${option.type}-${idx}`;
+  };
+
   // Tour and option selections state
   const [tourSelections, setTourSelections] = useState<Map<string, { allOptions: boolean; selectedOptions: string[] }>>(
     () => {
@@ -582,36 +588,58 @@ function OfferModal({
     });
   };
 
+  // Get unique identifier for an option
+  const getOptionId = (option: BookingOption, idx: number): string => {
+    return option.id || `${option.type}-${idx}`;
+  };
+
   // Toggle option selection for a tour
-  const toggleOptionSelection = (tourId: string, optionType: string) => {
+  const toggleOptionSelection = (tourId: string, optionId: string, tour: Tour) => {
     setTourSelections(prev => {
       const newMap = new Map(prev);
       const current = newMap.get(tourId);
       if (!current) return prev;
 
-      const newSelectedOptions = current.selectedOptions.includes(optionType)
-        ? current.selectedOptions.filter(o => o !== optionType)
-        : [...current.selectedOptions, optionType];
+      const newSelectedOptions = current.selectedOptions.includes(optionId)
+        ? current.selectedOptions.filter(o => o !== optionId)
+        : [...current.selectedOptions, optionId];
+      
+      // Get total number of options for this tour
+      const totalOptions = tour.bookingOptions?.length || 0;
+      
+      // If all options are now selected, switch to "all options" mode
+      // If no options are selected, also switch to "all options" mode (uncheck means apply to none -> treat as all)
+      const allSelected = totalOptions > 0 && newSelectedOptions.length === totalOptions;
       
       newMap.set(tourId, {
-        allOptions: newSelectedOptions.length === 0,
-        selectedOptions: newSelectedOptions,
+        allOptions: allSelected,
+        selectedOptions: allSelected ? [] : newSelectedOptions,
       });
       return newMap;
     });
   };
 
   // Toggle all options for a tour
-  const toggleAllOptions = (tourId: string) => {
+  const toggleAllOptions = (tourId: string, tour: Tour) => {
     setTourSelections(prev => {
       const newMap = new Map(prev);
       const current = newMap.get(tourId);
       if (!current) return prev;
       
-      newMap.set(tourId, {
-        allOptions: !current.allOptions,
-        selectedOptions: [],
-      });
+      if (current.allOptions) {
+        // Switching FROM "all options" TO "individual selection mode"
+        // Keep all options unchecked so user can pick specific ones
+        newMap.set(tourId, {
+          allOptions: false,
+          selectedOptions: [],
+        });
+      } else {
+        // Switching TO "all options" mode
+        newMap.set(tourId, {
+          allOptions: true,
+          selectedOptions: [],
+        });
+      }
       return newMap;
     });
   };
@@ -657,6 +685,16 @@ function OfferModal({
       setError('Percentage must be between 0 and 100');
       setIsSaving(false);
       return;
+    }
+
+    // Validate option selections - if any tour has allOptions=false but no options selected
+    for (const [tourId, selection] of tourSelections.entries()) {
+      if (!selection.allOptions && selection.selectedOptions.length === 0) {
+        const tour = tours.find(t => t._id === tourId);
+        setError(`Please select at least one option for "${tour?.title || 'tour'}" or enable "Apply to all options"`);
+        setIsSaving(false);
+        return;
+      }
     }
 
     try {
@@ -957,8 +995,18 @@ function OfferModal({
                           <div className="flex-1">
                             <span className="text-sm font-medium text-slate-700">{tour.title}</span>
                             {hasOptions && isSelected && (
-                              <span className="ml-2 text-xs text-slate-500">
-                                ({selection?.allOptions ? 'All options' : `${selection?.selectedOptions.length} options`})
+                              <span className={`ml-2 text-xs ${
+                                selection?.allOptions 
+                                  ? 'text-emerald-600' 
+                                  : selection?.selectedOptions.length === 0 
+                                    ? 'text-amber-600' 
+                                    : 'text-blue-600'
+                              }`}>
+                                ({selection?.allOptions 
+                                  ? 'All options' 
+                                  : selection?.selectedOptions.length === 0 
+                                    ? 'No options selected' 
+                                    : `${selection?.selectedOptions.length} option${selection?.selectedOptions.length > 1 ? 's' : ''} selected`})
                               </span>
                             )}
                           </div>
@@ -980,31 +1028,43 @@ function OfferModal({
                         {/* Options Submenu */}
                         {hasOptions && isSelected && isExpanded && (
                           <div className="bg-slate-50 px-4 py-2 border-t border-slate-100">
-                            <div className="flex items-center gap-2 mb-2">
+                            <label className="flex items-center gap-2 mb-2 cursor-pointer">
                               <input
                                 type="checkbox"
                                 checked={selection?.allOptions ?? true}
-                                onChange={() => toggleAllOptions(tour._id)}
+                                onChange={() => toggleAllOptions(tour._id, tour)}
                                 className="w-4 h-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500"
                               />
                               <span className="text-xs font-medium text-slate-600">Apply to all options</span>
-                            </div>
+                            </label>
                             
                             {!selection?.allOptions && (
                               <div className="ml-6 space-y-2">
-                                {tour.bookingOptions!.map((option, idx) => (
-                                  <label key={idx} className="flex items-center gap-2 cursor-pointer">
-                                    <input
-                                      type="checkbox"
-                                      checked={selection?.selectedOptions.includes(option.type) ?? false}
-                                      onChange={() => toggleOptionSelection(tour._id, option.type)}
-                                      className="w-4 h-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500"
-                                    />
-                                    <span className="text-xs text-slate-600">
-                                      {option.label} - ${option.price}
-                                    </span>
-                                  </label>
-                                ))}
+                                <p className="text-xs text-slate-500 mb-2">
+                                  Select specific options for this offer:
+                                </p>
+                                {tour.bookingOptions!.map((option, idx) => {
+                                  const optionId = getOptionId(option, idx);
+                                  return (
+                                    <label key={optionId} className="flex items-center gap-2 cursor-pointer hover:bg-slate-100 rounded p-1 -mx-1">
+                                      <input
+                                        type="checkbox"
+                                        checked={selection?.selectedOptions.includes(optionId) ?? false}
+                                        onChange={() => toggleOptionSelection(tour._id, optionId, tour)}
+                                        className="w-4 h-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500"
+                                      />
+                                      <span className="text-xs text-slate-600">
+                                        {option.label} - ${option.price}
+                                      </span>
+                                    </label>
+                                  );
+                                })}
+                                {selection?.selectedOptions.length === 0 && (
+                                  <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
+                                    <AlertCircle className="w-3 h-3" />
+                                    Select at least one option or enable &quot;Apply to all options&quot;
+                                  </p>
+                                )}
                               </div>
                             )}
                           </div>

@@ -6,10 +6,11 @@ import withAuth from '@/components/admin/withAuth';
 import { 
   Calendar, ChevronLeft, ChevronRight, X, Lock, Unlock, 
   AlertCircle, CheckCircle, Clock, Users, RefreshCw,
-  Plus, Minus, Save, Loader2
+  Plus, Minus, Save, Loader2, History, Info
 } from 'lucide-react';
 import { useAdminTenant } from '@/contexts/AdminTenantContext';
 import toast from 'react-hot-toast';
+import StopSaleHistoryTable, { StopSaleLogEntry, StopSaleLogDetailModal } from '@/components/admin/StopSaleHistoryTable';
 
 interface Slot {
   time: string;
@@ -50,6 +51,8 @@ const formatDate = (year: number, month: number, day: number) => {
   return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 };
 
+type TabType = 'calendar' | 'history';
+
 const AvailabilityPage = () => {
   const [tours, setTours] = useState<Tour[]>([]);
   const [selectedTour, setSelectedTour] = useState<string>('');
@@ -62,6 +65,13 @@ const AvailabilityPage = () => {
   const [modalDate, setModalDate] = useState<string | null>(null);
   const [showStopSaleRangeModal, setShowStopSaleRangeModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  
+  // Tab state
+  const [activeTab, setActiveTab] = useState<TabType>('calendar');
+  
+  // Stop sale log detail modal (when clicking calendar)
+  const [selectedStopSaleLog, setSelectedStopSaleLog] = useState<StopSaleLogEntry | null>(null);
+  const [isLoadingLogs, setIsLoadingLogs] = useState(false);
   
   const { selectedTenantId, getSelectedTenant, isAllTenantsSelected } = useAdminTenant();
   const selectedTenant = getSelectedTenant();
@@ -221,6 +231,57 @@ const AvailabilityPage = () => {
     setShowModal(true);
   };
 
+  // Fetch stop sale logs for a specific date
+  const fetchStopSaleLogsForDate = async (dateStr: string) => {
+    if (!selectedTour) return;
+    
+    setIsLoadingLogs(true);
+    try {
+      // Use POST endpoint to fetch logs for specific date + tour
+      const response = await fetch('/api/admin/stop-sale-logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tourId: selectedTour,
+          date: dateStr,
+          tenantId: selectedTenantId !== 'all' ? selectedTenantId : undefined,
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (data.success && data.data) {
+        // API returns array of logs for this date
+        const logs = Array.isArray(data.data) ? data.data : [data.data];
+        if (logs.length > 0) {
+          // Show the first (most recent) log
+          setSelectedStopSaleLog(logs[0]);
+        } else {
+          // No log found, just open the slot editor
+          openSlotEditor(dateStr);
+        }
+      } else {
+        openSlotEditor(dateStr);
+      }
+    } catch (error) {
+      console.error('Error fetching stop sale logs:', error);
+      openSlotEditor(dateStr);
+    } finally {
+      setIsLoadingLogs(false);
+    }
+  };
+
+  // Handle calendar date click
+  const handleDateClick = (dateStr: string, hasStopSale: boolean) => {
+    if (hasStopSale) {
+      // Show stop sale log details
+      fetchStopSaleLogsForDate(dateStr);
+    } else {
+      // Open slot editor
+      openSlotEditor(dateStr);
+    }
+  };
+
   // Status colors
   const statusColors: Record<string, string> = {
     default: 'bg-white hover:bg-slate-50 border-slate-200',
@@ -237,7 +298,7 @@ const AvailabilityPage = () => {
   return (
     <div className="p-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-8">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
         <div className="flex items-center gap-3">
           <div className="p-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl">
             <Calendar className="h-6 w-6 text-white" />
@@ -288,6 +349,40 @@ const AvailabilityPage = () => {
           </button>
         </div>
       </div>
+
+      {/* Tabs */}
+      <div className="mb-6 border-b border-slate-200">
+        <nav className="flex gap-6">
+          <button
+            onClick={() => setActiveTab('calendar')}
+            className={`flex items-center gap-2 pb-3 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'calendar'
+                ? 'border-indigo-600 text-indigo-600'
+                : 'border-transparent text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            <Calendar className="w-4 h-4" />
+            Calendar View
+          </button>
+          <button
+            onClick={() => setActiveTab('history')}
+            className={`flex items-center gap-2 pb-3 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'history'
+                ? 'border-indigo-600 text-indigo-600'
+                : 'border-transparent text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            <History className="w-4 h-4" />
+            Stop Sale History
+          </button>
+        </nav>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'history' ? (
+        <StopSaleHistoryTable tours={tours} initialTourId={selectedTour} />
+      ) : (
+        <>
 
       {/* Bulk Actions Bar */}
       {selectedDates.size > 0 && (
@@ -403,6 +498,7 @@ const AvailabilityPage = () => {
             const avail = availability.get(dateStr);
             const isSelected = selectedDates.has(dateStr);
             const isPast = new Date(dateStr) < new Date(new Date().toDateString());
+            const hasStopSale = status === 'stopSaleFull' || status === 'stopSalePartial' || avail?.stopSale;
             
             return (
               <div
@@ -412,7 +508,7 @@ const AvailabilityPage = () => {
                 } ${isSelected ? 'ring-2 ring-indigo-500 ring-inset' : ''} ${
                   isPast ? 'opacity-50' : ''
                 }`}
-                onClick={() => !isPast && openSlotEditor(dateStr)}
+                onClick={() => !isPast && handleDateClick(dateStr, hasStopSale)}
               >
                 <div className="flex items-start justify-between">
                   <span className="text-sm font-medium">
@@ -451,13 +547,15 @@ const AvailabilityPage = () => {
                 )}
                 
                 {(avail?.stopSaleStatus === 'full' || avail?.stopSale) && (
-                  <div className="mt-1 text-xs text-rose-800">
-                    Stop-sale
+                  <div className="mt-1 text-xs text-rose-800 flex items-center gap-1">
+                    <span>Stop-sale</span>
+                    <Info className="w-3 h-3 opacity-60" title="Click to see who applied" />
                   </div>
                 )}
                 {avail?.stopSaleStatus === 'partial' && (
-                  <div className="mt-1 text-xs text-amber-800">
-                    Partial ({avail.stoppedOptionIds?.length || 0})
+                  <div className="mt-1 text-xs text-amber-800 flex items-center gap-1">
+                    <span>Partial ({avail.stoppedOptionIds?.length || 0})</span>
+                    <Info className="w-3 h-3 opacity-60" title="Click to see who applied" />
                   </div>
                 )}
               </div>
@@ -471,10 +569,32 @@ const AvailabilityPage = () => {
         <h3 className="font-semibold text-slate-700 mb-2">Quick Tips</h3>
         <ul className="text-sm text-slate-600 space-y-1">
           <li>• <strong>Click</strong> a date to manage option-level stop-sale & slots</li>
+          <li>• <strong>Click</strong> a stop-sale date (red) to view who applied it and why</li>
           <li>• Use the <strong>checkbox</strong> in the corner to select dates for bulk actions</li>
           <li>• Select multiple dates, then use the action bar to block/unblock (all options)</li>
+          <li>• View the <strong>Stop Sale History</strong> tab for a complete log of all stop-sale actions</li>
         </ul>
       </div>
+      </>
+      )}
+
+      {/* Stop Sale Log Detail Modal (from calendar click) */}
+      {selectedStopSaleLog && (
+        <StopSaleLogDetailModal
+          log={selectedStopSaleLog}
+          onClose={() => setSelectedStopSaleLog(null)}
+        />
+      )}
+
+      {/* Loading overlay for log fetch */}
+      {isLoadingLogs && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/20">
+          <div className="bg-white p-4 rounded-xl shadow-lg flex items-center gap-3">
+            <Loader2 className="w-5 h-5 text-indigo-600 animate-spin" />
+            <span className="text-slate-700">Loading stop sale details...</span>
+          </div>
+        </div>
+      )}
 
       {/* Slot Editor Modal */}
       {showModal && modalDate && (

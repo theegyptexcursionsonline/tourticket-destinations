@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, useEffect, FormEvent, useCallback } from 'react';
 import withAuth from '@/components/admin/withAuth';
+import { useAdminTenant } from '@/contexts/AdminTenantContext';
 import { 
   Tag, 
   Plus, 
@@ -33,6 +34,7 @@ interface IDiscount {
   expiresAt?: string;
   usageLimit?: number;
   timesUsed: number;
+  tenantId?: string;
 }
 
 const DiscountsPage = () => {
@@ -48,11 +50,25 @@ const DiscountsPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
+  // --- Tenant filtering ---
+  const { selectedTenantId, getSelectedTenant, isAllTenantsSelected } = useAdminTenant();
+  const selectedTenant = getSelectedTenant();
+
   // --- Fetch Discounts ---
-  const fetchDiscounts = async () => {
+  const fetchDiscounts = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/admin/discounts');
+      setError(null);
+      
+      // Build query params with tenant filter
+      const params = new URLSearchParams();
+      if (selectedTenantId && selectedTenantId !== 'all') {
+        params.set('tenantId', selectedTenantId);
+      }
+      const queryString = params.toString();
+      const url = `/api/admin/discounts${queryString ? `?${queryString}` : ''}`;
+      
+      const response = await fetch(url);
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Failed to fetch discounts');
       if (data.success) {
@@ -65,11 +81,12 @@ const DiscountsPage = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [selectedTenantId]);
 
+  // Fetch discounts when tenant changes
   useEffect(() => {
     fetchDiscounts();
-  }, []);
+  }, [fetchDiscounts]);
 
   // --- Form Submission ---
   const handleSubmit = async (e: FormEvent) => {
@@ -78,6 +95,13 @@ const DiscountsPage = () => {
         setFormError('Please fill out all fields.');
         return;
     }
+    
+    // Require a specific brand to be selected for creating discounts
+    if (isAllTenantsSelected()) {
+      setFormError('Please select a specific brand to create a discount code.');
+      return;
+    }
+    
     setIsSubmitting(true);
     setFormError(null);
 
@@ -90,6 +114,7 @@ const DiscountsPage = () => {
           discountType,
           value,
           isActive: true,
+          tenantId: selectedTenantId, // Include tenant ID
         }),
       });
       const data = await response.json();
@@ -170,7 +195,11 @@ const DiscountsPage = () => {
                   Discount Codes
                 </h1>
                 <p className="text-slate-500 mt-1">
-                  Create and manage promotional discount codes
+                  {isAllTenantsSelected() ? (
+                    <>Showing discount codes from <span className="font-semibold text-slate-700">all brands</span>. Select a brand to filter.</>
+                  ) : (
+                    <>Showing discount codes for <span className="font-semibold text-indigo-600">{selectedTenant?.name || selectedTenantId}</span></>
+                  )}
                 </p>
               </div>
             </div>

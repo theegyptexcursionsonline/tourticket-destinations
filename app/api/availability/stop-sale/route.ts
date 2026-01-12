@@ -2,8 +2,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import StopSale from '@/lib/models/StopSale';
+import StopSaleLog from '@/lib/models/StopSaleLog';
 import Tour from '@/lib/models/Tour';
 import { getTenantFromRequest } from '@/lib/tenant';
+import { requireAdminAuth, AdminAuthContext } from '@/lib/auth/adminAuth';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,12 +55,107 @@ async function ensureTourOptionIds(tourId: string) {
 }
 
 /**
+ * Create log entries for stop-sale actions
+ */
+async function createStopSaleLogs(
+  tenantId: string,
+  tourId: string,
+  optionIds: string[],
+  startDate: Date,
+  endDate: Date,
+  reason: string,
+  userId: string,
+) {
+  const logs = [];
+  const now = new Date();
+
+  if (optionIds.length === 0) {
+    // All options - single log entry
+    logs.push({
+      tourId,
+      optionId: null,
+      dateFrom: startDate,
+      dateTo: endDate,
+      reason,
+      appliedBy: userId,
+      appliedAt: now,
+      status: 'active',
+      tenantId,
+    });
+  } else {
+    // One log entry per option
+    for (const optionId of optionIds) {
+      logs.push({
+        tourId,
+        optionId,
+        dateFrom: startDate,
+        dateTo: endDate,
+        reason,
+        appliedBy: userId,
+        appliedAt: now,
+        status: 'active',
+        tenantId,
+      });
+    }
+  }
+
+  if (logs.length > 0) {
+    await StopSaleLog.insertMany(logs);
+  }
+}
+
+/**
+ * Mark log entries as removed
+ */
+async function markLogsAsRemoved(
+  tenantId: string,
+  tourId: string,
+  optionIds: string[],
+  startDate: Date,
+  endDate: Date,
+  userId: string,
+) {
+  const now = new Date();
+  
+  const filter: Record<string, unknown> = {
+    tenantId,
+    tourId,
+    dateFrom: startDate,
+    dateTo: endDate,
+    status: 'active',
+  };
+
+  if (optionIds.length === 0) {
+    // All options
+    filter.optionId = null;
+  } else {
+    // Specific options
+    filter.optionId = { $in: optionIds };
+  }
+
+  await StopSaleLog.updateMany(filter, {
+    $set: {
+      status: 'removed',
+      removedBy: userId,
+      removedAt: now,
+    },
+  });
+}
+
+/**
  * PUT: Apply stop-sale for a tour over a date range.
  * - optionIds omitted/empty => all options (stored as optionIds: [])
  * - optionIds provided => creates one stop-sale doc per optionId (stored as [optionId])
  */
 export async function PUT(request: NextRequest) {
   try {
+    // Authenticate admin user
+    const authResult = await requireAdminAuth(request, { permissions: ['manageTours'] });
+    if (authResult instanceof NextResponse) {
+      return authResult;
+    }
+    const auth = authResult as AdminAuthContext;
+
     await dbConnect();
     const body = (await request.json()) as StopSalePayload;
 
@@ -110,6 +207,10 @@ export async function PUT(request: NextRequest) {
     }
 
     const result = await StopSale.bulkWrite(ops, { ordered: false });
+
+    // Create log entries for this stop-sale action
+    await createStopSaleLogs(tenantId, tourId, optionIds, startDate, endDate, reason, auth.userId);
+
     return NextResponse.json({
       success: true,
       data: {
@@ -131,6 +232,13 @@ export async function PUT(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   try {
+    // Authenticate admin user
+    const authResult = await requireAdminAuth(request, { permissions: ['manageTours'] });
+    if (authResult instanceof NextResponse) {
+      return authResult;
+    }
+    const auth = authResult as AdminAuthContext;
+
     await dbConnect();
     const body = (await request.json()) as StopSalePayload;
 
@@ -160,11 +268,13 @@ export async function DELETE(request: NextRequest) {
     }
 
     const result = await StopSale.deleteMany(deleteFilter);
+
+    // Mark log entries as removed
+    await markLogsAsRemoved(tenantId, tourId, optionIds, startDate, endDate, auth.userId);
+
     return NextResponse.json({ success: true, data: { deleted: result.deletedCount } });
   } catch (error) {
     console.error('Error removing stop-sale:', error);
     return NextResponse.json({ success: false, error: 'Failed to remove stop-sale' }, { status: 500 });
   }
 }
-
-
