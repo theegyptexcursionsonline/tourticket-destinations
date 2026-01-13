@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import withAuth from '@/components/admin/withAuth';
 import { useRouter } from 'next/navigation';
-import { Search, Calendar, Users, DollarSign, Filter, RefreshCw, Eye, Download, AlertTriangle, Loader2, Trash2, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Plus } from 'lucide-react';
+import { Search, Calendar, Users, DollarSign, RefreshCw, Eye, Download, AlertTriangle, Loader2, Trash2, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAdminTenant } from '@/contexts/AdminTenantContext';
 import { BOOKING_STATUS, toBookingStatusCode } from '@/lib/constants/bookingStatus';
@@ -506,84 +506,62 @@ const BookingsPage = () => {
       </div>
 
       <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mb-6">
-        {/* Row 1: Search, Status, Tour */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Search */}
-          <div className="sm:col-span-2">
-            <label className="block text-xs font-medium text-slate-600 mb-1.5">Search</label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-              <input
-                type="text"
-                placeholder="Search name, email, or reference…"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full h-10 pl-10 pr-4 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-          </div>
+        {/* Row 1: Search */}
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+          <input
+            type="text"
+            placeholder="Search name, email, or reference…"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full h-11 pl-10 pr-4 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+        </div>
 
+        {/* Row 2: Status, Tour filters */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           {/* Status */}
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1.5">Status</label>
-            <div className="relative">
-              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full h-10 pl-10 pr-8 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white cursor-pointer"
-              >
-                <option value="all">All Statuses</option>
-                <option value={BOOKING_STATUS.PENDING}>Pending</option>
-                <option value={BOOKING_STATUS.CONFIRMED}>Confirmed</option>
-                <option value={BOOKING_STATUS.COMPLETED}>Completed</option>
-                <option value={BOOKING_STATUS.CANCELLED}>Cancelled</option>
-                <option value={BOOKING_STATUS.REFUNDED}>Refunded</option>
-                <option value={BOOKING_STATUS.PARTIAL_REFUNDED}>Partial Refunded</option>
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-                <svg className="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </div>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-full h-10 px-3 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer"
+            >
+              <option value="all">All</option>
+              <option value={BOOKING_STATUS.PENDING}>Pending</option>
+              <option value={BOOKING_STATUS.CONFIRMED}>Confirmed</option>
+              <option value={BOOKING_STATUS.COMPLETED}>Completed</option>
+              <option value={BOOKING_STATUS.CANCELLED}>Cancelled</option>
+              <option value={BOOKING_STATUS.REFUNDED}>Refunded</option>
+              <option value={BOOKING_STATUS.PARTIAL_REFUNDED}>Partial Refunded</option>
+            </select>
           </div>
 
           {/* Tour */}
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1.5">Tour</label>
-            <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-              <select
-                value={tourId}
-                onChange={(e) => setTourId(e.target.value)}
-                className="w-full h-10 pl-10 pr-8 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white cursor-pointer"
-              >
-                <option value="all">All Tours</option>
-                {tourOptionsLoading && <option value="loading" disabled>Loading…</option>}
-                {tourOptions.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.title}
-                  </option>
-                ))}
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-                <svg className="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </div>
+            <select
+              value={tourId}
+              onChange={(e) => setTourId(e.target.value)}
+              className="w-full h-10 px-3 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer"
+            >
+              <option value="all">All tours</option>
+              {tourOptionsLoading && <option value="loading" disabled>Loading…</option>}
+              {tourOptions.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.title}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
-        {/* Divider */}
-        <div className="border-t border-slate-100 my-4"></div>
-
-        {/* Row 2: Date Ranges */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Row 3: Date Ranges */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           {/* Purchase date range */}
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1.5">Purchase Date</label>
+            <label className="block text-xs font-medium text-slate-600 mb-1.5">Purchase date</label>
             <div className="flex items-center gap-2">
               <input
                 type="date"
@@ -591,7 +569,7 @@ const BookingsPage = () => {
                 onChange={(e) => setPurchaseFrom(e.target.value)}
                 className="flex-1 h-10 px-3 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
-              <span className="text-slate-400 text-xs">to</span>
+              <span className="text-slate-400 text-sm shrink-0">to</span>
               <input
                 type="date"
                 value={purchaseTo}
@@ -603,7 +581,7 @@ const BookingsPage = () => {
 
           {/* Activity date range */}
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1.5">Activity Date</label>
+            <label className="block text-xs font-medium text-slate-600 mb-1.5">Activity date</label>
             <div className="flex items-center gap-2">
               <input
                 type="date"
@@ -611,7 +589,7 @@ const BookingsPage = () => {
                 onChange={(e) => setActivityFrom(e.target.value)}
                 className="flex-1 h-10 px-3 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
-              <span className="text-slate-400 text-xs">to</span>
+              <span className="text-slate-400 text-sm shrink-0">to</span>
               <input
                 type="date"
                 value={activityTo}
@@ -622,56 +600,39 @@ const BookingsPage = () => {
           </div>
         </div>
 
-        {/* Divider */}
-        <div className="border-t border-slate-100 my-4"></div>
-
-        {/* Row 3: Sort, Per page, Clear - aligned in a single row */}
-        <div className="flex flex-col sm:flex-row sm:items-end gap-4">
+        {/* Row 4: Sort, Per page, Clear */}
+        <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-slate-100">
           {/* Sort */}
-          <div className="sm:w-48">
-            <label className="block text-xs font-medium text-slate-600 mb-1.5">Sort by</label>
-            <div className="relative">
-              <select
-                value={sort}
-                onChange={(e) => setSort(e.target.value)}
-                className="w-full h-10 px-3 pr-8 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white cursor-pointer"
-              >
-                <option value="createdAt_desc">Purchase (newest)</option>
-                <option value="createdAt_asc">Purchase (oldest)</option>
-                <option value="activityDate_desc">Activity (newest)</option>
-                <option value="activityDate_asc">Activity (oldest)</option>
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-                <svg className="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-slate-500">Sort</span>
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value)}
+              className="h-9 px-3 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer"
+            >
+              <option value="createdAt_desc">Purchase date (newest)</option>
+              <option value="createdAt_asc">Purchase date (oldest)</option>
+              <option value="activityDate_desc">Activity date (newest)</option>
+              <option value="activityDate_asc">Activity date (oldest)</option>
+            </select>
           </div>
 
           {/* Per page */}
-          <div className="sm:w-24">
-            <label className="block text-xs font-medium text-slate-600 mb-1.5">Per page</label>
-            <div className="relative">
-              <select
-                value={perPage}
-                onChange={(e) => {
-                  setPerPage(Number(e.target.value));
-                  setPage(1);
-                  setSelectedBookings(new Set());
-                }}
-                className="w-full h-10 px-3 pr-8 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white cursor-pointer"
-              >
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-                <option value={50}>50</option>
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-                <svg className="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-slate-500">Per page</span>
+            <select
+              value={perPage}
+              onChange={(e) => {
+                setPerPage(Number(e.target.value));
+                setPage(1);
+                setSelectedBookings(new Set());
+              }}
+              className="h-9 px-3 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer"
+            >
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+            </select>
           </div>
 
           {/* Spacer */}
@@ -689,7 +650,7 @@ const BookingsPage = () => {
                 setActivityFrom('');
                 setActivityTo('');
               }}
-              className="h-10 px-4 text-sm font-medium text-slate-600 bg-slate-100 border border-slate-200 rounded-xl hover:bg-slate-200 transition-colors"
+              className="h-9 px-4 text-sm font-medium text-slate-600 bg-slate-100 border border-slate-200 rounded-lg hover:bg-slate-200 transition-colors"
             >
               Clear Filters
             </button>
