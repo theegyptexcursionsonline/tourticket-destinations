@@ -258,6 +258,13 @@ export async function POST(request: Request) {
       );
     }
 
+    if (paymentMethod === 'pay_later') {
+      return NextResponse.json(
+        { success: false, message: 'Pay Later is disabled for this website.' },
+        { status: 400 }
+      );
+    }
+
     if (supportedPaymentMethods?.length && !supportedPaymentMethods.includes(paymentMethod)) {
       return NextResponse.json(
         { success: false, message: 'Selected payment method is not available for this tenant.' },

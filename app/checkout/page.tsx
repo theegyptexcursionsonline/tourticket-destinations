@@ -427,8 +427,8 @@ const CheckoutFormStep = ({
   promoCode: string;
   paymentIntentId: string;
   setPaymentIntentId: (id: string) => void;
-  paymentMethod: 'card' | 'paypal' | 'pay_later';
-  setPaymentMethod: (method: 'card' | 'paypal' | 'pay_later') => void;
+  paymentMethod: 'card' | 'paypal';
+  setPaymentMethod: (method: 'card' | 'paypal') => void;
   supportedPaymentMethods: string[];
 }) => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -628,19 +628,6 @@ const CheckoutFormStep = ({
               </button>
             )}
 
-            {isPaymentMethodSupported('pay_later') && (
-              <button
-                type="button"
-                onClick={() => setPaymentMethod('pay_later')}
-                aria-pressed={paymentMethod === 'pay_later'}
-                className={`flex flex-col items-center justify-center gap-1 sm:gap-2 p-3 sm:p-4 border border-slate-200 rounded-lg transition-shadow ${paymentMethod === 'pay_later' ? 'bg-red-50 border-red-200 shadow-sm' : 'bg-white hover:shadow-sm'}`}
-              >
-                <div className="h-7 sm:h-10 flex items-center">
-                  <CalendarDays className="w-6 h-6 sm:w-8 sm:h-8 text-emerald-600" />
-                </div>
-                <span className="text-xs sm:text-sm font-medium text-slate-700">Pay Later</span>
-              </button>
-            )}
           </div>
 
           <AnimatePresence mode="wait">
@@ -683,67 +670,6 @@ const CheckoutFormStep = ({
                 <div className="p-6 bg-slate-50 border border-slate-200 rounded-lg text-center text-slate-700">
                   <p className="font-medium">PayPal integration is coming soon!</p>
                   <p className="text-sm text-slate-500 mt-2">Please use card payment for now.</p>
-                </div>
-              )}
-              {paymentMethod === 'pay_later' && (
-                <div className="p-6 bg-emerald-50 border border-emerald-200 rounded-lg">
-                  <div className="flex items-start gap-4 mb-4">
-                    <div className="p-2 bg-emerald-100 rounded-full">
-                      <CalendarDays className="w-6 h-6 text-emerald-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-emerald-900 text-lg">Reserve Now, Pay Later</h3>
-                      <p className="text-sm text-emerald-700 mt-1">
-                        Secure your spot today and pay at a later time. Perfect for flexible travel planning!
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="bg-white rounded-lg p-4 border border-emerald-200 mb-4">
-                    <h4 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
-                      <CheckCircle size={16} className="text-emerald-600" />
-                      How it works:
-                    </h4>
-                    <ul className="space-y-2 text-sm text-slate-700">
-                      <li className="flex items-start gap-2">
-                        <span className="text-emerald-600 font-bold">1.</span>
-                        Complete your booking with your contact details
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-emerald-600 font-bold">2.</span>
-                        Your reservation will be confirmed with "Payment Pending" status
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-emerald-600 font-bold">3.</span>
-                        Pay via WhatsApp, bank transfer, or card before your tour date
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-emerald-600 font-bold">4.</span>
-                        Our team will contact you with payment instructions
-                      </li>
-                    </ul>
-                  </div>
-
-                  <div className="flex items-center gap-2 text-xs text-emerald-700 bg-emerald-100 p-3 rounded-lg">
-                    <Shield size={14} className="text-emerald-600" />
-                    <span>Your booking is secured. No payment required now.</span>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => onPaymentProcessWithIntent('PAY_LATER')}
-                    disabled={isProcessing || !formData.firstName || !formData.lastName || !formData.email || !formData.phone}
-                    className="w-full mt-4 py-4 bg-emerald-600 text-white font-extrabold text-lg rounded-lg hover:bg-emerald-700 active:translate-y-[1px] transform-gpu shadow-md transition disabled:bg-emerald-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    {isProcessing ? (
-                      <Loader2 className="animate-spin" size={24} />
-                    ) : (
-                      <>
-                        <CalendarDays size={20} />
-                        Reserve Now - Pay Later
-                      </>
-                    )}
-                  </button>
                 </div>
               )}
             </motion.div>
@@ -1355,11 +1281,11 @@ export default function CheckoutPage() {
 
   const supportedPaymentMethods =
     tenant?.payments?.supportedPaymentMethods && tenant.payments.supportedPaymentMethods.length > 0
-      ? tenant.payments.supportedPaymentMethods
+      ? tenant.payments.supportedPaymentMethods.filter(method => method !== 'pay_later')
       : ['card', 'paypal'];
 
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'paypal' | 'pay_later'>(
-    (supportedPaymentMethods[0] as 'card' | 'paypal' | 'pay_later') || 'card'
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'paypal'>(
+    (supportedPaymentMethods[0] as 'card' | 'paypal') || 'card'
   );
 
   // Stripe payment intent ID
@@ -1428,7 +1354,7 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     if (!supportedPaymentMethods.includes(paymentMethod)) {
-      const fallback = supportedPaymentMethods[0] as 'card' | 'paypal' | 'pay_later' | undefined;
+      const fallback = supportedPaymentMethods[0] as 'card' | 'paypal' | undefined;
       setPaymentMethod(fallback || 'card');
     }
   }, [supportedPaymentMethods, paymentMethod]);
@@ -1505,9 +1431,7 @@ export default function CheckoutPage() {
         return;
       }
 
-      // Determine if this is a pay later booking
-      const isPayLater = intentId === 'PAY_LATER';
-      const actualPaymentMethod = isPayLater ? 'pay_later' : 'card';
+      const actualPaymentMethod = paymentMethod;
 
       // Prepare booking data
       const bookingPayload = {
@@ -1524,7 +1448,7 @@ export default function CheckoutPage() {
         cart: cart || [],
         pricing,
         paymentMethod: actualPaymentMethod,
-        paymentDetails: isPayLater ? {} : {
+        paymentDetails: {
           paymentIntentId: intentId, // Use the directly passed payment intent ID
           cardholderName: formData.cardholderName,
         },
@@ -1552,11 +1476,7 @@ export default function CheckoutPage() {
         clearCart();
         setIsConfirmed(true);
 
-        if (isPayLater) {
-          toast.success('Reservation confirmed! Our team will contact you for payment.', { duration: 5000 });
-        } else {
-          toast.success('Booking confirmed! Check your email for details.', { duration: 5000 });
-        }
+        toast.success('Booking confirmed! Check your email for details.', { duration: 5000 });
       } else {
         toast.error(result.message || 'Booking failed. Please try again.');
       }
