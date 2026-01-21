@@ -90,6 +90,7 @@ export async function GET(request: NextRequest) {
             currency: 'USD',
             currencySymbol: '$',
             supportedCurrencies: ['USD', 'EUR', 'GBP', 'EGP'],
+            supportedPaymentMethods: ['card', 'paypal'],
           },
           localization: {
             defaultLanguage: 'en',

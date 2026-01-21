@@ -35,6 +35,7 @@ import HotelPickupMap from '@/components/HotelPickupMap';
 import { useSettings } from '@/hooks/useSettings';
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTenant } from '@/contexts/TenantContext';
 import { CartItem } from '@/types';
 import toast from 'react-hot-toast';
 import { parseLocalDate } from '@/utils/date';
@@ -408,6 +409,9 @@ const CheckoutFormStep = ({
   promoCode,
   paymentIntentId,
   setPaymentIntentId,
+  paymentMethod,
+  setPaymentMethod,
+  supportedPaymentMethods,
 }: {
   onPaymentProcess: () => void;
   onPaymentProcessWithIntent: (intentId: string) => void;
@@ -423,6 +427,9 @@ const CheckoutFormStep = ({
   promoCode: string;
   paymentIntentId: string;
   setPaymentIntentId: (id: string) => void;
+  paymentMethod: 'card' | 'paypal' | 'pay_later';
+  setPaymentMethod: (method: 'card' | 'paypal' | 'pay_later') => void;
+  supportedPaymentMethods: string[];
 }) => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -441,7 +448,7 @@ const CheckoutFormStep = ({
     onPaymentProcess();
   };
 
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'paypal' | 'pay_later'>('card');
+  const isPaymentMethodSupported = (method: string) => supportedPaymentMethods.includes(method);
 
   // Auto-fill form if user is logged in
   useEffect(() => {
@@ -590,44 +597,50 @@ const CheckoutFormStep = ({
           <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 mb-4">Payment Information</h2>
 
           <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-6">
-            <button
-              type="button"
-              onClick={() => setPaymentMethod('card')}
-              aria-pressed={paymentMethod === 'card'}
-              className={`flex flex-col items-center justify-center gap-1 sm:gap-2 p-3 sm:p-4 border border-slate-200 rounded-lg transition-shadow ${paymentMethod === 'card' ? 'bg-red-50 border-red-200 shadow-sm' : 'bg-white hover:shadow-sm'}`}
-            >
-              <div className="h-7 sm:h-10 flex items-center">
-                <Image src="/payment/visam.png" alt="Card logos" width={60} height={24} className="object-contain w-[50px] h-[20px] sm:w-[72px] sm:h-[28px]" />
-              </div>
-              <span className="text-xs sm:text-sm font-medium text-slate-700">Card</span>
-            </button>
+            {isPaymentMethodSupported('card') && (
+              <button
+                type="button"
+                onClick={() => setPaymentMethod('card')}
+                aria-pressed={paymentMethod === 'card'}
+                className={`flex flex-col items-center justify-center gap-1 sm:gap-2 p-3 sm:p-4 border border-slate-200 rounded-lg transition-shadow ${paymentMethod === 'card' ? 'bg-red-50 border-red-200 shadow-sm' : 'bg-white hover:shadow-sm'}`}
+              >
+                <div className="h-7 sm:h-10 flex items-center">
+                  <Image src="/payment/visam.png" alt="Card logos" width={60} height={24} className="object-contain w-[50px] h-[20px] sm:w-[72px] sm:h-[28px]" />
+                </div>
+                <span className="text-xs sm:text-sm font-medium text-slate-700">Card</span>
+              </button>
+            )}
 
-            <button
-              type="button"
-              onClick={() => setPaymentMethod('paypal')}
-              aria-pressed={paymentMethod === 'paypal'}
-              className={`flex flex-col items-center justify-center gap-1 sm:gap-2 p-3 sm:p-4 border border-slate-200 rounded-lg transition-shadow relative ${paymentMethod === 'paypal' ? 'bg-red-50 border-red-200 shadow-sm' : 'bg-white hover:shadow-sm'}`}
-            >
-              <span className="absolute top-1 right-1 sm:top-2 sm:right-2 bg-blue-500 text-white text-[8px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full">
-                SOON
-              </span>
-              <div className="h-7 sm:h-10 flex items-center">
-                <Image src="/payment/paypal2.png" alt="PayPal" width={48} height={30} className="object-contain w-[38px] h-[24px] sm:w-[48px] sm:h-[30px]" />
-              </div>
-              <span className="text-xs sm:text-sm font-medium text-slate-700">PayPal</span>
-            </button>
+            {isPaymentMethodSupported('paypal') && (
+              <button
+                type="button"
+                onClick={() => setPaymentMethod('paypal')}
+                aria-pressed={paymentMethod === 'paypal'}
+                className={`flex flex-col items-center justify-center gap-1 sm:gap-2 p-3 sm:p-4 border border-slate-200 rounded-lg transition-shadow relative ${paymentMethod === 'paypal' ? 'bg-red-50 border-red-200 shadow-sm' : 'bg-white hover:shadow-sm'}`}
+              >
+                <span className="absolute top-1 right-1 sm:top-2 sm:right-2 bg-blue-500 text-white text-[8px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full">
+                  SOON
+                </span>
+                <div className="h-7 sm:h-10 flex items-center">
+                  <Image src="/payment/paypal2.png" alt="PayPal" width={48} height={30} className="object-contain w-[38px] h-[24px] sm:w-[48px] sm:h-[30px]" />
+                </div>
+                <span className="text-xs sm:text-sm font-medium text-slate-700">PayPal</span>
+              </button>
+            )}
 
-            <button
-              type="button"
-              onClick={() => setPaymentMethod('pay_later')}
-              aria-pressed={paymentMethod === 'pay_later'}
-              className={`flex flex-col items-center justify-center gap-1 sm:gap-2 p-3 sm:p-4 border border-slate-200 rounded-lg transition-shadow ${paymentMethod === 'pay_later' ? 'bg-red-50 border-red-200 shadow-sm' : 'bg-white hover:shadow-sm'}`}
-            >
-              <div className="h-7 sm:h-10 flex items-center">
-                <CalendarDays className="w-6 h-6 sm:w-8 sm:h-8 text-emerald-600" />
-              </div>
-              <span className="text-xs sm:text-sm font-medium text-slate-700">Pay Later</span>
-            </button>
+            {isPaymentMethodSupported('pay_later') && (
+              <button
+                type="button"
+                onClick={() => setPaymentMethod('pay_later')}
+                aria-pressed={paymentMethod === 'pay_later'}
+                className={`flex flex-col items-center justify-center gap-1 sm:gap-2 p-3 sm:p-4 border border-slate-200 rounded-lg transition-shadow ${paymentMethod === 'pay_later' ? 'bg-red-50 border-red-200 shadow-sm' : 'bg-white hover:shadow-sm'}`}
+              >
+                <div className="h-7 sm:h-10 flex items-center">
+                  <CalendarDays className="w-6 h-6 sm:w-8 sm:h-8 text-emerald-600" />
+                </div>
+                <span className="text-xs sm:text-sm font-medium text-slate-700">Pay Later</span>
+              </button>
+            )}
           </div>
 
           <AnimatePresence mode="wait">
@@ -1320,6 +1333,7 @@ export default function CheckoutPage() {
   const { cart, clearCart } = useCart();
   const { formatPrice, selectedCurrency } = useSettings();
   const { user } = useAuth();
+  const { tenant } = useTenant();
   const router = useRouter();
 
   const [isConfirmed, setIsConfirmed] = useState(false);
@@ -1338,6 +1352,15 @@ export default function CheckoutPage() {
   const [customerType, setCustomerType] = useState<'guest' | 'login' | 'signup'>('guest');
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<'login' | 'signup'>('login');
+
+  const supportedPaymentMethods =
+    tenant?.payments?.supportedPaymentMethods && tenant.payments.supportedPaymentMethods.length > 0
+      ? tenant.payments.supportedPaymentMethods
+      : ['card', 'paypal'];
+
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'paypal' | 'pay_later'>(
+    (supportedPaymentMethods[0] as 'card' | 'paypal' | 'pay_later') || 'card'
+  );
 
   // Stripe payment intent ID
   const [paymentIntentId, setPaymentIntentId] = useState<string>('');
@@ -1402,6 +1425,13 @@ export default function CheckoutPage() {
       setCustomerType('login'); // Will show authenticated flow
     }
   }, [user]);
+
+  useEffect(() => {
+    if (!supportedPaymentMethods.includes(paymentMethod)) {
+      const fallback = supportedPaymentMethods[0] as 'card' | 'paypal' | 'pay_later' | undefined;
+      setPaymentMethod(fallback || 'card');
+    }
+  }, [supportedPaymentMethods, paymentMethod]);
 
   const handleApplyCoupon = async () => {
     if (!promoCode) {
@@ -1611,6 +1641,9 @@ export default function CheckoutPage() {
                       promoCode={promoCode}
                       paymentIntentId={paymentIntentId}
                       setPaymentIntentId={setPaymentIntentId}
+                      paymentMethod={paymentMethod}
+                      setPaymentMethod={setPaymentMethod}
+                      supportedPaymentMethods={supportedPaymentMethods}
                     />
                   </div>
                   <div className="lg:col-span-1 order-1 lg:order-2">

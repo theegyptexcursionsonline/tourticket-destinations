@@ -64,6 +64,7 @@ export interface TenantConfig {
     currency: string;
     currencySymbol: string;
     supportedCurrencies?: string[];
+    supportedPaymentMethods?: string[];
   };
   localization: {
     defaultLanguage: string;
@@ -90,7 +91,7 @@ export interface TenantPublicConfig {
   socialLinks: TenantConfig['socialLinks'];
   features: TenantConfig['features'];
   localization: Pick<TenantConfig['localization'], 'defaultLanguage' | 'supportedLanguages'>;
-  payments: Pick<TenantConfig['payments'], 'currency' | 'currencySymbol' | 'supportedCurrencies'>;
+  payments: Pick<TenantConfig['payments'], 'currency' | 'currencySymbol' | 'supportedCurrencies' | 'supportedPaymentMethods'>;
 }
 
 // ============================================
@@ -235,6 +236,7 @@ export async function getTenantPublicConfig(tenantId: string): Promise<TenantPub
       currency: tenant.payments.currency,
       currencySymbol: tenant.payments.currencySymbol,
       supportedCurrencies: tenant.payments.supportedCurrencies,
+      supportedPaymentMethods: tenant.payments.supportedPaymentMethods,
     },
   };
   } catch (error) {

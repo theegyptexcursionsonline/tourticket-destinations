@@ -170,6 +170,7 @@ export async function POST(request: Request) {
     
     // Get tenant configuration for tenant-specific settings
     const tenantConfig = await getTenantConfigCached(tenantId);
+    const supportedPaymentMethods = tenantConfig?.payments?.supportedPaymentMethods;
 
     let user = null;
 
@@ -253,6 +254,13 @@ export async function POST(request: Request) {
     if (!user) {
       return NextResponse.json(
         { success: false, message: 'Unable to process user information' },
+        { status: 400 }
+      );
+    }
+
+    if (supportedPaymentMethods?.length && !supportedPaymentMethods.includes(paymentMethod)) {
+      return NextResponse.json(
+        { success: false, message: 'Selected payment method is not available for this tenant.' },
         { status: 400 }
       );
     }
@@ -341,6 +349,29 @@ export async function POST(request: Request) {
       }
     }
 
+    // Idempotency guard for Stripe payments to avoid duplicate bookings/emails
+    if (!isBankTransfer && !isPayLater && paymentResult?.paymentId) {
+      const existingBookings = await Booking.find({
+        tenantId,
+        paymentId: paymentResult.paymentId,
+      }).lean();
+
+      if (existingBookings.length > 0) {
+        return NextResponse.json({
+          success: true,
+          message: 'Booking already processed for this payment.',
+          bookingId: existingBookings[0].bookingReference,
+          bookings: existingBookings.map(booking => booking._id),
+          paymentId: paymentResult.paymentId,
+          customer: {
+            name: `${customer.firstName} ${customer.lastName}`,
+            email: customer.email,
+          },
+          duplicate: true,
+        });
+      }
+    }
+
     // Increment discount usage counter if a discount was applied (tenant-specific)
     if (discountCode) {
       try {
@@ -395,20 +426,8 @@ export async function POST(request: Request) {
         // Pay later - no payment email needed, booking confirmation will be sent separately
         console.log('Pay Later booking - skipping payment confirmation email');
       } else {
-        // Send regular payment confirmation for card payments
-        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || '';
-        await EmailService.sendPaymentConfirmation({
-          customerName: `${customer.firstName} ${customer.lastName}`,
-          customerEmail: customer.email,
-          paymentId: paymentResult.paymentId,
-          paymentMethod: paymentMethod,
-          amount: `${tenantConfig?.payments?.currencySymbol || '$'}${pricing.total.toFixed(2)}`,
-          currency: paymentResult.currency,
-          bookingId: `BOOKING-${Date.now()}`,
-          tourTitle: cart.length === 1 ? cart[0].title : `${cart.length} Tours`,
-          baseUrl,
-          tenantBranding: getTenantEmailBranding(tenantConfig, baseUrl)
-        });
+        // Card payments: skip payment confirmation email to avoid duplicates
+        console.log('Card payment - skipping payment confirmation email');
       }
     } catch (emailError) {
       console.error('Failed to send payment/bank transfer email:', emailError);

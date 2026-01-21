@@ -185,6 +185,7 @@ export interface TenantPayments {
   currency: string;
   currencySymbol: string;
   supportedCurrencies?: string[];
+  supportedPaymentMethods?: string[];
 }
 
 export interface TenantLocalization {
@@ -271,6 +272,7 @@ const DEFAULT_TENANT_CONFIG: TenantConfig = {
     currency: 'USD',
     currencySymbol: '$',
     supportedCurrencies: ['USD', 'EUR', 'GBP', 'EGP'],
+    supportedPaymentMethods: ['card', 'paypal'],
   },
   localization: {
     defaultLanguage: 'en',
