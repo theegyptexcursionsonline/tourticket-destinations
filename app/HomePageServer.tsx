@@ -302,6 +302,174 @@ async function getHomePageData(tenantId: string) {
   }
 }
 
+// Tenant-specific destination defaults (for tenants without specific destinations in DB)
+const tenantDestinationDefaults: Record<string, { name: string; slug: string; image: string; description: string; tourCount: number }[]> = {
+  'hurghada-speedboat': [
+    {
+      name: 'Giftun Island',
+      slug: 'giftun-island',
+      image: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&q=80',
+      description: 'Crystal clear waters and pristine beaches',
+      tourCount: 8,
+    },
+    {
+      name: 'Orange Bay',
+      slug: 'orange-bay',
+      image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80',
+      description: 'Paradise beach with stunning coral reefs',
+      tourCount: 6,
+    },
+    {
+      name: 'Mahmya Island',
+      slug: 'mahmya-island',
+      image: 'https://images.unsplash.com/photo-1559827291-72ee739d0d9a?w=800&q=80',
+      description: 'Exclusive island experience',
+      tourCount: 4,
+    },
+    {
+      name: 'Paradise Island',
+      slug: 'paradise-island',
+      image: 'https://images.unsplash.com/photo-1682687220742-aba13b6e50ba?w=800&q=80',
+      description: 'Snorkeling and beach relaxation',
+      tourCount: 5,
+    },
+    {
+      name: 'Dolphin House',
+      slug: 'dolphin-house',
+      image: 'https://images.unsplash.com/photo-1568430462989-44163eb1752f?w=800&q=80',
+      description: 'Swim with wild dolphins',
+      tourCount: 3,
+    },
+    {
+      name: 'Hurghada Marina',
+      slug: 'hurghada-marina',
+      image: 'https://images.unsplash.com/photo-1540541338287-41700207dee6?w=800&q=80',
+      description: 'Departure point for sea adventures',
+      tourCount: 10,
+    },
+  ],
+  'hurghada-excursions-online': [
+    {
+      name: 'Hurghada',
+      slug: 'hurghada',
+      image: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&q=80',
+      description: 'Red Sea resort paradise',
+      tourCount: 25,
+    },
+    {
+      name: 'Luxor',
+      slug: 'luxor',
+      image: 'https://images.unsplash.com/photo-1568322445389-f64ac2515020?w=800&q=80',
+      description: 'Ancient temples and Valley of Kings',
+      tourCount: 12,
+    },
+    {
+      name: 'Cairo',
+      slug: 'cairo',
+      image: 'https://images.unsplash.com/photo-1539650116574-8efeb43e2750?w=800&q=80',
+      description: 'Pyramids of Giza and Egyptian Museum',
+      tourCount: 8,
+    },
+    {
+      name: 'Giftun Island',
+      slug: 'giftun-island',
+      image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80',
+      description: 'Snorkeling paradise',
+      tourCount: 6,
+    },
+  ],
+  'sharm-excursions-online': [
+    {
+      name: 'Sharm El Sheikh',
+      slug: 'sharm-el-sheikh',
+      image: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&q=80',
+      description: 'World-class diving destination',
+      tourCount: 20,
+    },
+    {
+      name: 'Ras Mohammed',
+      slug: 'ras-mohammed',
+      image: 'https://images.unsplash.com/photo-1682407186023-12c70a4a35e0?w=800&q=80',
+      description: 'National park with stunning coral reefs',
+      tourCount: 8,
+    },
+    {
+      name: 'Tiran Island',
+      slug: 'tiran-island',
+      image: 'https://images.unsplash.com/photo-1559827291-72ee739d0d9a?w=800&q=80',
+      description: 'Famous diving and snorkeling spot',
+      tourCount: 6,
+    },
+    {
+      name: 'Dahab',
+      slug: 'dahab',
+      image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80',
+      description: 'Blue Hole and laid-back vibes',
+      tourCount: 5,
+    },
+  ],
+  'luxor-excursions': [
+    {
+      name: 'Valley of the Kings',
+      slug: 'valley-of-kings',
+      image: 'https://images.unsplash.com/photo-1568322445389-f64ac2515020?w=800&q=80',
+      description: 'Royal tombs of ancient pharaohs',
+      tourCount: 10,
+    },
+    {
+      name: 'Karnak Temple',
+      slug: 'karnak-temple',
+      image: 'https://images.unsplash.com/photo-1595981234058-a9302fb97229?w=800&q=80',
+      description: 'Largest ancient religious site',
+      tourCount: 8,
+    },
+    {
+      name: 'Luxor Temple',
+      slug: 'luxor-temple',
+      image: 'https://images.unsplash.com/photo-1568322445389-f64ac2515020?w=800&q=80',
+      description: 'Ancient temple complex',
+      tourCount: 6,
+    },
+    {
+      name: 'West Bank',
+      slug: 'west-bank',
+      image: 'https://images.unsplash.com/photo-1595981234058-a9302fb97229?w=800&q=80',
+      description: 'Temples, tombs, and monuments',
+      tourCount: 12,
+    },
+  ],
+  'cairo-excursions-online': [
+    {
+      name: 'Giza Pyramids',
+      slug: 'giza-pyramids',
+      image: 'https://images.unsplash.com/photo-1539650116574-8efeb43e2750?w=800&q=80',
+      description: 'The last wonder of the ancient world',
+      tourCount: 15,
+    },
+    {
+      name: 'Egyptian Museum',
+      slug: 'egyptian-museum',
+      image: 'https://images.unsplash.com/photo-1553913861-c0fddf2619ee?w=800&q=80',
+      description: 'Treasures of ancient Egypt',
+      tourCount: 8,
+    },
+    {
+      name: 'Khan El Khalili',
+      slug: 'khan-el-khalili',
+      image: 'https://images.unsplash.com/photo-1572252009286-268acec5ca0a?w=800&q=80',
+      description: 'Historic bazaar and market',
+      tourCount: 5,
+    },
+    {
+      name: 'Islamic Cairo',
+      slug: 'islamic-cairo',
+      image: 'https://images.unsplash.com/photo-1572252009286-268acec5ca0a?w=800&q=80',
+      description: 'Mosques, madrasas, and monuments',
+      tourCount: 6,
+    },
+  ],
+};
+
 export default async function HomePageServer() {
   // Get current tenant from request
   const tenantId = await getTenantFromRequest();
@@ -318,6 +486,21 @@ export default async function HomePageServer() {
     heroSettings,
     dayTrips
   } = await getHomePageData(tenantId);
+  
+  // Check if destinations are tenant-specific or from 'default' fallback
+  const hasTenantSpecificDestinations = destinations.some(
+    (dest: any) => dest.tenantId === tenantId
+  );
+  
+  // Use tenant-specific default destinations if no tenant-specific ones in DB
+  const tenantDestDefaults = tenantDestinationDefaults[tenantId];
+  const effectiveDestinations = (hasTenantSpecificDestinations || !tenantDestDefaults)
+    ? destinations
+    : tenantDestDefaults.map((dest, index) => ({
+        ...dest,
+        _id: `tenant-dest-${index}`,
+        country: 'Egypt',
+      }));
 
   // Check if heroSettings is for THIS tenant or a fallback from another tenant
   // If it's from another tenant (e.g., 'default'), we should use tenant-specific defaults instead
@@ -486,7 +669,7 @@ export default async function HomePageServer() {
       <HeroSection initialSettings={effectiveHeroSettings} />
 
       {/* Pass pre-fetched data as props */}
-      <DestinationsServer destinations={destinations} />
+      <DestinationsServer destinations={effectiveDestinations} />
       
       {/* Show IcebarPromo only if enabled for this tenant or if no tenant config */}
       {(!tenantConfig || tenantConfig.homepage?.showPromoSection) && (
