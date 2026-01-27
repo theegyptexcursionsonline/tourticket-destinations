@@ -181,14 +181,57 @@ Domain-to-tenant mapping is loaded from `TENANT_DOMAINS` (JSON) or falls back to
 
 ```typescript
 const tenantDomains = {
-  'hurghadatours.com': 'hurghada',
-  'hurghadaspeedboat.com': 'hurghada-speedboat',
+  // Default tenant
   'egypt-excursionsonline.com': 'default',
   'localhost:3000': 'default',
+  
+  // Hurghada Speedboat
+  'hurghadaspeedboat.com': 'hurghada-speedboat',
   'localhost:3004': 'hurghada-speedboat',
-  // ...more domains and tenants
+  
+  // Excursions Online Network (Jan 2026)
+  'hurghadaexcursionsonline.com': 'hurghada-excursions-online',
+  'localhost:3005': 'hurghada-excursions-online',
+  
+  'cairoexcursionsonline.com': 'cairo-excursions-online',
+  'localhost:3006': 'cairo-excursions-online',
+  
+  'makadibayexcursions.com': 'makadi-bay',
+  'localhost:3007': 'makadi-bay',
+  
+  'elgounaexcursions.com': 'el-gouna',
+  'localhost:3008': 'el-gouna',
+  
+  'luxorexcursions.com': 'luxor-excursions',
+  'localhost:3009': 'luxor-excursions',
+  
+  'sharmexcursionsonline.com': 'sharm-excursions-online',
+  'localhost:3010': 'sharm-excursions-online',
+  
+  // Future tenants (prepared)
+  'aswanexcursions.com': 'aswan-excursions',
+  'localhost:3011': 'aswan-excursions',
+  
+  'marsaalamexcursions.com': 'marsa-alam-excursions',
+  'localhost:3012': 'marsa-alam-excursions',
+  
+  'dahabexcursions.com': 'dahab-excursions',
+  'localhost:3013': 'dahab-excursions',
 };
 ```
+
+### Active Tenants
+
+| Tenant ID | Domain | Dev Port | Theme |
+|-----------|--------|----------|-------|
+| `default` | egypt-excursionsonline.com | 3000 | Default Red |
+| `hurghada-speedboat` | hurghadaspeedboat.com | 3004 | Cyan/Marine |
+| `hurghada-excursions-online` | hurghadaexcursionsonline.com | 3005 | Ocean Cyan |
+| `cairo-excursions-online` | cairoexcursionsonline.com | 3006 | Ancient Gold |
+| `makadi-bay` | makadibayexcursions.com | 3007 | Tropical Teal |
+| `el-gouna` | elgounaexcursions.com | 3008 | Modern Coral |
+| `luxor-excursions` | luxorexcursions.com | 3009 | Royal Purple |
+| `sharm-excursions-online` | sharmexcursionsonline.com | 3010 | Deep Sea Blue |
 
 ### Website Status Modes
 
@@ -236,12 +279,29 @@ export function Component() {
 ### Tenant-Aware Database Queries
 
 ```typescript
-import { buildTenantQuery } from '@/lib/tenant';
+import { buildTenantQuery, buildStrictTenantQuery } from '@/lib/tenant';
 
-// Filter tours by tenant
+// Filter tours by tenant (includes 'default' tenant as fallback)
 const query = buildTenantQuery({ isPublished: true }, tenantId);
 const tours = await Tour.find(query);
+// Returns tours from both 'tenantId' AND 'default'
+
+// Strict filtering (no fallback to default)
+const strictQuery = buildStrictTenantQuery({ isPublished: true }, tenantId);
+const tenantOnlyTours = await Tour.find(strictQuery);
+// Returns only tours specifically assigned to 'tenantId'
+
+// With options
+const queryWithOptions = buildTenantQuery(
+  { isPublished: true },
+  tenantId,
+  { includeDefault: true, includeShared: true }
+);
 ```
+
+**Query Options:**
+- `includeDefault: true` (default) - Include content from 'default' tenant
+- `includeShared: true` - Include content marked as shared (`tenantId: null` or `'shared'`)
 
 ### Multi-Database Support
 
@@ -496,7 +556,7 @@ Key Mongoose models and their relationships:
 | **Review** | User reviews for tours | ✓ |
 | **Blog** | Blog posts for content marketing | ✓ |
 | **AttractionPage** | Landing pages for attractions | ✓ |
-| **HeroSettings** | Homepage hero configuration | ✓ |
+| **HeroSettings** | Homepage hero configuration (falls back to tenant.homepage config) | ✓ |
 | **Discount** | Promotional codes | ✓ |
 | **Comment** | Blog post comments | ✓ |
 | **Job** | Career/job listings | ✓ |
@@ -786,10 +846,16 @@ Located in `scripts/` folder, run with `npx tsx scripts/<name>.ts`:
 |--------|-------------|
 | `seed-speedboat-tenant.ts` | Seed speedboat tenant |
 | `seed-speedboat-complete.ts` | Full speedboat setup pipeline |
-| `seed-excursions-tenants.ts` | Seed excursions tenants |
+| `seed-excursions-tenants.ts` | Seed all Excursions Online tenants (6 active + 3 future) with HeroSettings |
 | `assign-speedboat-tours.ts` | Assign tours to speedboat tenant |
 | `setup-speedboat-database.ts` | Setup tenant-specific database |
 | `setup-tenant-theme.ts` | Configure tenant theme |
+
+**Quick tenant seeding:**
+```bash
+pnpm seed:excursions  # Seeds: hurghada-excursions-online, cairo-excursions-online, 
+                      # makadi-bay, el-gouna, luxor-excursions, sharm-excursions-online
+```
 
 ### Reviews
 | Script | Description |
@@ -897,6 +963,9 @@ const pdfBuffer = await generateReceiptPdf(booking, tenant);
 12. **Cron Endpoints**: Always verify `CRON_SECRET` before executing cron jobs
 13. **Stop Sales**: Check stop sale status before allowing bookings for a date
 14. **Offer Priority**: When multiple offers apply, `getBestOffer()` selects by priority then discount amount
+15. **HeroSettings Fallback**: If no HeroSettings document exists for a tenant, `HomePageServer.tsx` uses the tenant's `homepage` config (heroTitle, heroImages, etc.)
+16. **Tenant Content Fallback**: New tenants inherit tours/content from 'default' tenant via `buildTenantQuery()` until tenant-specific content is assigned
+17. **Contact Info**: Always use `useTenant()` for contact phone/email - never hardcode contact details in components
 
 ---
 
@@ -928,30 +997,112 @@ When modifying these, be aware of client-side state management and streaming req
 
 ## Adding a New Tenant
 
-1. **Add domain mapping** in `middleware.ts`:
+### Option 1: Using Seed Script (Recommended)
+
+1. **Add tenant config** to `scripts/seed-excursions-tenants.ts`:
+   ```typescript
+   const newTenant = {
+     tenantId: 'new-tenant-id',
+     name: 'New Tenant Name',
+     slug: 'new-tenant-id',
+     domain: 'newtenant.com',
+     domains: ['newtenant.com', 'www.newtenant.com'],
+     branding: {
+       logo: 'placeholder-or-cloudinary-url',
+       primaryColor: '#FF5733',
+       secondaryColor: '#1D3557',
+       accentColor: '#F4A261',
+       fontFamily: 'Inter',
+       // ... full branding config
+     },
+     seo: { defaultTitle: '...', defaultDescription: '...' },
+     contact: { email: '...', phone: '...' },
+     homepage: {
+       heroType: 'slider',
+       heroTitle: 'Your Hero Title',
+       heroSubtitle: 'Your subtitle',
+       heroImages: ['image1.jpg', 'image2.jpg'],
+       // ... homepage settings
+     },
+     // ... full config
+   };
+   ```
+
+2. **Add HeroSettings** in the same script:
+   ```typescript
+   const heroSettingsConfigs = [
+     // ... existing configs
+     {
+       tenantId: 'new-tenant-id',
+       title: { main: 'Discover', highlight: 'New Destination' },
+       backgroundImages: [
+         { desktop: 'https://...', alt: 'Description', isActive: true },
+       ],
+       searchSuggestions: ['Popular Tour', 'Activity'],
+       floatingTags: { isEnabled: true, tags: ['Tag1', 'Tag2'] },
+     },
+   ];
+   ```
+
+3. **Add domain mapping** in `middleware.ts`:
    ```typescript
    'newtenant.com': 'new-tenant-id',
    'www.newtenant.com': 'new-tenant-id',
+   'localhost:3014': 'new-tenant-id',  // Dev port
    ```
 
-2. **Create tenant document** in MongoDB (via admin panel or script):
-   ```javascript
-   db.tenants.insertOne({
-     tenantId: 'new-tenant-id',
-     name: 'New Tenant Name',
-     domain: 'newtenant.com',
-     branding: { logo: '...', primaryColor: '#FF5733', ... },
-     seo: { defaultTitle: '...', ... },
-     // ... full config
-     isActive: true,
-   });
+4. **Run seed script**:
+   ```bash
+   pnpm seed:excursions
    ```
 
-3. **Add logo** to `public/tenants/` or Cloudinary
+5. **Test locally**:
+   ```bash
+   PORT=3014 pnpm dev:original
+   ```
+
+### Option 2: Admin Panel + Manual Setup
+
+1. **Add domain mapping** in `middleware.ts` (same as above)
+
+2. **Create tenant via Admin Panel** → Tenants → Create New
+
+3. **Create HeroSettings** via Admin Panel → Hero Settings
 
 4. **(Optional) Configure tenant database**:
    ```bash
    MONGODB_URI_NEW_TENANT=mongodb://...
    ```
 
-5. **Deploy** - DNS must point to your hosting
+### Content Fallback System
+
+New tenants automatically inherit content from the `default` tenant:
+- **Tours**: Shows `default` tenant tours until tenant-specific tours are assigned
+- **Destinations**: Shared across all tenants by default
+- **HeroSettings**: Uses tenant's `homepage` config as fallback if no HeroSettings document exists
+
+```typescript
+// lib/tenant.ts - buildTenantQuery includes 'default' fallback
+const query = buildTenantQuery({ isPublished: true }, tenantId);
+// Returns tours from both 'new-tenant' AND 'default'
+```
+
+### Tenant-Specific Contact Info
+
+All pages use `useTenant()` for contact information. Ensure tenant config includes:
+```typescript
+contact: {
+  email: 'info@newtenant.com',
+  phone: '+1 234 567 8900',
+  whatsapp: '+12345678900',
+  address: 'Your Address',
+}
+```
+
+Pages that use tenant contact info:
+- Tour detail pages (`app/[slug]/TourDetailClientPage.tsx`)
+- Checkout page (`app/checkout/page.tsx`)
+- Contact page (`app/contact/ContactClientPage.tsx`)
+- Booking verification (`app/booking/verify/[reference]/page.tsx`)
+- User bookings (`app/user/bookings/[id]/page.tsx`)
+- Footer component (`components/Footer.tsx`)

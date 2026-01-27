@@ -134,10 +134,18 @@ async function getHomePageData(tenantId: string) {
             .lean()
         ),
 
-      // Hero settings (filtered by tenant)
-      HeroSettings.findOne(buildTenantQuery({ isActive: true }, tenantId))
+      // Hero settings - STRICT tenant match first, then fallback to default
+      HeroSettings.findOne({ isActive: true, tenantId })
         .select('backgroundImages currentActiveImage title searchSuggestions floatingTags trustIndicators overlaySettings animationSettings metaTitle metaDescription tenantId')
         .lean()
+        .then(result => {
+          // If tenant-specific hero found, return it
+          if (result) return result;
+          // Otherwise try default tenant
+          return HeroSettings.findOne({ isActive: true, tenantId: 'default' })
+            .select('backgroundImages currentActiveImage title searchSuggestions floatingTags trustIndicators overlaySettings animationSettings metaTitle metaDescription tenantId')
+            .lean();
+        })
         .catch(() =>
           HeroSettings.findOne({ isActive: true })
             .select('backgroundImages currentActiveImage title searchSuggestions floatingTags trustIndicators overlaySettings animationSettings metaTitle metaDescription')
@@ -311,39 +319,162 @@ export default async function HomePageServer() {
     dayTrips
   } = await getHomePageData(tenantId);
 
+  // Check if heroSettings is for THIS tenant or a fallback from another tenant
+  // If it's from another tenant (e.g., 'default'), we should use tenant-specific defaults instead
+  const heroSettingsMatchesTenant = heroSettings?.tenantId === tenantId;
+  
+  // Tenant-specific hero defaults (for tenants without HeroSettings database records)
+  const tenantHeroDefaults: Record<string, { title: { main: string; highlight: string }; subtitle?: string; images: string[]; suggestions: string[] }> = {
+    'hurghada-speedboat': {
+      title: { main: 'Red Sea', highlight: 'Speedboat Adventures' },
+      subtitle: 'Experience thrilling speedboat tours to Giftun Island, Orange Bay & more',
+      images: [
+        'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=1920&q=80',
+        'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1920&q=80',
+        'https://images.unsplash.com/photo-1682687220742-aba13b6e50ba?w=1920&q=80',
+      ],
+      suggestions: ['Giftun Island', 'Orange Bay', 'Dolphin Watching', 'Snorkeling Trip', 'Sunset Cruise'],
+    },
+    'hurghada-excursions-online': {
+      title: { main: 'Discover the Magic of', highlight: 'Hurghada' },
+      subtitle: 'Red Sea adventures, desert safaris & unforgettable experiences',
+      images: [
+        'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=1920&q=80',
+        'https://images.unsplash.com/photo-1682687220742-aba13b6e50ba?w=1920&q=80',
+      ],
+      suggestions: ['Snorkeling Trip', 'Giftun Island', 'Desert Safari', 'Dolphin Watching'],
+    },
+    'cairo-excursions-online': {
+      title: { main: 'Journey Through', highlight: 'Ancient Egypt' },
+      subtitle: 'Walk in the footsteps of pharaohs and discover timeless wonders',
+      images: [
+        'https://images.unsplash.com/photo-1539650116574-8efeb43e2750?w=1920&q=80',
+        'https://images.unsplash.com/photo-1553913861-c0fddf2619ee?w=1920&q=80',
+      ],
+      suggestions: ['Pyramids Tour', 'Egyptian Museum', 'Khan Khalili', 'Nile Dinner Cruise'],
+    },
+    'luxor-excursions': {
+      title: { main: 'Walk Among the', highlight: 'Gods of Luxor' },
+      subtitle: 'Temples, tombs & the mysteries of ancient Thebes',
+      images: [
+        'https://images.unsplash.com/photo-1568322445389-f64ac2515020?w=1920&q=80',
+        'https://images.unsplash.com/photo-1595981234058-a9302fb97229?w=1920&q=80',
+      ],
+      suggestions: ['Valley of Kings', 'Karnak Temple', 'Hot Air Balloon', 'Nile Felucca'],
+    },
+    'sharm-excursions-online': {
+      title: { main: 'Dive Into', highlight: 'Sharm El Sheikh' },
+      subtitle: 'World-class diving, snorkeling & desert adventures',
+      images: [
+        'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=1920&q=80',
+        'https://images.unsplash.com/photo-1682407186023-12c70a4a35e0?w=1920&q=80',
+      ],
+      suggestions: ['Ras Mohammed', 'Tiran Island', 'Blue Hole Dahab', 'Quad Safari'],
+    },
+    'makadi-bay': {
+      title: { main: 'Paradise Awaits at', highlight: 'Makadi Bay' },
+      subtitle: 'Crystal clear waters, pristine beaches & Red Sea adventures',
+      images: [
+        'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=1920&q=80',
+        'https://images.unsplash.com/photo-1559827291-72ee739d0d9a?w=1920&q=80',
+      ],
+      suggestions: ['Snorkeling', 'Luxor Day Trip', 'Quad Safari', 'Glass Boat'],
+    },
+    'el-gouna': {
+      title: { main: 'Experience Luxury at', highlight: 'El Gouna' },
+      subtitle: 'The Venice of the Red Sea - diving, kitesurfing & relaxation',
+      images: [
+        'https://images.unsplash.com/photo-1540541338287-41700207dee6?w=1920&q=80',
+        'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1920&q=80',
+      ],
+      suggestions: ['Kitesurfing', 'Yacht Charter', 'Diving Course', 'Desert Adventure'],
+    },
+  };
+
   // Build hero settings from tenant config if no database heroSettings exist
-  // This allows each tenant to have custom hero content without needing HeroSettings records
-  const effectiveHeroSettings = heroSettings || (tenantConfig?.homepage ? {
-    title: tenantConfig.homepage.heroTitle || tenantConfig.seo?.defaultTitle || 'Explore Amazing Destinations',
-    backgroundImages: tenantConfig.homepage.heroImages || ['/hero1.jpg', '/hero2.jpg', '/hero3.jpg'],
-    currentActiveImage: 0,
-    searchSuggestions: [
+  // Priority: 1) DB HeroSettings for THIS tenant, 2) Tenant config heroTitle, 3) Tenant-specific defaults, 4) Fallback HeroSettings from default
+  const tenantDefaults = tenantHeroDefaults[tenantId];
+  
+  // Use tenant-specific defaults if we have them and DB heroSettings is from another tenant
+  const shouldUseTenantDefaults = tenantDefaults && (!heroSettings || !heroSettingsMatchesTenant);
+  
+  // Helper function to convert image URLs to HeroSettings backgroundImages format
+  const convertImagesToHeroFormat = (images: string[]): { desktop: string; alt: string; isActive: boolean }[] => {
+    if (!images || images.length === 0) {
+      return [
+        { desktop: '/hero1.jpg', alt: 'Default hero image', isActive: true },
+      ];
+    }
+    return images.map((url, index) => ({
+      desktop: url,
+      alt: `Hero image ${index + 1}`,
+      isActive: index === 0, // First image is active by default
+    }));
+  };
+  
+  // Determine which images to use
+  const imageUrls = tenantConfig?.homepage?.heroImages || tenantDefaults?.images || ['/hero1.jpg', '/hero2.jpg', '/hero3.jpg'];
+  const backgroundImages = convertImagesToHeroFormat(Array.isArray(imageUrls) ? imageUrls : [imageUrls]);
+  const currentActiveImage = backgroundImages.find(img => img.isActive)?.desktop || backgroundImages[0]?.desktop || '/hero1.jpg';
+  
+  // Determine effective hero settings with proper priority
+  // 1. Use DB HeroSettings if it matches this tenant
+  // 2. Otherwise, use tenant-specific defaults or tenant config
+  let effectiveHeroSettings;
+  
+  if (heroSettingsMatchesTenant) {
+    // Use database HeroSettings for this tenant
+    effectiveHeroSettings = heroSettings;
+  } else if (shouldUseTenantDefaults || tenantConfig?.homepage) {
+    // Use tenant-specific defaults or tenant config
+    effectiveHeroSettings = {
+    title: tenantDefaults?.title || { 
+      main: tenantConfig?.homepage?.heroTitle || tenantConfig?.seo?.defaultTitle || 'Explore Amazing', 
+      highlight: 'Destinations' 
+    },
+    subtitle: tenantConfig?.homepage?.heroSubtitle || tenantDefaults?.subtitle,
+    backgroundImages,
+    currentActiveImage,
+    searchSuggestions: tenantDefaults?.suggestions || [
       'Pyramids Tour',
       'Red Sea Diving',
       'Desert Safari',
       'Nile Cruise',
       'Luxor Temple',
     ],
-    floatingTags: [
-      { text: tenantConfig.name || 'Tours', color: tenantConfig.branding?.primaryColor || '#E63946' },
-      { text: 'Best Prices', color: '#10B981' },
-      { text: '24/7 Support', color: '#3B82F6' },
-    ],
+    floatingTags: {
+      isEnabled: true,
+      tags: [
+        tenantConfig?.name || 'Tours',
+        'Best Prices',
+        '24/7 Support',
+      ],
+      animationSpeed: 5,
+      tagCount: {
+        desktop: 9,
+        mobile: 5,
+      },
+    },
     trustIndicators: {
       travelers: '2M+',
       rating: '4.9/5',
-      ratingStars: 5,
+      ratingText: '★★★★★',
+      isVisible: true,
     },
     overlaySettings: {
-      type: 'gradient',
-      opacity: 0.5,
+      opacity: 0.6,
+      gradientType: 'dark' as const,
     },
     animationSettings: {
-      enableParallax: true,
-      enableFloatingTags: true,
-      transitionDuration: 800,
+      slideshowSpeed: 6,
+      fadeSpeed: 900,
+      enableAutoplay: true,
     },
-  } : null);
+  };
+  } else {
+    // Fallback: use the heroSettings from another tenant (e.g., 'default') if nothing else is available
+    effectiveHeroSettings = heroSettings;
+  }
 
   return (
     <main data-tenant={tenantId}>
