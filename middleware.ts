@@ -81,7 +81,11 @@ function getTenantDomains(): TenantDomainMapping {
   // Default domain mapping for development and initial setup
   // Update this with your actual domains
   return {
-    // Hurghada brand
+    // ============================================
+    // EXISTING TENANTS
+    // ============================================
+    
+    // Hurghada brand (existing)
     'hurghadatours.com': 'hurghada',
     'www.hurghadatours.com': 'hurghada',
     'hurghada-excursions.com': 'hurghada',
@@ -89,39 +93,39 @@ function getTenantDomains(): TenantDomainMapping {
     'hurghadaspeedboat.com': 'hurghada-speedboat',
     'www.hurghadaspeedboat.com': 'hurghada-speedboat',
     
-    // Cairo brand
+    // Cairo brand (existing)
     'cairotours.com': 'cairo',
     'www.cairotours.com': 'cairo',
     'cairo-excursions.com': 'cairo',
     'www.cairo-excursions.com': 'cairo',
     
-    // Luxor brand
+    // Luxor brand (existing)
     'luxortours.com': 'luxor',
     'www.luxortours.com': 'luxor',
     'luxor-excursions.com': 'luxor',
     'www.luxor-excursions.com': 'luxor',
     
-    // Sharm El Sheikh brand
+    // Sharm El Sheikh brand (existing)
     'sharmtours.com': 'sharm',
     'www.sharmtours.com': 'sharm',
     'sharm-excursions.com': 'sharm',
     'www.sharm-excursions.com': 'sharm',
     
-    // Aswan brand
+    // Aswan brand (existing)
     'aswantours.com': 'aswan',
     'www.aswantours.com': 'aswan',
     'aswan-excursions.com': 'aswan',
     'www.aswan-excursions.com': 'aswan',
     
-    // Alexandria brand
+    // Alexandria brand (existing)
     'alexandriatours.com': 'alexandria',
     'www.alexandriatours.com': 'alexandria',
     
-    // Marsa Alam brand
+    // Marsa Alam brand (existing)
     'marsaalamtours.com': 'marsa-alam',
     'www.marsaalamtours.com': 'marsa-alam',
     
-    // Dahab brand
+    // Dahab brand (existing)
     'dahabtours.com': 'dahab',
     'www.dahabtours.com': 'dahab',
     
@@ -129,13 +133,73 @@ function getTenantDomains(): TenantDomainMapping {
     'egypt-excursionsonline.com': 'default',
     'www.egypt-excursionsonline.com': 'default',
     
-    // Development & localhost
+    // ============================================
+    // NEW TENANTS - PRIORITY (Client Request Jan 2026)
+    // ============================================
+    
+    // 1. Hurghada Excursions Online - NEW TENANT
+    'hurghadaexcursionsonline.com': 'hurghada-excursions-online',
+    'www.hurghadaexcursionsonline.com': 'hurghada-excursions-online',
+    
+    // 2. Cairo Excursions Online - NEW TENANT
+    'cairoexcursionsonline.com': 'cairo-excursions-online',
+    'www.cairoexcursionsonline.com': 'cairo-excursions-online',
+    
+    // 3. Makadi Bay Excursions - NEW TENANT
+    'makadibayexcursions.com': 'makadi-bay',
+    'www.makadibayexcursions.com': 'makadi-bay',
+    
+    // 4. El Gouna Excursions - NEW TENANT
+    'elgounaexcursions.com': 'el-gouna',
+    'www.elgounaexcursions.com': 'el-gouna',
+    
+    // 5. Luxor Excursions - NEW TENANT
+    'luxorexcursions.com': 'luxor-excursions',
+    'www.luxorexcursions.com': 'luxor-excursions',
+    
+    // 6. Sharm Excursions Online - NEW TENANT
+    'sharmexcursionsonline.com': 'sharm-excursions-online',
+    'www.sharmexcursionsonline.com': 'sharm-excursions-online',
+    
+    // ============================================
+    // FUTURE TENANTS - PREPARED (To be activated later)
+    // ============================================
+    
+    // Aswan Excursions - FUTURE
+    'aswanexcursions.com': 'aswan-excursions',
+    'www.aswanexcursions.com': 'aswan-excursions',
+    
+    // Marsa Alam Excursions - FUTURE
+    'marsaalamexcursions.com': 'marsa-alam-excursions',
+    'www.marsaalamexcursions.com': 'marsa-alam-excursions',
+    
+    // Dahab Excursions - FUTURE
+    'dahabexcursions.com': 'dahab-excursions',
+    'www.dahabexcursions.com': 'dahab-excursions',
+    
+    // ============================================
+    // DEVELOPMENT & LOCALHOST
+    // ============================================
     'localhost:3000': 'default',
     'localhost:3001': 'hurghada',
     'localhost:3002': 'cairo',
     'localhost:3003': 'luxor',
     'localhost:3004': 'hurghada-speedboat',
+    // New tenants localhost ports
+    'localhost:3005': 'hurghada-excursions-online',
+    'localhost:3006': 'cairo-excursions-online',
+    'localhost:3007': 'makadi-bay',
+    'localhost:3008': 'el-gouna',
+    'localhost:3009': 'luxor-excursions',
+    'localhost:3010': 'sharm-excursions-online',
+    // Future tenants localhost ports
+    'localhost:3011': 'aswan-excursions',
+    'localhost:3012': 'marsa-alam-excursions',
+    'localhost:3013': 'dahab-excursions',
     
+    // ============================================
+    // PREVIEW DEPLOYMENTS
+    // ============================================
     // Netlify preview deployments
     'main--egyptexcursions.netlify.app': 'default',
     
@@ -242,6 +306,7 @@ function getTenantIdFromDomain(hostname: string): string {
     const subdomain = parts[0];
     // Map common city subdomains
     const subdomainMapping: Record<string, string> = {
+      // Existing tenants
       'hurghada': 'hurghada',
       'cairo': 'cairo',
       'luxor': 'luxor',
@@ -251,6 +316,19 @@ function getTenantIdFromDomain(hostname: string): string {
       'dahab': 'dahab',
       'marsa-alam': 'marsa-alam',
       'marsaalam': 'marsa-alam',
+      // New tenants (Jan 2026)
+      'hurghada-excursions-online': 'hurghada-excursions-online',
+      'cairo-excursions-online': 'cairo-excursions-online',
+      'makadi-bay': 'makadi-bay',
+      'makadibay': 'makadi-bay',
+      'el-gouna': 'el-gouna',
+      'elgouna': 'el-gouna',
+      'luxor-excursions': 'luxor-excursions',
+      'sharm-excursions-online': 'sharm-excursions-online',
+      // Future tenants
+      'aswan-excursions': 'aswan-excursions',
+      'marsa-alam-excursions': 'marsa-alam-excursions',
+      'dahab-excursions': 'dahab-excursions',
     };
     
     if (subdomainMapping[subdomain]) {

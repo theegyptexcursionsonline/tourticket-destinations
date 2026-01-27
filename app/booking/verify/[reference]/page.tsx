@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { parseLocalDate } from '@/utils/date';
+import { useTenant } from '@/contexts/TenantContext';
 
 interface BookingDetails {
   bookingReference: string;
@@ -37,11 +38,15 @@ interface BookingDetails {
 }
 
 export default function BookingVerificationPage() {
+  const { tenant } = useTenant();
   const params = useParams();
   const reference = params?.reference as string;
   const [booking, setBooking] = useState<BookingDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Tenant-specific contact info
+  const contactEmail = tenant?.contact?.email || 'booking@egypt-excursionsonline.com';
 
   useEffect(() => {
     async function fetchBooking() {
@@ -279,7 +284,7 @@ export default function BookingVerificationPage() {
           <p className="mb-4 opacity-90">Our support team is here for you 24/7</p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <a 
-              href="mailto:booking@egypt-excursionsonline.com" 
+              href={`mailto:${contactEmail}`} 
               className="inline-flex items-center px-6 py-3 bg-white text-blue-600 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
             >
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

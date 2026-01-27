@@ -319,8 +319,53 @@ export function withTenant<T>(
 /**
  * Build tenant-filtered query for Mongoose
  * Usage: const filter = buildTenantQuery({ isPublished: true }, tenantId);
+ * 
+ * Options:
+ * - includeDefault: If true, includes 'default' tenant content as fallback
+ * - includeShared: If true, includes content marked as shared (tenantId: null or 'shared')
  */
 export function buildTenantQuery(
+  baseQuery: Record<string, unknown>,
+  tenantId: string,
+  options?: { includeDefault?: boolean; includeShared?: boolean }
+): Record<string, unknown> {
+  const { includeDefault = true, includeShared = false } = options || {};
+  
+  // Build tenant filter
+  if (includeDefault || includeShared) {
+    const tenantIds: (string | null)[] = [tenantId];
+    
+    // Include default tenant content as fallback
+    if (includeDefault && tenantId !== 'default') {
+      tenantIds.push('default');
+    }
+    
+    // Include shared content (null or 'shared' tenantId)
+    if (includeShared) {
+      tenantIds.push(null as any, 'shared');
+    }
+    
+    return {
+      ...baseQuery,
+      $or: [
+        { tenantId: { $in: tenantIds } },
+        { tenantId: { $exists: false } }, // Legacy content without tenantId
+      ],
+    };
+  }
+  
+  // Strict tenant filtering (no fallback)
+  return {
+    ...baseQuery,
+    tenantId,
+  };
+}
+
+/**
+ * Build tenant-filtered query with STRICT tenant filtering (no fallback)
+ * Use this when you only want content from the specific tenant
+ */
+export function buildStrictTenantQuery(
   baseQuery: Record<string, unknown>,
   tenantId: string
 ): Record<string, unknown> {

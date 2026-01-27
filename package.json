@@ -17,7 +17,8 @@
     "tenant:seed-speedboat": "tsx scripts/seed-speedboat-tenant.ts",
     "tenant:assign-speedboat-tours": "tsx scripts/assign-speedboat-tours.ts",
     "tenant:setup-speedboat-db": "tsx scripts/setup-speedboat-database.ts",
-    "seed:speedboat": "tsx scripts/seed-speedboat-complete.ts"
+    "seed:speedboat": "tsx scripts/seed-speedboat-complete.ts",
+    "seed:excursions": "tsx scripts/seed-excursions-tenants.ts"
   },
   "dependencies": {
     "@ai-sdk/react": "^2.0.93",

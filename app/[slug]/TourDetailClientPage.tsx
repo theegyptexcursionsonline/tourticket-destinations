@@ -28,6 +28,7 @@ import ElfsightWidget from '@/components/ElfsightWidget';
 import { useSettings } from '@/hooks/useSettings';
 import { useCart } from '@/hooks/useCart';
 import { useWishlist } from '@/contexts/WishlistContext';
+import { useTenant } from '@/contexts/TenantContext';
 import type { CartItem, Review, Tour } from '@/types';
 import toast from 'react-hot-toast';
 import { toDateOnlyString } from '@/utils/date';
@@ -934,11 +935,16 @@ interface TourPageClientProps {
 export default function TourPageClient({ tour, relatedTours, initialReviews = [] }: TourPageClientProps) {
   const { formatPrice } = useSettings();
   const { addToCart } = useCart();
+  const { tenant } = useTenant();
   const [isBookingSidebarOpen, setBookingSidebarOpen] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const { addToWishlist, removeFromWishlist, isWishlisted } = useWishlist();
   
   const [reviews, setReviews] = useState<Review[]>(initialReviews);
+
+  // Tenant-specific contact info
+  const contactPhone = tenant?.contact?.phone || '+20 11 42255624';
+  const contactEmail = tenant?.contact?.email || 'booking@egypt-excursionsonline.com';
 
   const tourIsWishlisted = isWishlisted(tour._id);
 
@@ -1494,11 +1500,11 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
                       <MessageCircle size={18} />
                       <span>Chat with us</span>
                     </button>
-                    <a href="tel:+201142255624" className="flex items-center gap-3 text-slate-600 hover:text-red-600 transition-colors">
+                    <a href={`tel:${contactPhone.replace(/\s/g, '')}`} className="flex items-center gap-3 text-slate-600 hover:text-red-600 transition-colors">
                       <Phone size={18} />
-                      <span>+20 11 42255624</span>
+                      <span>{contactPhone}</span>
                     </a>
-                    <a href="mailto:booking@egypt-excursionsonline.com" className="flex items-center gap-3 text-slate-600 hover:text-red-600 transition-colors">
+                    <a href={`mailto:${contactEmail}`} className="flex items-center gap-3 text-slate-600 hover:text-red-600 transition-colors">
                       <Mail size={18} />
                       <span>Email support</span>
                     </a>

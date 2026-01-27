@@ -311,6 +311,40 @@ export default async function HomePageServer() {
     dayTrips
   } = await getHomePageData(tenantId);
 
+  // Build hero settings from tenant config if no database heroSettings exist
+  // This allows each tenant to have custom hero content without needing HeroSettings records
+  const effectiveHeroSettings = heroSettings || (tenantConfig?.homepage ? {
+    title: tenantConfig.homepage.heroTitle || tenantConfig.seo?.defaultTitle || 'Explore Amazing Destinations',
+    backgroundImages: tenantConfig.homepage.heroImages || ['/hero1.jpg', '/hero2.jpg', '/hero3.jpg'],
+    currentActiveImage: 0,
+    searchSuggestions: [
+      'Pyramids Tour',
+      'Red Sea Diving',
+      'Desert Safari',
+      'Nile Cruise',
+      'Luxor Temple',
+    ],
+    floatingTags: [
+      { text: tenantConfig.name || 'Tours', color: tenantConfig.branding?.primaryColor || '#E63946' },
+      { text: 'Best Prices', color: '#10B981' },
+      { text: '24/7 Support', color: '#3B82F6' },
+    ],
+    trustIndicators: {
+      travelers: '2M+',
+      rating: '4.9/5',
+      ratingStars: 5,
+    },
+    overlaySettings: {
+      type: 'gradient',
+      opacity: 0.5,
+    },
+    animationSettings: {
+      enableParallax: true,
+      enableFloatingTags: true,
+      transitionDuration: 800,
+    },
+  } : null);
+
   return (
     <main data-tenant={tenantId}>
       <ReviewsStructuredData />
@@ -318,7 +352,7 @@ export default async function HomePageServer() {
         initialDestinations={headerDestinations}
         initialCategories={headerCategories}
       />
-      <HeroSection initialSettings={heroSettings} />
+      <HeroSection initialSettings={effectiveHeroSettings} />
 
       {/* Pass pre-fetched data as props */}
       <DestinationsServer destinations={destinations} />

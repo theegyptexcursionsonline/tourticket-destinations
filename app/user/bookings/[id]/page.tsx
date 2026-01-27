@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTenant } from '@/contexts/TenantContext';
 import {
   ArrowLeft,
   Calendar,
@@ -135,11 +136,15 @@ const formatDisplayDate = (dateString: string | Date | undefined): string => {
 };
 
 const UserBookingDetailPage = () => {
+  const { tenant } = useTenant();
   const [booking, setBooking] = useState<BookingDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  
+  // Tenant-specific contact info
+  const contactPhone = tenant?.contact?.phone || '+20 11 42255624';
   const [cancelReason, setCancelReason] = useState('');
   const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
   
@@ -801,7 +806,7 @@ const UserBookingDetailPage = () => {
                 </li>
                 <li className="flex items-start">
                   <span className="mr-2">•</span>
-                  <span>Contact us at +20 11 42255624 if you have any questions</span>
+                  <span>Contact us at {contactPhone} if you have any questions</span>
                 </li>
                 <li className="flex items-start">
                   <span className="mr-2">•</span>

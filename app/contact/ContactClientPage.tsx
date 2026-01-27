@@ -10,6 +10,7 @@ import Script from 'next/script';
 // Reusable Header and Footer components
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { useTenant } from '@/contexts/TenantContext';
 
 // Extend Window interface for reCAPTCHA
 declare global {
@@ -129,6 +130,7 @@ function ModernHero() {
 // --- CONTACT US PAGE COMPONENT ---
 // =================================================================
 export default function ContactClientPage() {
+  const { tenant } = useTenant();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -138,6 +140,10 @@ export default function ContactClientPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [recaptchaLoaded, setRecaptchaLoaded] = useState(false);
   const [formLoadTime, setFormLoadTime] = useState<number>(0);
+
+  // Tenant-specific contact info
+  const contactPhone = tenant?.contact?.phone || '+20 11 42255624';
+  const contactEmail = tenant?.contact?.email || 'booking@egypt-excursionsonline.com';
 
   // Track when form loads to detect bot submissions
   useEffect(() => {
@@ -295,8 +301,8 @@ export default function ContactClientPage() {
                     <Phone size={28} className="text-white" />
                   </div>
                   <h3 className="font-bold text-slate-900 mb-2 text-lg">Call Us</h3>
-                  <a href="tel:+201142255624" className="text-red-600 font-bold hover:text-red-700 text-xl mb-3 hover:scale-105 transition-transform inline-block">
-                    +20 11 42255624
+                  <a href={`tel:${contactPhone.replace(/\s/g, '')}`} className="text-red-600 font-bold hover:text-red-700 text-xl mb-3 hover:scale-105 transition-transform inline-block">
+                    {contactPhone}
                   </a>
                   <div className="flex items-center gap-1.5 text-xs text-slate-600 bg-slate-100 px-3 py-1.5 rounded-full">
                     <Clock size={14} className="text-green-500" />
@@ -323,10 +329,10 @@ export default function ContactClientPage() {
                   </div>
                   <h3 className="font-bold text-slate-900 mb-2 text-lg">Email Us</h3>
                   <a
-                    href="mailto:booking@egypt-excursionsonline.com"
+                    href={`mailto:${contactEmail}`}
                     className="text-blue-600 font-semibold hover:text-blue-700 text-sm break-all hover:scale-105 transition-transform inline-block mb-3"
                   >
-                    booking@egypt-excursionsonline.com
+                    {contactEmail}
                   </a>
                   <div className="flex items-center gap-1.5 text-xs text-slate-600 bg-slate-100 px-3 py-1.5 rounded-full">
                     <svg className="w-3.5 h-3.5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
