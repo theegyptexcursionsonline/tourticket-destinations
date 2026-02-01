@@ -981,12 +981,75 @@ const TourResultSkeleton = () => (
 // SearchModal removed - now using MobileInlineSearch for mobile devices
 
 // =================================================================
+// Tenant-specific mega menu destinations
+const tenantMegaMenuDestinations: Record<string, { name: string; slug: string; image: string; country: string }[]> = {
+  'hurghada-speedboat': [
+    { name: 'Giftun Island', slug: 'giftun-island', image: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400&q=80', country: 'Red Sea' },
+    { name: 'Orange Bay', slug: 'orange-bay', image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400&q=80', country: 'Red Sea' },
+    { name: 'Mahmya Island', slug: 'mahmya-island', image: 'https://images.unsplash.com/photo-1559827291-72ee739d0d9a?w=400&q=80', country: 'Red Sea' },
+    { name: 'Paradise Island', slug: 'paradise-island', image: 'https://images.unsplash.com/photo-1682687220742-aba13b6e50ba?w=400&q=80', country: 'Red Sea' },
+    { name: 'Dolphin House', slug: 'dolphin-house', image: 'https://images.unsplash.com/photo-1568430462989-44163eb1752f?w=400&q=80', country: 'Red Sea' },
+    { name: 'Hurghada Marina', slug: 'hurghada-marina', image: 'https://images.unsplash.com/photo-1540541338287-41700207dee6?w=400&q=80', country: 'Red Sea' },
+  ],
+  'sharm-excursions-online': [
+    { name: 'Ras Mohammed', slug: 'ras-mohammed', image: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400&q=80', country: 'Red Sea' },
+    { name: 'Tiran Island', slug: 'tiran-island', image: 'https://images.unsplash.com/photo-1559827291-72ee739d0d9a?w=400&q=80', country: 'Red Sea' },
+    { name: 'Blue Hole Dahab', slug: 'blue-hole', image: 'https://images.unsplash.com/photo-1682407186023-12c70a4a35e0?w=400&q=80', country: 'Sinai' },
+    { name: 'Naama Bay', slug: 'naama-bay', image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400&q=80', country: 'Red Sea' },
+    { name: 'White Island', slug: 'white-island', image: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400&q=80', country: 'Red Sea' },
+    { name: 'Colored Canyon', slug: 'colored-canyon', image: 'https://images.unsplash.com/photo-1682687220742-aba13b6e50ba?w=400&q=80', country: 'Sinai' },
+  ],
+};
+
+// Tenant-specific mega menu categories/activities
+const tenantMegaMenuCategories: Record<string, { name: string; slug: string; icon: string }[]> = {
+  'hurghada-speedboat': [
+    { name: 'Speedboat Tours', slug: 'speedboat-tours', icon: 'boat' },
+    { name: 'Island Hopping', slug: 'island-hopping', icon: 'island' },
+    { name: 'Snorkeling Trips', slug: 'snorkeling', icon: 'snorkel' },
+    { name: 'Dolphin Watching', slug: 'dolphin-watching', icon: 'dolphin' },
+    { name: 'Sunset Cruises', slug: 'sunset-cruises', icon: 'sunset' },
+    { name: 'Glass Bottom Boat', slug: 'glass-bottom-boat', icon: 'boat' },
+    { name: 'Fishing Trips', slug: 'fishing', icon: 'fish' },
+    { name: 'Private Charters', slug: 'private-charters', icon: 'yacht' },
+  ],
+  'sharm-excursions-online': [
+    { name: 'Diving Tours', slug: 'diving', icon: 'dive' },
+    { name: 'Snorkeling', slug: 'snorkeling', icon: 'snorkel' },
+    { name: 'Desert Safari', slug: 'desert-safari', icon: 'desert' },
+    { name: 'Quad Biking', slug: 'quad-biking', icon: 'quad' },
+    { name: 'Boat Trips', slug: 'boat-trips', icon: 'boat' },
+    { name: 'Camel Riding', slug: 'camel-riding', icon: 'camel' },
+    { name: 'Day Trips', slug: 'day-trips', icon: 'trip' },
+    { name: 'Water Sports', slug: 'water-sports', icon: 'water' },
+  ],
+};
+
 // --- MEGA MENU ---
 // =================================================================
-const MegaMenu: FC<{ isOpen: boolean; onClose: () => void; destinations: Destination[]; categories: Category[] }> = React.memo(({ isOpen, onClose, destinations, categories }) => {
+const MegaMenu: FC<{ isOpen: boolean; onClose: () => void; destinations: Destination[]; categories: Category[]; tenantId?: string }> = React.memo(({ isOpen, onClose, destinations, categories, tenantId }) => {
   const menuRef = useRef<HTMLDivElement>(null);
   const { t } = useSettings();
   useOnClickOutside(menuRef, onClose);
+
+  const isSpeedboat = tenantId === 'hurghada-speedboat';
+  const isSharm = tenantId === 'sharm-excursions-online';
+  const isTenantSpecific = isSpeedboat || isSharm;
+
+  // Use tenant-specific defaults if available
+  const tenantDestinations = tenantId ? tenantMegaMenuDestinations[tenantId] : null;
+  const tenantCategories = tenantId ? tenantMegaMenuCategories[tenantId] : null;
+  
+  // Check if destinations are tenant-specific or from default
+  const hasTenantSpecificDest = destinations.some((d: any) => d.tenantId === tenantId);
+  const effectiveDestinations = (hasTenantSpecificDest || !tenantDestinations) 
+    ? destinations 
+    : tenantDestinations.map((d, i) => ({ ...d, _id: `tenant-dest-${i}` }));
+  
+  const hasTenantSpecificCat = categories.some((c: any) => c.tenantId === tenantId);
+  const effectiveCategories = (hasTenantSpecificCat || !tenantCategories)
+    ? categories
+    : tenantCategories.map((c, i) => ({ ...c, _id: `tenant-cat-${i}` }));
 
   const activityIcons: { [key: string]: React.ElementType } = {
     attractions: Landmark,
@@ -997,8 +1060,30 @@ const MegaMenu: FC<{ isOpen: boolean; onClose: () => void; destinations: Destina
     'bike-tours': Ticket,
     'day-trips': Star,
     'combi-tickets': Star,
-    'food-tours': Star
+    'food-tours': Star,
+    // Speedboat specific
+    'speedboat-tours': Zap,
+    'island-hopping': Compass,
+    'snorkeling': Compass,
+    'dolphin-watching': Heart,
+    'sunset-cruises': Star,
+    'glass-bottom-boat': Ticket,
+    'fishing': Ticket,
+    'private-charters': Star,
+    // Sharm specific
+    'diving': Compass,
+    'desert-safari': Zap,
+    'quad-biking': Zap,
+    'boat-trips': Ticket,
+    'camel-riding': Ticket,
+    'water-sports': Zap,
   };
+
+  // Speedboat theme colors
+  const speedboatBg = 'bg-gradient-to-br from-[#0A1628] via-[#0D1F35] to-[#06101F]';
+  const speedboatAccent = 'text-cyan-400';
+  const speedboatHover = 'hover:text-cyan-300';
+  const speedboatBorder = 'border-cyan-500/20';
 
   return (
     <AnimatePresence>
@@ -1009,36 +1094,94 @@ const MegaMenu: FC<{ isOpen: boolean; onClose: () => void; destinations: Destina
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
           transition={{ duration: 0.3, ease: 'easeInOut' }}
-          className="absolute top-full left-0 right-0 bg-white shadow-2xl z-20 text-black border-t"
-          onMouseLeave={onClose} // close when mouse leaves entire mega menu area
+          className={`absolute top-full left-0 right-0 shadow-2xl z-20 border-t ${
+            isSpeedboat 
+              ? `${speedboatBg} text-white ${speedboatBorder}` 
+              : 'bg-white text-black'
+          }`}
+          onMouseLeave={onClose}
         >
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Speedboat gradient overlay */}
+          {isSpeedboat && (
+            <div
+              className="pointer-events-none absolute inset-0 opacity-60"
+              style={{
+                backgroundImage:
+                  'radial-gradient(circle at 20% 30%, rgba(0, 212, 255, 0.12), transparent 40%), radial-gradient(circle at 80% 70%, rgba(255, 107, 53, 0.08), transparent 40%)',
+              }}
+            />
+          )}
+          
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-8">
               <div className="md:col-span-2">
-                <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500 mb-4">{t('header.destinations')}</h3>
+                <h3 className={`text-sm font-bold uppercase tracking-wider mb-4 ${
+                  isSpeedboat ? speedboatAccent : 'text-gray-500'
+                }`}>
+                  {isSpeedboat ? '🏝️ ISLAND DESTINATIONS' : t('header.destinations')}
+                </h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  {destinations.slice(0, 6).map((dest) => (
+                  {effectiveDestinations.slice(0, 6).map((dest: any) => (
                     <Link key={dest._id} href={`/destinations/${dest.slug}`} className="group block">
-                      <div className="aspect-square w-full rounded-lg overflow-hidden relative bg-slate-200">
-                        <Image src={dest.image} alt={dest.name} fill sizes="(max-width: 768px) 50vw, 33vw" className="object-cover transition-transform duration-300 group-hover:scale-110" />
-                        <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors" />
+                      <div className={`aspect-square w-full rounded-lg overflow-hidden relative ${
+                        isSpeedboat 
+                          ? 'ring-2 ring-cyan-500/30 group-hover:ring-cyan-400/60' 
+                          : 'bg-slate-200'
+                      }`}>
+                        <Image 
+                          src={dest.image} 
+                          alt={dest.name} 
+                          fill 
+                          sizes="(max-width: 768px) 50vw, 33vw" 
+                          className="object-cover transition-transform duration-300 group-hover:scale-110" 
+                        />
+                        <div className={`absolute inset-0 transition-colors ${
+                          isSpeedboat 
+                            ? 'bg-gradient-to-t from-black/60 via-black/20 to-transparent group-hover:from-cyan-900/40' 
+                            : 'bg-black/20 group-hover:bg-black/40'
+                        }`} />
                       </div>
-                      <h4 className="mt-2 font-bold text-gray-900 group-hover:text-red-500">{dest.name.toUpperCase()}</h4>
-                      <p className="text-xs text-gray-500">{(dest as any).country || ''}</p>
+                      <h4 className={`mt-2 font-bold ${
+                        isSpeedboat 
+                          ? 'text-white group-hover:text-cyan-300' 
+                          : 'text-gray-900 group-hover:text-red-500'
+                      }`}>
+                        {dest.name.toUpperCase()}
+                      </h4>
+                      <p className={`text-xs ${isSpeedboat ? 'text-gray-400' : 'text-gray-500'}`}>
+                        {dest.country || ''}
+                      </p>
                     </Link>
                   ))}
                 </div>
               </div>
 
               <div>
-                <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500 mb-4">{t('header.activities')}</h3>
+                <h3 className={`text-sm font-bold uppercase tracking-wider mb-4 ${
+                  isSpeedboat ? speedboatAccent : 'text-gray-500'
+                }`}>
+                  {isSpeedboat ? '⚡ BOAT EXPERIENCES' : t('header.activities')}
+                </h3>
                 <ul className="space-y-3">
-                  {categories.slice(0, 9).map((activity) => {
+                  {effectiveCategories.slice(0, 9).map((activity: any) => {
                     const Icon = activityIcons[activity.slug] || Ticket;
                     return (
                       <li key={activity._id}>
-                        <Link href={`/categories/${activity.slug}`} className="flex items-center gap-3 text-gray-700 hover:text-red-500 group">
-                          <Icon size={20} className="text-gray-400 group-hover:text-red-500" />
+                        <Link 
+                          href={`/categories/${activity.slug}`} 
+                          className={`flex items-center gap-3 group ${
+                            isSpeedboat 
+                              ? 'text-gray-300 hover:text-cyan-300' 
+                              : 'text-gray-700 hover:text-red-500'
+                          }`}
+                        >
+                          <Icon 
+                            size={20} 
+                            className={isSpeedboat 
+                              ? 'text-cyan-500/70 group-hover:text-cyan-400' 
+                              : 'text-gray-400 group-hover:text-red-500'
+                            } 
+                          />
                           <span className="font-semibold">{activity.name}</span>
                         </Link>
                       </li>
@@ -1047,11 +1190,31 @@ const MegaMenu: FC<{ isOpen: boolean; onClose: () => void; destinations: Destina
                 </ul>
               </div>
 
-              <div className="bg-gray-50 rounded-lg p-6 flex flex-col justify-center items-center text-center">
-                <Star size={32} className="text-yellow-500 mb-2" />
-                <h3 className="font-bold text-lg text-gray-800">{t('header.specialOffers')}</h3>
-                <p className="text-sm text-gray-600 my-2">{t('offers.save')}</p>
-                <Link href="/search" className="mt-2 bg-red-500 text-white font-bold py-2 px-4 rounded-full hover:bg-red-600 text-sm">{t('header.deals')}</Link>
+              <div className={`rounded-lg p-6 flex flex-col justify-center items-center text-center ${
+                isSpeedboat 
+                  ? 'bg-gradient-to-br from-cyan-500/20 to-orange-500/10 border border-cyan-500/30' 
+                  : 'bg-gray-50'
+              }`}>
+                {isSpeedboat ? (
+                  <>
+                    <Zap size={32} className="text-cyan-400 mb-2" />
+                    <h3 className="font-bold text-lg text-white">Speed Deals</h3>
+                    <p className="text-sm text-gray-300 my-2">Up to 25% off island trips!</p>
+                    <Link 
+                      href="/search" 
+                      className="mt-2 bg-gradient-to-r from-cyan-500 to-cyan-600 text-white font-bold py-2 px-4 rounded-full hover:from-cyan-400 hover:to-cyan-500 text-sm shadow-lg shadow-cyan-500/30"
+                    >
+                      View Deals
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <Star size={32} className="text-yellow-500 mb-2" />
+                    <h3 className="font-bold text-lg text-gray-800">{t('header.specialOffers')}</h3>
+                    <p className="text-sm text-gray-600 my-2">{t('offers.save')}</p>
+                    <Link href="/search" className="mt-2 bg-red-500 text-white font-bold py-2 px-4 rounded-full hover:bg-red-600 text-sm">{t('header.deals')}</Link>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -1124,10 +1287,28 @@ const MobileMenu: FC<{
   onOpenAuth: (state: 'login' | 'signup') => void;
   destinations: Destination[];
   categories: Category[];
-}> = React.memo(({ isOpen, onClose, onOpenSearch, onOpenAuth, destinations, categories }) => {
+  tenantId?: string;
+}> = React.memo(({ isOpen, onClose, onOpenSearch, onOpenAuth, destinations, categories, tenantId }) => {
   const menuRef = useRef<HTMLDivElement>(null);
   const { user, logout } = useAuth();
   const { t } = useSettings();
+  const { getLogo, getSiteName } = useTenant();
+
+  const isSpeedboat = tenantId === 'hurghada-speedboat';
+
+  // Use tenant-specific defaults if available
+  const tenantDestinations = tenantId ? tenantMegaMenuDestinations[tenantId] : null;
+  const tenantCategories = tenantId ? tenantMegaMenuCategories[tenantId] : null;
+  
+  const hasTenantSpecificDest = destinations.some((d: any) => d.tenantId === tenantId);
+  const effectiveDestinations = (hasTenantSpecificDest || !tenantDestinations) 
+    ? destinations 
+    : tenantDestinations.map((d, i) => ({ ...d, _id: `tenant-dest-${i}` }));
+  
+  const hasTenantSpecificCat = categories.some((c: any) => c.tenantId === tenantId);
+  const effectiveCategories = (hasTenantSpecificCat || !tenantCategories)
+    ? categories
+    : tenantCategories.map((c, i) => ({ ...c, _id: `tenant-cat-${i}` }));
 
   useOnClickOutside(menuRef, onClose);
 
@@ -1147,8 +1328,29 @@ const MobileMenu: FC<{
     'bike-tours': Ticket,
     'day-trips': Star,
     'combi-tickets': Star,
-    'food-tours': Star
+    'food-tours': Star,
+    // Speedboat specific
+    'speedboat-tours': Zap,
+    'island-hopping': Compass,
+    'snorkeling': Compass,
+    'dolphin-watching': Heart,
+    'sunset-cruises': Star,
+    'glass-bottom-boat': Ticket,
+    'fishing': Ticket,
+    'private-charters': Star,
   };
+
+  // Speedboat theme
+  const bgColor = isSpeedboat ? 'bg-gradient-to-b from-[#0A1628] to-[#0D1F35]' : 'bg-white';
+  const textColor = isSpeedboat ? 'text-white' : 'text-slate-900';
+  const textMuted = isSpeedboat ? 'text-gray-400' : 'text-slate-500';
+  const textLink = isSpeedboat ? 'text-gray-300 hover:text-cyan-400' : 'text-slate-700 hover:text-red-500';
+  const borderColor = isSpeedboat ? 'border-cyan-500/20' : 'border-b';
+  const accentColor = isSpeedboat ? 'text-cyan-400' : 'text-slate-800';
+  const btnBg = isSpeedboat ? 'bg-cyan-500 hover:bg-cyan-400' : 'bg-red-600 hover:bg-red-700';
+  const btnOutline = isSpeedboat ? 'border-cyan-500 text-cyan-400 hover:bg-cyan-500/10' : 'border-red-600 text-red-600 hover:bg-red-50';
+  const searchBg = isSpeedboat ? 'bg-white/10' : 'bg-slate-100';
+  const searchText = isSpeedboat ? 'text-gray-300' : 'text-slate-700';
 
   return (
     <AnimatePresence>
@@ -1157,63 +1359,65 @@ const MobileMenu: FC<{
           <div className="absolute inset-0 bg-black/50" onClick={onClose} />
           <motion.div
             ref={menuRef}
-            className="absolute top-0 left-0 h-full w-full max-w-sm bg-white shadow-2xl"
+            className={`absolute top-0 left-0 h-full w-full max-w-sm shadow-2xl ${bgColor}`}
             initial={{ x: '-100%' }}
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
           >
             <div className="flex flex-col h-full">
-              <div className="flex items-center justify-between p-6 border-b">
+              <div className={`flex items-center justify-between p-6 ${borderColor}`}>
                 <img src={getLogo()} alt={getSiteName()} className="h-10 object-contain" />
-                <button onClick={onClose} className="p-2 rounded-full text-slate-500 hover:bg-slate-100">
+                <button onClick={onClose} className={`p-2 rounded-full ${isSpeedboat ? 'text-gray-400 hover:bg-white/10' : 'text-slate-500 hover:bg-slate-100'}`}>
                   <X size={24} />
                 </button>
               </div>
 
               {user ? (
-                <div className="p-6 border-b">
+                <div className={`p-6 ${borderColor}`}>
                   <div className="flex items-center gap-3 mb-4">
                     {user.picture || user.photoURL ? (
                       <Image src={user.picture || user.photoURL || ''} alt={user.name} width={40} height={40} className="rounded-full" />
                     ) : (
-                      <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isSpeedboat ? 'bg-gradient-to-br from-cyan-500 to-cyan-600' : 'bg-gradient-to-br from-red-500 to-red-600'}`}>
                         <span className="text-white text-lg font-bold uppercase">
                           {(user.name || user.firstName || 'U')[0]}
                         </span>
                       </div>
                     )}
                     <div>
-                      <p className="font-medium text-slate-900">{user.name}</p>
-                      <p className="text-sm text-slate-500">{user.email}</p>
+                      <p className={`font-medium ${textColor}`}>{user.name}</p>
+                      <p className={`text-sm ${textMuted}`}>{user.email}</p>
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Link href="/user/profile" className="block py-2 text-slate-700 hover:text-red-500" onClick={onClose}>{t('header.myProfile')}</Link>
-                    <Link href="/user/bookings" className="block py-2 text-slate-700 hover:text-red-500" onClick={onClose}>{t('header.myBookings')}</Link>
-                    <button onClick={() => { logout(); onClose(); }} className="block py-2 text-red-600 hover:text-red-700 w-full text-left">{t('header.signOut')}</button>
+                    <Link href="/user/profile" className={`block py-2 ${textLink}`} onClick={onClose}>{t('header.myProfile')}</Link>
+                    <Link href="/user/bookings" className={`block py-2 ${textLink}`} onClick={onClose}>{t('header.myBookings')}</Link>
+                    <button onClick={() => { logout(); onClose(); }} className={`block py-2 w-full text-left ${isSpeedboat ? 'text-orange-400 hover:text-orange-300' : 'text-red-600 hover:text-red-700'}`}>{t('header.signOut')}</button>
                   </div>
                 </div>
               ) : (
-                <div className="p-6 border-b">
+                <div className={`p-6 ${borderColor}`}>
                   <div className="space-y-3">
-                    <Link href="/login" className="block w-full bg-red-600 text-white text-center py-3 rounded-lg hover:bg-red-700 transition-colors">{t('header.login')}</Link>
-                    <Link href="/signup" className="block w-full border border-red-600 text-red-600 text-center py-3 rounded-lg hover:bg-red-50 transition-colors">{t('header.signup')}</Link>
+                    <Link href="/login" className={`block w-full text-white text-center py-3 rounded-lg transition-colors ${btnBg}`}>{t('header.login')}</Link>
+                    <Link href="/signup" className={`block w-full border text-center py-3 rounded-lg transition-colors ${btnOutline}`}>{t('header.signup')}</Link>
                   </div>
                 </div>
               )}
 
               <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                <button onClick={() => { onOpenSearch(); onClose(); }} className="w-full flex items-center gap-3 p-4 bg-slate-100 rounded-lg text-left">
-                  <Search size={20} className="text-slate-500" />
-                  <span className="text-slate-700">Search tours & tickets</span>
+                <button onClick={() => { onOpenSearch(); onClose(); }} className={`w-full flex items-center gap-3 p-4 rounded-lg text-left ${searchBg}`}>
+                  <Search size={20} className={textMuted} />
+                  <span className={searchText}>{isSpeedboat ? 'Search boat trips & islands' : 'Search tours & tickets'}</span>
                 </button>
 
                 <div>
-                  <h3 className="font-bold text-lg text-slate-800 mb-4">{t('header.destinations')}</h3>
+                  <h3 className={`font-bold text-lg mb-4 ${accentColor}`}>
+                    {isSpeedboat ? '🏝️ Island Destinations' : t('header.destinations')}
+                  </h3>
                   <div className="space-y-2">
-                    {destinations.map((dest) => (
-                      <a key={dest._id} href={`/destinations/${dest.slug}`} className="block py-2 text-slate-700 hover:text-red-500" onClick={onClose}>
+                    {effectiveDestinations.map((dest: any) => (
+                      <a key={dest._id} href={`/destinations/${dest.slug}`} className={`block py-2 ${textLink}`} onClick={onClose}>
                         {dest.name}
                       </a>
                     ))}
@@ -1221,13 +1425,15 @@ const MobileMenu: FC<{
                 </div>
 
                 <div>
-                  <h3 className="font-bold text-lg text-slate-800 mb-4">{t('header.activities')}</h3>
+                  <h3 className={`font-bold text-lg mb-4 ${accentColor}`}>
+                    {isSpeedboat ? '⚡ Boat Experiences' : t('header.activities')}
+                  </h3>
                   <div className="space-y-2">
-                    {categories.map((activity) => {
+                    {effectiveCategories.map((activity: any) => {
                       const Icon = activityIcons[activity.slug] || Ticket;
                       return (
-                        <a key={activity._id} href={`/categories/${activity.slug}`} className="flex items-center gap-3 py-2 text-slate-700 hover:text-red-500" onClick={onClose}>
-                          <Icon size={16} />
+                        <a key={activity._id} href={`/categories/${activity.slug}`} className={`flex items-center gap-3 py-2 ${textLink}`} onClick={onClose}>
+                          <Icon size={16} className={isSpeedboat ? 'text-cyan-500' : ''} />
                           <span>{activity.name}</span>
                         </a>
                       );
@@ -1236,7 +1442,7 @@ const MobileMenu: FC<{
                 </div>
               </div>
 
-              <div className="p-6 border-t">
+              <div className={`p-6 border-t ${isSpeedboat ? 'border-cyan-500/20' : ''}`}>
                 <CurrencyLanguageSwitcher variant="footer" />
               </div>
             </div>
@@ -1299,7 +1505,7 @@ export default function Header({
 
     const fetchNavData = async () => {
       try {
-        // NOTE: using ?featured=true - adjust server-side or remove param if not supported
+        // API routes now automatically detect tenant from request headers/cookies
         const [destRes, catRes] = await Promise.all([
           fetch('/api/admin/tours/destinations?featured=true'),
           fetch('/api/categories?featured=true')
@@ -1313,7 +1519,7 @@ export default function Header({
       }
     };
     fetchNavData();
-  }, [initialDestinations, initialCategories]);
+  }, [initialDestinations, initialCategories, tenant?.tenantId]); // Re-fetch when tenant changes
 
   const { openCart, totalItems } = useCart();
   const { user, logout } = useAuth();
@@ -1438,6 +1644,7 @@ export default function Header({
     onClose={() => setMegaMenuOpen(false)}
     destinations={destinations}
     categories={categories}
+    tenantId={tenant?.tenantId}
   />
 </header>
 
@@ -1449,6 +1656,7 @@ export default function Header({
         onOpenAuth={handleAuthModalOpen}
         destinations={destinations}
         categories={categories}
+        tenantId={tenant?.tenantId}
       />
 
       {/* Mobile Inline Search */}

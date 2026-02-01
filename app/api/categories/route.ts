@@ -1,31 +1,48 @@
 // app/api/categories/route.ts
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Category from '@/lib/models/Category';
 import Tour from '@/lib/models/Tour';
+import { getTenantFromRequest, buildTenantQuery } from '@/lib/tenant';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    await dbConnect();
+    // Get tenant from request
+    const tenantId = await getTenantFromRequest();
+    await dbConnect(tenantId);
     
-    const categories = await Category.find({})
+    // Build tenant-aware query
+    const categories = await Category.find(buildTenantQuery({}, tenantId))
       .sort({ order: 1, name: 1 })
       .lean();
 
-    // Optionally add tour counts
-    const categoriesWithCounts = await Promise.all(
-      categories.map(async (category) => {
-        const tourCount = await Tour.countDocuments({
-          category: { $in: [category._id] },
-          isPublished: true
-        });
-        
-        return {
-          ...category,
-          tourCount
-        };
-      })
-    );
+    // Get all category IDs for batch counting
+    const categoryIds = categories.map((c: any) => c._id);
+    
+    // Batch count tours per category using aggregation (more efficient)
+    const tourCounts = await Tour.aggregate([
+      { 
+        $match: { 
+          isPublished: true,
+          category: { $in: categoryIds },
+          $or: [
+            { tenantId: { $in: [tenantId, 'default'] } },
+            { tenantId: { $exists: false } }
+          ]
+        } 
+      },
+      { $unwind: '$category' },
+      { $group: { _id: '$category', count: { $sum: 1 } } }
+    ]).catch(() => []);
+    
+    // Create lookup map
+    const countMap = new Map(tourCounts.map((c: any) => [c._id?.toString(), c.count]));
+    
+    // Add tour counts
+    const categoriesWithCounts = categories.map((category: any) => ({
+      ...category,
+      tourCount: countMap.get(category._id?.toString()) || 0
+    }));
 
     return NextResponse.json({ 
       success: true, 

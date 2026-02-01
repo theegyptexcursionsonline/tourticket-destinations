@@ -1,13 +1,24 @@
 // app/api/admin/destinations/route.ts
 import dbConnect from '@/lib/dbConnect';
 import Destination from '@/lib/models/Destination';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { MongoError } from 'mongodb';
+import { getTenantFromRequest, buildTenantQuery } from '@/lib/tenant';
 
-export async function GET() {
-  await dbConnect();
+export async function GET(request: NextRequest) {
   try {
-    const destinations = await Destination.find({}).sort({ name: 1 });
+    // Get tenant from request
+    const tenantId = await getTenantFromRequest();
+    await dbConnect(tenantId);
+    
+    // Check if admin wants all destinations (for admin panel)
+    const { searchParams } = new URL(request.url);
+    const showAll = searchParams.get('all') === 'true';
+    
+    // Build query - admin can see all, frontend gets tenant-filtered
+    const query = showAll ? {} : buildTenantQuery({}, tenantId);
+    
+    const destinations = await Destination.find(query).sort({ name: 1 });
     return NextResponse.json({ success: true, data: destinations });
   } catch (error) {
     return NextResponse.json({ success: false, error: (error as Error).message }, { status: 500 });
