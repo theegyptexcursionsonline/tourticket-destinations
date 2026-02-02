@@ -661,9 +661,9 @@ export default async function HomePageServer() {
       
       {/* Show IcebarPromo only if enabled for this tenant or if no tenant config */}
       {(!tenantConfig || tenantConfig.homepage?.showPromoSection) && (
-        <IcebarPromo />
+        <IcebarPromo content={tenantConfig?.homepage?.promoContent || null} />
       )}
-      
+
       <FeaturedToursServer tours={tours} />
       <PopularInterestServer interests={featuredInterests} categoryPages={categoryPages} />
       <InterestGridServer categories={categories} />
@@ -671,17 +671,17 @@ export default async function HomePageServer() {
 
       {/* Show AboutUs only if enabled for this tenant */}
       {(!tenantConfig || tenantConfig.homepage?.showAboutUs !== false) && (
-        <AboutUs />
+        <AboutUs content={tenantConfig?.homepage?.aboutUsContent || null} />
       )}
-      
+
       {/* Show Reviews only if enabled for this tenant */}
       {(!tenantConfig || tenantConfig.homepage?.showReviews !== false) && (
-        <Reviews />
+        <Reviews content={tenantConfig?.homepage?.reviewsContent || null} />
       )}
-      
+
       {/* Show FAQ only if enabled for this tenant */}
       {(!tenantConfig || tenantConfig.homepage?.showFAQ !== false) && (
-        <FAQ />
+        <FAQ content={tenantConfig?.homepage?.faqContent || null} />
       )}
       
       <Footer />

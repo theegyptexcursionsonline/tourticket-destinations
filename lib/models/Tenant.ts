@@ -254,6 +254,75 @@ export interface ILocalization {
   timeFormat: string;
 }
 
+// Section configuration interface for customizable section titles
+export interface ISectionConfig {
+  title?: string;
+  subtitle?: string;
+  description?: string;
+  ctaText?: string;
+  ctaLink?: string;
+  enabled?: boolean;
+}
+
+// About Us section content interface
+export interface IAboutUsContent {
+  title: string;
+  subtitle: string;
+  features: { icon: string; text: string }[];
+  image: string;
+  imageAlt: string;
+  ctaText: string;
+  ctaLink?: string;
+  accentColor?: string;
+}
+
+// Review item interface
+export interface IReviewItem {
+  name: string;
+  country: string;
+  review: string;
+  rating: number;
+  datePublished?: string;
+  avatar?: string;
+}
+
+// Reviews section content interface
+export interface IReviewsContent {
+  title?: string;
+  subtitle?: string;
+  reviews: IReviewItem[];
+  elfsightAppId?: string;
+  showElfsightWidget?: boolean;
+}
+
+// FAQ item interface
+export interface IFAQItem {
+  question: string;
+  answer: string;
+}
+
+// FAQ section content interface
+export interface IFAQContent {
+  title?: string;
+  subtitle?: string;
+  faqs: IFAQItem[];
+  ctaText?: string;
+  ctaLink?: string;
+}
+
+// Promo section content interface
+export interface IPromoContent {
+  image: string;
+  imageAlt?: string;
+  heading: string;
+  subheading: string;
+  description: string;
+  primaryHref: string;
+  primaryText: string;
+  secondaryHref?: string;
+  secondaryText?: string;
+}
+
 // Homepage configuration interface
 export interface IHomepageConfig {
   heroType: 'slider' | 'video' | 'static';
@@ -282,6 +351,25 @@ export interface IHomepageConfig {
     order: number;
     config?: Record<string, unknown>;
   }[];
+
+  // Section configurations for customizable titles/subtitles
+  sections?: {
+    destinations?: ISectionConfig;
+    featuredTours?: ISectionConfig;
+    categories?: ISectionConfig;
+    popularInterests?: ISectionConfig;
+    dayTrips?: ISectionConfig;
+    reviews?: ISectionConfig;
+    faq?: ISectionConfig;
+    aboutUs?: ISectionConfig;
+    promo?: ISectionConfig;
+  };
+
+  // Structured content for each section (moved from hardcoded)
+  aboutUsContent?: IAboutUsContent;
+  reviewsContent?: IReviewsContent;
+  faqContent?: IFAQContent;
+  promoContent?: IPromoContent;
 }
 
 // Main Tenant interface
@@ -666,6 +754,78 @@ const LocalizationSchema = new Schema<ILocalization>({
   },
 }, { _id: false });
 
+// Section Config Schema
+const SectionConfigSchema = new Schema<ISectionConfig>({
+  title: { type: String, trim: true },
+  subtitle: { type: String, trim: true },
+  description: { type: String, trim: true },
+  ctaText: { type: String, trim: true },
+  ctaLink: { type: String, trim: true },
+  enabled: { type: Boolean, default: true },
+}, { _id: false });
+
+// About Us Content Schema
+const AboutUsContentSchema = new Schema<IAboutUsContent>({
+  title: { type: String, required: true, trim: true },
+  subtitle: { type: String, required: true, trim: true },
+  features: [{
+    icon: { type: String, required: true },
+    text: { type: String, required: true },
+  }],
+  image: { type: String, required: true, trim: true },
+  imageAlt: { type: String, required: true, trim: true },
+  ctaText: { type: String, required: true, trim: true },
+  ctaLink: { type: String, trim: true, default: '/about' },
+  accentColor: { type: String, trim: true },
+}, { _id: false });
+
+// Review Item Schema
+const ReviewItemSchema = new Schema<IReviewItem>({
+  name: { type: String, required: true, trim: true },
+  country: { type: String, required: true, trim: true },
+  review: { type: String, required: true, trim: true },
+  rating: { type: Number, required: true, min: 1, max: 5 },
+  datePublished: { type: String, trim: true },
+  avatar: { type: String, trim: true },
+}, { _id: false });
+
+// Reviews Content Schema
+const ReviewsContentSchema = new Schema<IReviewsContent>({
+  title: { type: String, trim: true, default: 'What Our Guests Say' },
+  subtitle: { type: String, trim: true, default: 'Real stories from our valued customers.' },
+  reviews: [ReviewItemSchema],
+  elfsightAppId: { type: String, trim: true },
+  showElfsightWidget: { type: Boolean, default: true },
+}, { _id: false });
+
+// FAQ Item Schema
+const FAQItemSchema = new Schema<IFAQItem>({
+  question: { type: String, required: true, trim: true },
+  answer: { type: String, required: true, trim: true },
+}, { _id: false });
+
+// FAQ Content Schema
+const FAQContentSchema = new Schema<IFAQContent>({
+  title: { type: String, trim: true, default: 'FREQUENTLY ASKED QUESTIONS' },
+  subtitle: { type: String, trim: true },
+  faqs: [FAQItemSchema],
+  ctaText: { type: String, trim: true, default: 'VIEW ALL' },
+  ctaLink: { type: String, trim: true, default: '/faqs' },
+}, { _id: false });
+
+// Promo Content Schema
+const PromoContentSchema = new Schema<IPromoContent>({
+  image: { type: String, required: true, trim: true },
+  imageAlt: { type: String, trim: true },
+  heading: { type: String, required: true, trim: true },
+  subheading: { type: String, required: true, trim: true },
+  description: { type: String, required: true, trim: true },
+  primaryHref: { type: String, required: true, trim: true },
+  primaryText: { type: String, required: true, trim: true },
+  secondaryHref: { type: String, trim: true },
+  secondaryText: { type: String, trim: true },
+}, { _id: false });
+
 // Homepage Config Schema
 const HomepageConfigSchema = new Schema<IHomepageConfig>({
   heroType: {
@@ -718,6 +878,23 @@ const HomepageConfigSchema = new Schema<IHomepageConfig>({
     order: Number,
     config: Schema.Types.Mixed,
   }],
+  // Section configurations
+  sections: {
+    destinations: { type: SectionConfigSchema },
+    featuredTours: { type: SectionConfigSchema },
+    categories: { type: SectionConfigSchema },
+    popularInterests: { type: SectionConfigSchema },
+    dayTrips: { type: SectionConfigSchema },
+    reviews: { type: SectionConfigSchema },
+    faq: { type: SectionConfigSchema },
+    aboutUs: { type: SectionConfigSchema },
+    promo: { type: SectionConfigSchema },
+  },
+  // Structured content for sections
+  aboutUsContent: { type: AboutUsContentSchema },
+  reviewsContent: { type: ReviewsContentSchema },
+  faqContent: { type: FAQContentSchema },
+  promoContent: { type: PromoContentSchema },
 }, { _id: false });
 
 // Theme Config Schema - Extended theming for distinct UI/UX per tenant

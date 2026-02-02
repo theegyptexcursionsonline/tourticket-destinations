@@ -3,15 +3,22 @@
 import { ArrowRight, Award, DollarSign, Smartphone, CalendarCheck, Anchor, Shield, Users, Clock } from 'lucide-react';
 import Image from 'next/image';
 import { useTenant } from '@/contexts/TenantContext';
+import type { IAboutUsContent } from '@/lib/models/Tenant';
 
-// Tenant-specific content configurations
-const TENANT_CONTENT: Record<string, {
+// Props interface for server-side content injection
+export interface AboutUsProps {
+  content?: IAboutUsContent | null;
+}
+
+// Fallback content configurations (used when DB content is not available)
+const FALLBACK_CONTENT: Record<string, {
   title: string;
   subtitle: string;
   features: { icon: string; text: string }[];
   image: string;
   imageAlt: string;
   ctaText: string;
+  ctaLink: string;
   accentColor: string;
 }> = {
   'hurghada-speedboat': {
@@ -26,6 +33,7 @@ const TENANT_CONTENT: Record<string, {
     image: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800',
     imageAlt: 'Speedboat on crystal clear Red Sea waters',
     ctaText: 'Explore our boats',
+    ctaLink: '/about',
     accentColor: 'from-cyan-500 to-cyan-600',
   },
   'default': {
@@ -40,6 +48,7 @@ const TENANT_CONTENT: Record<string, {
     image: '/about.png',
     imageAlt: 'A scenic view of a popular travel destination',
     ctaText: 'More about us',
+    ctaLink: '/about',
     accentColor: 'from-red-600 to-red-700',
   },
 };
@@ -55,10 +64,22 @@ const ICON_MAP: Record<string, React.ElementType> = {
   calendar: CalendarCheck,
 };
 
-export default function WhyBookWithUs() {
+export default function WhyBookWithUs({ content: dbContent }: AboutUsProps) {
   const { tenant } = useTenant();
   const tenantId = tenant?.tenantId || 'default';
-  const content = TENANT_CONTENT[tenantId] || TENANT_CONTENT['default'];
+
+  // Use DB content if available, otherwise fall back to hardcoded content
+  const fallbackContent = FALLBACK_CONTENT[tenantId] || FALLBACK_CONTENT['default'];
+  const content = dbContent ? {
+    title: dbContent.title,
+    subtitle: dbContent.subtitle,
+    features: dbContent.features,
+    image: dbContent.image,
+    imageAlt: dbContent.imageAlt,
+    ctaText: dbContent.ctaText,
+    ctaLink: dbContent.ctaLink || '/about',
+    accentColor: dbContent.accentColor || fallbackContent.accentColor,
+  } : fallbackContent;
 
   return (
     <section className="bg-slate-50 py-12 sm:py-16 md:py-20 lg:py-24">
@@ -89,7 +110,7 @@ export default function WhyBookWithUs() {
 
             {/* CTA - rounded full button */}
             <a
-              href="/about"
+              href={content.ctaLink}
               className={`inline-flex items-center gap-2 sm:gap-3 px-6 sm:px-8 md:px-10 py-3 sm:py-4 rounded-full bg-gradient-to-r ${content.accentColor} text-white text-sm sm:text-base font-semibold shadow-xl hover:scale-[1.03] transition-all duration-300 group`}
             >
               <span>{content.ctaText}</span>

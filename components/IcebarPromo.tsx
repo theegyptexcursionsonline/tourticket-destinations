@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { useTenant } from '@/contexts/TenantContext';
+import type { IPromoContent } from '@/lib/models/Tenant';
 
 /**
  * EgyptPromo - Ultra Premium (parallax removed)
@@ -12,9 +13,15 @@ import { useTenant } from '@/contexts/TenantContext';
  * - Tenant-aware content
  */
 
-// Tenant-specific promo content
-const TENANT_PROMO: Record<string, {
+// Props interface for server-side content injection
+export interface IcebarPromoProps {
+  content?: IPromoContent | null;
+}
+
+// Fallback promo content (used when DB content is not available)
+const FALLBACK_PROMO: Record<string, {
   image: string;
+  imageAlt?: string;
   heading: string;
   subheading: string;
   description: string;
@@ -23,6 +30,7 @@ const TENANT_PROMO: Record<string, {
 }> = {
   'hurghada-speedboat': {
     image: 'https://images.unsplash.com/photo-1559827291-72ee739d0d9a?w=1200',
+    imageAlt: 'Crystal clear Red Sea waters',
     heading: 'Island Paradise',
     subheading: 'Crystal waters, coral reefs & endless adventure',
     description: 'Escape to stunning Red Sea islands — snorkel vibrant reefs, swim with dolphins, and discover hidden beaches aboard our modern speedboats.',
@@ -31,6 +39,7 @@ const TENANT_PROMO: Record<string, {
   },
   'default': {
     image: '/pyramid2.jpg',
+    imageAlt: 'Pyramids and desert landscape in Egypt',
     heading: 'Discover Egypt',
     subheading: 'Timeless wonders, Nile sunsets & ancient stories',
     description: 'Unveil the wonders of the Pharaohs — sail the Nile, explore the pyramids, and feel history come alive with curated luxury experiences.',
@@ -39,10 +48,13 @@ const TENANT_PROMO: Record<string, {
   },
 };
 
-export default function EgyptPromo() {
+export default function EgyptPromo({ content: dbContent }: IcebarPromoProps) {
   const { tenant } = useTenant();
   const tenantId = tenant?.tenantId || 'default';
-  const content = TENANT_PROMO[tenantId] || TENANT_PROMO['default'];
+
+  // Use DB content if available, otherwise fall back to hardcoded content
+  const fallbackContent = FALLBACK_PROMO[tenantId] || FALLBACK_PROMO['default'];
+  const content = dbContent || fallbackContent;
 
   // -----------------------
   // 🔧 CONTROL AREA - update image paths, text, links here
@@ -52,6 +64,7 @@ export default function EgyptPromo() {
   const imgMedium = content.image;  // for <= 1024
   const imgLarge = content.image;   // for >= 1024
   const imgLQ = content.image;      // tiny blurred placeholder (very small file)
+  const imageAlt = content.imageAlt || 'Promo background image';
 
   const heading = content.heading;
   const subheading = content.subheading;
@@ -84,7 +97,7 @@ export default function EgyptPromo() {
             <img
               ref={imgRef}
               src={imgMedium}
-              alt="Pyramids and desert landscape in Egypt"
+              alt={imageAlt}
               loading="lazy"
               decoding="async"
               className="w-full h-full object-cover block"
@@ -142,7 +155,7 @@ export default function EgyptPromo() {
       {/* noscript fallback: static hero with LQ image + softer overlay */}
       <noscript>
         <div className="absolute inset-0">
-          <img src={imgMedium} alt="Pyramids of Egypt" className="w-full h-full object-cover" />
+          <img src={imgMedium} alt={imageAlt} className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/15 to-transparent" />
         </div>
       </noscript>

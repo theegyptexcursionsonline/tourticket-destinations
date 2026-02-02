@@ -3,13 +3,17 @@
 import { useState } from 'react';
 import { Plus, Minus } from 'lucide-react';
 import { useTenant } from '@/contexts/TenantContext';
+import type { IFAQContent, IFAQItem } from '@/lib/models/Tenant';
 
-type FAQItem = {
-    question: string;
-    answer: string;
-};
+// Props interface for server-side content injection
+export interface FAQProps {
+  content?: IFAQContent | null;
+}
 
-const TENANT_FAQS: Record<string, FAQItem[]> = {
+type FAQItem = IFAQItem;
+
+// Fallback FAQs (used when DB content is not available)
+const FALLBACK_FAQS: Record<string, FAQItem[]> = {
     'hurghada-speedboat': [
         {
             question: 'What should I bring on the speedboat trip?',
@@ -128,12 +132,19 @@ const FaqItem = ({ item, accentColor }: { item: FAQItem; accentColor: string }) 
     );
 };
 
-export default function FAQ() {
+export default function FAQ({ content: dbContent }: FAQProps) {
     const { tenant } = useTenant();
     const tenantId = tenant?.tenantId || 'default';
-    const faqData = TENANT_FAQS[tenantId] || TENANT_FAQS['default'];
+
+    // Use DB content if available, otherwise fall back to hardcoded content
+    const fallbackFaqs = FALLBACK_FAQS[tenantId] || FALLBACK_FAQS['default'];
+    const faqData = dbContent?.faqs?.length ? dbContent.faqs : fallbackFaqs;
+    const title = dbContent?.title || 'FREQUENTLY ASKED QUESTIONS';
+    const ctaText = dbContent?.ctaText || 'VIEW ALL';
+    const ctaLink = dbContent?.ctaLink || '/faqs';
+
     const accentColor = tenantId === 'hurghada-speedboat' ? 'text-cyan-500' : 'text-red-600';
-    const buttonClasses = tenantId === 'hurghada-speedboat' 
+    const buttonClasses = tenantId === 'hurghada-speedboat'
         ? 'text-cyan-500 border-cyan-500 hover:bg-cyan-500 hover:text-white'
         : 'text-red-600 border-red-600 hover:bg-red-600 hover:text-white';
 
@@ -142,7 +153,7 @@ export default function FAQ() {
             <div className="container mx-auto px-4 max-w-4xl">
                 <div className="text-center mb-8 sm:mb-10">
                     <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-slate-900 tracking-tight px-4">
-                        FREQUENTLY ASKED QUESTIONS
+                        {title}
                     </h2>
                 </div>
                 <div className="space-y-3 sm:space-y-4">
@@ -152,12 +163,12 @@ export default function FAQ() {
                 </div>
                 <div className="text-center mt-8 sm:mt-10 md:mt-12">
                     <a
-                      href="/faqs"
+                      href={ctaLink}
                       className={`inline-flex justify-center items-center h-12 sm:h-14 px-6 sm:px-8 text-sm sm:text-base font-bold border-2 transition-all duration-300 ease-in-out rounded-full ${buttonClasses}`}
                       role="button"
                       aria-label="View all FAQs"
                     >
-                        VIEW ALL
+                        {ctaText}
                     </a>
                 </div>
             </div>

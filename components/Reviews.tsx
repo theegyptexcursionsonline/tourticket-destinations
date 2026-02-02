@@ -4,16 +4,18 @@ import React, { useEffect } from 'react';
 import Script from 'next/script';
 import { Star } from 'lucide-react';
 import { useTenant } from '@/contexts/TenantContext';
+import type { IReviewsContent, IReviewItem } from '@/lib/models/Tenant';
 
-type Review = {
-  name: string;
-  country: string;
-  review: string;
-  rating: number;
-  datePublished?: string;
-};
+// Props interface for server-side content injection
+export interface ReviewsProps {
+  content?: IReviewsContent | null;
+  elfsightAppId?: string;
+}
 
-const TENANT_REVIEWS: Record<string, Review[]> = {
+type Review = IReviewItem;
+
+// Fallback reviews (used when DB content is not available)
+const FALLBACK_REVIEWS: Record<string, Review[]> = {
   'hurghada-speedboat': [
     {
       name: 'Sophie',
@@ -93,13 +95,19 @@ const avatarColor = (name: string) => {
 };
 
 export default function Reviews({
-  elfsightAppId = '0fea9001-da59-4955-b598-76327377c50c',
-}: {
-  elfsightAppId?: string;
-}) {
+  content: dbContent,
+  elfsightAppId: propElfsightAppId = '0fea9001-da59-4955-b598-76327377c50c',
+}: ReviewsProps) {
   const { tenant } = useTenant();
   const tenantId = tenant?.tenantId || 'default';
-  const reviewsData = TENANT_REVIEWS[tenantId] || TENANT_REVIEWS['default'];
+
+  // Use DB content if available, otherwise fall back to hardcoded content
+  const fallbackReviews = FALLBACK_REVIEWS[tenantId] || FALLBACK_REVIEWS['default'];
+  const reviewsData = dbContent?.reviews?.length ? dbContent.reviews : fallbackReviews;
+  const title = dbContent?.title || 'What Our Guests Say';
+  const subtitle = dbContent?.subtitle || 'Real stories from our valued customers.';
+  const elfsightAppId = dbContent?.elfsightAppId || propElfsightAppId;
+  const showElfsightWidget = dbContent?.showElfsightWidget !== false;
 
   useEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -132,10 +140,10 @@ export default function Reviews({
           {/* Heading */}
           <div className="mb-8 sm:mb-10 text-center">
             <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">
-              What Our Guests Say
+              {title}
             </h2>
             <p className="text-sm sm:text-base text-gray-600">
-              Real stories from our valued customers.
+              {subtitle}
             </p>
           </div>
 
@@ -176,13 +184,15 @@ export default function Reviews({
           </div>
 
           {/* Row 2: Elfsight widget, full width */}
-          <div className="w-full">
-            <div
-              className={`elfsight-app-${elfsightAppId}`}
-              data-elfsight-app-lazy
-              style={{ width: '100%' }}
-            />
-          </div>
+          {showElfsightWidget && (
+            <div className="w-full">
+              <div
+                className={`elfsight-app-${elfsightAppId}`}
+                data-elfsight-app-lazy
+                style={{ width: '100%' }}
+              />
+            </div>
+          )}
         </div>
       </section>
     </>
