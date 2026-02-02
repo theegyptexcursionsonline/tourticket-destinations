@@ -9,6 +9,17 @@ import type { NextRequest } from 'next/server';
 type WebsiteStatus = 'active' | 'coming_soon' | 'maintenance' | 'offline';
 
 // ============================================================================
+// PREVIEW MODE CONFIGURATION
+// ============================================================================
+// Enable tenant preview via ?tenant=xxx query parameter
+// Set ENABLE_TENANT_PREVIEW=true to allow preview URLs in production
+// By default, preview is enabled in development and on preview deployments
+const ENABLE_TENANT_PREVIEW = process.env.ENABLE_TENANT_PREVIEW === 'true' ||
+  process.env.NODE_ENV === 'development' ||
+  process.env.VERCEL_ENV === 'preview' ||
+  process.env.CONTEXT === 'deploy-preview'; // Netlify preview
+
+// ============================================================================
 // GLOBAL COMING SOON MODE (Legacy - overrides per-tenant status)
 // Set to `true` to redirect ALL tenants to coming soon page
 // ============================================================================
@@ -211,6 +222,47 @@ function getTenantDomains(): TenantDomainMapping {
 // Get default tenant ID from env or use 'default'
 const DEFAULT_TENANT_ID = process.env.DEFAULT_TENANT_ID || 'default';
 
+/**
+ * Get all valid tenant IDs from the domain mapping
+ */
+function getValidTenantIds(): Set<string> {
+  const tenantDomains = getTenantDomains();
+  const tenantIds = new Set<string>();
+
+  // Collect all unique tenant IDs from domain mapping
+  Object.values(tenantDomains).forEach(id => tenantIds.add(id));
+
+  // Add default tenant ID
+  tenantIds.add(DEFAULT_TENANT_ID);
+
+  return tenantIds;
+}
+
+/**
+ * Check if a tenant ID is valid
+ */
+function isValidTenantId(tenantId: string): boolean {
+  return getValidTenantIds().has(tenantId);
+}
+
+/**
+ * Get tenant ID from query parameter if preview mode is enabled
+ * Returns null if not in preview mode or no valid tenant param
+ */
+function getTenantFromQueryParam(request: NextRequest): string | null {
+  if (!ENABLE_TENANT_PREVIEW) {
+    return null;
+  }
+
+  const tenantParam = request.nextUrl.searchParams.get('tenant');
+
+  if (tenantParam && isValidTenantId(tenantParam)) {
+    return tenantParam;
+  }
+
+  return null;
+}
+
 // ============================================
 // RESERVED PATHS (Not tour slugs)
 // ============================================
@@ -386,32 +438,52 @@ export function middleware(request: NextRequest) {
 
   // Helper to attach tenant headers/cookies
   // IMPORTANT: We need to set headers on the REQUEST (via requestHeaders) for server components to read them
-  const applyTenantContext = (tenantId: string) => {
+  const applyTenantContext = (tenantId: string, previewMode: boolean = false) => {
     // Create new request headers with tenant info
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set('x-tenant-id', tenantId);
     requestHeaders.set('x-tenant-domain', hostname);
-    
+    if (previewMode) {
+      requestHeaders.set('x-tenant-preview', 'true');
+    }
+
     // Create response with modified request headers
     const response = NextResponse.next({
       request: {
         headers: requestHeaders,
       },
     });
-    
+
     // Also set on response headers for debugging
     response.headers.set('x-tenant-id', tenantId);
     response.headers.set('x-tenant-domain', hostname);
-    
+    if (previewMode) {
+      response.headers.set('x-tenant-preview', 'true');
+    }
+
     // Set cookie for client-side access
     response.cookies.set('tenantId', tenantId, {
       httpOnly: false,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 60 * 60 * 24 * 365,
+      maxAge: previewMode ? 60 * 60 * 24 : 60 * 60 * 24 * 365, // 1 day for preview, 1 year for normal
     });
-    
+
+    // Set preview mode cookie if in preview mode
+    if (previewMode) {
+      response.cookies.set('tenantPreview', 'true', {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 60 * 60 * 24, // 24 hours
+      });
+    } else {
+      // Clear preview cookie if not in preview mode
+      response.cookies.delete('tenantPreview');
+    }
+
     return response;
   };
   
@@ -420,8 +492,45 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // ============================================
+  // TENANT DETECTION (Priority Order)
+  // ============================================
+  // 1. Query parameter (?tenant=xxx) - for preview URLs
+  // 2. Cookie (if set from previous preview) - for session persistence
+  // 3. Domain-based detection - normal production flow
+
+  // Check for preview tenant from query param
+  const previewTenantId = getTenantFromQueryParam(request);
+
+  // Check for existing tenant cookie (from previous preview)
+  const cookieTenantId = request.cookies.get('tenantId')?.value;
+
   // Determine tenant from domain
-  const tenantId = getTenantIdFromDomain(hostname);
+  const domainTenantId = getTenantIdFromDomain(hostname);
+
+  // Priority: query param > cookie (if valid and different from domain) > domain
+  let tenantId: string;
+  let isPreviewMode = false;
+
+  if (previewTenantId) {
+    // Query param takes highest priority
+    tenantId = previewTenantId;
+    isPreviewMode = true;
+  } else if (
+    ENABLE_TENANT_PREVIEW &&
+    cookieTenantId &&
+    isValidTenantId(cookieTenantId) &&
+    cookieTenantId !== domainTenantId &&
+    request.nextUrl.searchParams.get('reset_tenant') !== 'true'
+  ) {
+    // Use cookie tenant if it's different from domain (preview session persistence)
+    // User can add ?reset_tenant=true to go back to domain-based detection
+    tenantId = cookieTenantId;
+    isPreviewMode = true;
+  } else {
+    // Default to domain-based detection
+    tenantId = domainTenantId;
+  }
 
   // ============================================
   // WEBSITE STATUS CHECK (Per-Tenant or Global)
@@ -436,28 +545,43 @@ export function middleware(request: NextRequest) {
       requestHeaders.set('x-website-status', websiteStatus);
       requestHeaders.set('x-tenant-id', tenantId);
       requestHeaders.set('x-tenant-domain', hostname);
-      
+      if (isPreviewMode) {
+        requestHeaders.set('x-tenant-preview', 'true');
+      }
+
       const response = NextResponse.next({
         request: {
           headers: requestHeaders,
         },
       });
-      
+
       response.headers.set('x-website-status', websiteStatus);
       response.headers.set('x-tenant-id', tenantId);
+      if (isPreviewMode) {
+        response.headers.set('x-tenant-preview', 'true');
+      }
       response.cookies.set('tenantId', tenantId, {
         httpOnly: false,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         path: '/',
-        maxAge: 60 * 60 * 24 * 365,
+        maxAge: isPreviewMode ? 60 * 60 * 24 : 60 * 60 * 24 * 365,
       });
+      if (isPreviewMode) {
+        response.cookies.set('tenantPreview', 'true', {
+          httpOnly: false,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          path: '/',
+          maxAge: 60 * 60 * 24,
+        });
+      }
       return response;
     }
 
     // Allow specific paths to work
     if (isAllowedInComingSoonMode(pathname)) {
-      return applyTenantContext(tenantId);
+      return applyTenantContext(tenantId, isPreviewMode);
     }
     
     // Determine redirect destination based on status
@@ -470,29 +594,42 @@ export function middleware(request: NextRequest) {
     
     // Don't redirect if already on the status page
     if (pathname === redirectPath) {
-      return applyTenantContext(tenantId);
+      return applyTenantContext(tenantId, isPreviewMode);
     }
     
     // Redirect to appropriate status page
     const url = request.nextUrl.clone();
     url.pathname = redirectPath;
+    // Preserve tenant query param in redirect if in preview mode
+    if (isPreviewMode && previewTenantId) {
+      url.searchParams.set('tenant', previewTenantId);
+    }
     const redirectResponse = NextResponse.redirect(url);
     redirectResponse.cookies.set('tenantId', tenantId, {
       httpOnly: false,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 60 * 60 * 24 * 365,
+      maxAge: isPreviewMode ? 60 * 60 * 24 : 60 * 60 * 24 * 365,
     });
+    if (isPreviewMode) {
+      redirectResponse.cookies.set('tenantPreview', 'true', {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 60 * 60 * 24,
+      });
+    }
     return redirectResponse;
   }
   
   // ============================================
   // NORMAL MODE - Regular routing logic
   // ============================================
-  
+
   // All requests get tenant context applied via request headers
-  return applyTenantContext(tenantId);
+  return applyTenantContext(tenantId, isPreviewMode);
 }
 
 // ============================================

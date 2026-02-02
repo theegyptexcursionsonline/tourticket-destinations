@@ -139,6 +139,84 @@ export async function getTenantDomainFromRequest(): Promise<string> {
   }
 }
 
+/**
+ * Check if the current request is in tenant preview mode
+ * Preview mode is enabled via ?tenant=xxx query parameter
+ */
+export async function isPreviewMode(): Promise<boolean> {
+  try {
+    const headersList = await headers();
+    return headersList.get('x-tenant-preview') === 'true';
+  } catch (error) {
+    // Fallback to cookie
+    try {
+      const cookieStore = await cookies();
+      return cookieStore.get('tenantPreview')?.value === 'true';
+    } catch {
+      return false;
+    }
+  }
+}
+
+/**
+ * Get preview mode information including tenant ID and domain
+ * Useful for displaying preview indicators in the UI
+ */
+export async function getPreviewInfo(): Promise<{
+  isPreview: boolean;
+  tenantId: string;
+  originalDomain: string;
+} | null> {
+  try {
+    const headersList = await headers();
+    const isPreview = headersList.get('x-tenant-preview') === 'true';
+
+    if (!isPreview) {
+      return null;
+    }
+
+    return {
+      isPreview: true,
+      tenantId: headersList.get('x-tenant-id') || 'default',
+      originalDomain: headersList.get('x-tenant-domain') || 'localhost',
+    };
+  } catch (error) {
+    return null;
+  }
+}
+
+/**
+ * Generate a preview URL for a specific tenant
+ * @param tenantId - The tenant ID to preview
+ * @param path - Optional path to navigate to (defaults to '/')
+ * @param baseUrl - Optional base URL (defaults to current domain)
+ */
+export function generatePreviewUrl(
+  tenantId: string,
+  path: string = '/',
+  baseUrl?: string
+): string {
+  const base = baseUrl || process.env.NEXT_PUBLIC_APP_URL || '';
+  const url = new URL(path, base || 'http://localhost:3000');
+  url.searchParams.set('tenant', tenantId);
+  return url.toString();
+}
+
+/**
+ * Generate a reset URL to exit preview mode and return to domain-based tenant
+ * @param path - Optional path to navigate to (defaults to '/')
+ * @param baseUrl - Optional base URL (defaults to current domain)
+ */
+export function generateResetPreviewUrl(
+  path: string = '/',
+  baseUrl?: string
+): string {
+  const base = baseUrl || process.env.NEXT_PUBLIC_APP_URL || '';
+  const url = new URL(path, base || 'http://localhost:3000');
+  url.searchParams.set('reset_tenant', 'true');
+  return url.toString();
+}
+
 // ============================================
 // TENANT CONFIGURATION
 // ============================================
