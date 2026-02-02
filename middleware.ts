@@ -12,12 +12,55 @@ type WebsiteStatus = 'active' | 'coming_soon' | 'maintenance' | 'offline';
 // PREVIEW MODE CONFIGURATION
 // ============================================================================
 // Enable tenant preview via ?tenant=xxx query parameter
-// Set ENABLE_TENANT_PREVIEW=true to allow preview URLs in production
-// By default, preview is enabled in development and on preview deployments
-const ENABLE_TENANT_PREVIEW = process.env.ENABLE_TENANT_PREVIEW === 'true' ||
-  process.env.NODE_ENV === 'development' ||
-  process.env.VERCEL_ENV === 'preview' ||
-  process.env.CONTEXT === 'deploy-preview'; // Netlify preview
+// Set ENABLE_TENANT_PREVIEW=false to explicitly disable preview URLs
+// By default, preview is enabled in development, preview deployments, and netlify.app domains
+const ENABLE_TENANT_PREVIEW_ENV = process.env.ENABLE_TENANT_PREVIEW;
+
+// Helper to check if preview should be enabled (called in middleware with hostname)
+function isPreviewEnabled(hostname: string): boolean {
+  // Explicitly disabled
+  if (ENABLE_TENANT_PREVIEW_ENV === 'false') {
+    return false;
+  }
+
+  // Explicitly enabled
+  if (ENABLE_TENANT_PREVIEW_ENV === 'true') {
+    return true;
+  }
+
+  // Auto-enable for development
+  if (process.env.NODE_ENV === 'development') {
+    return true;
+  }
+
+  // Auto-enable for Vercel preview deployments
+  if (process.env.VERCEL_ENV === 'preview') {
+    return true;
+  }
+
+  // Auto-enable for Netlify preview deployments
+  if (process.env.CONTEXT === 'deploy-preview') {
+    return true;
+  }
+
+  // Auto-enable for all *.netlify.app domains (staging/preview sites)
+  if (hostname.endsWith('.netlify.app')) {
+    return true;
+  }
+
+  // Auto-enable for all *.vercel.app domains
+  if (hostname.endsWith('.vercel.app')) {
+    return true;
+  }
+
+  // Auto-enable for localhost
+  if (hostname.startsWith('localhost')) {
+    return true;
+  }
+
+  // Disabled by default on production custom domains
+  return false;
+}
 
 // ============================================================================
 // GLOBAL COMING SOON MODE (Legacy - overrides per-tenant status)
@@ -249,8 +292,8 @@ function isValidTenantId(tenantId: string): boolean {
  * Get tenant ID from query parameter if preview mode is enabled
  * Returns null if not in preview mode or no valid tenant param
  */
-function getTenantFromQueryParam(request: NextRequest): string | null {
-  if (!ENABLE_TENANT_PREVIEW) {
+function getTenantFromQueryParam(request: NextRequest, hostname: string): string | null {
+  if (!isPreviewEnabled(hostname)) {
     return null;
   }
 
@@ -500,7 +543,7 @@ export function middleware(request: NextRequest) {
   // 3. Domain-based detection - normal production flow
 
   // Check for preview tenant from query param
-  const previewTenantId = getTenantFromQueryParam(request);
+  const previewTenantId = getTenantFromQueryParam(request, hostname);
 
   // Check for existing tenant cookie (from previous preview)
   const cookieTenantId = request.cookies.get('tenantId')?.value;
@@ -517,7 +560,7 @@ export function middleware(request: NextRequest) {
     tenantId = previewTenantId;
     isPreviewMode = true;
   } else if (
-    ENABLE_TENANT_PREVIEW &&
+    isPreviewEnabled(hostname) &&
     cookieTenantId &&
     isValidTenantId(cookieTenantId) &&
     cookieTenantId !== domainTenantId &&
