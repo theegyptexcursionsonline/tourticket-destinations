@@ -440,6 +440,102 @@ const TENANT_HOMEPAGE_CONTENT: Record<string, {
     },
   },
 
+  'makadi-bay': {
+    aboutUsContent: {
+      title: 'Why book with Makadi Bay Excursions?',
+      subtitle: 'Your Red Sea holiday experts based in Makadi Bay.',
+      features: [
+        { icon: 'sun', text: 'Year-round sunshine and warm waters' },
+        { icon: 'shield', text: 'Fully licensed and insured excursions' },
+        { icon: 'users', text: 'Small group sizes for personal service' },
+        { icon: 'dollar', text: 'Resort-area pickup included' },
+      ],
+      image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800',
+      imageAlt: 'Makadi Bay beach and resort',
+      ctaText: 'About Us',
+      ctaLink: '/about',
+      accentColor: 'from-teal-600 to-teal-700',
+    },
+    reviewsContent: {
+      title: 'Guest Reviews',
+      subtitle: 'What our Makadi Bay visitors say.',
+      reviews: [
+        { name: 'Hannah', country: 'Germany', review: 'The snorkeling trip was incredible! Crystal clear water and colourful fish everywhere.', rating: 5, datePublished: '2025-08-20' },
+        { name: 'James', country: 'UK', review: 'Quad bike desert safari was the highlight of our holiday. Great guides!', rating: 5, datePublished: '2025-07-15' },
+        { name: 'Sophia', country: 'Italy', review: 'Glass-bottom boat ride was perfect for the kids. Easy pickup from our hotel.', rating: 5, datePublished: '2025-06-10' },
+      ],
+      showElfsightWidget: false,
+    },
+    faqContent: {
+      title: 'FREQUENTLY ASKED QUESTIONS',
+      faqs: [
+        { question: 'Do you offer hotel pickup from Makadi Bay resorts?', answer: 'Yes! We offer complimentary pickup from all Makadi Bay hotels and resorts.' },
+        { question: 'What snorkeling equipment is provided?', answer: 'All snorkeling gear (mask, snorkel, fins) is included. Wetsuits available on request.' },
+        { question: 'Can I book a Luxor day trip from Makadi Bay?', answer: 'Yes, we run daily trips to Luxor with pickup from Makadi Bay. The journey takes about 3.5 hours each way.' },
+        { question: 'Are your tours suitable for children?', answer: 'Many of our tours are family-friendly. Check each tour page for age recommendations.' },
+      ],
+      ctaText: 'MORE INFO',
+      ctaLink: '/faqs',
+    },
+    promoContent: {
+      image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200',
+      imageAlt: 'Tropical beach resort in Makadi Bay',
+      heading: 'Makadi Bay Awaits',
+      subheading: 'Pristine beaches, coral gardens & starlit deserts',
+      description: 'Snorkel crystal-clear waters, explore the Sahara by quad bike, and relax on pristine beaches — Makadi Bay is your Red Sea paradise.',
+      primaryHref: '/tours',
+      primaryText: 'Browse All Tours',
+    },
+  },
+
+  'el-gouna': {
+    aboutUsContent: {
+      title: 'Why book with El Gouna Excursions?',
+      subtitle: 'The Venice of the Red Sea — your gateway to luxury adventures.',
+      features: [
+        { icon: 'anchor', text: 'Private yacht charters and boat trips' },
+        { icon: 'wind', text: 'Kitesurfing and water sports specialists' },
+        { icon: 'star', text: 'Premium experiences with 5-star service' },
+        { icon: 'dollar', text: 'Best prices guaranteed in El Gouna' },
+      ],
+      image: 'https://images.unsplash.com/photo-1540202404-a2f29016b523?w=800',
+      imageAlt: 'El Gouna lagoon and marina view',
+      ctaText: 'About Us',
+      ctaLink: '/about',
+      accentColor: 'from-cyan-600 to-cyan-700',
+    },
+    reviewsContent: {
+      title: 'Guest Reviews',
+      subtitle: 'Experiences from El Gouna visitors.',
+      reviews: [
+        { name: 'Oliver', country: 'Netherlands', review: 'Kitesurfing lesson was amazing! El Gouna has the perfect lagoons for beginners.', rating: 5, datePublished: '2025-09-05' },
+        { name: 'Emma', country: 'France', review: 'Private yacht trip was worth every penny. Beautiful sunset and great crew.', rating: 5, datePublished: '2025-08-22' },
+        { name: 'Thomas', country: 'Austria', review: 'Diving at Abu Nuhas was unforgettable. The shipwrecks are stunning!', rating: 5, datePublished: '2025-07-18' },
+      ],
+      showElfsightWidget: false,
+    },
+    faqContent: {
+      title: 'FREQUENTLY ASKED QUESTIONS',
+      faqs: [
+        { question: 'What water sports are available in El Gouna?', answer: 'We offer kitesurfing, windsurfing, wakeboarding, diving, snorkeling, and paddleboarding.' },
+        { question: 'Do you offer private yacht charters?', answer: 'Yes! We have a range of yacht options from half-day trips to full-day luxury charters.' },
+        { question: 'Is El Gouna good for beginners in kitesurfing?', answer: 'Absolutely! The shallow lagoons are perfect for learning. We offer beginner courses daily.' },
+        { question: 'Can I visit Hurghada from El Gouna?', answer: 'Yes, Hurghada is only 25 minutes away. We offer transfers and combined tour packages.' },
+      ],
+      ctaText: 'MORE INFO',
+      ctaLink: '/faqs',
+    },
+    promoContent: {
+      image: 'https://images.unsplash.com/photo-1540202404-a2f29016b523?w=1200',
+      imageAlt: 'El Gouna lagoon and marina',
+      heading: 'Experience El Gouna',
+      subheading: 'Lagoons, luxury & endless water adventures',
+      description: 'Kitesurf turquoise lagoons, charter a private yacht, and explore vibrant coral reefs — El Gouna is the Red Sea Riviera.',
+      primaryHref: '/tours',
+      primaryText: 'Browse All Tours',
+    },
+  },
+
   'default': {
     aboutUsContent: {
       title: 'Why book with Egypt Excursions Online?',

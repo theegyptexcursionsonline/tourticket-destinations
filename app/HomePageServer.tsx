@@ -43,6 +43,21 @@ async function getHomePageDataInternal(tenantId: string) {
     const tenantFilter = { tenantId };
     const tenantFilterOrAll = tenantId ? { tenantId } : {};
 
+    // Check if tenant has its own content - if so, use strict filtering (no default fallback)
+    const [ownDestCount, ownCatCount, ownTourCount] = await Promise.all([
+      Destination.countDocuments({ tenantId }),
+      Category.countDocuments({ tenantId }),
+      Tour.countDocuments({ tenantId }),
+    ]);
+    const hasOwnDests = ownDestCount > 0;
+    const hasOwnCats = ownCatCount > 0;
+    const hasOwnTours = ownTourCount > 0;
+
+    // Smart query: use strict tenant filter when own content exists, otherwise fallback to default
+    const destQuery = (base: Record<string, any>) => hasOwnDests ? { ...base, tenantId } : buildTenantQuery(base, tenantId);
+    const catQuery = (base: Record<string, any>) => hasOwnCats ? { ...base, tenantId } : buildTenantQuery(base, tenantId);
+    const tourQuery = (base: Record<string, any>) => hasOwnTours ? { ...base, tenantId } : buildTenantQuery(base, tenantId);
+
     // Fetch all data in parallel for speed
     const [
       destinations,
@@ -57,11 +72,11 @@ async function getHomePageDataInternal(tenantId: string) {
       dayTrips
     ] = await Promise.all([
       // Destinations with tour count (filtered by tenant)
-      Destination.find(buildTenantQuery({ isPublished: true }, tenantId))
+      Destination.find(destQuery({ isPublished: true }))
         .select('name slug image description country tenantId')
         .limit(8)
         .lean()
-        .catch(() => 
+        .catch(() =>
           // Fallback: try without tenant filter for backward compatibility
           Destination.find({ isPublished: true })
             .select('name slug image description country')
@@ -70,7 +85,7 @@ async function getHomePageDataInternal(tenantId: string) {
         ),
 
       // Featured tours (filtered by tenant)
-      Tour.find(buildTenantQuery({ isPublished: true, isFeatured: true }, tenantId))
+      Tour.find(tourQuery({ isPublished: true, isFeatured: true }))
         .populate('destination', 'name')
         .select('title slug image discountPrice originalPrice duration rating reviewCount bookings tenantId')
         .limit(8)
@@ -84,7 +99,7 @@ async function getHomePageDataInternal(tenantId: string) {
         ),
 
       // Categories for InterestGrid (filtered by tenant)
-      Category.find(buildTenantQuery({ isPublished: true }, tenantId))
+      Category.find(catQuery({ isPublished: true }))
         .select('name slug icon description tenantId')
         .limit(12)
         .lean()
@@ -96,7 +111,7 @@ async function getHomePageDataInternal(tenantId: string) {
         ),
 
       // All categories for PopularInterest (filtered by tenant)
-      Category.find(tenantFilterOrAll).lean()
+      Category.find(hasOwnCats ? tenantFilter : tenantFilterOrAll).lean()
         .catch(() => Category.find({}).lean()),
 
       // Attraction pages for PopularInterest (filtered by tenant)
@@ -115,8 +130,8 @@ async function getHomePageDataInternal(tenantId: string) {
             .lean()
         ),
 
-      // Header destinations (featured, filtered by tenant)
-      Destination.find(buildTenantQuery({ isPublished: true, featured: true }, tenantId))
+      // Header destinations (filtered by tenant)
+      Destination.find(destQuery({ isPublished: true }))
         .select('name slug image description country tenantId')
         .lean()
         .catch(() =>
@@ -125,8 +140,8 @@ async function getHomePageDataInternal(tenantId: string) {
             .lean()
         ),
 
-      // Header categories (featured, filtered by tenant)
-      Category.find(buildTenantQuery({ isPublished: true, featured: true }, tenantId))
+      // Header categories (filtered by tenant)
+      Category.find(catQuery({ isPublished: true }))
         .select('name slug icon description tenantId')
         .lean()
         .catch(() =>
@@ -154,7 +169,7 @@ async function getHomePageDataInternal(tenantId: string) {
         ),
 
       // Day trips (all published tours, filtered by tenant, limited to 12)
-      Tour.find(buildTenantQuery({ isPublished: true }, tenantId))
+      Tour.find(tourQuery({ isPublished: true }))
         .select('title slug image discountPrice originalPrice duration rating reviewCount bookings tags tenantId')
         .limit(12)
         .lean()

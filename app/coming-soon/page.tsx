@@ -78,7 +78,7 @@ export default function ComingSoonPage() {
             We're crafting something extraordinary for you.
           </p>
           <p className="text-slate-400">
-            Our team is working hard to bring you the best travel experiences in Egypt.
+            Our team is working hard to bring you the best travel experiences.
             Sign up below to be the first to know when we launch!
           </p>
         </div>
@@ -148,11 +148,11 @@ export default function ComingSoonPage() {
           <p className="text-slate-500 text-sm">
             Questions? Contact us at{' '}
             <a 
-              href={`mailto:${config?.contact?.email || 'info@egyptexcursions.com'}`}
+              href={`mailto:${config?.contact?.email || 'support@excursions.online'}`}
               className="hover:underline"
               style={{ color: primaryColor }}
             >
-              {config?.contact?.email || 'info@egyptexcursions.com'}
+              {config?.contact?.email || 'support@excursions.online'}
             </a>
           </p>
         </div>

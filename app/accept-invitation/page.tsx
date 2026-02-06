@@ -281,7 +281,7 @@ function AcceptInvitationContent() {
         <div className="text-center mt-6">
           <p className="text-sm text-slate-500">
             Need help?{' '}
-            <a href="mailto:support@egypt-excursionsonline.com" className="text-blue-600 hover:text-blue-700 font-medium">
+            <a href="mailto:support@excursions.online" className="text-blue-600 hover:text-blue-700 font-medium">
               Contact Support
             </a>
           </p>

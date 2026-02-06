@@ -22,10 +22,10 @@ export async function generateMetadata(): Promise<Metadata> {
   
   return {
     title: `All Destinations | ${siteName}`,
-    description: `Explore amazing destinations across Egypt. Discover tours and activities with ${siteName}.`,
+    description: `Explore amazing destinations. Discover tours and activities with ${siteName}.`,
     openGraph: {
       title: `All Destinations | ${siteName}`,
-      description: 'Explore amazing destinations across Egypt.',
+      description: `Explore amazing destinations with ${siteName}.`,
       type: 'website',
     },
   };
@@ -34,27 +34,25 @@ export async function generateMetadata(): Promise<Metadata> {
 // Server-side function to fetch all destinations and their tour counts (tenant-aware)
 async function getDestinationsWithTourCounts(tenantId: string): Promise<IDestination[]> {
   await dbConnect();
-  
-  // Build query with tenant filter
-  const destinationQuery = buildTenantQuery({}, tenantId);
-  
-  // Fetch destinations for this tenant
+
+  // Smart tenant detection: if tenant has own destinations, show only those
+  const ownDestCount = await Destination.countDocuments({ tenantId });
+  const destinationQuery = ownDestCount > 0
+    ? { tenantId }
+    : buildTenantQuery({}, tenantId);
+
   const destinations = await Destination.find(destinationQuery).lean();
-  
-  // If no destinations found with tenant filter, fall back to all destinations
-  // This ensures backward compatibility during migration
-  const destinationsToProcess = destinations.length > 0 
-    ? destinations 
-    : await Destination.find({}).lean();
-  
+
+  // Smart tenant detection for tours too
+  const ownTourCount = await Tour.countDocuments({ tenantId });
+
   // For each destination, count the number of published tours for this tenant
   const destinationsWithCounts = await Promise.all(
-    destinationsToProcess.map(async (dest) => {
-      const tourQuery = buildTenantQuery({
-        destination: dest._id,
-        isPublished: true
-      }, tenantId);
-      
+    destinations.map(async (dest) => {
+      const tourQuery = ownTourCount > 0
+        ? { destination: dest._id, isPublished: true, tenantId }
+        : buildTenantQuery({ destination: dest._id, isPublished: true }, tenantId);
+
       const tourCount = await Tour.countDocuments(tourQuery);
       return {
         ...dest,

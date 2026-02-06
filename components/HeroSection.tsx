@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useEffect, useState, useRef, useCallback } from "react";
+import { useTenant } from '@/contexts/TenantContext';
 import { Search, MapPin, Clock, Compass, Tag, FileText, X, Sparkles, ChevronUp, Bot, Loader2, ArrowLeft, Send, ChevronLeft, ChevronRight, DollarSign, Star } from "lucide-react";
 import Image from "next/image";
 import { liteClient as algoliasearch } from 'algoliasearch/lite';
@@ -27,6 +28,7 @@ interface HeroSettings {
     main: string;
     highlight: string;
   };
+  subtitle?: string;
   searchSuggestions: string[];
   trustIndicators: {
     travelers: string;
@@ -68,8 +70,8 @@ const DEFAULT_SETTINGS: HeroSettings = {
   ],
   currentActiveImage: '/hero2.jpg',
   title: {
-    main: 'Explore Egypt\'s ',
-    highlight: 'Pyramids & Nile',
+    main: 'Explore Amazing ',
+    highlight: 'Tours & Experiences',
   },
   searchSuggestions: [
     "Where are you going?", "Find your next adventure", "Discover hidden gems",
@@ -773,6 +775,7 @@ const DestinationSlider = ({ destinations }: { destinations: any[] }) => {
 
 // --- Reusable Components ---
 const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
+  const { getSiteName } = useTenant();
   const [query, setQuery] = useState(''); // Unified input for both search and chat
   const [isExpanded, setIsExpanded] = useState(false);
   const [chatMode, setChatMode] = useState(false);
@@ -1262,7 +1265,7 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
                     setIsFocused(true);
                   }}
                   onBlur={() => setIsFocused(false)}
-                  placeholder={chatMode ? "Ask AI anything about Egypt tours..." : suggestion}
+                  placeholder={chatMode ? `Ask AI anything about tours...` : suggestion}
                   className="w-full pl-16 md:pl-[70px] pr-14 md:pr-20 py-4 md:py-5 text-sm md:text-base text-gray-900 placeholder:text-gray-400/70 placeholder:font-normal font-medium bg-transparent outline-none rounded-full relative z-10 transition-all duration-300"
                   style={{ cursor: 'text' }}
                   disabled={chatMode && isGenerating}
@@ -1479,7 +1482,7 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
                         />
                         <div>
                           <span className="text-sm font-bold text-gray-900 tracking-tight block drop-shadow-sm">
-                            {query ? 'Search Results' : 'Discover Egypt'}
+                            {query ? 'Search Results' : getSiteName()}
                           </span>
                           <span className="text-[10px] text-gray-600 font-medium drop-shadow-sm">
                             {query ? 'Best matches for you' : 'Trending searches'}
@@ -1552,7 +1555,7 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
                           </motion.div>
                           <div>
                             <p className="font-bold text-gray-900 text-sm mb-1.5">
-                              Hi! I'm your AI Egypt Travel Assistant 👋
+                              {`Hi! I'm your AI Travel Assistant 👋`}
                             </p>
                             <p className="text-gray-600 text-xs leading-relaxed">
                               Ask me anything — I'll help you find tours, trips, prices, destinations & more.
@@ -1560,7 +1563,7 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
                           </div>
                         </div>
                         <div className="flex flex-wrap gap-2.5">
-                          {["Find me the best Nile Cruise under $300", "Plan a 7-day Egypt itinerary", "Top tours near Cairo?"].map((s, idx) => (
+                          {["Find me the best tour under $300", "Plan a 7-day itinerary", "What are the top tours?"].map((s, idx) => (
                             <motion.button
                               key={s}
                               initial={{ opacity: 0, y: 10 }}
@@ -1693,7 +1696,7 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
                       </motion.div>
                       <div>
                         <span className="text-sm font-bold text-gray-900 tracking-tight block">
-                          Trending Egypt Tours
+                          Trending Tours
                         </span>
                         <span className="text-[10px] text-gray-500 font-medium">
                           Most searched this week
@@ -1701,7 +1704,7 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2.5">
-                      {['Pyramids of Giza', 'Nile Cruise', 'Luxor Temple', 'Desert Safari', 'Cairo Tours', 'Red Sea Diving'].map((trend, idx) => (
+                      {['Day Tours', 'Snorkeling', 'Desert Safari', 'Boat Trips', 'Sightseeing', 'Diving'].map((trend, idx) => (
                         <motion.button
                           key={trend}
                           initial={{ opacity: 0, scale: 0.8 }}
@@ -1903,7 +1906,7 @@ export default function HeroSection({ initialSettings }: HeroSectionProps = {}) 
               )}
             </h1>
             <p className="mt-4 text-base sm:text-lg md:text-xl text-shadow font-light max-w-md mx-auto md:mx-0">
-              Unforgettable excursions — from sunrise at the pyramids to sailing the Nile.
+              {settings.subtitle || 'Unforgettable excursions — discover amazing tours and experiences.'}
             </p>
 
             <HeroSearchBar

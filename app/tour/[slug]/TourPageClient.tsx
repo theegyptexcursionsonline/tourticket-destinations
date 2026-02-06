@@ -922,8 +922,8 @@ export default function TourPageClient({ tour, relatedTours, initialReviews }: T
   const [reviews, setReviews] = useState<ReviewType[]>(initialReviews);
 
   // Tenant-specific contact info
-  const contactPhone = tenant?.contact?.phone || '+20 11 42255624';
-  const contactEmail = tenant?.contact?.email || 'booking@egypt-excursionsonline.com';
+  const contactPhone = tenant?.contact?.phone || '';
+  const contactEmail = tenant?.contact?.email || 'support@excursions.online';
 
   const tourIsWishlisted = isWishlisted(tour._id!);
 

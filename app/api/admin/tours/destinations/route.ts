@@ -16,8 +16,17 @@ export async function GET(request: NextRequest) {
     const showAll = searchParams.get('all') === 'true';
     
     // Build query - admin can see all, frontend gets tenant-filtered
-    const query = showAll ? {} : buildTenantQuery({}, tenantId);
-    
+    let query;
+    if (showAll) {
+      query = {};
+    } else {
+      // If tenant has its own destinations, show only those (no default fallback)
+      const ownCount = await Destination.countDocuments({ tenantId });
+      query = ownCount > 0
+        ? { tenantId }
+        : buildTenantQuery({}, tenantId);
+    }
+
     const destinations = await Destination.find(query).sort({ name: 1 });
     return NextResponse.json({ success: true, data: destinations });
   } catch (error) {

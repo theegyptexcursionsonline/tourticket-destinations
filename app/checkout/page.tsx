@@ -566,7 +566,7 @@ const CheckoutFormStep = ({
               });
             }}
             initialLocation={formData.hotelPickupLocation || undefined}
-            tourLocation={cart && cart.length > 0 ? cart[0].title : 'Cairo, Egypt'}
+            tourLocation={cart && cart.length > 0 ? cart[0].title : ''}
           />
         </section>
       )}
@@ -1240,7 +1240,7 @@ const handleDownloadReceipt = async () => {
           transition={{ delay: 1 }}
           className="text-center text-xs text-slate-400 mt-8"
         >
-          Questions about your booking? Contact us at {tenant?.contact?.email || 'booking@egypt-excursionsonline.com'}
+          {tenant?.contact?.email && <>Questions about your booking? Contact us at {tenant.contact.email}</>}
         </motion.p>
       </motion.div>
     </div>

@@ -46,7 +46,7 @@ export default function OfflinePage() {
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <a 
-              href={`mailto:${config?.contact?.email || 'info@egyptexcursions.com'}`}
+              href={`mailto:${config?.contact?.email || 'support@excursions.online'}`}
               className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-white transition-all hover:opacity-90"
               style={{ backgroundColor: primaryColor }}
             >

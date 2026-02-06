@@ -46,7 +46,7 @@ export default function BookingVerificationPage() {
   const [error, setError] = useState<string | null>(null);
 
   // Tenant-specific contact info
-  const contactEmail = tenant?.contact?.email || 'booking@egypt-excursionsonline.com';
+  const contactEmail = tenant?.contact?.email || 'support@excursions.online';
 
   useEffect(() => {
     async function fetchBooking() {
@@ -293,7 +293,7 @@ export default function BookingVerificationPage() {
               Email Support
             </a>
             <a 
-              href="https://wa.me/201142255624" 
+              href={`https://wa.me/${tenant?.contact?.whatsapp?.replace(/[^0-9]/g, '') || '201142255624'}`}
               target="_blank" 
               rel="noopener noreferrer"
               className="inline-flex items-center px-6 py-3 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600 transition-colors"

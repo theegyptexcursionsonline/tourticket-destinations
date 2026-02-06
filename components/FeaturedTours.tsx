@@ -5,6 +5,7 @@ import { ArrowRight, Star, ShoppingCart, Clock, Users, ImageIcon } from 'lucide-
 import Image from 'next/image';
 import { Tour } from '@/types';
 import { useSettings } from '@/hooks/useSettings';
+import { useTenant } from '@/contexts/TenantContext';
 import BookingSidebar from '@/components/BookingSidebar';
 import Link from 'next/link';
 
@@ -94,6 +95,7 @@ const getTagColor = (tag: string) => {
 // Enhanced Tour Card Component
 const TourCard = ({ tour, onAddToCartClick }: { tour: Tour; onAddToCartClick: (tour: Tour) => void }) => {
   const { formatPrice } = useSettings();
+  const { getSiteName } = useTenant();
 
   return (
     <Link
@@ -116,7 +118,7 @@ const TourCard = ({ tour, onAddToCartClick }: { tour: Tour; onAddToCartClick: (t
         {/* Activity Provider Chip - Top Left */}
         <div className="absolute top-4 left-4 z-20">
           <span className="px-3 py-1.5 text-xs font-bold text-white bg-slate-900/80 backdrop-blur-sm rounded-full shadow-lg">
-            Egypt Excursions Online
+            {getSiteName()}
           </span>
         </div>
 
@@ -231,6 +233,7 @@ export default function FeaturedTours() {
   const [isBookingSidebarOpen, setBookingSidebarOpen] = useState(false);
   const [selectedTour, setSelectedTour] = useState<Tour | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const { getSiteName } = useTenant();
 
   useEffect(() => {
     const fetchTours = async () => {
@@ -360,10 +363,10 @@ export default function FeaturedTours() {
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-10 sm:mb-12 md:mb-16 gap-4 sm:gap-6">
             <div className="max-w-2xl">
               <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-gray-900 tracking-tight leading-tight">
-                Canal Cruises Perfect For You
+                Featured Tours & Experiences
               </h2>
               <p className="mt-3 sm:mt-4 text-base sm:text-lg md:text-xl text-gray-600 leading-relaxed">
-                Discover top-rated experiences in Egypt — handpicked by local experts for unforgettable memories.
+                Discover top-rated experiences from {getSiteName()} — handpicked by local experts for unforgettable memories.
               </p>
             </div>
 

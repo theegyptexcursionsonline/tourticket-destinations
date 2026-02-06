@@ -39,15 +39,15 @@ export class EmailService {
   // Helper to extract branding data for templates
   private static getBrandingTemplateData(branding?: TenantEmailBranding) {
     return {
-      companyName: branding?.companyName || 'Egypt Excursions Online',
+      companyName: branding?.companyName || 'Excursions Online',
       companyLogo: branding?.logo || '/EEO-logo.png',
       primaryColor: branding?.primaryColor || '#E63946',
       secondaryColor: branding?.secondaryColor || '#1D3557',
       accentColor: branding?.accentColor || '#F4A261',
-      contactEmail: branding?.contactEmail || 'info@egypt-excursionsonline.com',
-      contactPhone: branding?.contactPhone || '+20 11 42255624',
-      supportEmail: branding?.supportEmail || branding?.contactEmail || 'support@egypt-excursionsonline.com',
-      website: branding?.website || 'https://egypt-excursionsonline.com',
+      contactEmail: branding?.contactEmail || 'info@excursions.online',
+      contactPhone: branding?.contactPhone || '',
+      supportEmail: branding?.supportEmail || branding?.contactEmail || 'support@excursions.online',
+      website: branding?.website || 'https://excursions.online',
       facebookUrl: branding?.socialLinks?.facebook,
       instagramUrl: branding?.socialLinks?.instagram,
       twitterUrl: branding?.socialLinks?.twitter,

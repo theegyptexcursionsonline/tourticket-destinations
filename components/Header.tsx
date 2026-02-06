@@ -529,6 +529,7 @@ const TourSlider = ({ tours }: { tours: any[] }) => {
 
 // Mobile Inline Search Component with AI
 const MobileInlineSearch: FC<{ isOpen: boolean; onClose: () => void }> = React.memo(({ isOpen, onClose }) => {
+  const { getSiteName } = useTenant();
   const [inputValue, setInputValue] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [chatMode, setChatMode] = useState(false);
@@ -718,7 +719,7 @@ const MobileInlineSearch: FC<{ isOpen: boolean; onClose: () => void }> = React.m
                         handleChatSubmit();
                       }
                     }}
-                    placeholder={chatMode ? "Ask AI about Egypt tours..." : "Search tours, destinations..."}
+                    placeholder={chatMode ? "Ask AI about tours..." : "Search tours, destinations..."}
                     className="w-full pl-14 pr-32 py-4 text-base text-gray-900 placeholder:text-gray-400/70 placeholder:font-normal font-medium bg-transparent outline-none rounded-full"
                     autoFocus
                     disabled={chatMode && isGenerating}
@@ -843,7 +844,7 @@ const MobileInlineSearch: FC<{ isOpen: boolean; onClose: () => void }> = React.m
                             </div>
                             <div>
                               <p className="font-semibold text-gray-800 text-sm mb-1">
-                                Hi! I'm your AI Egypt Travel Assistant
+                                {`Hi! I'm your AI Travel Assistant`}
                               </p>
                               <p className="text-gray-500 text-xs leading-relaxed">
                                 Ask me anything — I'll help you find tours, trips, prices, destinations & more.
@@ -906,11 +907,11 @@ const MobileInlineSearch: FC<{ isOpen: boolean; onClose: () => void }> = React.m
                       <div className="flex items-center gap-2 mb-4">
                         <Sparkles className="w-4 h-4 text-blue-500" />
                         <span className="text-xs font-bold text-gray-700 uppercase tracking-wider">
-                          Trending Egypt Tours
+                          Trending Tours
                         </span>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        {['Pyramids of Giza', 'Nile Cruise', 'Luxor Temple', 'Desert Safari', 'Cairo Tours', 'Red Sea Diving'].map((trend) => (
+                        {['Day Tours', 'Snorkeling', 'Desert Safari', 'Boat Trips', 'Sightseeing', 'Diving'].map((trend) => (
                           <button
                             key={trend}
                             onClick={() => {

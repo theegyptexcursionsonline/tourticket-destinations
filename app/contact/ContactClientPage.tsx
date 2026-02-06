@@ -142,19 +142,20 @@ export default function ContactClientPage() {
   const [formLoadTime, setFormLoadTime] = useState<number>(0);
 
   // Tenant-specific contact info
-  const contactPhone = tenant?.contact?.phone || '+20 11 42255624';
-  const contactEmail = tenant?.contact?.email || 'booking@egypt-excursionsonline.com';
+  const contactPhone = tenant?.contact?.phone || '';
+  const contactEmail = tenant?.contact?.email || 'support@excursions.online';
 
   // Track when form loads to detect bot submissions
   useEffect(() => {
     setFormLoadTime(Date.now());
   }, []);
 
+  const tenantSocials = tenant?.branding?.socialLinks || tenant?.socialLinks;
   const socialLinks = [
-    { icon: Facebook, href: "https://web.facebook.com/EGexcursionsonline/?_rdc=1&_rdr#" },
-    { icon: Instagram, href: "https://www.instagram.com/egyptexcursionsonline/" },
-    { icon: Twitter, href: "https://x.com/excursiononline" },
-    { icon: Youtube, href: "https://www.youtube.com/@egyptexcursionsonline6859" },
+    tenantSocials?.facebook ? { icon: Facebook, href: tenantSocials.facebook } : { icon: Facebook, href: "https://web.facebook.com/EGexcursionsonline/?_rdc=1&_rdr#" },
+    tenantSocials?.instagram ? { icon: Instagram, href: tenantSocials.instagram } : { icon: Instagram, href: "https://www.instagram.com/egyptexcursionsonline/" },
+    tenantSocials?.twitter ? { icon: Twitter, href: tenantSocials.twitter } : { icon: Twitter, href: "https://x.com/excursiononline" },
+    tenantSocials?.youtube ? { icon: Youtube, href: tenantSocials.youtube } : { icon: Youtube, href: "https://www.youtube.com/@egyptexcursionsonline6859" },
   ];
 
   const openChatbot = (e: React.MouseEvent) => {

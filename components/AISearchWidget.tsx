@@ -11,6 +11,7 @@ import { DefaultChatTransport } from 'ai';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
+import { useTenant } from '@/contexts/TenantContext';
 import 'instantsearch.css/themes/satellite.css';
 
 // --- Algolia Config ---
@@ -592,6 +593,7 @@ const DestinationSlider = ({ destinations }: { destinations: any[] }) => {
 };
 
 export default function AISearchWidget() {
+  const { getSiteName } = useTenant();
   const [isExpanded, setIsExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [inputValue, setInputValue] = useState('');
@@ -603,11 +605,12 @@ export default function AISearchWidget() {
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   // Dynamic placeholder texts for AI
+  const siteName = getSiteName();
   const placeholderTexts = [
-    'Try "Best Tours in Cairo"',
+    `Try "Best Tours in ${siteName}"`,
     'Ask "Tours under $200 Budget"',
     'Search "Luxury Nile Cruise"',
-    'Find "Day trips from Cairo"',
+    `Find "Day trips from ${siteName}"`,
     'Explore "Desert Safari Adventures"',
     'Discover "Family-friendly tours"',
   ];

@@ -11,8 +11,13 @@ export async function GET(request: NextRequest) {
     const tenantId = await getTenantFromRequest();
     await dbConnect(tenantId);
     
-    // Build tenant-aware query
-    const categories = await Category.find(buildTenantQuery({}, tenantId))
+    // If tenant has its own categories, show only those (no default fallback)
+    const ownCount = await Category.countDocuments({ tenantId });
+    const catQuery = ownCount > 0
+      ? { tenantId }
+      : buildTenantQuery({}, tenantId);
+
+    const categories = await Category.find(catQuery)
       .sort({ order: 1, name: 1 })
       .lean();
 

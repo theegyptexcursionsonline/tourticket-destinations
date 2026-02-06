@@ -381,8 +381,8 @@ const hurghadaExcursionsOnline = {
   domain: 'hurghadaexcursionsonline.com',
   domains: ['hurghadaexcursionsonline.com', 'www.hurghadaexcursionsonline.com'],
   branding: {
-    logo: generatePlaceholderLogo('Hurghada+Excursions', '0891B2'),
-    logoDark: generatePlaceholderLogo('Hurghada+Excursions', '0891B2', '1F2937'),
+    logo: '/tenants/hurghada-excursions-online/logo.png',
+    logoDark: '/tenants/hurghada-excursions-online/logo.png',
     logoAlt: 'Hurghada Excursions Online',
     favicon: generatePlaceholderFavicon('0891B2'),
     primaryColor: '#0891B2',      // Cyan-600 (Ocean blue)
@@ -660,8 +660,8 @@ const cairoExcursionsOnline = {
   domain: 'cairoexcursionsonline.com',
   domains: ['cairoexcursionsonline.com', 'www.cairoexcursionsonline.com'],
   branding: {
-    logo: generatePlaceholderLogo('Cairo+Excursions', 'B45309'),
-    logoDark: generatePlaceholderLogo('Cairo+Excursions', 'B45309', '1F2937'),
+    logo: '/tenants/cairo-excursions-online/logo.png',
+    logoDark: '/tenants/cairo-excursions-online/logo.png',
     logoAlt: 'Cairo Excursions Online',
     favicon: generatePlaceholderFavicon('B45309'),
     primaryColor: '#B45309',      // Amber-700 (Golden)
@@ -939,8 +939,8 @@ const makadiBayExcursions = {
   domain: 'makadibayexcursions.com',
   domains: ['makadibayexcursions.com', 'www.makadibayexcursions.com'],
   branding: {
-    logo: generatePlaceholderLogo('Makadi+Bay', '0D9488'),
-    logoDark: generatePlaceholderLogo('Makadi+Bay', '0D9488', '1F2937'),
+    logo: '/tenants/makadi-bay/logo.png',
+    logoDark: '/tenants/makadi-bay/logo.png',
     logoAlt: 'Makadi Bay Excursions',
     favicon: generatePlaceholderFavicon('0D9488'),
     primaryColor: '#0D9488',      // Teal-600 (Tropical)
@@ -1217,8 +1217,8 @@ const elGounaExcursions = {
   domain: 'elgounaexcursions.com',
   domains: ['elgounaexcursions.com', 'www.elgounaexcursions.com'],
   branding: {
-    logo: generatePlaceholderLogo('El+Gouna', 'E11D48'),
-    logoDark: generatePlaceholderLogo('El+Gouna', 'E11D48', '1F2937'),
+    logo: '/tenants/el-gouna/logo.png',
+    logoDark: '/tenants/el-gouna/logo.png',
     logoAlt: 'El Gouna Excursions',
     favicon: generatePlaceholderFavicon('E11D48'),
     primaryColor: '#E11D48',      // Rose-600 (Coral pink)
@@ -1496,8 +1496,8 @@ const luxorExcursions = {
   domain: 'luxorexcursions.com',
   domains: ['luxorexcursions.com', 'www.luxorexcursions.com'],
   branding: {
-    logo: generatePlaceholderLogo('Luxor+Excursions', '7C3AED'),
-    logoDark: generatePlaceholderLogo('Luxor+Excursions', '7C3AED', '1F2937'),
+    logo: '/tenants/luxor-excursions/logo.png',
+    logoDark: '/tenants/luxor-excursions/logo.png',
     logoAlt: 'Luxor Excursions',
     favicon: generatePlaceholderFavicon('7C3AED'),
     primaryColor: '#7C3AED',      // Violet-600 (Royal purple)
@@ -1774,8 +1774,8 @@ const sharmExcursionsOnline = {
   domain: 'sharmexcursionsonline.com',
   domains: ['sharmexcursionsonline.com', 'www.sharmexcursionsonline.com'],
   branding: {
-    logo: generatePlaceholderLogo('Sharm+Excursions', '2563EB'),
-    logoDark: generatePlaceholderLogo('Sharm+Excursions', '2563EB', '1F2937'),
+    logo: '/tenants/sharm-excursions-online/logo.png',
+    logoDark: '/tenants/sharm-excursions-online/logo.png',
     logoAlt: 'Sharm Excursions Online',
     favicon: generatePlaceholderFavicon('2563EB'),
     primaryColor: '#2563EB',      // Blue-600 (Deep sea)

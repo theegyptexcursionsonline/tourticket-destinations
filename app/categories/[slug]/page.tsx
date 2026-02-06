@@ -27,7 +27,10 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     
     await dbConnect();
     
-    const category = await CategoryModel.findOne({ slug })
+    // Smart tenant detection for metadata
+    const ownCatCount = await CategoryModel.countDocuments({ tenantId });
+    const metaCatQuery = ownCatCount > 0 ? { slug, tenantId } : { slug };
+    const category = await CategoryModel.findOne(metaCatQuery)
       .select('name description heroImage metaTitle metaDescription keywords')
       .lean();
 
@@ -52,7 +55,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   } catch (error) {
     console.error('Error generating metadata:', error);
     return {
-      title: 'Category - Egypt Excursions Online',
+      title: 'Category',
       description: 'Explore our tour categories',
     };
   }
@@ -61,16 +64,22 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 async function getPageData(slug: string, tenantId: string) {
   await dbConnect();
 
-  const category = await CategoryModel.findOne({ slug }).lean();
+  // Smart tenant detection: check if tenant has own categories
+  const ownCatCount = await CategoryModel.countDocuments({ tenantId });
+  const categoryQuery = ownCatCount > 0
+    ? { slug, tenantId }
+    : { slug };
+
+  const category = await CategoryModel.findOne(categoryQuery).lean();
   if (!category) {
     return { category: null, categoryTours: [] };
   }
 
-  // Build tenant-filtered query for tours
-  const tourQuery = buildTenantQuery({
-    category: { $in: [category._id] },
-    isPublished: true
-  }, tenantId);
+  // Smart tenant detection for tours
+  const ownTourCount = await TourModel.countDocuments({ tenantId });
+  const tourQuery = ownTourCount > 0
+    ? { category: { $in: [category._id] }, isPublished: true, tenantId }
+    : buildTenantQuery({ category: { $in: [category._id] }, isPublished: true }, tenantId);
 
   const categoryTours = await TourModel.find(tourQuery).populate('destination').lean();
   

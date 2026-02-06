@@ -36,10 +36,13 @@ export async function generateMetadata(): Promise<Metadata> {
 // Server-side function to fetch all tours with populated data (tenant-aware)
 async function getAllTours(tenantId: string): Promise<ITour[]> {
   await dbConnect();
-  
-  // Build query with tenant filter
-  const query = buildTenantQuery({ isPublished: true }, tenantId);
-  
+
+  // If tenant has its own tours, show only those (no default fallback)
+  const ownTourCount = await Tour.countDocuments({ tenantId });
+  const query = ownTourCount > 0
+    ? { isPublished: true, tenantId }
+    : buildTenantQuery({ isPublished: true }, tenantId);
+
   const tours = await Tour.find(query)
     .populate('destination', 'name')
     .populate('category', 'name')

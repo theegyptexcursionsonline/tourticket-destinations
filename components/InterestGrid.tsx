@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from "react";
+import { useTenant } from '@/contexts/TenantContext';
 import Link from "next/link";
 import {
   ArrowRight,
@@ -269,6 +270,7 @@ const EmptyState = () => (
 
 // --- Main Component ---
 export default function InterestGrid() {
+  const { getSiteName } = useTenant();
   const [interests, setInterests] = useState<Interest[]>([]);
   const [categoryPages, setCategoryPages] = useState<CategoryPage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -466,7 +468,7 @@ export default function InterestGrid() {
         <div className="text-center mb-6 sm:mb-8 md:mb-10 lg:mb-12">
           <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-red-100 to-orange-100 rounded-full mb-3 sm:mb-4 border border-red-200">
             <Sparkles className="w-3 sm:w-4 h-3 sm:h-4 text-red-600" />
-            <span className="text-xs sm:text-sm font-bold text-red-700">Discover Egypt</span>
+            <span className="text-xs sm:text-sm font-bold text-red-700">{getSiteName()}</span>
           </div>
 
           <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-slate-900 mb-2 sm:mb-3 md:mb-4 leading-tight px-2 sm:px-4">
@@ -477,7 +479,7 @@ export default function InterestGrid() {
           </h2>
 
           <p className="text-sm sm:text-base md:text-lg lg:text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed px-4">
-            Explore our complete collection of unforgettable tours and experiences across the wonders of Egypt
+            Explore our complete collection of unforgettable tours and experiences
           </p>
         </div>
 

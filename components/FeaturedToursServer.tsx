@@ -6,6 +6,7 @@ import { ArrowRight, Star, ShoppingCart, Clock, Users, ImageIcon } from 'lucide-
 import Image from 'next/image';
 import { Tour } from '@/types';
 import { useSettings } from '@/hooks/useSettings';
+import { useTenant } from '@/contexts/TenantContext';
 import BookingSidebar from '@/components/BookingSidebar';
 import Link from 'next/link';
 
@@ -90,6 +91,7 @@ const getTagColor = (tag: string) => {
 // Tour Card Component - NO SHADOWS
 const TourCard = ({ tour, onAddToCartClick }: { tour: Tour; onAddToCartClick: (tour: Tour) => void }) => {
   const { formatPrice } = useSettings();
+  const { getSiteName } = useTenant();
 
   return (
     <Link
@@ -112,7 +114,7 @@ const TourCard = ({ tour, onAddToCartClick }: { tour: Tour; onAddToCartClick: (t
         {/* Provider Badge */}
         <div className="absolute top-4 left-4 z-20">
           <span className="px-3 py-1.5 text-xs font-bold text-white bg-slate-900/80 backdrop-blur-sm rounded-full" style={{ boxShadow: 'none' }}>
-            Egypt Excursions Online
+            {getSiteName()}
           </span>
         </div>
 
@@ -220,6 +222,7 @@ const TourCard = ({ tour, onAddToCartClick }: { tour: Tour; onAddToCartClick: (t
 export default function FeaturedToursServer({ tours }: FeaturedToursServerProps) {
   const [isBookingSidebarOpen, setBookingSidebarOpen] = useState(false);
   const [selectedTour, setSelectedTour] = useState<Tour | null>(null);
+  const { getSiteName } = useTenant();
 
   const handleAddToCartClick = (tour: Tour) => {
     setSelectedTour(tour);
@@ -260,10 +263,10 @@ export default function FeaturedToursServer({ tours }: FeaturedToursServerProps)
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sm:gap-6">
             <div className="max-w-2xl">
               <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 tracking-tight leading-tight">
-                Canal Cruises Perfect For You
+                Featured Tours & Experiences
               </h2>
               <p className="mt-2 sm:mt-3 text-sm sm:text-base md:text-lg text-gray-600 leading-relaxed">
-                Discover top-rated experiences in Egypt — handpicked by local experts for unforgettable memories.
+                Discover top-rated experiences from {getSiteName()} — handpicked by local experts for unforgettable memories.
               </p>
             </div>
 

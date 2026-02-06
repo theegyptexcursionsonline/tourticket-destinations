@@ -96,8 +96,8 @@ export default function Footer() {
   const finalSocialLinks = displaySocialLinks.length > 0 ? displaySocialLinks : socialLinks;
   
   // Get contact info from tenant
-  const contactPhone = tenant?.contact?.phone || '+20 11 42255624';
-  const contactEmail = tenant?.contact?.email || 'booking@egypt-excursionsonline.com';
+  const contactPhone = tenant?.contact?.phone || '';
+  const contactEmail = tenant?.contact?.email || 'support@excursions.online';
 
   useEffect(() => {
     const fetchDestinations = async () => {
