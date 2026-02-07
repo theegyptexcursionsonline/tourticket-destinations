@@ -71,7 +71,7 @@ const FALLBACK_REVIEWS: Record<string, Review[]> = {
 };
 
 const initials = (name: string) =>
-  name
+  (name || 'G')
     .split(' ')
     .map((n) => n[0])
     .slice(0, 2)
@@ -89,7 +89,7 @@ const avatarColor = (name: string) => {
   ];
   const idx =
     Math.abs(
-      name.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0),
+      (name || 'G').split('').reduce((acc, c) => acc + c.charCodeAt(0), 0),
     ) % colors.length;
   return colors[idx];
 };

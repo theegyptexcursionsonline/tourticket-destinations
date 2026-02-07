@@ -556,9 +556,9 @@ const TENANT_HOMEPAGE_CONTENT: Record<string, {
       title: 'What Our Guests Say',
       subtitle: 'Real stories from travellers who explored Aswan with us.',
       reviews: [
-        { author: 'Thomas K.', rating: 5, text: 'The Abu Simbel sunrise tour was absolutely magical. Our guide was incredibly knowledgeable about the history.', tour: 'Abu Simbel Day Trip' },
-        { author: 'Marie L.', rating: 5, text: 'The Nubian village visit was the highlight of our Egypt trip. Such warm hospitality and beautiful colours everywhere!', tour: 'Nubian Village Tour' },
-        { author: 'Hans W.', rating: 5, text: 'Sunset felucca ride around Elephantine Island — pure bliss. The perfect way to end a day of temple visits.', tour: 'Felucca Nile Cruise' },
+        { name: 'Thomas K.', country: 'Germany', review: 'The Abu Simbel sunrise tour was absolutely magical. Our guide was incredibly knowledgeable about the history.', rating: 5, datePublished: '2025-09-12' },
+        { name: 'Marie L.', country: 'France', review: 'The Nubian village visit was the highlight of our Egypt trip. Such warm hospitality and beautiful colours everywhere!', rating: 5, datePublished: '2025-08-20' },
+        { name: 'Hans W.', country: 'Austria', review: 'Sunset felucca ride around Elephantine Island — pure bliss. The perfect way to end a day of temple visits.', rating: 5, datePublished: '2025-07-15' },
       ],
     },
     faqContent: {
@@ -601,9 +601,9 @@ const TENANT_HOMEPAGE_CONTENT: Record<string, {
       title: 'What Our Guests Say',
       subtitle: 'Real stories from marine adventurers.',
       reviews: [
-        { author: 'Sophie M.', rating: 5, text: 'We swam with a dugong at Abu Dabbab! A once-in-a-lifetime experience. The guides were excellent at spotting wildlife.', tour: 'Dugong Snorkeling Tour' },
-        { author: 'Klaus H.', rating: 5, text: 'Sataya Reef was incredible — pods of spinner dolphins all around us. The most beautiful reef I have ever seen.', tour: 'Sataya Dolphin Reef' },
-        { author: 'Emma R.', rating: 5, text: 'The colours of the coral at Elphinstone are unreal. Saw a sea turtle within the first five minutes!', tour: 'Elphinstone Reef Dive' },
+        { name: 'Sophie M.', country: 'Netherlands', review: 'We swam with a dugong at Abu Dabbab! A once-in-a-lifetime experience. The guides were excellent at spotting wildlife.', rating: 5, datePublished: '2025-10-05' },
+        { name: 'Klaus H.', country: 'Germany', review: 'Sataya Reef was incredible — pods of spinner dolphins all around us. The most beautiful reef I have ever seen.', rating: 5, datePublished: '2025-09-18' },
+        { name: 'Emma R.', country: 'UK', review: 'The colours of the coral at Elphinstone are unreal. Saw a sea turtle within the first five minutes!', rating: 5, datePublished: '2025-08-22' },
       ],
     },
     faqContent: {
@@ -646,9 +646,9 @@ const TENANT_HOMEPAGE_CONTENT: Record<string, {
       title: 'What Our Guests Say',
       subtitle: 'Real stories from Dahab adventurers.',
       reviews: [
-        { author: 'Jake P.', rating: 5, text: 'Snorkeling at the Blue Hole was surreal — staring into that endless blue abyss. The reef around the rim is gorgeous too.', tour: 'Blue Hole Snorkeling' },
-        { author: 'Anna S.', rating: 5, text: 'Watching sunrise from the top of Mount Sinai was deeply moving. The night trek was challenging but so worth it.', tour: 'Mount Sinai Trek' },
-        { author: 'Luca B.', rating: 5, text: 'The Three Pools snorkeling was amazing — so colourful and peaceful. Followed by a Bedouin lunch in the desert. Perfect day!', tour: 'Three Pools & Safari' },
+        { name: 'Jake P.', country: 'USA', review: 'Snorkeling at the Blue Hole was surreal — staring into that endless blue abyss. The reef around the rim is gorgeous too.', rating: 5, datePublished: '2025-10-10' },
+        { name: 'Anna S.', country: 'Sweden', review: 'Watching sunrise from the top of Mount Sinai was deeply moving. The night trek was challenging but so worth it.', rating: 5, datePublished: '2025-09-25' },
+        { name: 'Luca B.', country: 'Italy', review: 'The Three Pools snorkeling was amazing — so colourful and peaceful. Followed by a Bedouin lunch in the desert. Perfect day!', rating: 5, datePublished: '2025-08-30' },
       ],
     },
     faqContent: {
