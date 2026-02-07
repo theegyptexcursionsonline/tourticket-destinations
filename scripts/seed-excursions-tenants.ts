@@ -384,7 +384,7 @@ const hurghadaExcursionsOnline = {
     logo: '/tenants/hurghada-excursions-online/logo.png',
     logoDark: '/tenants/hurghada-excursions-online/logo.png',
     logoAlt: 'Hurghada Excursions Online',
-    favicon: generatePlaceholderFavicon('0891B2'),
+    favicon: '/tenants/hurghada-excursions-online/favicon.ico',
     primaryColor: '#0891B2',      // Cyan-600 (Ocean blue)
     secondaryColor: '#164E63',    // Cyan-900 (Deep ocean)
     accentColor: '#22D3EE',       // Cyan-400 (Bright water)
@@ -663,7 +663,7 @@ const cairoExcursionsOnline = {
     logo: '/tenants/cairo-excursions-online/logo.png',
     logoDark: '/tenants/cairo-excursions-online/logo.png',
     logoAlt: 'Cairo Excursions Online',
-    favicon: generatePlaceholderFavicon('B45309'),
+    favicon: '/tenants/cairo-excursions-online/favicon.ico',
     primaryColor: '#B45309',      // Amber-700 (Golden)
     secondaryColor: '#78350F',    // Amber-900 (Deep bronze)
     accentColor: '#F59E0B',       // Amber-500 (Bright gold)
@@ -942,7 +942,7 @@ const makadiBayExcursions = {
     logo: '/tenants/makadi-bay/logo.png',
     logoDark: '/tenants/makadi-bay/logo.png',
     logoAlt: 'Makadi Bay Excursions',
-    favicon: generatePlaceholderFavicon('0D9488'),
+    favicon: '/tenants/makadi-bay/favicon.ico',
     primaryColor: '#0D9488',      // Teal-600 (Tropical)
     secondaryColor: '#134E4A',    // Teal-900 (Deep lagoon)
     accentColor: '#2DD4BF',       // Teal-400 (Bright aqua)
@@ -1220,7 +1220,7 @@ const elGounaExcursions = {
     logo: '/tenants/el-gouna/logo.png',
     logoDark: '/tenants/el-gouna/logo.png',
     logoAlt: 'El Gouna Excursions',
-    favicon: generatePlaceholderFavicon('E11D48'),
+    favicon: '/tenants/el-gouna/favicon.ico',
     primaryColor: '#E11D48',      // Rose-600 (Coral pink)
     secondaryColor: '#9F1239',    // Rose-800 (Deep rose)
     accentColor: '#FB7185',       // Rose-400 (Soft coral)
@@ -1499,7 +1499,7 @@ const luxorExcursions = {
     logo: '/tenants/luxor-excursions/logo.png',
     logoDark: '/tenants/luxor-excursions/logo.png',
     logoAlt: 'Luxor Excursions',
-    favicon: generatePlaceholderFavicon('7C3AED'),
+    favicon: '/tenants/luxor-excursions/favicon.ico',
     primaryColor: '#7C3AED',      // Violet-600 (Royal purple)
     secondaryColor: '#4C1D95',    // Violet-900 (Deep purple)
     accentColor: '#A78BFA',       // Violet-400 (Soft lavender)
@@ -1777,7 +1777,7 @@ const sharmExcursionsOnline = {
     logo: '/tenants/sharm-excursions-online/logo.png',
     logoDark: '/tenants/sharm-excursions-online/logo.png',
     logoAlt: 'Sharm Excursions Online',
-    favicon: generatePlaceholderFavicon('2563EB'),
+    favicon: '/tenants/sharm-excursions-online/favicon.ico',
     primaryColor: '#2563EB',      // Blue-600 (Deep sea)
     secondaryColor: '#1E3A8A',    // Blue-900 (Navy)
     accentColor: '#60A5FA',       // Blue-400 (Light sea)
@@ -2058,7 +2058,7 @@ const aswanExcursions = {
     logo: '/tenants/aswan-excursions/logo.png',
     logoDark: '/tenants/aswan-excursions/logo.png',
     logoAlt: 'Aswan Excursions',
-    favicon: generatePlaceholderFavicon('C2410C'),
+    favicon: '/tenants/aswan-excursions/favicon.ico',
     primaryColor: '#C2410C',       // Orange-700 (Nubian warmth)
     secondaryColor: '#7C2D12',     // Orange-900 (Ancient stone)
     accentColor: '#FB923C',        // Orange-400 (Sunset glow)
@@ -2302,7 +2302,7 @@ const marsaAlamExcursions = {
     logo: '/tenants/marsa-alam-excursions/logo.png',
     logoDark: '/tenants/marsa-alam-excursions/logo.png',
     logoAlt: 'Marsa Alam Excursions',
-    favicon: generatePlaceholderFavicon('059669'),
+    favicon: '/tenants/marsa-alam-excursions/favicon.ico',
     primaryColor: '#059669',       // Emerald-600 (Marine life)
     secondaryColor: '#064E3B',     // Emerald-900 (Deep reef)
     accentColor: '#34D399',        // Emerald-400 (Bright coral)
@@ -2495,7 +2495,7 @@ const dahabExcursions = {
     logo: '/tenants/dahab-excursions/logo.png',
     logoDark: '/tenants/dahab-excursions/logo.png',
     logoAlt: 'Dahab Excursions',
-    favicon: generatePlaceholderFavicon('D97706'),
+    favicon: '/tenants/dahab-excursions/favicon.ico',
     primaryColor: '#D97706',       // Amber-600 (Desert gold)
     secondaryColor: '#92400E',     // Amber-800 (Deep sand)
     accentColor: '#0D9488',        // Teal-600 (Blue Hole)
