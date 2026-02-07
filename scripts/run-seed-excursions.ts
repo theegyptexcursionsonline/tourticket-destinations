@@ -1,9 +1,9 @@
 #!/usr/bin/env npx tsx
 /**
- * Main Runner: Seed all 6 Excursions Online tenants
+ * Main Runner: Seed all 9 Excursions Online tenants
  *
  * Seeds destinations, categories, tours, reviews & updates tenant config
- * for all 6 Excursions Online tenants.
+ * for all 9 Excursions Online tenants.
  *
  * Run: npx tsx scripts/run-seed-excursions.ts
  */
@@ -24,6 +24,9 @@ import { makadi } from './data/makadi-data';
 import { elgouna } from './data/elgouna-data';
 import { luxor } from './data/luxor-data';
 import { sharm } from './data/sharm-data';
+import { aswan } from './data/aswan-data';
+import { marsaAlam } from './data/marsa-alam-data';
+import { dahab } from './data/dahab-data';
 
 import type { TenantSeed } from './seed-excursions-content';
 
@@ -141,7 +144,7 @@ async function seedAllTenants() {
     const Review = mongoose.models.Review || (await import('../lib/models/Review')).default;
     const HeroSettings = mongoose.models.HeroSettings || (await import('../lib/models/HeroSettings')).default;
 
-    const allTenants: TenantSeed[] = [hurghada, cairo, makadi, elgouna, luxor, sharm];
+    const allTenants: TenantSeed[] = [hurghada, cairo, makadi, elgouna, luxor, sharm, aswan, marsaAlam, dahab];
 
     let totalDests = 0, totalCats = 0, totalTours = 0, totalReviews = 0;
 
@@ -274,6 +277,9 @@ async function seedAllTenants() {
     console.log('   el-gouna                   → http://localhost:3008');
     console.log('   luxor-excursions           → http://localhost:3009');
     console.log('   sharm-excursions-online    → http://localhost:3010');
+    console.log('   aswan-excursions           → http://localhost:3011');
+    console.log('   marsa-alam-excursions      → http://localhost:3012');
+    console.log('   dahab-excursions           → http://localhost:3013');
     console.log('');
 
   } catch (error) {
