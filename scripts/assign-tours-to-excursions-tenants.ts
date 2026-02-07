@@ -36,6 +36,9 @@ const NEW_TENANT_IDS = [
   'el-gouna',
   'luxor-excursions',
   'sharm-excursions-online',
+  'aswan-excursions',
+  'marsa-alam-excursions',
+  'dahab-excursions',
 ];
 
 // Mapping of tenant to relevant keywords for auto-assignment
@@ -68,6 +71,21 @@ const TENANT_KEYWORDS: Record<string, string[]> = {
     'sharm', 'sharm el sheikh', 'ras mohammed', 'tiran', 'blue hole',
     'dahab', 'diving', 'snorkeling', 'desert safari', 'quad', 'camel',
     'bedouin', 'st catherine', 'moses mountain', 'sinai'
+  ],
+  'aswan-excursions': [
+    'aswan', 'abu simbel', 'philae', 'nubian', 'felucca', 'high dam',
+    'elephantine', 'kom ombo', 'edfu', 'unfinished obelisk', 'botanical garden',
+    'nile cruise', 'temple', 'tombs of nobles'
+  ],
+  'marsa-alam-excursions': [
+    'marsa alam', 'port ghalib', 'dugong', 'abu dabbab', 'sataya',
+    'elphinstone', 'dolphin house', 'sea turtle', 'snorkeling', 'diving',
+    'reef', 'wadi el gemal', 'mangrove', 'desert safari'
+  ],
+  'dahab-excursions': [
+    'dahab', 'blue hole', 'three pools', 'canyon', 'freediving',
+    'mount sinai', 'st catherine', 'sinai', 'bedouin', 'camel',
+    'lighthouse reef', 'gabr el bint', 'ras abu galum', 'snorkeling'
   ],
 };
 

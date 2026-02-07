@@ -11,6 +11,9 @@ const LOGO_UPDATES = [
   { tenantId: 'el-gouna', logo: '/tenants/el-gouna/logo.png' },
   { tenantId: 'luxor-excursions', logo: '/tenants/luxor-excursions/logo.png' },
   { tenantId: 'sharm-excursions-online', logo: '/tenants/sharm-excursions-online/logo.png' },
+  { tenantId: 'aswan-excursions', logo: '/tenants/aswan-excursions/logo.png' },
+  { tenantId: 'marsa-alam-excursions', logo: '/tenants/marsa-alam-excursions/logo.png' },
+  { tenantId: 'dahab-excursions', logo: '/tenants/dahab-excursions/logo.png' },
 ];
 
 async function main() {

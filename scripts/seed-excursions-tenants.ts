@@ -2045,6 +2045,636 @@ const sharmExcursionsOnline = {
 };
 
 // ============================================================================
+// 7. ASWAN EXCURSIONS
+// Theme: Nubian/Ancient - Warm orange-brown, cultural
+// ============================================================================
+const aswanExcursions = {
+  tenantId: 'aswan-excursions',
+  name: 'Aswan Excursions',
+  slug: 'aswan-excursions',
+  domain: 'aswanexcursions.com',
+  domains: ['aswanexcursions.com', 'www.aswanexcursions.com'],
+  branding: {
+    logo: '/tenants/aswan-excursions/logo.png',
+    logoDark: '/tenants/aswan-excursions/logo.png',
+    logoAlt: 'Aswan Excursions',
+    favicon: generatePlaceholderFavicon('C2410C'),
+    primaryColor: '#C2410C',       // Orange-700 (Nubian warmth)
+    secondaryColor: '#7C2D12',     // Orange-900 (Ancient stone)
+    accentColor: '#FB923C',        // Orange-400 (Sunset glow)
+    backgroundColor: '#FFF7ED',    // Soft orange tint
+    textColor: '#0F172A',
+    fontFamily: 'Source Sans Pro',
+    fontFamilyHeading: 'Playfair Display',
+    borderRadius: '12px',
+  },
+  theme: {
+    themeId: 'nubian-warmth',
+    themeName: 'Nubian Warmth',
+    colors: {
+      primary: '#C2410C',
+      primaryHover: '#9A3412',
+      primaryLight: '#FFEDD5',
+      secondary: '#7C2D12',
+      secondaryHover: '#6C2710',
+      accent: '#FB923C',
+      accentHover: '#F97316',
+      success: '#10B981',
+      warning: '#F59E0B',
+      error: '#EF4444',
+      info: '#0EA5E9',
+      background: '#FFF7ED',
+      backgroundAlt: '#FFEDD5',
+      surface: '#FFFFFF',
+      surfaceHover: '#FFF7ED',
+      text: '#0F172A',
+      textMuted: '#64748B',
+      textInverse: '#FFFFFF',
+      border: '#FED7AA',
+      borderHover: '#FDBA74',
+      divider: '#FED7AA',
+      rating: '#FBBF24',
+    },
+    gradients: {
+      primary: 'linear-gradient(135deg, #C2410C 0%, #EA580C 100%)',
+      secondary: 'linear-gradient(135deg, #7C2D12 0%, #9A3412 100%)',
+      hero: 'linear-gradient(180deg, rgba(124,45,18,0.8) 0%, rgba(194,65,12,0.4) 100%)',
+      card: 'linear-gradient(180deg, #FFEDD5 0%, #FFFFFF 100%)',
+      button: 'linear-gradient(135deg, #C2410C 0%, #9A3412 100%)',
+      overlay: 'linear-gradient(180deg, rgba(15,23,42,0.6) 0%, rgba(15,23,42,0.2) 100%)',
+    },
+    shadows: {
+      sm: '0 1px 2px 0 rgba(194, 65, 12, 0.05)',
+      md: '0 4px 6px -1px rgba(194, 65, 12, 0.1)',
+      lg: '0 10px 15px -3px rgba(194, 65, 12, 0.1)',
+      xl: '0 20px 25px -5px rgba(194, 65, 12, 0.1)',
+      primary: '0 4px 14px 0 rgba(194, 65, 12, 0.35)',
+      card: '0 4px 20px rgba(194, 65, 12, 0.12)',
+      button: '0 4px 14px 0 rgba(194, 65, 12, 0.4)',
+      dropdown: '0 10px 40px rgba(194, 65, 12, 0.15)',
+    },
+    typography: {
+      fontFamily: 'Source Sans Pro, sans-serif',
+      fontFamilyHeading: 'Playfair Display, serif',
+      fontFamilyMono: 'JetBrains Mono, monospace',
+      baseFontSize: '16px',
+      lineHeight: '1.6',
+      headingLineHeight: '1.2',
+      fontWeightNormal: 400,
+      fontWeightMedium: 600,
+      fontWeightSemibold: 700,
+      fontWeightBold: 800,
+      letterSpacing: '0',
+      headingLetterSpacing: '0.01em',
+    },
+    layout: {
+      borderRadius: '12px',
+      borderRadiusSm: '8px',
+      borderRadiusLg: '16px',
+      borderRadiusXl: '24px',
+      borderRadiusFull: '9999px',
+      containerMaxWidth: '1280px',
+      headerHeight: '72px',
+      footerStyle: 'standard' as const,
+    },
+    components: {
+      header: {
+        background: 'rgba(255, 247, 237, 0.92)',
+        backgroundScrolled: 'rgba(255, 255, 255, 0.96)',
+        textColor: '#0F172A',
+        style: 'solid' as const,
+        position: 'sticky' as const,
+        blur: true,
+      },
+      footer: {
+        background: '#7C2D12',
+        textColor: '#FFEDD5',
+        style: 'dark' as const,
+      },
+      buttons: {
+        style: 'rounded' as const,
+        primaryBg: '#C2410C',
+        primaryText: '#FFFFFF',
+        primaryHoverBg: '#9A3412',
+        secondaryBg: '#7C2D12',
+        secondaryText: '#FFFFFF',
+        outlineBorderColor: '#C2410C',
+      },
+      cards: {
+        style: 'elevated' as const,
+        background: '#FFFFFF',
+        hoverTransform: 'translateY(-4px)',
+        imageBorderRadius: '12px',
+      },
+      badges: {
+        background: '#C2410C',
+        textColor: '#FFFFFF',
+        style: 'pill' as const,
+      },
+      inputs: {
+        background: '#FFFFFF',
+        borderColor: '#FED7AA',
+        focusBorderColor: '#C2410C',
+        style: 'outlined' as const,
+      },
+    },
+    animations: {
+      enabled: true,
+      duration: '200ms',
+      durationFast: '150ms',
+      durationSlow: '300ms',
+      easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+      hoverScale: '1.03',
+    },
+    darkMode: { enabled: false },
+  },
+  seo: {
+    defaultTitle: 'Aswan Excursions - Nubian Culture & Nile Adventures',
+    titleSuffix: 'Aswan Excursions',
+    defaultDescription: 'Explore Aswan\'s ancient temples, Nubian villages, and stunning Nile landscapes. Visit Abu Simbel, Philae Temple, felucca rides, and more.',
+    defaultKeywords: [
+      'aswan excursions', 'abu simbel tour', 'philae temple', 'nubian village',
+      'aswan felucca', 'nile cruise aswan', 'aswan day trips', 'high dam aswan',
+      'kom ombo temple', 'edfu temple', 'aswan boat trips',
+    ],
+    ogImage: generatePlaceholderOgImage('Aswan+Excursions', 'C2410C', 'Nubian+Adventures'),
+    ogType: 'website',
+    structuredDataType: 'TravelAgency',
+  },
+  contact: {
+    email: 'info@aswanexcursions.com',
+    supportEmail: 'support@aswanexcursions.com',
+    phone: '+20 100 000 0007',
+    whatsapp: '+20 100 000 0007',
+    address: 'Corniche Road, Aswan',
+    city: 'Aswan',
+    country: 'Egypt',
+    postalCode: '81511',
+    businessHours: '24/7 Support Available',
+  },
+  socialLinks: {
+    facebook: 'https://facebook.com/aswanexcursions',
+    instagram: 'https://instagram.com/aswanexcursions',
+    youtube: 'https://youtube.com/@aswanexcursions',
+    tiktok: 'https://tiktok.com/@aswanexcursions',
+    tripadvisor: 'https://tripadvisor.com/aswanexcursions',
+  },
+  features: {
+    enableBlog: true, enableReviews: true, enableWishlist: true, enableAISearch: true,
+    enableIntercom: false, enableMultiCurrency: true, enableMultiLanguage: true,
+    enableLiveChat: false, enableNewsletter: true, enablePromoBar: true,
+    enableHotelPickup: true, enableGiftCards: false,
+  },
+  payments: {
+    currency: 'USD', currencySymbol: '$',
+    supportedCurrencies: ['USD', 'EUR', 'GBP', 'EGP'],
+    supportedPaymentMethods: ['card', 'paypal', 'bank'],
+    taxRate: 0, serviceFeePercent: 0, minBookingAmount: 0, maxBookingAmount: 50000,
+  },
+  email: {
+    fromName: 'Aswan Excursions', fromEmail: 'noreply@aswanexcursions.com',
+    replyToEmail: 'info@aswanexcursions.com', emailTemplateTheme: 'warm',
+  },
+  localization: {
+    defaultLanguage: 'en', supportedLanguages: ['en', 'de', 'fr', 'it', 'ar'],
+    defaultTimezone: 'Africa/Cairo', dateFormat: 'DD/MM/YYYY', timeFormat: 'HH:mm',
+  },
+  homepage: {
+    heroType: 'slider' as const,
+    heroTitle: 'Discover Ancient Aswan',
+    heroSubtitle: 'Journey through Nubian culture, ancient temples, and breathtaking Nile landscapes',
+    heroImages: [
+      'https://images.unsplash.com/photo-1568322445389-f64ac2515020?w=1920',
+      'https://images.unsplash.com/photo-1539650116574-8efeb43e2750?w=1920',
+    ],
+    showDestinations: true, showCategories: true, showFeaturedTours: true,
+    showPopularInterests: true, showDayTrips: true, showReviews: true,
+    showFAQ: true, showAboutUs: true, showPromoSection: true, featuredToursCount: 8,
+  },
+  integrations: { algoliaIndexPrefix: 'aswan_excursions_', cloudinaryFolder: 'aswan-excursions' },
+  customContent: {
+    aboutUsContent: `
+      <h2>Aswan Excursions - Gateway to Nubian Heritage</h2>
+      <p>Welcome to Aswan, where the Nile is at its most beautiful and ancient civilizations left their greatest monuments. We specialize in authentic cultural experiences that connect you with the rich Nubian heritage and awe-inspiring ancient temples.</p>
+      <p>From the magnificent Abu Simbel to the peaceful felucca rides at sunset, every experience is crafted to make your Aswan journey unforgettable.</p>
+      <h3>Our Highlights</h3>
+      <ul>
+        <li>🏛️ Expert-guided temple tours</li>
+        <li>⛵ Traditional felucca Nile cruises</li>
+        <li>🏘️ Authentic Nubian village visits</li>
+        <li>🌅 Abu Simbel sunrise experiences</li>
+        <li>🐪 Desert & camel adventures</li>
+        <li>🎶 Nubian music & culture evenings</li>
+      </ul>
+    `,
+    faqContent: [
+      { question: 'How do I get to Abu Simbel from Aswan?', answer: 'Abu Simbel is about 280km south of Aswan. We offer comfortable minibus tours departing early morning (3am), arriving for sunrise. Flight options are also available for a shorter trip.' },
+      { question: 'What is a felucca ride?', answer: 'A felucca is a traditional Egyptian wooden sailing boat. Sailing on the Nile in Aswan is one of the most peaceful and scenic experiences, especially at sunset around Elephantine Island and the Botanical Garden.' },
+      { question: 'Can I visit a Nubian village?', answer: 'Yes! Our Nubian village tours take you across the Nile to authentic villages where you can experience Nubian hospitality, colorful architecture, traditional food, and even hold baby crocodiles!' },
+      { question: 'What temples can I visit in Aswan?', answer: 'Key sites include Philae Temple (dedicated to Isis), the Unfinished Obelisk, High Dam, Kom Ombo Temple, and Edfu Temple. Abu Simbel is a must-see day trip.' },
+      { question: 'Is Aswan safe for tourists?', answer: 'Aswan is one of the safest cities in Egypt for tourists. It is known for its friendly locals and relaxed atmosphere. Tourist police are present at all major sites.' },
+    ],
+  },
+  promoBar: {
+    enabled: true,
+    text: '🏛️ ABU SIMBEL SPECIAL: Book Abu Simbel + Philae combo and save 15%!',
+    link: '/tours',
+    backgroundColor: '#C2410C',
+    textColor: '#FFFFFF',
+    dismissible: true,
+  },
+  isActive: true,
+  isDefault: false,
+  websiteStatus: 'active' as const,
+};
+
+// ============================================================================
+// 8. MARSA ALAM EXCURSIONS
+// Theme: Marine/Eco - Emerald green, pristine reef
+// ============================================================================
+const marsaAlamExcursions = {
+  tenantId: 'marsa-alam-excursions',
+  name: 'Marsa Alam Excursions',
+  slug: 'marsa-alam-excursions',
+  domain: 'marsaalamexcursions.com',
+  domains: ['marsaalamexcursions.com', 'www.marsaalamexcursions.com'],
+  branding: {
+    logo: '/tenants/marsa-alam-excursions/logo.png',
+    logoDark: '/tenants/marsa-alam-excursions/logo.png',
+    logoAlt: 'Marsa Alam Excursions',
+    favicon: generatePlaceholderFavicon('059669'),
+    primaryColor: '#059669',       // Emerald-600 (Marine life)
+    secondaryColor: '#064E3B',     // Emerald-900 (Deep reef)
+    accentColor: '#34D399',        // Emerald-400 (Bright coral)
+    backgroundColor: '#ECFDF5',    // Soft emerald tint
+    textColor: '#0F172A',
+    fontFamily: 'Lato',
+    fontFamilyHeading: 'Josefin Sans',
+    borderRadius: '14px',
+  },
+  theme: {
+    themeId: 'reef-emerald',
+    themeName: 'Reef Emerald',
+    colors: {
+      primary: '#059669',
+      primaryHover: '#047857',
+      primaryLight: '#D1FAE5',
+      secondary: '#064E3B',
+      secondaryHover: '#065F46',
+      accent: '#34D399',
+      accentHover: '#10B981',
+      success: '#10B981',
+      warning: '#F59E0B',
+      error: '#EF4444',
+      info: '#0EA5E9',
+      background: '#ECFDF5',
+      backgroundAlt: '#D1FAE5',
+      surface: '#FFFFFF',
+      surfaceHover: '#ECFDF5',
+      text: '#0F172A',
+      textMuted: '#64748B',
+      textInverse: '#FFFFFF',
+      border: '#A7F3D0',
+      borderHover: '#6EE7B7',
+      divider: '#A7F3D0',
+      rating: '#FBBF24',
+    },
+    gradients: {
+      primary: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
+      secondary: 'linear-gradient(135deg, #064E3B 0%, #047857 100%)',
+      hero: 'linear-gradient(180deg, rgba(6,78,59,0.8) 0%, rgba(5,150,105,0.4) 100%)',
+      card: 'linear-gradient(180deg, #D1FAE5 0%, #FFFFFF 100%)',
+      button: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+      overlay: 'linear-gradient(180deg, rgba(15,23,42,0.6) 0%, rgba(15,23,42,0.2) 100%)',
+    },
+    shadows: {
+      sm: '0 1px 2px 0 rgba(5, 150, 105, 0.05)',
+      md: '0 4px 6px -1px rgba(5, 150, 105, 0.1)',
+      lg: '0 10px 15px -3px rgba(5, 150, 105, 0.1)',
+      xl: '0 20px 25px -5px rgba(5, 150, 105, 0.1)',
+      primary: '0 4px 14px 0 rgba(5, 150, 105, 0.35)',
+      card: '0 4px 20px rgba(5, 150, 105, 0.12)',
+      button: '0 4px 14px 0 rgba(5, 150, 105, 0.4)',
+      dropdown: '0 10px 40px rgba(5, 150, 105, 0.15)',
+    },
+    typography: {
+      fontFamily: 'Lato, sans-serif',
+      fontFamilyHeading: 'Josefin Sans, sans-serif',
+      fontFamilyMono: 'JetBrains Mono, monospace',
+      baseFontSize: '16px', lineHeight: '1.6', headingLineHeight: '1.2',
+      fontWeightNormal: 400, fontWeightMedium: 600, fontWeightSemibold: 700, fontWeightBold: 800,
+      letterSpacing: '0', headingLetterSpacing: '0.01em',
+    },
+    layout: {
+      borderRadius: '14px', borderRadiusSm: '8px', borderRadiusLg: '18px',
+      borderRadiusXl: '24px', borderRadiusFull: '9999px',
+      containerMaxWidth: '1280px', headerHeight: '72px', footerStyle: 'standard' as const,
+    },
+    components: {
+      header: { background: 'rgba(236, 253, 245, 0.92)', backgroundScrolled: 'rgba(255, 255, 255, 0.96)', textColor: '#0F172A', style: 'solid' as const, position: 'sticky' as const, blur: true },
+      footer: { background: '#064E3B', textColor: '#D1FAE5', style: 'dark' as const },
+      buttons: { style: 'rounded' as const, primaryBg: '#059669', primaryText: '#FFFFFF', primaryHoverBg: '#047857', secondaryBg: '#064E3B', secondaryText: '#FFFFFF', outlineBorderColor: '#059669' },
+      cards: { style: 'elevated' as const, background: '#FFFFFF', hoverTransform: 'translateY(-4px)', imageBorderRadius: '14px' },
+      badges: { background: '#059669', textColor: '#FFFFFF', style: 'pill' as const },
+      inputs: { background: '#FFFFFF', borderColor: '#A7F3D0', focusBorderColor: '#059669', style: 'outlined' as const },
+    },
+    animations: { enabled: true, duration: '200ms', durationFast: '150ms', durationSlow: '300ms', easing: 'cubic-bezier(0.4, 0, 0.2, 1)', hoverScale: '1.03' },
+    darkMode: { enabled: false },
+  },
+  seo: {
+    defaultTitle: 'Marsa Alam Excursions - Pristine Reefs & Dugong Adventures',
+    titleSuffix: 'Marsa Alam Excursions',
+    defaultDescription: 'Discover Marsa Alam\'s untouched coral reefs, swim with dugongs and sea turtles, and explore the pristine Red Sea. Snorkeling, diving, and desert trips.',
+    defaultKeywords: [
+      'marsa alam excursions', 'marsa alam snorkeling', 'dugong tour', 'sea turtle marsa alam',
+      'marsa alam diving', 'port ghalib', 'sataya reef', 'abu dabbab', 'marsa alam desert',
+      'elphinstone reef', 'marsa alam boat trips',
+    ],
+    ogImage: generatePlaceholderOgImage('Marsa+Alam+Excursions', '059669', 'Pristine+Reefs'),
+    ogType: 'website',
+    structuredDataType: 'TravelAgency',
+  },
+  contact: {
+    email: 'info@marsaalamexcursions.com',
+    supportEmail: 'support@marsaalamexcursions.com',
+    phone: '+20 100 000 0008',
+    whatsapp: '+20 100 000 0008',
+    address: 'Port Ghalib, Marsa Alam',
+    city: 'Marsa Alam',
+    country: 'Egypt',
+    postalCode: '84721',
+    businessHours: '24/7 Support Available',
+  },
+  socialLinks: {
+    facebook: 'https://facebook.com/marsaalamexcursions',
+    instagram: 'https://instagram.com/marsaalamexcursions',
+    youtube: 'https://youtube.com/@marsaalamexcursions',
+    tiktok: 'https://tiktok.com/@marsaalamexcursions',
+    tripadvisor: 'https://tripadvisor.com/marsaalamexcursions',
+  },
+  features: {
+    enableBlog: true, enableReviews: true, enableWishlist: true, enableAISearch: true,
+    enableIntercom: false, enableMultiCurrency: true, enableMultiLanguage: true,
+    enableLiveChat: false, enableNewsletter: true, enablePromoBar: true,
+    enableHotelPickup: true, enableGiftCards: false,
+  },
+  payments: {
+    currency: 'USD', currencySymbol: '$',
+    supportedCurrencies: ['USD', 'EUR', 'GBP', 'EGP'],
+    supportedPaymentMethods: ['card', 'paypal', 'bank'],
+    taxRate: 0, serviceFeePercent: 0, minBookingAmount: 0, maxBookingAmount: 50000,
+  },
+  email: {
+    fromName: 'Marsa Alam Excursions', fromEmail: 'noreply@marsaalamexcursions.com',
+    replyToEmail: 'info@marsaalamexcursions.com', emailTemplateTheme: 'marine',
+  },
+  localization: {
+    defaultLanguage: 'en', supportedLanguages: ['en', 'de', 'fr', 'it', 'nl', 'ar'],
+    defaultTimezone: 'Africa/Cairo', dateFormat: 'DD/MM/YYYY', timeFormat: 'HH:mm',
+  },
+  homepage: {
+    heroType: 'slider' as const,
+    heroTitle: 'Explore Pristine Marsa Alam',
+    heroSubtitle: 'Swim with dugongs, discover untouched coral reefs, and experience the Red Sea at its most beautiful',
+    heroImages: [
+      'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=1920',
+      'https://images.unsplash.com/photo-1559827291-72ee739d0d9a?w=1920',
+    ],
+    showDestinations: true, showCategories: true, showFeaturedTours: true,
+    showPopularInterests: true, showDayTrips: true, showReviews: true,
+    showFAQ: true, showAboutUs: true, showPromoSection: true, featuredToursCount: 8,
+  },
+  integrations: { algoliaIndexPrefix: 'marsa_alam_excursions_', cloudinaryFolder: 'marsa-alam-excursions' },
+  customContent: {
+    aboutUsContent: `
+      <h2>Marsa Alam Excursions - Where the Red Sea Comes Alive</h2>
+      <p>Marsa Alam is Egypt's hidden gem — pristine reefs, crystal-clear waters, and marine encounters you won't find anywhere else. We're passionate about sharing the unspoiled beauty of this coast with visitors from around the world.</p>
+      <p>Whether you dream of swimming with dugongs at Abu Dabbab, diving the legendary Elphinstone Reef, or simply relaxing on untouched beaches, we make it happen.</p>
+      <h3>What Makes Us Special</h3>
+      <ul>
+        <li>🐢 Sea turtle & dugong encounters</li>
+        <li>🤿 World-class reef diving & snorkeling</li>
+        <li>🏖️ Secluded beach experiences</li>
+        <li>🐬 Dolphin house trips</li>
+        <li>🏜️ Desert stargazing adventures</li>
+        <li>🌊 Sataya & Elphinstone reef trips</li>
+      </ul>
+    `,
+    faqContent: [
+      { question: 'Can I really swim with dugongs?', answer: 'Yes! Abu Dabbab Bay is one of the few places on earth where you can snorkel alongside wild dugongs (sea cows) and sea turtles in their natural habitat. Sightings are very common.' },
+      { question: 'What is the best time to visit Marsa Alam?', answer: 'Marsa Alam is a year-round destination. Water temperatures range from 22°C in winter to 28°C in summer. October to April is peak season with ideal diving conditions.' },
+      { question: 'How far is Marsa Alam from Hurghada?', answer: 'Marsa Alam is about 270km south of Hurghada (3-4 hours drive). It has its own international airport with direct flights from Europe.' },
+      { question: 'What marine life can I see?', answer: 'Marsa Alam is famous for dugongs, sea turtles, dolphins, reef sharks, manta rays, and incredibly colorful coral reefs. Elphinstone is known for oceanic whitetip sharks.' },
+      { question: 'Do I need diving certification to explore reefs?', answer: 'No! Many of our best experiences are snorkeling-based. Abu Dabbab, Dolphin House, and Sataya are all accessible to snorkelers. We also offer discover scuba for beginners.' },
+    ],
+  },
+  promoBar: {
+    enabled: true,
+    text: '🐢 ECO SPECIAL: Book any snorkeling trip and get free underwater photos!',
+    link: '/tours',
+    backgroundColor: '#059669',
+    textColor: '#FFFFFF',
+    dismissible: true,
+  },
+  isActive: true,
+  isDefault: false,
+  websiteStatus: 'active' as const,
+};
+
+// ============================================================================
+// 9. DAHAB EXCURSIONS
+// Theme: Bohemian/Adventure - Amber/teal, free-spirited
+// ============================================================================
+const dahabExcursions = {
+  tenantId: 'dahab-excursions',
+  name: 'Dahab Excursions',
+  slug: 'dahab-excursions',
+  domain: 'dahabexcursions.com',
+  domains: ['dahabexcursions.com', 'www.dahabexcursions.com'],
+  branding: {
+    logo: '/tenants/dahab-excursions/logo.png',
+    logoDark: '/tenants/dahab-excursions/logo.png',
+    logoAlt: 'Dahab Excursions',
+    favicon: generatePlaceholderFavicon('D97706'),
+    primaryColor: '#D97706',       // Amber-600 (Desert gold)
+    secondaryColor: '#92400E',     // Amber-800 (Deep sand)
+    accentColor: '#0D9488',        // Teal-600 (Blue Hole)
+    backgroundColor: '#FFFBEB',    // Soft amber tint
+    textColor: '#0F172A',
+    fontFamily: 'Quicksand',
+    fontFamilyHeading: 'Pacifico',
+    borderRadius: '16px',
+  },
+  theme: {
+    themeId: 'bohemian-gold',
+    themeName: 'Bohemian Gold',
+    colors: {
+      primary: '#D97706',
+      primaryHover: '#B45309',
+      primaryLight: '#FEF3C7',
+      secondary: '#92400E',
+      secondaryHover: '#78350F',
+      accent: '#0D9488',
+      accentHover: '#0F766E',
+      success: '#10B981',
+      warning: '#F59E0B',
+      error: '#EF4444',
+      info: '#0EA5E9',
+      background: '#FFFBEB',
+      backgroundAlt: '#FEF3C7',
+      surface: '#FFFFFF',
+      surfaceHover: '#FFFBEB',
+      text: '#0F172A',
+      textMuted: '#64748B',
+      textInverse: '#FFFFFF',
+      border: '#FDE68A',
+      borderHover: '#FCD34D',
+      divider: '#FDE68A',
+      rating: '#FBBF24',
+    },
+    gradients: {
+      primary: 'linear-gradient(135deg, #D97706 0%, #F59E0B 100%)',
+      secondary: 'linear-gradient(135deg, #92400E 0%, #B45309 100%)',
+      hero: 'linear-gradient(180deg, rgba(146,64,14,0.8) 0%, rgba(217,119,6,0.4) 100%)',
+      card: 'linear-gradient(180deg, #FEF3C7 0%, #FFFFFF 100%)',
+      button: 'linear-gradient(135deg, #D97706 0%, #B45309 100%)',
+      overlay: 'linear-gradient(180deg, rgba(15,23,42,0.6) 0%, rgba(15,23,42,0.2) 100%)',
+    },
+    shadows: {
+      sm: '0 1px 2px 0 rgba(217, 119, 6, 0.05)',
+      md: '0 4px 6px -1px rgba(217, 119, 6, 0.1)',
+      lg: '0 10px 15px -3px rgba(217, 119, 6, 0.1)',
+      xl: '0 20px 25px -5px rgba(217, 119, 6, 0.1)',
+      primary: '0 4px 14px 0 rgba(217, 119, 6, 0.35)',
+      card: '0 4px 20px rgba(217, 119, 6, 0.12)',
+      button: '0 4px 14px 0 rgba(217, 119, 6, 0.4)',
+      dropdown: '0 10px 40px rgba(217, 119, 6, 0.15)',
+    },
+    typography: {
+      fontFamily: 'Quicksand, sans-serif',
+      fontFamilyHeading: 'Pacifico, cursive',
+      fontFamilyMono: 'JetBrains Mono, monospace',
+      baseFontSize: '16px', lineHeight: '1.6', headingLineHeight: '1.3',
+      fontWeightNormal: 400, fontWeightMedium: 600, fontWeightSemibold: 700, fontWeightBold: 800,
+      letterSpacing: '0', headingLetterSpacing: '0',
+    },
+    layout: {
+      borderRadius: '16px', borderRadiusSm: '10px', borderRadiusLg: '20px',
+      borderRadiusXl: '28px', borderRadiusFull: '9999px',
+      containerMaxWidth: '1280px', headerHeight: '72px', footerStyle: 'standard' as const,
+    },
+    components: {
+      header: { background: 'rgba(255, 251, 235, 0.92)', backgroundScrolled: 'rgba(255, 255, 255, 0.96)', textColor: '#0F172A', style: 'solid' as const, position: 'sticky' as const, blur: true },
+      footer: { background: '#92400E', textColor: '#FEF3C7', style: 'dark' as const },
+      buttons: { style: 'rounded' as const, primaryBg: '#D97706', primaryText: '#FFFFFF', primaryHoverBg: '#B45309', secondaryBg: '#92400E', secondaryText: '#FFFFFF', outlineBorderColor: '#D97706' },
+      cards: { style: 'elevated' as const, background: '#FFFFFF', hoverTransform: 'translateY(-4px)', imageBorderRadius: '16px' },
+      badges: { background: '#D97706', textColor: '#FFFFFF', style: 'pill' as const },
+      inputs: { background: '#FFFFFF', borderColor: '#FDE68A', focusBorderColor: '#D97706', style: 'outlined' as const },
+    },
+    animations: { enabled: true, duration: '200ms', durationFast: '150ms', durationSlow: '300ms', easing: 'cubic-bezier(0.4, 0, 0.2, 1)', hoverScale: '1.03' },
+    darkMode: { enabled: false },
+  },
+  seo: {
+    defaultTitle: 'Dahab Excursions - Blue Hole, Diving & Sinai Adventures',
+    titleSuffix: 'Dahab Excursions',
+    defaultDescription: 'Experience Dahab\'s legendary Blue Hole, world-class diving, Sinai desert treks, and bohemian Red Sea vibes. The ultimate adventure destination.',
+    defaultKeywords: [
+      'dahab excursions', 'blue hole dahab', 'dahab diving', 'dahab snorkeling',
+      'sinai trekking', 'mount sinai', 'st catherine', 'dahab safari', 'dahab camel ride',
+      'three pools dahab', 'dahab freediving',
+    ],
+    ogImage: generatePlaceholderOgImage('Dahab+Excursions', 'D97706', 'Adventure+Awaits'),
+    ogType: 'website',
+    structuredDataType: 'TravelAgency',
+  },
+  contact: {
+    email: 'info@dahabexcursions.com',
+    supportEmail: 'support@dahabexcursions.com',
+    phone: '+20 100 000 0009',
+    whatsapp: '+20 100 000 0009',
+    address: 'Masbat, Dahab',
+    city: 'Dahab',
+    country: 'Egypt',
+    postalCode: '46617',
+    businessHours: '24/7 Support Available',
+  },
+  socialLinks: {
+    facebook: 'https://facebook.com/dahabexcursions',
+    instagram: 'https://instagram.com/dahabexcursions',
+    youtube: 'https://youtube.com/@dahabexcursions',
+    tiktok: 'https://tiktok.com/@dahabexcursions',
+    tripadvisor: 'https://tripadvisor.com/dahabexcursions',
+  },
+  features: {
+    enableBlog: true, enableReviews: true, enableWishlist: true, enableAISearch: true,
+    enableIntercom: false, enableMultiCurrency: true, enableMultiLanguage: true,
+    enableLiveChat: false, enableNewsletter: true, enablePromoBar: true,
+    enableHotelPickup: true, enableGiftCards: false,
+  },
+  payments: {
+    currency: 'USD', currencySymbol: '$',
+    supportedCurrencies: ['USD', 'EUR', 'GBP', 'EGP'],
+    supportedPaymentMethods: ['card', 'paypal', 'bank'],
+    taxRate: 0, serviceFeePercent: 0, minBookingAmount: 0, maxBookingAmount: 50000,
+  },
+  email: {
+    fromName: 'Dahab Excursions', fromEmail: 'noreply@dahabexcursions.com',
+    replyToEmail: 'info@dahabexcursions.com', emailTemplateTheme: 'adventure',
+  },
+  localization: {
+    defaultLanguage: 'en', supportedLanguages: ['en', 'de', 'fr', 'it', 'ru', 'ar'],
+    defaultTimezone: 'Africa/Cairo', dateFormat: 'DD/MM/YYYY', timeFormat: 'HH:mm',
+  },
+  homepage: {
+    heroType: 'slider' as const,
+    heroTitle: 'Discover Dahab',
+    heroSubtitle: 'Dive the legendary Blue Hole, trek the Sinai mountains, and embrace the bohemian spirit of the Red Sea',
+    heroImages: [
+      'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=1920',
+      'https://images.unsplash.com/photo-1682407186023-12c70a4a35e0?w=1920',
+    ],
+    showDestinations: true, showCategories: true, showFeaturedTours: true,
+    showPopularInterests: true, showDayTrips: true, showReviews: true,
+    showFAQ: true, showAboutUs: true, showPromoSection: true, featuredToursCount: 8,
+  },
+  integrations: { algoliaIndexPrefix: 'dahab_excursions_', cloudinaryFolder: 'dahab-excursions' },
+  customContent: {
+    aboutUsContent: `
+      <h2>Dahab Excursions - Adventure Meets Tranquility</h2>
+      <p>Dahab is unlike anywhere else in Egypt — a laid-back beach town with world-class diving, dramatic desert mountains, and a bohemian atmosphere that keeps travelers coming back year after year.</p>
+      <p>We're locals who know every hidden canyon, every secret reef, and every stunning viewpoint. Let us show you the real Dahab — from the depths of the Blue Hole to the summit of Mount Sinai.</p>
+      <h3>Why Choose Dahab</h3>
+      <ul>
+        <li>🕳️ Blue Hole — world-famous dive site</li>
+        <li>⛰️ Mount Sinai sunrise treks</li>
+        <li>🏊 Freediving courses & experiences</li>
+        <li>🐪 Bedouin desert safaris</li>
+        <li>🌊 Three Pools & Canyon snorkeling</li>
+        <li>🧘 Yoga & wellness retreats</li>
+      </ul>
+    `,
+    faqContent: [
+      { question: 'What is the Blue Hole?', answer: 'The Blue Hole is a 130-meter deep marine sinkhole just north of Dahab. It\'s one of the most famous dive sites in the world, and the shallow rim (6-8 meters) makes it perfect for snorkeling too.' },
+      { question: 'Can I climb Mount Sinai from Dahab?', answer: 'Yes! We offer overnight trips departing Dahab in the evening, climbing through the night to reach the summit for sunrise. It\'s about 2.5 hours drive to St. Catherine followed by a 2-3 hour climb.' },
+      { question: 'Is Dahab good for beginners?', answer: 'Absolutely! Dahab\'s shore diving is perfect for beginners — you can walk into incredible reef sites. We offer discover scuba, PADI courses, and easy snorkeling spots like the Lighthouse and Three Pools.' },
+      { question: 'What is freediving and can I try it?', answer: 'Freediving is diving on a single breath without scuba equipment. Dahab is one of the world\'s top freediving destinations thanks to the Blue Hole\'s calm, deep waters. We offer introductory courses for all levels.' },
+      { question: 'How do I get to Dahab?', answer: 'Dahab is about 1 hour north of Sharm El Sheikh airport by car. We can arrange airport transfers. There are also bus services from Cairo (8 hours) and Sharm El Sheikh.' },
+    ],
+  },
+  promoBar: {
+    enabled: true,
+    text: '🕳️ BLUE HOLE DEAL: Book Blue Hole snorkeling + Mount Sinai trek combo and save 20%!',
+    link: '/tours',
+    backgroundColor: '#D97706',
+    textColor: '#FFFFFF',
+    dismissible: true,
+  },
+  isActive: true,
+  isDefault: false,
+  websiteStatus: 'active' as const,
+};
+
+// ============================================================================
 // ALL TENANT CONFIGURATIONS ARRAY
 // ============================================================================
 
@@ -2055,6 +2685,9 @@ const allTenantConfigs = [
   elGounaExcursions,
   luxorExcursions,
   sharmExcursionsOnline,
+  aswanExcursions,
+  marsaAlamExcursions,
+  dahabExcursions,
 ];
 
 // ============================================================================
@@ -2175,6 +2808,39 @@ async function seedExcursionsTenants() {
         ],
         searchSuggestions: ['Ras Mohammed', 'Tiran Island', 'Blue Hole Dahab', 'Quad Safari', 'Bedouin Dinner'],
         floatingTags: { isEnabled: true, tags: ['Diving', 'Snorkeling', 'Desert', 'Marine Life', 'Adventure'], animationSpeed: 3, tagCount: { desktop: 5, mobile: 3 } },
+      },
+      {
+        tenantId: 'aswan-excursions',
+        title: { main: 'Explore Ancient', highlight: 'Aswan' },
+        backgroundImages: [
+          { desktop: 'https://images.unsplash.com/photo-1568322445389-f64ac2515020?w=1920&q=80', alt: 'Philae Temple Aswan', isActive: true },
+          { desktop: 'https://images.unsplash.com/photo-1539650116574-8efeb43e2750?w=1920&q=80', alt: 'Nile Felucca Aswan', isActive: true },
+          { desktop: 'https://images.unsplash.com/photo-1595981234058-a9302fb97229?w=1920&q=80', alt: 'Abu Simbel', isActive: true },
+        ],
+        searchSuggestions: ['Abu Simbel', 'Philae Temple', 'Nubian Village', 'Felucca Ride', 'High Dam'],
+        floatingTags: { isEnabled: true, tags: ['Abu Simbel', 'Nubian', 'Felucca', 'Temples', 'Nile'], animationSpeed: 3, tagCount: { desktop: 5, mobile: 3 } },
+      },
+      {
+        tenantId: 'marsa-alam-excursions',
+        title: { main: 'Discover Pristine', highlight: 'Marsa Alam' },
+        backgroundImages: [
+          { desktop: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=1920&q=80', alt: 'Marsa Alam Reef', isActive: true },
+          { desktop: 'https://images.unsplash.com/photo-1559827291-72ee739d0d9a?w=1920&q=80', alt: 'Marsa Alam Beach', isActive: true },
+          { desktop: 'https://images.unsplash.com/photo-1582967788606-a171c1080cb0?w=1920&q=80', alt: 'Snorkeling Marsa Alam', isActive: true },
+        ],
+        searchSuggestions: ['Dugong Tour', 'Abu Dabbab', 'Sataya Reef', 'Dolphin House', 'Elphinstone'],
+        floatingTags: { isEnabled: true, tags: ['Dugong', 'Reef', 'Turtles', 'Dolphins', 'Pristine'], animationSpeed: 3, tagCount: { desktop: 5, mobile: 3 } },
+      },
+      {
+        tenantId: 'dahab-excursions',
+        title: { main: 'Adventure Awaits in', highlight: 'Dahab' },
+        backgroundImages: [
+          { desktop: 'https://images.unsplash.com/photo-1682407186023-12c70a4a35e0?w=1920&q=80', alt: 'Blue Hole Dahab', isActive: true },
+          { desktop: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=1920&q=80', alt: 'Dahab Coast', isActive: true },
+          { desktop: 'https://images.unsplash.com/photo-1559827291-72ee739d0d9a?w=1920&q=80', alt: 'Sinai Mountains', isActive: true },
+        ],
+        searchSuggestions: ['Blue Hole', 'Mount Sinai', 'Freediving', 'Canyon Snorkeling', 'Bedouin Safari'],
+        floatingTags: { isEnabled: true, tags: ['Blue Hole', 'Sinai', 'Freediving', 'Desert', 'Yoga'], animationSpeed: 3, tagCount: { desktop: 5, mobile: 3 } },
       },
     ];
 

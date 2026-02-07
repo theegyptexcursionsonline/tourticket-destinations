@@ -536,6 +536,141 @@ const TENANT_HOMEPAGE_CONTENT: Record<string, {
     },
   },
 
+  'aswan-excursions': {
+    aboutUsContent: {
+      title: 'Why book with Aswan Excursions?',
+      subtitle: 'Your gateway to Nubian heritage and ancient wonders.',
+      features: [
+        { icon: 'award', text: 'Expert-guided temple and heritage tours' },
+        { icon: 'dollar', text: 'Best prices for Abu Simbel & Nile experiences' },
+        { icon: 'smartphone', text: 'Instant booking confirmation on your phone' },
+        { icon: 'calendar', text: 'Free cancellation up to 24 hours before' },
+      ],
+      image: 'https://images.unsplash.com/photo-1568322445389-f64ac2515020?w=800',
+      imageAlt: 'Philae Temple on the Nile in Aswan',
+      ctaText: 'More about us',
+      ctaLink: '/about',
+      accentColor: 'from-orange-600 to-orange-700',
+    },
+    reviewsContent: {
+      title: 'What Our Guests Say',
+      subtitle: 'Real stories from travellers who explored Aswan with us.',
+      reviews: [
+        { author: 'Thomas K.', rating: 5, text: 'The Abu Simbel sunrise tour was absolutely magical. Our guide was incredibly knowledgeable about the history.', tour: 'Abu Simbel Day Trip' },
+        { author: 'Marie L.', rating: 5, text: 'The Nubian village visit was the highlight of our Egypt trip. Such warm hospitality and beautiful colours everywhere!', tour: 'Nubian Village Tour' },
+        { author: 'Hans W.', rating: 5, text: 'Sunset felucca ride around Elephantine Island — pure bliss. The perfect way to end a day of temple visits.', tour: 'Felucca Nile Cruise' },
+      ],
+    },
+    faqContent: {
+      title: 'Frequently Asked Questions',
+      subtitle: 'Everything you need to know about Aswan tours.',
+      faqs: [
+        { question: 'How early does the Abu Simbel trip depart?', answer: 'The Abu Simbel day trip departs around 3:00 AM to arrive for the stunning sunrise. The drive is approximately 3 hours each way.' },
+        { question: 'What should I wear to visit temples?', answer: 'Comfortable shoes, sun hat, and light clothing. Temples have no dress code but modest clothing is respectful. Bring sunscreen and water.' },
+        { question: 'Are felucca rides safe?', answer: 'Absolutely! Feluccas have been sailing the Nile for centuries. Our captains are experienced and life jackets are provided.' },
+      ],
+    },
+    promoContent: {
+      image: 'https://images.unsplash.com/photo-1568322445389-f64ac2515020?w=800',
+      imageAlt: 'Ancient temples along the Nile in Aswan',
+      heading: 'Discover Ancient Aswan',
+      subheading: 'Temples, Nubian villages & Nile adventures',
+      description: 'From the colossal Abu Simbel to peaceful felucca rides at sunset — explore the best of Upper Egypt with our expert local guides.',
+      primaryHref: '/tours',
+      primaryText: 'Explore Aswan Tours',
+    },
+  },
+
+  'marsa-alam-excursions': {
+    aboutUsContent: {
+      title: 'Why book with Marsa Alam Excursions?',
+      subtitle: 'Your experts for pristine reefs and marine encounters.',
+      features: [
+        { icon: 'award', text: 'Eco-friendly tours with marine biologist guides' },
+        { icon: 'dollar', text: 'Best prices for dugong & reef experiences' },
+        { icon: 'smartphone', text: 'Instant booking confirmation on your phone' },
+        { icon: 'calendar', text: 'Free cancellation up to 24 hours before' },
+      ],
+      image: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800',
+      imageAlt: 'Crystal clear waters of Marsa Alam',
+      ctaText: 'More about us',
+      ctaLink: '/about',
+      accentColor: 'from-emerald-600 to-emerald-700',
+    },
+    reviewsContent: {
+      title: 'What Our Guests Say',
+      subtitle: 'Real stories from marine adventurers.',
+      reviews: [
+        { author: 'Sophie M.', rating: 5, text: 'We swam with a dugong at Abu Dabbab! A once-in-a-lifetime experience. The guides were excellent at spotting wildlife.', tour: 'Dugong Snorkeling Tour' },
+        { author: 'Klaus H.', rating: 5, text: 'Sataya Reef was incredible — pods of spinner dolphins all around us. The most beautiful reef I have ever seen.', tour: 'Sataya Dolphin Reef' },
+        { author: 'Emma R.', rating: 5, text: 'The colours of the coral at Elphinstone are unreal. Saw a sea turtle within the first five minutes!', tour: 'Elphinstone Reef Dive' },
+      ],
+    },
+    faqContent: {
+      title: 'Frequently Asked Questions',
+      subtitle: 'Everything you need to know about Marsa Alam marine tours.',
+      faqs: [
+        { question: 'When is the best time to see dugongs?', answer: 'Dugongs at Abu Dabbab can be seen year-round, but sightings are most frequent in the morning. We recommend early departures for the best chance.' },
+        { question: 'Do I need diving experience?', answer: 'Not at all! Most of our popular tours are snorkeling-based. The reefs are shallow enough to enjoy from the surface.' },
+        { question: 'How far are the reefs from shore?', answer: 'Many of our best sites like Abu Dabbab are accessible from the beach. Offshore reefs like Sataya and Elphinstone are reached by a comfortable boat ride.' },
+      ],
+    },
+    promoContent: {
+      image: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800',
+      imageAlt: 'Pristine reef and marine life in Marsa Alam',
+      heading: 'Explore Marsa Alam',
+      subheading: 'Pristine reefs, dugongs & untouched beauty',
+      description: 'Swim with dugongs, discover vibrant coral reefs, and experience the Red Sea at its most pristine — Marsa Alam is nature\'s aquarium.',
+      primaryHref: '/tours',
+      primaryText: 'Explore Marine Tours',
+    },
+  },
+
+  'dahab-excursions': {
+    aboutUsContent: {
+      title: 'Why book with Dahab Excursions?',
+      subtitle: 'Your local guides to the Blue Hole and Sinai adventures.',
+      features: [
+        { icon: 'award', text: 'Local experts — we live and breathe Dahab' },
+        { icon: 'dollar', text: 'Best prices for diving, trekking & safaris' },
+        { icon: 'smartphone', text: 'Instant booking confirmation on your phone' },
+        { icon: 'calendar', text: 'Free cancellation up to 24 hours before' },
+      ],
+      image: 'https://images.unsplash.com/photo-1682407186023-12c70a4a35e0?w=800',
+      imageAlt: 'Blue Hole diving spot in Dahab',
+      ctaText: 'More about us',
+      ctaLink: '/about',
+      accentColor: 'from-amber-600 to-amber-700',
+    },
+    reviewsContent: {
+      title: 'What Our Guests Say',
+      subtitle: 'Real stories from Dahab adventurers.',
+      reviews: [
+        { author: 'Jake P.', rating: 5, text: 'Snorkeling at the Blue Hole was surreal — staring into that endless blue abyss. The reef around the rim is gorgeous too.', tour: 'Blue Hole Snorkeling' },
+        { author: 'Anna S.', rating: 5, text: 'Watching sunrise from the top of Mount Sinai was deeply moving. The night trek was challenging but so worth it.', tour: 'Mount Sinai Trek' },
+        { author: 'Luca B.', rating: 5, text: 'The Three Pools snorkeling was amazing — so colourful and peaceful. Followed by a Bedouin lunch in the desert. Perfect day!', tour: 'Three Pools & Safari' },
+      ],
+    },
+    faqContent: {
+      title: 'Frequently Asked Questions',
+      subtitle: 'Everything you need to know about Dahab adventures.',
+      faqs: [
+        { question: 'Is the Blue Hole safe for snorkeling?', answer: 'Absolutely! The rim of the Blue Hole is only 6-8 metres deep with beautiful coral — perfect for snorkeling. The deep diving requires advanced certification.' },
+        { question: 'How difficult is the Mount Sinai trek?', answer: 'It is a moderate trek suitable for most fitness levels. The "camel path" is the easier route (2-3 hours). Warm clothing is essential as the summit is cold even in summer.' },
+        { question: 'What is the vibe in Dahab?', answer: 'Dahab is famously laid-back and bohemian. Think beachfront cafes, yoga retreats, and a friendly international community. Very different from resort towns like Sharm.' },
+      ],
+    },
+    promoContent: {
+      image: 'https://images.unsplash.com/photo-1682407186023-12c70a4a35e0?w=800',
+      imageAlt: 'The famous Blue Hole in Dahab',
+      heading: 'Discover Dahab',
+      subheading: 'Blue Hole, Sinai peaks & bohemian vibes',
+      description: 'Dive the legendary Blue Hole, trek to the summit of Mount Sinai, and embrace the free-spirited magic of Dahab.',
+      primaryHref: '/tours',
+      primaryText: 'Explore Dahab Tours',
+    },
+  },
+
   'default': {
     aboutUsContent: {
       title: 'Why book with Egypt Excursions Online?',
