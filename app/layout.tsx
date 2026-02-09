@@ -89,6 +89,9 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     description:
       "Discover and book unforgettable activities, tours, and experiences across the globe. Your adventure starts here.",
+    icons: {
+      icon: '/favicon.ico',
+    },
   };
 }
 
