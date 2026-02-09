@@ -348,15 +348,12 @@ Required for hotel pickup feature:
 
 MIT License - see [LICENSE](LICENSE) file.
 
-## Author
 
-**Ranjit Rajput**
-- GitHub: [@ranjitrajput](https://github.com/ranjitrajput)
 
 ## Support
 
 - Technical questions: See [CLAUDE.md](CLAUDE.md)
-- Bug reports: [GitHub Issues](https://github.com/ranjitrajput/tourticket/issues)
+- Bug reports: [GitHub Issues](https://
 
 ---
 
