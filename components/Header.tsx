@@ -1368,7 +1368,7 @@ const MobileMenu: FC<{
           >
             <div className="flex flex-col h-full">
               <div className={`flex items-center justify-between p-6 ${borderColor}`}>
-                <img src={getLogo()} alt={getSiteName()} className="h-10 object-contain" />
+                <Image src={getLogo()} alt={getSiteName()} width={120} height={40} className="h-10 w-auto object-contain" />
                 <button onClick={onClose} className={`p-2 rounded-full ${isSpeedboat ? 'text-gray-400 hover:bg-white/10' : 'text-slate-500 hover:bg-slate-100'}`}>
                   <X size={24} />
                 </button>
@@ -1572,7 +1572,7 @@ export default function Header({
     <div className="flex items-center justify-between h-16 md:h-20">
       <div className="flex items-center gap-4 lg:gap-8">
         <Link href="/" className="flex items-center h-full">
-          <img src={getLogo()} alt={getSiteName()} className="h-12 md:h-14 lg:h-16 object-contain transition-colors duration-300" />
+          <Image src={getLogo()} alt={getSiteName()} width={160} height={64} priority className="h-12 md:h-14 lg:h-16 w-auto object-contain transition-colors duration-300" />
         </Link>
 
         <nav className="hidden md:flex items-center relative">

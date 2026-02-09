@@ -41,6 +41,8 @@ async function main() {
     console.log(`${tenantId}: ${result.modifiedCount > 0 ? 'Updated' : 'No change (not found or already set)'}`);
   }
 
+
+
   await mongoose.disconnect();
   console.log('Done.');
 }
