@@ -226,6 +226,8 @@ function getTenantDomains(): TenantDomainMapping {
     // Marsa Alam Excursions - FUTURE
     'marsaalamexcursions.com': 'marsa-alam-excursions',
     'www.marsaalamexcursions.com': 'marsa-alam-excursions',
+    'marsaalamexcursions.online': 'marsa-alam-excursions',
+    'www.marsaalamexcursions.online': 'marsa-alam-excursions',
     
     // Dahab Excursions - FUTURE
     'dahabexcursions.com': 'dahab-excursions',
