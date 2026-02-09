@@ -2296,8 +2296,8 @@ const marsaAlamExcursions = {
   tenantId: 'marsa-alam-excursions',
   name: 'Marsa Alam Excursions',
   slug: 'marsa-alam-excursions',
-  domain: 'marsaalamexcursions.com',
-  domains: ['marsaalamexcursions.com', 'www.marsaalamexcursions.com'],
+  domain: 'marsaalamexcursions.online',
+  domains: ['marsaalamexcursions.online', 'www.marsaalamexcursions.online', 'marsaalamexcursions.com', 'www.marsaalamexcursions.com'],
   branding: {
     logo: '/tenants/marsa-alam-excursions/logo.png',
     logoDark: '/tenants/marsa-alam-excursions/logo.png',
