@@ -578,6 +578,23 @@ export function middleware(request: NextRequest) {
   }
 
   // ============================================
+  // ADMIN PANEL ACCESS RESTRICTION
+  // ============================================
+  // Only allow admin panel on specific tenants
+  const ADMIN_ALLOWED_TENANTS = ['default', 'hurghada-speedboat'];
+
+  if (isAdminPath(pathname) && !ADMIN_ALLOWED_TENANTS.includes(tenantId)) {
+    // API routes return 403, pages redirect to homepage
+    if (pathname.startsWith('/api/admin')) {
+      return NextResponse.json({ error: 'Admin access not available on this domain' }, { status: 403 });
+    }
+    const url = request.nextUrl.clone();
+    url.pathname = '/';
+    url.search = '';
+    return NextResponse.redirect(url);
+  }
+
+  // ============================================
   // WEBSITE STATUS CHECK (Per-Tenant or Global)
   // ============================================
   const websiteStatus = GLOBAL_COMING_SOON_MODE ? 'coming_soon' : getTenantWebsiteStatus(tenantId);
