@@ -70,12 +70,11 @@ export default function DestinationsServer({ destinations }: DestinationsServerP
         </div>
 
         <div
-          className={`grid grid-cols-2 sm:grid-cols-4 gap-5 sm:gap-6 md:gap-8 justify-items-center ${
-            isSpeedboat ? '' : ''
-          }`}
+          className={`flex flex-wrap justify-center gap-4 sm:gap-6 md:gap-8`}
+          style={{ maxWidth: `${destinations.length * 200}px`, margin: '0 auto' }}
         >
           {destinations.map((destination) => (
-            <Link key={destination._id} href={`/destinations/${destination.slug}`} className="text-center group w-full max-w-[190px]">
+            <Link key={destination._id} href={`/destinations/${destination.slug}`} className="text-center group w-[calc(50%-8px)] sm:w-auto">
               {/* Ring wrapper (speedboat gets a glow/gradient border) */}
               <div
                 className={`mx-auto rounded-full ${
