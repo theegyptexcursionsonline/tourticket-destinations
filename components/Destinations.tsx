@@ -180,7 +180,7 @@ export default function Destinations() {
         <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-800 mb-6 sm:mb-8 text-center sm:text-left">
           Where are you going?
         </h2>
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4 sm:gap-6 justify-items-center">
+        <div className="flex flex-wrap gap-x-6 gap-y-8 sm:gap-x-8">
           {destinations.map((destination) => (
             <Link
               key={destination._id}
