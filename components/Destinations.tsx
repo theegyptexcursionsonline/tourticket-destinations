@@ -180,14 +180,14 @@ export default function Destinations() {
         <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-800 mb-6 sm:mb-8 text-center sm:text-left">
           Where are you going?
         </h2>
-        <div className="flex flex-wrap gap-x-6 gap-y-8 sm:gap-x-8">
+        <div className="flex gap-x-4 sm:gap-x-6 gap-y-6 overflow-x-auto pb-2 sm:flex-wrap sm:overflow-visible">
           {destinations.map((destination) => (
             <Link
               key={destination._id}
               href={`/destinations/${destination.slug}`}
-              className="text-center group"
+              className="text-center group flex-shrink-0"
             >
-              <div className="relative w-32 h-32 sm:w-36 sm:h-36 md:w-40 md:h-40 rounded-full overflow-hidden shadow-lg transform transition-all duration-300 group-hover:scale-110 group-hover:shadow-xl bg-slate-200">
+              <div className="relative w-28 h-28 sm:w-32 sm:h-32 md:w-36 md:h-36 rounded-full overflow-hidden shadow-lg transform transition-all duration-300 group-hover:scale-110 group-hover:shadow-xl bg-slate-200 mx-auto">
                 {destination.image && destination.image !== 'UPLOAD_IMAGE_URL_HERE' && (
                   <Image
                     src={destination.image}
