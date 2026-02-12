@@ -107,7 +107,6 @@ export default function ComingSoonPage({ tenant }: ComingSoonPageProps) {
 
   // Determine if we have a specific tenant theme
   const tenantId = tenant?.tenantId || 'default';
-  const isSpeedboat = tenantId === 'hurghada-speedboat';
   const hasCustomTheme = tenantId in TENANT_THEMES;
 
   // Get theme configuration
@@ -241,25 +240,28 @@ export default function ComingSoonPage({ tenant }: ComingSoonPageProps) {
       {/* Subtle dust particles */}
       {isMounted && (
         <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
-          {[...Array(18)].map((_, i) => (
-            <div
-              key={i}
-              style={{
-                position: 'absolute',
-                left: `${isSpeedboat ? (i * 5.5) % 100 : 5 + i * 6}%`,
-                width: isSpeedboat ? '6px' : '4px',
-                height: isSpeedboat ? `${8 + (i % 4) * 4}px` : '4px',
-                borderRadius: isSpeedboat ? '30% 30% 50% 50%' : '50%',
-                background: isSpeedboat ? `${accentColor}33` : `${primaryColor}4D`,
-                animation: `${isSpeedboat ? 'floatBubble' : 'floatUp'} ${8 + (i % 5) * 2}s linear infinite`,
-                animationDelay: `${i * 0.45}s`,
-              }}
-            />
-          ))}
+          {[...Array(18)].map((_, i) => {
+            const isWavesDeco = deco === 'waves';
+            return (
+              <div
+                key={i}
+                style={{
+                  position: 'absolute',
+                  left: `${isWavesDeco ? (i * 5.5) % 100 : 5 + i * 6}%`,
+                  width: isWavesDeco ? '6px' : '4px',
+                  height: isWavesDeco ? `${8 + (i % 4) * 4}px` : '4px',
+                  borderRadius: isWavesDeco ? '30% 30% 50% 50%' : '50%',
+                  background: isWavesDeco ? `${accentColor}33` : `${primaryColor}4D`,
+                  animation: `${isWavesDeco ? 'floatBubble' : 'floatUp'} ${8 + (i % 5) * 2}s linear infinite`,
+                  animationDelay: `${i * 0.45}s`,
+                }}
+              />
+            );
+          })}
         </div>
       )}
 
-      {isSpeedboat && (
+      {deco === 'waves' && (
         <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1 }}>
           {[...Array(3)].map((_, idx) => (
             <div

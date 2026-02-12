@@ -100,19 +100,19 @@ const FALLBACK_FAQS: Record<string, FAQItem[]> = {
     ]
 };
 
-const FaqItem = ({ item, accentColor }: { item: FAQItem; accentColor: string }) => {
+const FaqItem = ({ item }: { item: FAQItem }) => {
     const [isOpen, setIsOpen] = useState(false);
 
     return (
         <div className="border-b border-slate-200 py-4 sm:py-5 md:py-6 group">
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className={`w-full flex justify-between items-start gap-3 sm:gap-4 text-left hover:${accentColor} transition-colors`}
+                className="w-full flex justify-between items-start gap-3 sm:gap-4 text-left transition-colors"
                 aria-expanded={isOpen}
             >
-                <h3 className={`text-base sm:text-lg font-semibold text-slate-800 group-hover:${accentColor} transition-colors flex-1`}>{item.question}</h3>
+                <h3 className="text-base sm:text-lg font-semibold text-slate-800 group-hover:text-[var(--primary-color)] transition-colors flex-1">{item.question}</h3>
                 {isOpen ? (
-                    <Minus className={`w-5 h-5 sm:w-6 sm:h-6 ${accentColor === 'text-cyan-500' ? 'text-cyan-500' : 'text-red-500'} transition-transform duration-300 transform rotate-180 flex-shrink-0 mt-0.5`} />
+                    <Minus className="w-5 h-5 sm:w-6 sm:h-6 transition-transform duration-300 transform rotate-180 flex-shrink-0 mt-0.5" style={{ color: 'var(--primary-color)' }} />
                 ) : (
                     <Plus className="w-5 h-5 sm:w-6 sm:h-6 text-slate-500 transition-transform duration-300 flex-shrink-0 mt-0.5" />
                 )}
@@ -143,11 +143,6 @@ export default function FAQ({ content: dbContent }: FAQProps) {
     const ctaText = dbContent?.ctaText || 'VIEW ALL';
     const ctaLink = dbContent?.ctaLink || '/faqs';
 
-    const accentColor = tenantId === 'hurghada-speedboat' ? 'text-cyan-500' : 'text-red-600';
-    const buttonClasses = tenantId === 'hurghada-speedboat'
-        ? 'text-cyan-500 border-cyan-500 hover:bg-cyan-500 hover:text-white'
-        : 'text-red-600 border-red-600 hover:bg-red-600 hover:text-white';
-
     return (
         <section className="bg-white py-12 sm:py-16 md:py-20 font-sans">
             <div className="container mx-auto px-4 max-w-4xl">
@@ -158,13 +153,19 @@ export default function FAQ({ content: dbContent }: FAQProps) {
                 </div>
                 <div className="space-y-3 sm:space-y-4">
                     {faqData.map((item, index) => (
-                        <FaqItem key={index} item={item} accentColor={accentColor} />
+                        <FaqItem key={index} item={item} />
                     ))}
                 </div>
                 <div className="text-center mt-8 sm:mt-10 md:mt-12">
                     <a
                       href={ctaLink}
-                      className={`inline-flex justify-center items-center h-12 sm:h-14 px-6 sm:px-8 text-sm sm:text-base font-bold border-2 transition-all duration-300 ease-in-out rounded-full ${buttonClasses}`}
+                      className="inline-flex justify-center items-center h-12 sm:h-14 px-6 sm:px-8 text-sm sm:text-base font-bold border-2 transition-all duration-300 ease-in-out rounded-full hover:text-white"
+                      style={{
+                        color: 'var(--primary-color)',
+                        borderColor: 'var(--primary-color)',
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--primary-color)'; e.currentTarget.style.color = 'white'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = ''; e.currentTarget.style.color = 'var(--primary-color)'; }}
                       role="button"
                       aria-label="View all FAQs"
                     >

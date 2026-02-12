@@ -951,7 +951,7 @@ const SearchSuggestion: FC<{
       onClick={() => onSelect(term)}
       className="flex items-center gap-3 pl-4 pr-5 py-2 bg-slate-100 text-slate-700 rounded-full transition-all hover:bg-slate-200 hover:shadow-md group-hover:pr-10"
     >
-      <Icon className="h-5 w-5 text-slate-500 group-hover:text-red-500 transition-colors" />
+      <Icon className="h-5 w-5 text-slate-500 group-hover:text-[var(--primary-color)] transition-colors" />
       <span className="font-medium">{term}</span>
     </button>
     {onRemove && (
@@ -1033,10 +1033,6 @@ const MegaMenu: FC<{ isOpen: boolean; onClose: () => void; destinations: Destina
   const { t } = useSettings();
   useOnClickOutside(menuRef, onClose);
 
-  const isSpeedboat = tenantId === 'hurghada-speedboat';
-  const isSharm = tenantId === 'sharm-excursions-online';
-  const isTenantSpecific = isSpeedboat || isSharm;
-
   // Use tenant-specific defaults if available
   const tenantDestinations = tenantId ? tenantMegaMenuDestinations[tenantId] : null;
   const tenantCategories = tenantId ? tenantMegaMenuCategories[tenantId] : null;
@@ -1062,7 +1058,6 @@ const MegaMenu: FC<{ isOpen: boolean; onClose: () => void; destinations: Destina
     'day-trips': Star,
     'combi-tickets': Star,
     'food-tours': Star,
-    // Speedboat specific
     'speedboat-tours': Zap,
     'island-hopping': Compass,
     'snorkeling': Compass,
@@ -1071,7 +1066,6 @@ const MegaMenu: FC<{ isOpen: boolean; onClose: () => void; destinations: Destina
     'glass-bottom-boat': Ticket,
     'fishing': Ticket,
     'private-charters': Star,
-    // Sharm specific
     'diving': Compass,
     'desert-safari': Zap,
     'quad-biking': Zap,
@@ -1079,12 +1073,6 @@ const MegaMenu: FC<{ isOpen: boolean; onClose: () => void; destinations: Destina
     'camel-riding': Ticket,
     'water-sports': Zap,
   };
-
-  // Speedboat theme colors
-  const speedboatBg = 'bg-gradient-to-br from-[#0A1628] via-[#0D1F35] to-[#06101F]';
-  const speedboatAccent = 'text-cyan-400';
-  const speedboatHover = 'hover:text-cyan-300';
-  const speedboatBorder = 'border-cyan-500/20';
 
   return (
     <AnimatePresence>
@@ -1095,40 +1083,19 @@ const MegaMenu: FC<{ isOpen: boolean; onClose: () => void; destinations: Destina
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
           transition={{ duration: 0.3, ease: 'easeInOut' }}
-          className={`absolute top-full left-0 right-0 shadow-2xl z-20 border-t ${
-            isSpeedboat 
-              ? `${speedboatBg} text-white ${speedboatBorder}` 
-              : 'bg-white text-black'
-          }`}
+          className="absolute top-full left-0 right-0 shadow-2xl z-20 border-t bg-white text-black"
           onMouseLeave={onClose}
         >
-          {/* Speedboat gradient overlay */}
-          {isSpeedboat && (
-            <div
-              className="pointer-events-none absolute inset-0 opacity-60"
-              style={{
-                backgroundImage:
-                  'radial-gradient(circle at 20% 30%, rgba(0, 212, 255, 0.12), transparent 40%), radial-gradient(circle at 80% 70%, rgba(255, 107, 53, 0.08), transparent 40%)',
-              }}
-            />
-          )}
-          
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-8">
               <div className="md:col-span-2">
-                <h3 className={`text-sm font-bold uppercase tracking-wider mb-4 ${
-                  isSpeedboat ? speedboatAccent : 'text-gray-500'
-                }`}>
-                  {isSpeedboat ? '🏝️ ISLAND DESTINATIONS' : t('header.destinations')}
+                <h3 className="text-sm font-bold uppercase tracking-wider mb-4 text-gray-500">
+                  {t('header.destinations')}
                 </h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   {effectiveDestinations.slice(0, 6).map((dest: any) => (
                     <Link key={dest._id} href={`/destinations/${dest.slug}`} className="group block">
-                      <div className={`aspect-square w-full rounded-lg overflow-hidden relative ${
-                        isSpeedboat 
-                          ? 'ring-2 ring-cyan-500/30 group-hover:ring-cyan-400/60' 
-                          : 'bg-slate-200'
-                      }`}>
+                      <div className="aspect-square w-full rounded-lg overflow-hidden relative bg-slate-200">
                         <Image 
                           src={dest.image} 
                           alt={dest.name} 
@@ -1136,20 +1103,12 @@ const MegaMenu: FC<{ isOpen: boolean; onClose: () => void; destinations: Destina
                           sizes="(max-width: 768px) 50vw, 33vw" 
                           className="object-cover transition-transform duration-300 group-hover:scale-110" 
                         />
-                        <div className={`absolute inset-0 transition-colors ${
-                          isSpeedboat 
-                            ? 'bg-gradient-to-t from-black/60 via-black/20 to-transparent group-hover:from-cyan-900/40' 
-                            : 'bg-black/20 group-hover:bg-black/40'
-                        }`} />
+                        <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors" />
                       </div>
-                      <h4 className={`mt-2 font-bold ${
-                        isSpeedboat 
-                          ? 'text-white group-hover:text-cyan-300' 
-                          : 'text-gray-900 group-hover:text-red-500'
-                      }`}>
+                      <h4 className="mt-2 font-bold text-gray-900 group-hover:text-[var(--primary-color)]">
                         {dest.name.toUpperCase()}
                       </h4>
-                      <p className={`text-xs ${isSpeedboat ? 'text-gray-400' : 'text-gray-500'}`}>
+                      <p className="text-xs text-gray-500">
                         {dest.country || ''}
                       </p>
                     </Link>
@@ -1158,10 +1117,8 @@ const MegaMenu: FC<{ isOpen: boolean; onClose: () => void; destinations: Destina
               </div>
 
               <div>
-                <h3 className={`text-sm font-bold uppercase tracking-wider mb-4 ${
-                  isSpeedboat ? speedboatAccent : 'text-gray-500'
-                }`}>
-                  {isSpeedboat ? '⚡ BOAT EXPERIENCES' : t('header.activities')}
+                <h3 className="text-sm font-bold uppercase tracking-wider mb-4 text-gray-500">
+                  {t('header.activities')}
                 </h3>
                 <ul className="space-y-3">
                   {effectiveCategories.slice(0, 9).map((activity: any) => {
@@ -1170,18 +1127,11 @@ const MegaMenu: FC<{ isOpen: boolean; onClose: () => void; destinations: Destina
                       <li key={activity._id}>
                         <Link 
                           href={`/categories/${activity.slug}`} 
-                          className={`flex items-center gap-3 group ${
-                            isSpeedboat 
-                              ? 'text-gray-300 hover:text-cyan-300' 
-                              : 'text-gray-700 hover:text-red-500'
-                          }`}
+                          className="flex items-center gap-3 group text-gray-700 hover:text-[var(--primary-color)]"
                         >
                           <Icon 
                             size={20} 
-                            className={isSpeedboat 
-                              ? 'text-cyan-500/70 group-hover:text-cyan-400' 
-                              : 'text-gray-400 group-hover:text-red-500'
-                            } 
+                            className="text-gray-400 group-hover:text-[var(--primary-color)]"
                           />
                           <span className="font-semibold">{activity.name}</span>
                         </Link>
@@ -1191,31 +1141,11 @@ const MegaMenu: FC<{ isOpen: boolean; onClose: () => void; destinations: Destina
                 </ul>
               </div>
 
-              <div className={`rounded-lg p-6 flex flex-col justify-center items-center text-center ${
-                isSpeedboat 
-                  ? 'bg-gradient-to-br from-cyan-500/20 to-orange-500/10 border border-cyan-500/30' 
-                  : 'bg-gray-50'
-              }`}>
-                {isSpeedboat ? (
-                  <>
-                    <Zap size={32} className="text-cyan-400 mb-2" />
-                    <h3 className="font-bold text-lg text-white">Speed Deals</h3>
-                    <p className="text-sm text-gray-300 my-2">Up to 25% off island trips!</p>
-                    <Link 
-                      href="/search" 
-                      className="mt-2 bg-gradient-to-r from-cyan-500 to-cyan-600 text-white font-bold py-2 px-4 rounded-full hover:from-cyan-400 hover:to-cyan-500 text-sm shadow-lg shadow-cyan-500/30"
-                    >
-                      View Deals
-                    </Link>
-                  </>
-                ) : (
-                  <>
-                    <Star size={32} className="text-yellow-500 mb-2" />
-                    <h3 className="font-bold text-lg text-gray-800">{t('header.specialOffers')}</h3>
-                    <p className="text-sm text-gray-600 my-2">{t('offers.save')}</p>
-                    <Link href="/search" className="mt-2 bg-red-500 text-white font-bold py-2 px-4 rounded-full hover:bg-red-600 text-sm">{t('header.deals')}</Link>
-                  </>
-                )}
+              <div className="rounded-lg p-6 flex flex-col justify-center items-center text-center bg-gray-50">
+                <Star size={32} className="text-yellow-500 mb-2" />
+                <h3 className="font-bold text-lg text-gray-800">{t('header.specialOffers')}</h3>
+                <p className="text-sm text-gray-600 my-2">{t('offers.save')}</p>
+                <Link href="/search" className="mt-2 text-white font-bold py-2 px-4 rounded-full text-sm" style={{ background: 'var(--gradient-primary)' }}>{t('header.deals')}</Link>
               </div>
             </div>
           </div>
@@ -1242,7 +1172,7 @@ const UserMenu: FC<{ user: any; onLogout: () => void }> = ({ user, onLogout }) =
         {user.picture || user.photoURL ? (
           <Image src={user.picture || user.photoURL || ''} alt={user.name} width={32} height={32} className="rounded-full" />
         ) : (
-          <div className="w-8 h-8 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center">
+          <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'var(--gradient-primary)' }}>
             <span className="text-white text-sm font-bold uppercase">
               {(user.name || user.firstName || 'U')[0]}
             </span>
@@ -1295,8 +1225,6 @@ const MobileMenu: FC<{
   const { t } = useSettings();
   const { getLogo, getSiteName } = useTenant();
 
-  const isSpeedboat = tenantId === 'hurghada-speedboat';
-
   // Use tenant-specific defaults if available
   const tenantDestinations = tenantId ? tenantMegaMenuDestinations[tenantId] : null;
   const tenantCategories = tenantId ? tenantMegaMenuCategories[tenantId] : null;
@@ -1330,7 +1258,6 @@ const MobileMenu: FC<{
     'day-trips': Star,
     'combi-tickets': Star,
     'food-tours': Star,
-    // Speedboat specific
     'speedboat-tours': Zap,
     'island-hopping': Compass,
     'snorkeling': Compass,
@@ -1341,18 +1268,6 @@ const MobileMenu: FC<{
     'private-charters': Star,
   };
 
-  // Speedboat theme
-  const bgColor = isSpeedboat ? 'bg-gradient-to-b from-[#0A1628] to-[#0D1F35]' : 'bg-white';
-  const textColor = isSpeedboat ? 'text-white' : 'text-slate-900';
-  const textMuted = isSpeedboat ? 'text-gray-400' : 'text-slate-500';
-  const textLink = isSpeedboat ? 'text-gray-300 hover:text-cyan-400' : 'text-slate-700 hover:text-red-500';
-  const borderColor = isSpeedboat ? 'border-cyan-500/20' : 'border-b';
-  const accentColor = isSpeedboat ? 'text-cyan-400' : 'text-slate-800';
-  const btnBg = isSpeedboat ? 'bg-cyan-500 hover:bg-cyan-400' : 'bg-red-600 hover:bg-red-700';
-  const btnOutline = isSpeedboat ? 'border-cyan-500 text-cyan-400 hover:bg-cyan-500/10' : 'border-red-600 text-red-600 hover:bg-red-50';
-  const searchBg = isSpeedboat ? 'bg-white/10' : 'bg-slate-100';
-  const searchText = isSpeedboat ? 'text-gray-300' : 'text-slate-700';
-
   return (
     <AnimatePresence>
       {isOpen && (
@@ -1360,65 +1275,65 @@ const MobileMenu: FC<{
           <div className="absolute inset-0 bg-black/50" onClick={onClose} />
           <motion.div
             ref={menuRef}
-            className={`absolute top-0 left-0 h-full w-full max-w-sm shadow-2xl ${bgColor}`}
+            className="absolute top-0 left-0 h-full w-full max-w-sm shadow-2xl bg-white"
             initial={{ x: '-100%' }}
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
           >
             <div className="flex flex-col h-full">
-              <div className={`flex items-center justify-between p-6 ${borderColor}`}>
+              <div className="flex items-center justify-between p-6 border-b">
                 <Image src={getLogo()} alt={getSiteName()} width={120} height={40} className="h-10 w-auto object-contain" />
-                <button onClick={onClose} className={`p-2 rounded-full ${isSpeedboat ? 'text-gray-400 hover:bg-white/10' : 'text-slate-500 hover:bg-slate-100'}`}>
+                <button onClick={onClose} className="p-2 rounded-full text-slate-500 hover:bg-slate-100">
                   <X size={24} />
                 </button>
               </div>
 
               {user ? (
-                <div className={`p-6 ${borderColor}`}>
+                <div className="p-6 border-b">
                   <div className="flex items-center gap-3 mb-4">
                     {user.picture || user.photoURL ? (
                       <Image src={user.picture || user.photoURL || ''} alt={user.name} width={40} height={40} className="rounded-full" />
                     ) : (
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isSpeedboat ? 'bg-gradient-to-br from-cyan-500 to-cyan-600' : 'bg-gradient-to-br from-red-500 to-red-600'}`}>
-                        <span className="text-white text-lg font-bold uppercase">
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center text-white" style={{ background: 'var(--gradient-primary)' }}>
+                        <span className="text-lg font-bold uppercase">
                           {(user.name || user.firstName || 'U')[0]}
                         </span>
                       </div>
                     )}
                     <div>
-                      <p className={`font-medium ${textColor}`}>{user.name}</p>
-                      <p className={`text-sm ${textMuted}`}>{user.email}</p>
+                      <p className="font-medium text-slate-900">{user.name}</p>
+                      <p className="text-sm text-slate-500">{user.email}</p>
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Link href="/user/profile" className={`block py-2 ${textLink}`} onClick={onClose}>{t('header.myProfile')}</Link>
-                    <Link href="/user/bookings" className={`block py-2 ${textLink}`} onClick={onClose}>{t('header.myBookings')}</Link>
-                    <button onClick={() => { logout(); onClose(); }} className={`block py-2 w-full text-left ${isSpeedboat ? 'text-orange-400 hover:text-orange-300' : 'text-red-600 hover:text-red-700'}`}>{t('header.signOut')}</button>
+                    <Link href="/user/profile" className="block py-2 text-slate-700 hover:text-[var(--primary-color)]" onClick={onClose}>{t('header.myProfile')}</Link>
+                    <Link href="/user/bookings" className="block py-2 text-slate-700 hover:text-[var(--primary-color)]" onClick={onClose}>{t('header.myBookings')}</Link>
+                    <button onClick={() => { logout(); onClose(); }} className="block py-2 w-full text-left text-red-600 hover:text-red-700">{t('header.signOut')}</button>
                   </div>
                 </div>
               ) : (
-                <div className={`p-6 ${borderColor}`}>
+                <div className="p-6 border-b">
                   <div className="space-y-3">
-                    <Link href="/login" className={`block w-full text-white text-center py-3 rounded-lg transition-colors ${btnBg}`}>{t('header.login')}</Link>
-                    <Link href="/signup" className={`block w-full border text-center py-3 rounded-lg transition-colors ${btnOutline}`}>{t('header.signup')}</Link>
+                    <Link href="/login" className="block w-full text-white text-center py-3 rounded-lg transition-colors hover:opacity-90" style={{ backgroundColor: 'var(--primary-color)' }}>{t('header.login')}</Link>
+                    <Link href="/signup" className="block w-full border text-center py-3 rounded-lg transition-colors border-[var(--primary-color)] text-[var(--primary-color)] hover:bg-slate-50">{t('header.signup')}</Link>
                   </div>
                 </div>
               )}
 
               <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                <button onClick={() => { onOpenSearch(); onClose(); }} className={`w-full flex items-center gap-3 p-4 rounded-lg text-left ${searchBg}`}>
-                  <Search size={20} className={textMuted} />
-                  <span className={searchText}>{isSpeedboat ? 'Search boat trips & islands' : 'Search tours & tickets'}</span>
+                <button onClick={() => { onOpenSearch(); onClose(); }} className="w-full flex items-center gap-3 p-4 rounded-lg text-left bg-slate-100">
+                  <Search size={20} className="text-slate-500" />
+                  <span className="text-slate-700">Search tours & tickets</span>
                 </button>
 
                 <div>
-                  <h3 className={`font-bold text-lg mb-4 ${accentColor}`}>
-                    {isSpeedboat ? '🏝️ Island Destinations' : t('header.destinations')}
+                  <h3 className="font-bold text-lg mb-4 text-slate-800">
+                    {t('header.destinations')}
                   </h3>
                   <div className="space-y-2">
                     {effectiveDestinations.map((dest: any) => (
-                      <a key={dest._id} href={`/destinations/${dest.slug}`} className={`block py-2 ${textLink}`} onClick={onClose}>
+                      <a key={dest._id} href={`/destinations/${dest.slug}`} className="block py-2 text-slate-700 hover:text-[var(--primary-color)]" onClick={onClose}>
                         {dest.name}
                       </a>
                     ))}
@@ -1426,15 +1341,15 @@ const MobileMenu: FC<{
                 </div>
 
                 <div>
-                  <h3 className={`font-bold text-lg mb-4 ${accentColor}`}>
-                    {isSpeedboat ? '⚡ Boat Experiences' : t('header.activities')}
+                  <h3 className="font-bold text-lg mb-4 text-slate-800">
+                    {t('header.activities')}
                   </h3>
                   <div className="space-y-2">
                     {effectiveCategories.map((activity: any) => {
                       const Icon = activityIcons[activity.slug] || Ticket;
                       return (
-                        <a key={activity._id} href={`/categories/${activity.slug}`} className={`flex items-center gap-3 py-2 ${textLink}`} onClick={onClose}>
-                          <Icon size={16} className={isSpeedboat ? 'text-cyan-500' : ''} />
+                        <a key={activity._id} href={`/categories/${activity.slug}`} className="flex items-center gap-3 py-2 text-slate-700 hover:text-[var(--primary-color)]" onClick={onClose}>
+                          <Icon size={16} />
                           <span>{activity.name}</span>
                         </a>
                       );
@@ -1443,7 +1358,7 @@ const MobileMenu: FC<{
                 </div>
               </div>
 
-              <div className={`p-6 border-t ${isSpeedboat ? 'border-cyan-500/20' : ''}`}>
+              <div className="p-6 border-t">
                 <CurrencyLanguageSwitcher variant="footer" />
               </div>
             </div>
@@ -1466,7 +1381,7 @@ const HeaderSearchBar: FC<{ onFocus: () => void; isTransparent: boolean }> = Rea
     <div className="hidden lg:block flex-1 max-w-2xl mx-8 transition-colors duration-500">
       <div className="relative">
         <Search className={`absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 pointer-events-none transition-colors duration-500 ${isTransparent ? 'text-white' : 'text-slate-400'}`} />
-        <button onClick={onFocus} className={`w-full text-left pl-12 pr-6 py-3 text-sm bg-white border-2 rounded-full shadow-sm hover:border-red-300 transition-colors ${borderColor}`}>
+        <button onClick={onFocus} className={`w-full text-left pl-12 pr-6 py-3 text-sm bg-white border-2 rounded-full shadow-sm hover:border-[var(--primary-color)] transition-colors ${borderColor}`}>
           <span className="text-slate-500">{t('search.placeholder')}</span>
         </button>
       </div>
@@ -1531,8 +1446,6 @@ export default function Header({
 
   const isScrolled = scrollY > 100;
   const isTransparent = !(isScrolled || isMegaMenuOpen || startSolid);
-  const isSpeedboat = tenant?.tenantId === 'hurghada-speedboat';
-
   // handlers
   const handleMegaMenuToggle = useCallback(() => setMegaMenuOpen(prev => !prev), []);
   const handleMobileSearchOpen = useCallback(() => setMobileSearchOpen(true), []);
@@ -1546,19 +1459,13 @@ export default function Header({
   // Tenant-aware styling
   const headerBg = isTransparent 
     ? 'bg-transparent' 
-    : isSpeedboat 
-      ? 'bg-[#0A1628] shadow-lg shadow-cyan-500/10' 
-      : 'bg-white shadow-lg';
+    : 'bg-white shadow-lg';
   const headerText = isTransparent 
     ? 'text-white' 
-    : isSpeedboat 
-      ? 'text-white' 
-      : 'text-gray-800';
+    : 'text-gray-800';
   const linkHoverColor = isTransparent 
     ? 'hover:text-gray-200' 
-    : isSpeedboat 
-      ? 'hover:text-cyan-400' 
-      : 'hover:text-red-500';
+    : 'hover:text-[var(--primary-color)]';
 
   return (
     <>
@@ -1601,7 +1508,7 @@ export default function Header({
         >
           <Heart size={24} className={`${headerText} ${linkHoverColor} transition-colors`} />
           {wishlist?.length > 0 && (
-            <span className={`absolute -top-1 -right-1 md:-top-2 md:-right-2 ${isSpeedboat ? 'bg-cyan-500 text-[#0A1628]' : 'bg-red-500 text-white'} text-[10px] rounded-full h-5 w-5 flex items-center justify-center font-bold border-2 border-white shadow-lg`}>
+            <span className="absolute -top-1 -right-1 md:-top-2 md:-right-2 text-white text-[10px] rounded-full h-5 w-5 flex items-center justify-center font-bold border-2 border-white shadow-lg" style={{ backgroundColor: 'var(--primary-color)' }}>
               {wishlist.length}
             </span>
           )}
@@ -1614,14 +1521,14 @@ export default function Header({
         >
           <ShoppingCart size={24} className={`${headerText} ${linkHoverColor} transition-colors`} />
           {totalItems > 0 && (
-            <span className={`absolute -top-1 -right-1 md:-top-2 md:-right-2 ${isSpeedboat ? 'bg-cyan-500 text-[#0A1628]' : 'bg-red-500 text-white'} text-[10px] rounded-full h-5 w-5 flex items-center justify-center font-bold border-2 border-white shadow-lg`}>
+            <span className="absolute -top-1 -right-1 md:-top-2 md:-right-2 text-white text-[10px] rounded-full h-5 w-5 flex items-center justify-center font-bold border-2 border-white shadow-lg" style={{ backgroundColor: 'var(--primary-color)' }}>
               {totalItems}
             </span>
           )}
         </button>
 
         <button onClick={handleMobileSearchOpen} className={`${headerText} ${linkHoverColor} lg:hidden group p-2`} aria-label="Open search">
-          <Search size={22} className={isSpeedboat ? 'group-hover:text-cyan-400' : 'group-hover:text-red-500'} />
+          <Search size={22} className="group-hover:text-[var(--primary-color)]" />
         </button>
 
         {user ? (
@@ -1629,7 +1536,7 @@ export default function Header({
         ) : (
           <div className="hidden md:flex items-center gap-3">
             <Link href="/login" className={`${headerText} ${linkHoverColor} font-semibold text-sm`}>{t('header.login')}</Link>
-            <Link href="/signup" className={`${isSpeedboat ? 'bg-cyan-500 text-[#0A1628] hover:bg-cyan-400' : 'bg-red-600 text-white hover:bg-red-700'} px-4 py-2 rounded-full font-semibold text-sm transition-colors`}>{t('header.signup')}</Link>
+            <Link href="/signup" className="text-white px-4 py-2 rounded-full font-semibold text-sm transition-colors hover:opacity-90" style={{ backgroundColor: 'var(--primary-color)' }}>{t('header.signup')}</Link>
           </div>
         )}
 

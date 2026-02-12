@@ -17,7 +17,6 @@ export default function Destinations() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { tenant } = useTenant();
-  const isSpeedboat = tenant?.tenantId === 'hurghada-speedboat';
 
   useEffect(() => {
     const fetchDestinations = async () => {
@@ -45,46 +44,7 @@ export default function Destinations() {
         setError(error instanceof Error ? error.message : 'Unknown error');
         
         // Fallback: show mock destinations
-        const mockDestinations: DestinationWithTourCount[] = isSpeedboat
-          ? [
-              {
-                _id: 'mock-sb-1',
-                name: 'Hurghada Marina',
-                slug: 'hurghada-marina',
-                country: 'Egypt',
-                image: '/tenants/hurghada-speedboat/hero/hero-1.png',
-                description: 'Marina departures and private charters',
-                tourCount: 5,
-              },
-              {
-                _id: 'mock-sb-2',
-                name: 'Giftun Island',
-                slug: 'giftun-island',
-                country: 'Egypt',
-                image: '/tenants/hurghada-speedboat/hero/hero-2.png',
-                description: 'Island runs, snorkeling and beach time',
-                tourCount: 1,
-              },
-              {
-                _id: 'mock-sb-3',
-                name: 'Orange Bay',
-                slug: 'orange-bay',
-                country: 'Egypt',
-                image: '/tenants/hurghada-speedboat/hero/hero-3.png',
-                description: 'Turquoise lagoons and soft sand beaches',
-                tourCount: 1,
-              },
-              {
-                _id: 'mock-sb-4',
-                name: 'Dolphin House',
-                slug: 'dolphin-house',
-                country: 'Egypt',
-                image: '/tenants/hurghada-speedboat/hero/hero-1.png',
-                description: 'Swim with wild dolphins in their habitat',
-                tourCount: 1,
-              },
-            ]
-          : [
+        const mockDestinations: DestinationWithTourCount[] = [
               {
                 _id: 'mock-1',
                 name: 'Cairo',
@@ -138,7 +98,7 @@ export default function Destinations() {
     };
 
     fetchDestinations();
-  }, [tenant?.tenantId, isSpeedboat]);
+  }, [tenant?.tenantId]);
 
   if (isLoading) {
     return (
@@ -199,7 +159,7 @@ export default function Destinations() {
                 )}
                 <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors"></div>
               </div>
-              <h3 className="mt-3 sm:mt-4 font-bold text-base sm:text-lg text-slate-800 group-hover:text-red-500 transition-colors">
+              <h3 className="mt-3 sm:mt-4 font-bold text-base sm:text-lg text-slate-800 group-hover:text-[var(--primary-color)] transition-colors">
                 {destination.name}
               </h3>
               <p className="text-xs sm:text-sm text-slate-500">

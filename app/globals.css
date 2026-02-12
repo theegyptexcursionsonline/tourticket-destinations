@@ -174,7 +174,7 @@
 }
 
 .swiper-pagination-bullet-active {
-  background: linear-gradient(135deg, #dc2626 0%, #ea580c 100%);
+  background: var(--gradient-primary, linear-gradient(135deg, #dc2626 0%, #ea580c 100%));
   width: 32px;
   border-radius: 5px;
 }
@@ -190,100 +190,13 @@
 }
 
 /* ============================================
-   SPEEDBOAT THEME STYLES
+   LEGACY: SPEEDBOAT THEME STYLES
+   Components now use CSS variables directly
+   (--primary-color, --gradient-primary, etc.)
+   These overrides are kept for backward compatibility
    ============================================ */
 
-/* Theme-specific pagination colors */
-.theme-speedboat .swiper-pagination-bullet-active {
-  background: linear-gradient(135deg, #00D4FF 0%, #0891B2 100%);
-}
-
-/* Speedboat Theme - Primary Button Styles */
-.theme-speedboat .btn-primary,
-.theme-speedboat [class*="bg-red-"] {
-  background: linear-gradient(135deg, #00D4FF 0%, #0891B2 100%) !important;
-  color: #0A1628 !important;
-}
-
-.theme-speedboat .btn-primary:hover {
-  background: linear-gradient(135deg, #00B8E6 0%, #0E7490 100%) !important;
-}
-
-/* Speedboat Theme - Text Colors */
-.theme-speedboat .text-red-500,
-.theme-speedboat .text-red-600,
-.theme-speedboat .text-red-700 {
-  color: #00D4FF !important;
-}
-
-.theme-speedboat .hover\:text-red-600:hover {
-  color: #00B8E6 !important;
-}
-
-/* Speedboat Theme - Border Colors */
-.theme-speedboat .border-red-500,
-.theme-speedboat .border-red-600 {
-  border-color: #00D4FF !important;
-}
-
-/* Speedboat Theme - Background Colors */
-.theme-speedboat .bg-red-50 {
-  background-color: #E0F7FF !important;
-}
-
-.theme-speedboat .bg-red-100 {
-  background-color: #B3EDFF !important;
-}
-
-.theme-speedboat .bg-red-500,
-.theme-speedboat .bg-red-600 {
-  background-color: #00D4FF !important;
-}
-
-/* Speedboat Theme - From/To Gradients */
-.theme-speedboat .from-red-600,
-.theme-speedboat .from-red-500 {
-  --tw-gradient-from: #00D4FF !important;
-}
-
-.theme-speedboat .to-red-700,
-.theme-speedboat .to-red-600 {
-  --tw-gradient-to: #0891B2 !important;
-}
-
-/* Speedboat Theme - Ring Colors */
-.theme-speedboat .ring-red-500,
-.theme-speedboat .ring-red-600 {
-  --tw-ring-color: #00D4FF !important;
-}
-
-.theme-speedboat .focus\:ring-red-500:focus {
-  --tw-ring-color: #00D4FF !important;
-}
-
-/* Speedboat Theme - Header Styling */
-/* Don't override when header is intentionally transparent (EEO-like) */
-.theme-speedboat header:not(.bg-transparent) {
-  background: var(--header-bg) !important;
-}
-
-/* Speedboat Theme - Footer Styling */
-.theme-speedboat footer {
-  background: var(--footer-bg) !important;
-}
-
-/* Speedboat Theme - Card Shadows */
-.theme-speedboat .shadow-lg {
-  box-shadow: var(--shadow-card) !important;
-}
-
-/* Speedboat Theme - Surface Colors */
-.theme-speedboat .bg-slate-50,
-.theme-speedboat .bg-gray-50 {
-  background-color: var(--surface-color) !important;
-}
-
-/* Speedboat Theme - Wave Animation */
+/* Wave Animation (generic - can be used by any tenant) */
 @keyframes wave {
   0%, 100% { transform: translateX(0) translateY(0); }
   25% { transform: translateX(-5px) translateY(-5px); }
@@ -291,47 +204,22 @@
   75% { transform: translateX(5px) translateY(-5px); }
 }
 
-.theme-speedboat .animate-wave {
+.animate-wave {
   animation: wave 3s ease-in-out infinite;
 }
 
-/* Speedboat Theme - Ocean Gradient Backgrounds */
-.theme-speedboat .ocean-gradient {
-  background: linear-gradient(180deg, #0A1628 0%, #1E3A5F 50%, #00D4FF 100%);
-}
-
-/* Speedboat Theme - Badge Styles */
-.theme-speedboat .badge-primary {
+/* Badge Styles using CSS variables */
+.badge-primary {
   background-color: var(--badge-bg);
   color: var(--badge-text);
 }
 
-/* Speedboat Theme - Link Styles */
-.theme-speedboat a:not(.btn):not([class*="bg-"]):hover {
-  color: #00D4FF;
-}
-
-/* Speedboat Theme - Accent (Orange/Coral) for CTAs */
-.theme-speedboat .accent-cta {
-  background: linear-gradient(135deg, #FF6B35 0%, #E55A2B 100%);
+/* Accent CTA using CSS variables */
+.accent-cta {
+  background: var(--gradient-primary);
   color: white;
 }
 
-.theme-speedboat .accent-cta:hover {
-  background: linear-gradient(135deg, #E55A2B 0%, #CC4A1F 100%);
-}
-
-/* Speedboat Theme - Star Ratings */
-.theme-speedboat .text-yellow-400,
-.theme-speedboat .text-yellow-500 {
-  color: var(--rating-color) !important;
-}
-
-/* Custom scrollbar for speedboat theme */
-.theme-speedboat .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #00D4FF;
-}
-
-.theme-speedboat .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #00B8E6;
+.accent-cta:hover {
+  opacity: 0.9;
 }

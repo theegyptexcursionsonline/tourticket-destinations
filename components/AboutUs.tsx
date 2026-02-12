@@ -99,7 +99,7 @@ export default function WhyBookWithUs({ content: dbContent }: AboutUsProps) {
                 const IconComponent = ICON_MAP[feature.icon] || Award;
                 return (
                   <li key={index} className="flex items-start">
-                    <IconComponent className={`w-5 h-5 sm:w-6 sm:h-6 ${tenantId === 'hurghada-speedboat' ? 'text-cyan-500' : 'text-red-600'} mr-3 sm:mr-4 flex-shrink-0 mt-0.5`} />
+                    <IconComponent className="w-5 h-5 sm:w-6 sm:h-6 mr-3 sm:mr-4 flex-shrink-0 mt-0.5" style={{ color: 'var(--primary-color)' }} />
                     <span className="text-base sm:text-lg font-medium text-slate-800 leading-tight">
                       {feature.text}
                     </span>
@@ -111,7 +111,8 @@ export default function WhyBookWithUs({ content: dbContent }: AboutUsProps) {
             {/* CTA - rounded full button */}
             <a
               href={content.ctaLink}
-              className={`inline-flex items-center gap-2 sm:gap-3 px-6 sm:px-8 md:px-10 py-3 sm:py-4 rounded-full bg-gradient-to-r ${content.accentColor} text-white text-sm sm:text-base font-semibold shadow-xl hover:scale-[1.03] transition-all duration-300 group`}
+              className="inline-flex items-center gap-2 sm:gap-3 px-6 sm:px-8 md:px-10 py-3 sm:py-4 rounded-full text-white text-sm sm:text-base font-semibold shadow-xl hover:scale-[1.03] transition-all duration-300 group"
+              style={{ background: 'var(--gradient-primary)' }}
             >
               <span>{content.ctaText}</span>
               <ArrowRight className="w-4 sm:w-5 h-4 sm:h-5 transition-transform duration-300 group-hover:translate-x-1 flex-shrink-0" />

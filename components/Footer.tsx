@@ -299,40 +299,17 @@ export default function Footer() {
     }
   };
 
-  const isSpeedboat = tenant?.tenantId === 'hurghada-speedboat';
-
-  const speedboatQuickLinks = [
-    { label: 'Speedboat Tours', href: '/categories/speedboat-tours' },
-    { label: 'Island Trips', href: '/categories/island-trips' },
-    { label: 'Dolphin Watching', href: '/categories/dolphin-watching' },
-    { label: 'Snorkeling Trips', href: '/categories/snorkeling-tours' },
-    { label: 'Sunset Cruises', href: '/categories/sunset-cruises' },
-  ];
-  
   const showBlog = isFeatureEnabled('enableBlog');
   
   return (
-    <footer className={`${isSpeedboat ? 'bg-[#0A1628] text-gray-300' : 'bg-white text-slate-700'} pb-20 md:pb-24`}>
+    <footer className="bg-white text-slate-700 pb-20 md:pb-24">
       <Toaster position="top-center" />
       <div className="container mx-auto px-4 py-12">
 
         {/* Main Footer Content */}
         <div
-          className={`relative overflow-hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-8 lg:gap-6 mb-6 items-start ${
-            isSpeedboat
-              ? 'bg-gradient-to-br from-[#0D1F35] via-[#0A1628] to-[#06101F] border-cyan-900/30'
-              : 'bg-slate-50 border-slate-100'
-          } border rounded-3xl p-6 sm:p-8 lg:p-10 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.2)]`}
+          className="relative overflow-hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-8 lg:gap-6 mb-6 items-start bg-slate-50 border-slate-100 border rounded-3xl p-6 sm:p-8 lg:p-10 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.2)]"
         >
-          {isSpeedboat && (
-            <div
-              className="pointer-events-none absolute inset-0 opacity-60"
-              style={{
-                backgroundImage:
-                  'radial-gradient(circle at 20% 20%, rgba(0, 212, 255, 0.22), transparent 45%), radial-gradient(circle at 80% 0%, rgba(255, 107, 53, 0.16), transparent 45%), radial-gradient(circle at 50% 100%, rgba(0, 212, 255, 0.14), transparent 55%)',
-              }}
-            />
-          )}
 
           {/* Column 1: Brand Info, Trust Badge & Payment Methods */}
           <div className="space-y-6 lg:col-span-2 relative z-10">
@@ -345,22 +322,13 @@ export default function Footer() {
                 className="h-16 sm:h-20 w-auto object-contain"
               />
             </Link>
-            <p className={`text-sm leading-relaxed max-w-xs ${isSpeedboat ? 'text-gray-300' : 'text-slate-600'}`}>
-              {isSpeedboat ? (
-                <>
-                  High-speed Red Sea adventures, island escapes, and dolphin encounters — curated by{' '}
-                  <span className="font-semibold text-white">{getSiteName()}</span>.
-                </>
-              ) : (
-                <>
-                  Book your adventure, skip the lines. Unforgettable tours, tickets, and activities for a memorable journey with{' '}
-                  {getSiteName()}.
-                </>
-              )}
+            <p className="text-sm leading-relaxed max-w-xs text-slate-600">
+              Book your adventure, skip the lines. Unforgettable tours, tickets, and activities for a memorable journey with{' '}
+              {getSiteName()}.
             </p>
 
             {/* Trusted by clients */}
-            <div className={`rounded-2xl border p-5 ${isSpeedboat ? 'bg-white/95 border-white/10' : 'bg-white border-slate-100'}`}>
+            <div className="rounded-2xl border p-5 bg-white border-slate-100">
               <p className="font-semibold text-slate-900 mb-3 text-base">Trusted by our clients</p>
               <div className="flex items-center gap-3 mb-2">
                 <span className="text-3xl font-bold text-slate-900 leading-none">4.9</span>
@@ -372,7 +340,7 @@ export default function Footer() {
             </div>
 
             {/* Payment Methods */}
-            <div className={`rounded-2xl border p-5 ${isSpeedboat ? 'bg-white/95 border-white/10' : 'bg-white border-slate-100'}`}>
+            <div className="rounded-2xl border p-5 bg-white border-slate-100">
               <h3 className="font-bold text-base mb-4 text-slate-900">Ways you can pay</h3>
               <div className="grid grid-cols-3 gap-2.5">
                 {paymentMethods.map((method, idx) => (
@@ -390,29 +358,17 @@ export default function Footer() {
 
           {/* Column 2: Things To Do */}
           <div className="space-y-4 relative z-10">
-            <h3 className={`font-semibold text-base lg:text-lg tracking-wide ${isSpeedboat ? 'text-white' : 'text-slate-900'}`}>
-              {isSpeedboat ? 'Popular adventures' : 'Things to do'}
+            <h3 className="font-semibold text-base lg:text-lg tracking-wide text-slate-900">
+              Things to do
             </h3>
-            <ul className={`space-y-2 text-sm ${isSpeedboat ? 'text-gray-300' : 'text-slate-500'}`}>
-              {(isSpeedboat ? speedboatQuickLinks : []).map((item) => (
-                <li key={item.href}>
-                  <Link
-                    className={`${isSpeedboat ? 'hover:text-cyan-300' : 'hover:text-red-600'} transition-colors inline-flex items-center gap-2`}
-                    href={item.href}
-                  >
-                    <span className={`h-1.5 w-1.5 rounded-full ${isSpeedboat ? 'bg-cyan-400' : 'bg-red-500'}`} />
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
-              {!isSpeedboat &&
-                destinations.slice(0, 5).map((destination) => (
+            <ul className="space-y-2 text-sm text-slate-500">
+              {destinations.slice(0, 5).map((destination) => (
                   <li key={destination._id}>
                     <Link
-                      className="hover:text-red-600 transition-colors inline-flex items-center gap-2"
+                      className="hover:text-[var(--primary-color)] transition-colors inline-flex items-center gap-2"
                       href={`/destinations/${destination.slug}`}
                     >
-                      <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                      <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: 'var(--primary-color)' }} />
                       Things to do in {destination.name}
                     </Link>
                   </li>
@@ -422,17 +378,17 @@ export default function Footer() {
 
           {/* Column 3: Destinations & Company Links */}
           <div className="space-y-4 relative z-10">
-            <h3 className={`font-semibold text-base lg:text-lg tracking-wide ${isSpeedboat ? 'text-white' : 'text-slate-900'}`}>
+            <h3 className="font-semibold text-base lg:text-lg tracking-wide text-slate-900">
               Top destinations
             </h3>
-            <ul className={`space-y-2 text-sm ${isSpeedboat ? 'text-gray-300' : 'text-slate-500'}`}>
+            <ul className="space-y-2 text-sm text-slate-500">
               {destinations.slice(0, 5).map((destination) => (
                 <li key={destination._id}>
                   <Link
-                    className={`${isSpeedboat ? 'hover:text-cyan-300' : 'hover:text-red-600'} transition-colors inline-flex items-center gap-2`}
+                    className="hover:text-[var(--primary-color)] transition-colors inline-flex items-center gap-2"
                     href={`/destinations/${destination.slug}`}
                   >
-                    <span className={`h-1.5 w-1.5 rounded-full ${isSpeedboat ? 'bg-cyan-400' : 'bg-blue-500'}`} />
+                    <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
                     {destination.name}
                   </Link>
                 </li>
@@ -440,45 +396,45 @@ export default function Footer() {
             </ul>
             
             <div className="mt-6">
-              <h3 className={`font-semibold text-base lg:text-lg tracking-wide ${isSpeedboat ? 'text-white' : 'text-slate-900'}`}>
+              <h3 className="font-semibold text-base lg:text-lg tracking-wide text-slate-900">
                 Company
               </h3>
-              <ul className={`space-y-2 text-sm ${isSpeedboat ? 'text-gray-300' : 'text-slate-500'}`}>
+              <ul className="space-y-2 text-sm text-slate-500">
                 <li>
                   <Link
-                    className={`${isSpeedboat ? 'hover:text-cyan-300' : 'hover:text-red-600'} transition-colors inline-flex items-center gap-2`}
+                    className="hover:text-[var(--primary-color)] transition-colors inline-flex items-center gap-2"
                     href="/contact"
                   >
-                    <span className={`h-1.5 w-1.5 rounded-full ${isSpeedboat ? 'bg-cyan-400/80' : 'bg-slate-500'}`} />
+                    <span className="h-1.5 w-1.5 rounded-full bg-slate-500" />
                     Contact
                   </Link>
                 </li>
                 <li>
                   <Link
-                    className={`${isSpeedboat ? 'hover:text-cyan-300' : 'hover:text-red-600'} transition-colors inline-flex items-center gap-2`}
+                    className="hover:text-[var(--primary-color)] transition-colors inline-flex items-center gap-2"
                     href="/about"
                   >
-                    <span className={`h-1.5 w-1.5 rounded-full ${isSpeedboat ? 'bg-cyan-400/80' : 'bg-slate-500'}`} />
+                    <span className="h-1.5 w-1.5 rounded-full bg-slate-500" />
                     About us
                   </Link>
                 </li>
                 {showBlog && (
                   <li>
                     <Link
-                      className={`${isSpeedboat ? 'hover:text-cyan-300' : 'hover:text-red-600'} transition-colors inline-flex items-center gap-2`}
+                      className="hover:text-[var(--primary-color)] transition-colors inline-flex items-center gap-2"
                       href="/blog"
                     >
-                      <span className={`h-1.5 w-1.5 rounded-full ${isSpeedboat ? 'bg-cyan-400/80' : 'bg-slate-500'}`} />
+                      <span className="h-1.5 w-1.5 rounded-full bg-slate-500" />
                       Blog
                     </Link>
                   </li>
                 )}
                 <li>
                   <Link
-                    className={`${isSpeedboat ? 'hover:text-cyan-300' : 'hover:text-red-600'} transition-colors inline-flex items-center gap-2`}
+                    className="hover:text-[var(--primary-color)] transition-colors inline-flex items-center gap-2"
                     href="/faqs"
                   >
-                    <span className={`h-1.5 w-1.5 rounded-full ${isSpeedboat ? 'bg-cyan-400/80' : 'bg-slate-500'}`} />
+                    <span className="h-1.5 w-1.5 rounded-full bg-slate-500" />
                     FAQ
                   </Link>
                 </li>
@@ -488,17 +444,17 @@ export default function Footer() {
 
           {/* Column 4: Contact, Newsletter & Social Media */}
           <div className="space-y-6 lg:col-span-2 relative z-10">
-            <div className={`rounded-2xl border p-5 ${isSpeedboat ? 'bg-white/95 border-white/10' : 'bg-white border-slate-100'}`}>
+            <div className="rounded-2xl border p-5 bg-white border-slate-100">
               <h3 className="font-semibold text-base lg:text-lg mb-4 text-slate-900 tracking-wide">Contact information</h3>
               <ul className="space-y-3 text-sm text-slate-600">
                 <li className="flex gap-3">
-                  <span className={`h-10 w-10 rounded-full flex items-center justify-center ${isSpeedboat ? 'bg-cyan-50 text-cyan-700' : 'bg-red-50 text-red-600'}`}>
+                  <span className="h-10 w-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--primary-light)', color: 'var(--primary-color)' }}>
                     <Phone size={18} />
                   </span>
                   <div className="flex flex-col">
                     <a
                       href={`tel:${contactPhone.replace(/\s/g, '')}`}
-                      className={`font-semibold text-slate-900 transition-colors ${isSpeedboat ? 'hover:text-cyan-700' : 'hover:text-red-600'}`}
+                      className="font-semibold text-slate-900 transition-colors hover:text-[var(--primary-color)]"
                     >
                       {contactPhone}
                     </a>
@@ -506,13 +462,13 @@ export default function Footer() {
                   </div>
                 </li>
                 <li className="flex gap-3">
-                  <span className={`h-10 w-10 rounded-full flex items-center justify-center ${isSpeedboat ? 'bg-sky-50 text-sky-700' : 'bg-blue-50 text-blue-600'}`}>
+                  <span className="h-10 w-10 rounded-full flex items-center justify-center bg-blue-50 text-blue-600">
                     <Mail size={18} />
                   </span>
                   <div>
                     <a
                       href={`mailto:${contactEmail}`}
-                      className={`font-semibold text-slate-900 transition-colors break-all ${isSpeedboat ? 'hover:text-cyan-700' : 'hover:text-red-600'}`}
+                      className="font-semibold text-slate-900 transition-colors break-all hover:text-[var(--primary-color)]"
                     >
                       {contactEmail}
                     </a>
@@ -520,13 +476,13 @@ export default function Footer() {
                   </div>
                 </li>
                 <li className="flex gap-3">
-                  <span className={`h-10 w-10 rounded-full flex items-center justify-center ${isSpeedboat ? 'bg-emerald-50 text-emerald-700' : 'bg-emerald-50 text-emerald-600'}`}>
+                  <span className="h-10 w-10 rounded-full flex items-center justify-center bg-emerald-50 text-emerald-600">
                     <MessageSquare size={18} />
                   </span>
                   <button
                     type="button"
                     onClick={openChatbot}
-                    className={`text-sm font-semibold text-slate-900 transition-colors cursor-pointer text-left ${isSpeedboat ? 'hover:text-cyan-700' : 'hover:text-red-600'}`}
+                    className="text-sm font-semibold text-slate-900 transition-colors cursor-pointer text-left hover:text-[var(--primary-color)]"
                     aria-label="Open chat"
                   >
                     Chat with us
@@ -536,14 +492,14 @@ export default function Footer() {
             </div>
 
             {/* Newsletter */}
-            <div className={`${isSpeedboat ? 'bg-[#0A1628] border-cyan-900/30' : 'bg-white border-slate-100'} rounded-2xl border p-5`}>
+            <div className="bg-white border-slate-100 rounded-2xl border p-5">
               {!isSubscribed ? (
                 <>
-                  <h4 className={`font-semibold text-base mb-2 ${isSpeedboat ? 'text-white' : 'text-slate-900'}`}>
-                    {isSpeedboat ? 'Get Speedboat Deals' : 'Don\'t miss our travel updates'}
+                  <h4 className="font-semibold text-base mb-2 text-slate-900">
+                    Don&apos;t miss our travel updates
                   </h4>
-                  <p className={`text-xs mb-3 ${isSpeedboat ? 'text-gray-400' : 'text-slate-500'}`}>
-                    {isSpeedboat ? 'Exclusive offers and adventure updates straight to your inbox.' : 'Get curated tips, exclusive offers, and destination guides straight to your inbox.'}
+                  <p className="text-xs mb-3 text-slate-500">
+                    Get curated tips, exclusive offers, and destination guides straight to your inbox.
                   </p>
                   <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                     <input 
@@ -551,12 +507,13 @@ export default function Footer() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="Your email address" 
-                      className={`w-full sm:flex-1 h-11 rounded-xl border px-4 text-sm focus:outline-none focus:ring-2 shadow-sm ${isSpeedboat ? 'bg-[#0D1F35] border-cyan-900/30 text-white placeholder:text-gray-500 focus:ring-cyan-500' : 'bg-white border-slate-200 focus:ring-red-600'}`}
+                      className="w-full sm:flex-1 h-11 rounded-xl border px-4 text-sm focus:outline-none focus:ring-2 shadow-sm bg-white border-slate-200 focus:ring-[var(--primary-color)]"
                       disabled={isLoading}
                     />
                     <button 
                       type="submit" 
-                      className={`h-11 w-full sm:w-auto px-4 sm:px-6 rounded-xl text-sm font-semibold flex items-center justify-center disabled:bg-slate-500 transition-colors ${isSpeedboat ? 'bg-gradient-to-r from-cyan-500 to-cyan-600 text-[#0A1628] hover:from-cyan-400 hover:to-cyan-500' : 'bg-gradient-to-r from-red-600 to-slate-900 text-white hover:from-red-700 hover:to-slate-950'}`}
+                      className="h-11 w-full sm:w-auto px-4 sm:px-6 rounded-xl text-sm font-semibold flex items-center justify-center disabled:bg-slate-500 transition-colors text-white"
+                      style={{ background: 'var(--gradient-primary)' }}
                       disabled={isLoading}
                     >
                       {isLoading ? <Loader2 className="animate-spin" /> : 'SUBSCRIBE'}
@@ -565,16 +522,16 @@ export default function Footer() {
                 </>
               ) : (
                 <div className="text-center py-4">
-                  <h4 className={`font-bold text-sm mb-2 ${isSpeedboat ? 'text-cyan-400' : 'text-green-600'}`}>Thank you!</h4>
-                  <p className={`text-sm ${isSpeedboat ? 'text-gray-400' : 'text-slate-600'}`}>You've successfully subscribed to our newsletter.</p>
+                  <h4 className="font-bold text-sm mb-2 text-green-600">Thank you!</h4>
+                  <p className="text-sm text-slate-600">You&apos;ve successfully subscribed to our newsletter.</p>
                 </div>
               )}
             </div>
             
             {/* Social Media */}
-            <div className={`${isSpeedboat ? 'bg-[#0A1628] border-cyan-900/30' : 'bg-white border-slate-100'} rounded-2xl border p-5`}>
-              <h4 className={`font-semibold text-base mb-2 ${isSpeedboat ? 'text-white' : 'text-slate-900'}`}>Follow us on social media</h4>
-              <p className={`text-xs mb-3 ${isSpeedboat ? 'text-gray-400' : 'text-slate-500'}`}>Join our community for live updates, reels, and travel inspiration.</p>
+            <div className="bg-white border-slate-100 rounded-2xl border p-5">
+              <h4 className="font-semibold text-base mb-2 text-slate-900">Follow us on social media</h4>
+              <p className="text-xs mb-3 text-slate-500">Join our community for live updates, reels, and travel inspiration.</p>
               <div className="flex gap-3">
                 {finalSocialLinks.map(({ icon: Icon, href }, i) => (
                   <a 
@@ -582,7 +539,7 @@ export default function Footer() {
                     href={href} 
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`w-10 h-10 rounded-full ${isSpeedboat ? 'bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500 hover:text-[#0A1628] border-cyan-500/30' : 'bg-slate-900 text-white hover:bg-red-600 border-slate-200'} flex items-center justify-center transition-colors border`} 
+                    className="w-10 h-10 rounded-full bg-slate-900 text-white hover:bg-[var(--primary-color)] border-slate-200 flex items-center justify-center transition-colors border" 
                     aria-label={`Follow us on social media`}
                   >
                     <Icon size={18} />
@@ -594,16 +551,16 @@ export default function Footer() {
         </div>
 
         {/* Currency/Language Switcher */}
-        <div className={`border-t pt-4 mb-4 ${isSpeedboat ? 'border-cyan-900/30' : 'border-slate-300'}`}>
+        <div className="border-t pt-4 mb-4 border-slate-300">
           <CurrencyLanguageSwitcher variant="footer" />
         </div>
 
         {/* Legal Footer */}
-        <div className={`border-t pt-4 text-xs text-center ${isSpeedboat ? 'border-cyan-900/30 text-gray-400' : 'border-slate-300 text-slate-500'}`}>
+        <div className="border-t pt-4 text-xs text-center border-slate-300 text-slate-500">
           <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 mb-3">
-            <Link className={`underline transition-colors ${isSpeedboat ? 'hover:text-cyan-300' : 'hover:text-slate-700'}`} href="/privacy">Privacy policy</Link>
+            <Link className="underline transition-colors hover:text-slate-700" href="/privacy">Privacy policy</Link>
             <span className="hidden sm:inline">·</span>
-            <Link className={`underline transition-colors ${isSpeedboat ? 'hover:text-cyan-300' : 'hover:text-slate-700'}`} href="/terms">Terms and conditions</Link>
+            <Link className="underline transition-colors hover:text-slate-700" href="/terms">Terms and conditions</Link>
           </div>
           <p>© {new Date().getFullYear()} {getSiteName()}. All rights reserved.</p>
         </div>
