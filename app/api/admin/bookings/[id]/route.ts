@@ -6,6 +6,9 @@ import Tour from '@/lib/models/Tour';
 import User from '@/lib/models/user';
 import { EmailService } from '@/lib/email/emailService';
 import { BOOKING_STATUSES_DB, toBookingStatusDb } from '@/lib/constants/bookingStatus';
+import Tenant from '@/lib/models/Tenant';
+import { getTenantEmailBranding } from '@/lib/tenant';
+import { requireAdminAuth } from '@/lib/auth/adminAuth';
 
 // Helper to format dates consistently and avoid timezone issues
 function formatBookingDate(dateString: string | Date | undefined): string {
@@ -39,6 +42,9 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireAdminAuth(request, { permissions: ['manageBookings'] });
+  if (auth instanceof NextResponse) return auth;
+
   const { searchParams } = new URL(request.url);
   const tenantId =
     searchParams.get('tenantId') ||
@@ -116,6 +122,9 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireAdminAuth(request, { permissions: ['manageBookings'] });
+  if (auth instanceof NextResponse) return auth;
+
   const { searchParams } = new URL(request.url);
   const tenantId =
     searchParams.get('tenantId') ||
@@ -200,6 +209,15 @@ export async function PATCH(
     // Send email notifications based on status change
     const updatedUser = updatedBooking.user as any;
     const updatedTour = updatedBooking.tour as any;
+
+    // Load tenant branding for email
+    const bookingTenantId = updatedBooking.tenantId || updatedTour?.tenantId;
+    const tenantConfig = bookingTenantId
+      ? await Tenant.findOne({ tenantId: bookingTenantId }).lean()
+      : null;
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || '';
+    const tenantBranding = getTenantEmailBranding(tenantConfig as any, baseUrl);
+
     if (oldStatus !== status && updatedUser && updatedTour) {
       try {
         const customerName = updatedUser.name || 
@@ -234,7 +252,8 @@ export async function PATCH(
             refundAmount: refundAmount > 0 ? `$${refundAmount.toFixed(2)}` : undefined,
             refundProcessingDays: refundAmount > 0 ? 5 : undefined,
             cancellationReason: 'Status changed to cancelled by administrator',
-            baseUrl: process.env.NEXT_PUBLIC_BASE_URL || ''
+            baseUrl: process.env.NEXT_PUBLIC_BASE_URL || '',
+            tenantBranding,
           });
 
           console.log(`✅ Cancellation email sent to ${customerEmail}`);
@@ -260,7 +279,8 @@ export async function PATCH(
             additionalInfo: normalizedStatus === 'Confirmed'
               ? 'Please make sure to arrive at the meeting point 15 minutes before the scheduled time.'
               : undefined,
-            baseUrl: process.env.NEXT_PUBLIC_BASE_URL || ''
+            baseUrl: process.env.NEXT_PUBLIC_BASE_URL || '',
+            tenantBranding,
           });
 
           console.log(`✅ Status update email sent to ${customerEmail} - Status: ${normalizedStatus}`);
@@ -312,6 +332,9 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireAdminAuth(request, { permissions: ['manageBookings'] });
+  if (auth instanceof NextResponse) return auth;
+
   const { searchParams } = new URL(request.url);
   const tenantId =
     searchParams.get('tenantId') ||

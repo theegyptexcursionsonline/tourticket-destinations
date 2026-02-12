@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Booking from '@/lib/models/Booking';
+import { requireAdminAuth } from '@/lib/auth/adminAuth';
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAdminAuth(request, { permissions: ['manageBookings'] });
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const { searchParams } = new URL(request.url);
     const tenantId =

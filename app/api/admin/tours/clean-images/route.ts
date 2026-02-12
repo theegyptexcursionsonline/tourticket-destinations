@@ -1,9 +1,10 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Tour from '@/lib/models/Tour';
 import Category from '@/lib/models/Category';
 import Destination from '@/lib/models/Destination';
 import AttractionPage from '@/lib/models/AttractionPage'; // Add this import
+import { requireAdminAuth } from '@/lib/auth/adminAuth';
 
 const PLACEHOLDER_PATTERNS = [
   'your-cdn.com',
@@ -17,7 +18,10 @@ const isPlaceholderUrl = (url: string) => {
   );
 };
 
-export async function POST() {
+export async function POST(request: NextRequest) {
+  const auth = await requireAdminAuth(request, { permissions: ['manageTours'] });
+  if (auth instanceof NextResponse) return auth;
+
   try {
     await dbConnect();
     
@@ -205,7 +209,10 @@ export async function POST() {
 }
 
 // GET endpoint to check how many items have placeholder images
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const auth = await requireAdminAuth(request, { permissions: ['manageTours'] });
+  if (auth instanceof NextResponse) return auth;
+
   try {
     await dbConnect();
     

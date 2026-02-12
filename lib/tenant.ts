@@ -657,3 +657,35 @@ export function getDefaultTenantConfig(tenantId: string, name: string): Partial<
   };
 }
 
+// ============================================
+// EMAIL BRANDING HELPER
+// ============================================
+
+/**
+ * Convert tenant config to email branding object.
+ * Shared utility used by checkout, admin, cron jobs, etc.
+ */
+export function getTenantEmailBranding(tenantConfig: ITenant | null, baseUrl?: string): import('@/lib/email/type').TenantEmailBranding | undefined {
+  if (!tenantConfig) return undefined;
+
+  return {
+    tenantId: tenantConfig.tenantId,
+    companyName: tenantConfig.name,
+    logo: tenantConfig.branding?.logo,
+    primaryColor: tenantConfig.branding?.primaryColor || '#E63946',
+    secondaryColor: tenantConfig.branding?.secondaryColor || '#1D3557',
+    accentColor: tenantConfig.branding?.accentColor || '#F4A261',
+    contactEmail: tenantConfig.contact?.email || 'info@tours.com',
+    contactPhone: tenantConfig.contact?.phone || '+20 000 000 0000',
+    website: baseUrl || tenantConfig.domain,
+    supportEmail: tenantConfig.contact?.supportEmail || tenantConfig.contact?.email,
+    socialLinks: {
+      facebook: tenantConfig.socialLinks?.facebook,
+      instagram: tenantConfig.socialLinks?.instagram,
+      twitter: tenantConfig.socialLinks?.twitter,
+    },
+    fromName: tenantConfig.email?.fromName || tenantConfig.name,
+    fromEmail: tenantConfig.email?.fromEmail,
+  };
+}
+

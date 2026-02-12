@@ -6,6 +6,7 @@ import dbConnect from '@/lib/dbConnect';
 import Tour from '@/lib/models/Tour';
 import Tenant from '@/lib/models/Tenant';
 import mongoose from 'mongoose';
+import { requireAdminAuth } from '@/lib/auth/adminAuth';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,6 +22,9 @@ export const dynamic = 'force-dynamic';
  * }
  */
 export async function POST(request: NextRequest) {
+  const auth = await requireAdminAuth(request, { permissions: ['manageTours'] });
+  if (auth instanceof NextResponse) return auth;
+
   try {
     await dbConnect();
     
@@ -122,6 +126,9 @@ export async function POST(request: NextRequest) {
  * - autoDetect: If true, auto-detect tours that might belong to this tenant
  */
 export async function GET(request: NextRequest) {
+  const auth = await requireAdminAuth(request, { permissions: ['manageTours'] });
+  if (auth instanceof NextResponse) return auth;
+
   try {
     await dbConnect();
     

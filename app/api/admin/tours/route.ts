@@ -1,8 +1,9 @@
 // app/api/admin/tours/route.ts
 import dbConnect from '@/lib/dbConnect';
 import Tour from '@/lib/models/Tour';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { syncTourToAlgolia } from '@/lib/algolia';
+import { requireAdminAuth } from '@/lib/auth/adminAuth';
 
 function generateOptionId() {
   return globalThis.crypto?.randomUUID?.() || `opt-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -97,12 +98,15 @@ async function fetchToursWithPopulate(filter: Record<string, unknown> = {}) {
 }
 
 // GET all tours (with optional tenant filter)
-export async function GET(request: Request) {
-  await dbConnect();
+export async function GET(request: NextRequest) {
+  const auth = await requireAdminAuth(request, { permissions: ['manageTours'] });
+  if (auth instanceof NextResponse) return auth;
+  const { searchParams } = new URL(request.url);
+  const tenantId = searchParams.get('tenantId');
+  const effectiveTenantId = tenantId && tenantId !== 'all' ? tenantId : undefined;
+  await dbConnect(effectiveTenantId || undefined);
 
   try {
-    const { searchParams } = new URL(request.url);
-    const tenantId = searchParams.get('tenantId');
     const published = searchParams.get('published');
     const featured = searchParams.get('featured');
     
@@ -144,7 +148,10 @@ export async function GET(request: Request) {
 }
 
 // POST a new tour
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const auth = await requireAdminAuth(request, { permissions: ['manageTours'] });
+  if (auth instanceof NextResponse) return auth;
+
   await dbConnect();
   
   try {

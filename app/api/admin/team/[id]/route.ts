@@ -12,6 +12,7 @@ import {
   getDefaultPermissions,
 } from '@/lib/constants/adminPermissions';
 import { EmailService } from '@/lib/email/emailService';
+import Tenant from '@/lib/models/Tenant';
 
 const sanitize = (user: any) => ({
   id: user._id.toString(),

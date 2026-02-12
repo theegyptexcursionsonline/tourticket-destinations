@@ -4,11 +4,15 @@ import dbConnect from '@/lib/dbConnect';
 import Availability from '@/lib/models/Availability';
 import Tour from '@/lib/models/Tour';
 import StopSale from '@/lib/models/StopSale';
+import { requireAdminAuth } from '@/lib/auth/adminAuth';
 
 export const dynamic = 'force-dynamic';
 
 // GET - Fetch availability for a tour/month
 export async function GET(request: NextRequest) {
+  const auth = await requireAdminAuth(request, { permissions: ['manageTours'] });
+  if (auth instanceof NextResponse) return auth;
+
   try {
     await dbConnect();
 

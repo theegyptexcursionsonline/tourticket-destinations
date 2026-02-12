@@ -4,13 +4,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Tour from '@/lib/models/Tour';
+import { requireAdminAuth } from '@/lib/auth/adminAuth';
 
 export async function GET(request: NextRequest) {
-  await dbConnect();
+  const auth = await requireAdminAuth(request, { permissions: ['manageTours'] });
+  if (auth instanceof NextResponse) return auth;
+  const { searchParams } = new URL(request.url);
+  const tenantId = (searchParams.get('tenantId') || '').trim();
+  const effectiveTenantId = tenantId && tenantId !== 'all' ? tenantId : undefined;
+  await dbConnect(effectiveTenantId || undefined);
 
   try {
-    const { searchParams } = new URL(request.url);
-    const tenantId = (searchParams.get('tenantId') || '').trim();
     const q = (searchParams.get('q') || '').trim();
     const limitParam = searchParams.get('limit');
 

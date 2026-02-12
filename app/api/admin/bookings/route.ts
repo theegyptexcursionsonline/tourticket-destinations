@@ -4,8 +4,12 @@ import dbConnect from '@/lib/dbConnect';
 import Booking from '@/lib/models/Booking';
 import mongoose from 'mongoose';
 import { toBookingStatusDb } from '@/lib/constants/bookingStatus';
+import { requireAdminAuth } from '@/lib/auth/adminAuth';
 
 export async function GET(request: NextRequest) {
+  const auth = await requireAdminAuth(request, { permissions: ['manageBookings'] });
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const { searchParams } = new URL(request.url);
     const tenantId =

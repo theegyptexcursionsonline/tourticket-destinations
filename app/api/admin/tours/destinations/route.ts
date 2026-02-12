@@ -4,8 +4,12 @@ import Destination from '@/lib/models/Destination';
 import { NextRequest, NextResponse } from 'next/server';
 import { MongoError } from 'mongodb';
 import { getTenantFromRequest, buildTenantQuery } from '@/lib/tenant';
+import { requireAdminAuth } from '@/lib/auth/adminAuth';
 
 export async function GET(request: NextRequest) {
+  const auth = await requireAdminAuth(request, { permissions: ['manageTours'] });
+  if (auth instanceof NextResponse) return auth;
+
   try {
     // Get tenant from request
     const tenantId = await getTenantFromRequest();
@@ -34,7 +38,10 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const auth = await requireAdminAuth(request, { permissions: ['manageTours'] });
+  if (auth instanceof NextResponse) return auth;
+
   await dbConnect();
   try {
     const body = await request.json();

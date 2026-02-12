@@ -157,7 +157,7 @@ export default async function TourDetailPage({ params }: PageProps) {
 
     return (
       <>
-        <Header />
+        <Header startSolid />
         <TourDetailClientPage
           tour={tour}
           relatedTours={relatedTours}

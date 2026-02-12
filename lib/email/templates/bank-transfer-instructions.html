@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="format-detection" content="telephone=no, email=no, address=no">
+    <title>Bank Transfer Instructions - {{companyName}}</title>
+    <style>
+        body { margin: 0; padding: 0; background: #eef2f7; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #0f172a; -webkit-font-smoothing: antialiased; }
+        img { border: none; display: block; max-width: 100%; }
+        table { border-collapse: collapse; }
+
+        .wrapper { width: 100%; padding: 32px 0; }
+        .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 25px 45px rgba(15,23,42,0.15); }
+
+        .hero { background: linear-gradient(135deg, {{secondaryColor}} 0%, {{primaryColor}} 100%); padding: 36px 40px; color: #ffffff; text-align: center; position: relative; }
+        .logo { max-width: 180px; max-height: 60px; margin: 0 auto 24px; }
+        .hero-status { display: inline-block; padding: 8px 18px; border-radius: 999px; font-size: 12px; letter-spacing: 1px; text-transform: uppercase; font-weight: 700; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); }
+        .hero-title { font-size: 28px; font-weight: 700; letter-spacing: -0.6px; margin: 18px 0 8px; }
+        .hero-meta { color: rgba(255,255,255,0.8); font-size: 15px; }
+
+        .content { padding: 40px; }
+        .greeting { font-size: 20px; font-weight: 700; margin-bottom: 12px; letter-spacing: -0.2px; }
+        .intro { font-size: 15px; color: #475569; line-height: 1.7; margin-bottom: 28px; }
+
+        .card { border: 1px solid #e2e8f0; border-radius: 16px; margin-bottom: 28px; overflow: hidden; }
+        .card-header { padding: 20px 28px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; font-size: 13px; letter-spacing: 1px; color: #94a3b8; font-weight: 700; text-transform: uppercase; }
+        .card-body { padding: 24px 28px; }
+
+        .detail-grid { width: 100%; }
+        .detail-grid tr td { padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
+        .detail-grid tr:last-child td { border-bottom: none; }
+        .detail-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; color: #94a3b8; font-weight: 600; width: 40%; }
+        .detail-value { font-size: 16px; color: #0f172a; font-weight: 600; }
+        .detail-value.mono { font-family: 'SFMono-Regular', Menlo, monospace; letter-spacing: 0.5px; font-size: 15px; }
+
+        .amount-highlight { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-radius: 14px; padding: 18px 20px; margin-top: 18px; display: flex; justify-content: space-between; align-items: center; }
+        .amount-label { font-size: 13px; letter-spacing: 0.7px; font-weight: 700; color: #92400e; text-transform: uppercase; }
+        .amount-value { font-size: 26px; font-weight: 700; color: #451a03; }
+
+        .alert-box { background: #fffbeb; border: 1px solid #fde68a; border-radius: 14px; padding: 18px 20px; margin-bottom: 28px; }
+        .alert-icon { font-size: 18px; margin-right: 8px; }
+        .alert-title { font-size: 15px; font-weight: 700; color: #92400e; margin-bottom: 6px; }
+        .alert-text { font-size: 14px; color: #78350f; line-height: 1.6; }
+
+        .cta { text-align: center; margin: 32px 0 20px; }
+        .cta-button { display: inline-block; padding: 16px 40px; border-radius: 10px; background: {{primaryColor}}; color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; box-shadow: 0 15px 30px rgba(0,0,0,0.15); }
+        .cta-note { margin-top: 12px; font-size: 13px; color: #64748b; }
+
+        .support { border: 1px solid #e2e8f0; border-radius: 16px; padding: 22px 24px; background: #f8fafc; display: flex; gap: 16px; align-items: center; margin-bottom: 32px; }
+        .support-icon { font-size: 26px; }
+        .support-text strong { display: block; font-size: 15px; color: #0f172a; }
+        .support-text span { font-size: 14px; color: #475569; }
+        .support-text a { color: {{primaryColor}}; text-decoration: none; }
+
+        .footer { background: #f8fafc; padding: 28px 40px; text-align: center; border-top: 1px solid #e2e8f0; }
+        .footer-links a { color: #64748b; font-size: 13px; margin: 0 10px; text-decoration: none; font-weight: 600; }
+        .footer p { color: #94a3b8; font-size: 12px; margin: 10px 0; }
+
+        @media (max-width: 640px) {
+            .wrapper { padding: 0; }
+            .container { border-radius: 0; }
+            .hero, .content, .footer { padding-left: 24px !important; padding-right: 24px !important; }
+            .card-header, .card-body { padding-left: 20px; padding-right: 20px; }
+            .cta-button { width: 100%; }
+            .support { flex-direction: column; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <div class="container">
+            <div class="hero">
+                {{#if companyLogo}}
+                <img src="{{companyLogo}}" alt="{{companyName}}" class="logo">
+                {{else}}
+                <div style="font-size: 24px; font-weight: 800; margin-bottom: 24px;">{{companyName}}</div>
+                {{/if}}
+                <div class="hero-status">Bank transfer required</div>
+                <div class="hero-title">Payment Instructions</div>
+                <div class="hero-meta">Booking {{bookingId}} &middot; {{tourTitle}}</div>
+            </div>
+
+            <div class="content">
+                <div class="greeting">Hi {{customerName}},</div>
+                <p class="intro">
+                    Thank you for your booking! To complete your reservation, please transfer the amount below to our bank account. Your booking will be confirmed once we receive your payment.
+                </p>
+
+                <div class="alert-box">
+                    <div class="alert-title"><span class="alert-icon">⏰</span> Please complete your transfer within 48 hours</div>
+                    <div class="alert-text">To secure your spot, we recommend completing the bank transfer as soon as possible. Include your <strong>Booking ID ({{bookingId}})</strong> as the payment reference.</div>
+                </div>
+
+                <!-- Booking Summary -->
+                <div class="card">
+                    <div class="card-header">Booking summary</div>
+                    <div class="card-body">
+                        <table class="detail-grid">
+                            <tr>
+                                <td class="detail-label">Booking ID</td>
+                                <td class="detail-value mono">{{bookingId}}</td>
+                            </tr>
+                            <tr>
+                                <td class="detail-label">Tour</td>
+                                <td class="detail-value">{{tourTitle}}</td>
+                            </tr>
+                            <tr>
+                                <td class="detail-label">Date</td>
+                                <td class="detail-value">{{bookingDate}}</td>
+                            </tr>
+                            <tr>
+                                <td class="detail-label">Time</td>
+                                <td class="detail-value">{{bookingTime}}</td>
+                            </tr>
+                            <tr>
+                                <td class="detail-label">Participants</td>
+                                <td class="detail-value">{{participants}}</td>
+                            </tr>
+                            {{#if specialRequests}}
+                            <tr>
+                                <td class="detail-label">Special requests</td>
+                                <td class="detail-value">{{specialRequests}}</td>
+                            </tr>
+                            {{/if}}
+                            {{#if hotelPickupDetails}}
+                            <tr>
+                                <td class="detail-label">Hotel pickup</td>
+                                <td class="detail-value">{{hotelPickupDetails}}</td>
+                            </tr>
+                            {{/if}}
+                        </table>
+
+                        <div class="amount-highlight">
+                            <div class="amount-label">Total to transfer</div>
+                            <div class="amount-value">{{totalPrice}}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bank Details -->
+                <div class="card">
+                    <div class="card-header">Bank account details</div>
+                    <div class="card-body">
+                        <table class="detail-grid">
+                            <tr>
+                                <td class="detail-label">Bank name</td>
+                                <td class="detail-value">{{bankName}}</td>
+                            </tr>
+                            <tr>
+                                <td class="detail-label">Account name</td>
+                                <td class="detail-value">{{accountName}}</td>
+                            </tr>
+                            <tr>
+                                <td class="detail-label">Account number</td>
+                                <td class="detail-value mono">{{accountNumber}}</td>
+                            </tr>
+                            <tr>
+                                <td class="detail-label">IBAN</td>
+                                <td class="detail-value mono">{{iban}}</td>
+                            </tr>
+                            <tr>
+                                <td class="detail-label">SWIFT / BIC</td>
+                                <td class="detail-value mono">{{swiftCode}}</td>
+                            </tr>
+                            <tr>
+                                <td class="detail-label">Currency</td>
+                                <td class="detail-value">{{currency}}</td>
+                            </tr>
+                            <tr>
+                                <td class="detail-label">Reference</td>
+                                <td class="detail-value mono" style="color: {{primaryColor}};">{{bookingId}}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Steps -->
+                <div class="card">
+                    <div class="card-header">How to complete your payment</div>
+                    <div class="card-body">
+                        <p style="margin: 0 0 12px; font-size: 14px; color: #475569;"><strong>1.</strong> Log in to your bank&rsquo;s online portal or visit a branch.</p>
+                        <p style="margin: 0 0 12px; font-size: 14px; color: #475569;"><strong>2.</strong> Set up a transfer using the bank details above.</p>
+                        <p style="margin: 0 0 12px; font-size: 14px; color: #475569;"><strong>3.</strong> Enter <strong>{{bookingId}}</strong> as the payment reference.</p>
+                        <p style="margin: 0 0 12px; font-size: 14px; color: #475569;"><strong>4.</strong> Transfer exactly <strong>{{totalPrice}}</strong> in <strong>{{currency}}</strong>.</p>
+                        <p style="margin: 0; font-size: 14px; color: #475569;"><strong>5.</strong> Once processed, we&rsquo;ll confirm your booking via email.</p>
+                    </div>
+                </div>
+
+                <div class="cta">
+                    <a class="cta-button" href="{{baseUrl}}/user/bookings/{{bookingId}}">View booking</a>
+                    <div class="cta-note">Already transferred? No action needed &mdash; we&rsquo;ll confirm once received.</div>
+                </div>
+
+                <div class="support">
+                    <div class="support-icon">🏦</div>
+                    <div class="support-text">
+                        <strong>Need help with your transfer?</strong>
+                        <span>Email <a href="mailto:{{contactEmail}}">{{contactEmail}}</a>{{#if contactPhone}} or WhatsApp <a href="https://wa.me/{{contactPhone}}">{{contactPhone}}</a>{{/if}}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer">
+                <div class="footer-links">
+                    <a href="{{baseUrl}}/user/bookings">My Bookings</a>
+                    {{#if website}}<a href="{{website}}">Website</a>{{/if}}
+                    {{#if contactEmail}}<a href="mailto:{{contactEmail}}">Contact</a>{{/if}}
+                </div>
+                <p>&copy; {{year}} {{companyName}}</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

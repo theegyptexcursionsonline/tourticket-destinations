@@ -5,6 +5,7 @@ import Destination from "@/lib/models/Destination";
 import Category from "@/lib/models/Category";
 import mongoose from "mongoose";
 import { syncTourToAlgolia, deleteTourFromAlgolia } from "@/lib/algolia";
+import { requireAdminAuth } from "@/lib/auth/adminAuth";
 
 function generateOptionId() {
     return globalThis.crypto?.randomUUID?.() || `opt-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -130,6 +131,9 @@ export async function GET(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const auth = await requireAdminAuth(request, { permissions: ['manageTours'] });
+    if (auth instanceof NextResponse) return auth;
+
     try {
         await dbConnect();
         const { id } = await params;
@@ -164,6 +168,9 @@ export async function PUT(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const auth = await requireAdminAuth(request, { permissions: ['manageTours'] });
+    if (auth instanceof NextResponse) return auth;
+
     try {
         await dbConnect();
         const { id } = await params;
@@ -328,6 +335,9 @@ export async function DELETE(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const auth = await requireAdminAuth(request, { permissions: ['manageTours'] });
+    if (auth instanceof NextResponse) return auth;
+
     try {
         await dbConnect();
         const { id } = await params;

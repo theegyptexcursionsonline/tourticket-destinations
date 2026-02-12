@@ -6,6 +6,8 @@ import { signToken } from '@/lib/jwt';
 import bcrypt from 'bcryptjs';
 import { EmailService } from '@/lib/email/emailService'; // 🆕 Add this import
 import { getDefaultPermissions } from '@/lib/constants/adminPermissions';
+import Tenant from '@/lib/models/Tenant';
+import { getTenantFromRequest, getTenantEmailBranding } from '@/lib/tenant';
 
 export async function POST(request: NextRequest) {
   await dbConnect();
@@ -98,12 +100,23 @@ export async function POST(request: NextRequest) {
         });
       }
 
+      // Load tenant branding for email
+      let tenantBranding;
+      try {
+        const tenantId = await getTenantFromRequest();
+        if (tenantId) {
+          const tenantConfig = await Tenant.findOne({ tenantId }).lean();
+          tenantBranding = getTenantEmailBranding(tenantConfig as any, baseUrl);
+        }
+      } catch { /* ignore tenant detection errors */ }
+
       await EmailService.sendWelcomeEmail({
         customerName: `${firstName} ${lastName}`,
         customerEmail: email,
         dashboardLink: `${baseUrl}/user/dashboard`,
         recommendedTours: tourRecommendations,
-        baseUrl
+        baseUrl,
+        tenantBranding,
       });
     } catch (emailError) {
       console.error('Failed to send welcome email:', emailError);

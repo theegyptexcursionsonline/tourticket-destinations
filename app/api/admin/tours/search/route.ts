@@ -1,9 +1,13 @@
 // app/api/admin/tours/search/route.ts
 import dbConnect from '@/lib/dbConnect';
 import Tour from '@/lib/models/Tour';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { requireAdminAuth } from '@/lib/auth/adminAuth';
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
+  const auth = await requireAdminAuth(request, { permissions: ['manageTours'] });
+  if (auth instanceof NextResponse) return auth;
+
   await dbConnect();
 
   try {

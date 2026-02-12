@@ -1,15 +1,21 @@
 // app/api/admin/manifests/route.ts
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Booking from '@/lib/models/Booking';
 import Tour from '@/lib/models/Tour';
 import User from '@/lib/models/user';
+import { requireAdminAuth } from '@/lib/auth/adminAuth';
 
-export async function GET(request: Request) {
-  await dbConnect();
+export async function GET(request: NextRequest) {
+  const auth = await requireAdminAuth(request, { permissions: ['manageBookings'] });
+  if (auth instanceof NextResponse) return auth;
+  const { searchParams } = new URL(request.url);
+  const tenantId = searchParams.get('tenantId') || searchParams.get('brandId') || searchParams.get('brand_id');
+  const effectiveTenantId = tenantId && tenantId !== 'all' ? tenantId : undefined;
+
+  await dbConnect(effectiveTenantId || undefined);
 
   try {
-    const { searchParams } = new URL(request.url);
     const tourId = searchParams.get('tourId');
     const date = searchParams.get('date');
 
@@ -24,13 +30,18 @@ export async function GET(request: Request) {
     const endDate = new Date(date);
     endDate.setUTCHours(23, 59, 59, 999);
 
-    const bookings = await Booking.find({
+    const bookingFilter: any = {
       tour: tourId,
       date: {
         $gte: startDate,
         $lte: endDate,
       },
-    })
+    };
+    if (effectiveTenantId) {
+      bookingFilter.tenantId = effectiveTenantId;
+    }
+
+    const bookings = await Booking.find(bookingFilter)
     .populate({
         path: 'user',
         model: User,

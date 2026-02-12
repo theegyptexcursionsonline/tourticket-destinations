@@ -218,7 +218,7 @@ const SearchClient: React.FC<SearchClientProps> = ({ initialTours = [], categori
   // --- Render ---
   return (
     <>
-      <Header />
+      <Header startSolid />
 
       {/* Hero / Search Section */}
       <div className="bg-slate-50 border-b border-slate-200">
