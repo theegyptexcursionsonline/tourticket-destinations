@@ -44,6 +44,8 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
     if (existingToken && existingUser) {
       setToken(existingToken);
       setUser(JSON.parse(existingUser));
+      // Sync cookie for existing sessions (cookie may be missing if login happened before cookie support)
+      document.cookie = `admin-auth-token=${existingToken}; path=/; max-age=${8 * 60 * 60}; samesite=lax${window.location.protocol === 'https:' ? '; secure' : ''}`;
     }
 
     if (existingToken) {
@@ -65,6 +67,8 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
     setUser(null);
     localStorage.removeItem(STORAGE_TOKEN_KEY);
     localStorage.removeItem(STORAGE_USER_KEY);
+    // Clear the auth cookie
+    document.cookie = 'admin-auth-token=; path=/; max-age=0; samesite=lax';
   }, []);
 
   const refreshUserWithToken = useCallback(
@@ -148,6 +152,8 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
 
   const logout = useCallback(() => {
     clearSession();
+    // Clear the HTTP-only auth cookie on the server
+    fetch('/api/admin/logout', { method: 'POST' }).catch(() => {});
     toast.success('You have been logged out.');
   }, [clearSession]);
 

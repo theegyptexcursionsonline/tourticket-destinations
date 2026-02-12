@@ -32,12 +32,19 @@ export async function requireAdminAuth(
   request: NextRequest,
   options: RequireAdminOptions = {},
 ): Promise<AdminAuthContext | NextResponse> {
+  // Check Authorization header first, then fall back to cookie
   const authHeader = request.headers.get('authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return UNAUTHORIZED_RESPONSE;
+  let token = '';
+
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.replace('Bearer ', '').trim();
   }
 
-  const token = authHeader.replace('Bearer ', '').trim();
+  // Fallback: check admin-auth-token cookie (auto-sent by browser)
+  if (!token) {
+    token = request.cookies.get('admin-auth-token')?.value || '';
+  }
+
   if (!token) {
     return UNAUTHORIZED_RESPONSE;
   }

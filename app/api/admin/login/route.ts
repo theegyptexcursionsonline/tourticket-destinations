@@ -84,11 +84,18 @@ export async function POST(request: NextRequest) {
       );
 
       console.log('[LOGIN] Step 5: Env admin login successful');
-      return NextResponse.json({
+      const response = NextResponse.json({
         success: true,
         token,
         user: buildAdminUserPayload(pseudoUser, permissions),
       });
+      response.cookies.set('admin-auth-token', token, {
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 8 * 60 * 60, // 8 hours (matches JWT expiry)
+      });
+      return response;
     }
 
     console.log('[LOGIN] Step 3: Connecting to database...');
@@ -152,7 +159,7 @@ export async function POST(request: NextRequest) {
     console.log('[LOGIN] Step 13: Signing JWT token...');
     const token = await signToken(
       {
-        sub: user._id.toString(),
+        sub: (user._id as any).toString(),
         email: user.email,
         given_name: user.firstName,
         family_name: user.lastName,
@@ -165,11 +172,18 @@ export async function POST(request: NextRequest) {
     console.log('[LOGIN] Step 14: Token signed successfully');
 
     console.log('[LOGIN] Step 15: Login successful for:', user.email);
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       token,
       user: buildAdminUserPayload(user, permissions),
     });
+    response.cookies.set('admin-auth-token', token, {
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 8 * 60 * 60, // 8 hours (matches JWT expiry)
+    });
+    return response;
   } catch (error) {
     console.error('===== Admin login failed =====');
     console.error('Error type:', error?.constructor?.name);

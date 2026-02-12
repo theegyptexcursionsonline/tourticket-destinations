@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Search, Calendar, Users, DollarSign, RefreshCw, Eye, Download, AlertTriangle, Loader2, Trash2, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAdminTenant } from '@/contexts/AdminTenantContext';
+import { useAdminAuth } from '@/contexts/AdminAuthContext';
 import { BOOKING_STATUS, toBookingStatusCode } from '@/lib/constants/bookingStatus';
 
 interface BookingUser {
@@ -123,6 +124,7 @@ const BookingsPage = () => {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const router = useRouter();
+  const { token } = useAdminAuth();
   
   // Get tenant filter from context
   const { selectedTenantId, getSelectedTenant, isAllTenantsSelected } = useAdminTenant();
@@ -130,13 +132,16 @@ const BookingsPage = () => {
   const tenantQuery = selectedTenantId && selectedTenantId !== 'all' ? `?tenantId=${encodeURIComponent(selectedTenantId)}` : '';
 
   const fetchTourOptions = useCallback(async () => {
+    if (!token) return;
     setTourOptionsLoading(true);
     try {
       const params = new URLSearchParams();
       if (selectedTenantId && selectedTenantId !== 'all') params.set('tenantId', selectedTenantId);
       params.set('limit', '200');
       const url = `/api/admin/tours/options?${params.toString()}`;
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       const data = await response.json();
       if (data?.success) {
         setTourOptions(data.data || []);
@@ -147,7 +152,7 @@ const BookingsPage = () => {
     } finally {
       setTourOptionsLoading(false);
     }
-  }, [selectedTenantId]);
+  }, [selectedTenantId, token]);
 
   const buildBookingsUrl = useCallback((effectiveSearch: string) => {
     const params = new URLSearchParams();
@@ -166,11 +171,14 @@ const BookingsPage = () => {
   }, [activityFrom, activityTo, page, perPage, purchaseFrom, purchaseTo, selectedTenantId, sort, statusFilter, tourId]);
 
   const fetchBookings = useCallback(async (effectiveSearch: string) => {
+    if (!token) return;
     setLoading(true);
     setError(null);
     try {
       const url = buildBookingsUrl(effectiveSearch);
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (!response.ok) throw new Error('Failed to fetch bookings');
       const data: BookingsResponse = await response.json();
       if (!data?.success) throw new Error('Failed to fetch bookings');
@@ -184,7 +192,7 @@ const BookingsPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [buildBookingsUrl]);
+  }, [buildBookingsUrl, token]);
 
   // Load tour options when tenant changes
   useEffect(() => {
@@ -329,6 +337,7 @@ const BookingsPage = () => {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ status: newStatus }),
       });
@@ -380,6 +389,7 @@ const BookingsPage = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ bookingIds: Array.from(selectedBookings) }),
       });
