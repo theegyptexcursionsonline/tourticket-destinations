@@ -3,8 +3,6 @@ import React from 'react';
 import { Metadata } from 'next';
 import dbConnect from '@/lib/dbConnect';
 import Tour from '@/lib/models/Tour';
-import Destination from '@/lib/models/Destination';
-import Category from '@/lib/models/Category';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import AISearchWidget from '@/components/AISearchWidget';

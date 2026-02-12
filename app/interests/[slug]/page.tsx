@@ -5,7 +5,6 @@ import Footer from '@/components/Footer';
 import InterestLandingPage from '@/components/InterestLandingPage';
 import dbConnect from '@/lib/dbConnect';
 import Category from '@/lib/models/Category';
-import AttractionPage from '@/lib/models/AttractionPage';
 import { getTenantFromRequest, getTenantPublicConfig } from '@/lib/tenant';
 
 // Types

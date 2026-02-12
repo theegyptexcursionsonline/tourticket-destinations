@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Tag, Search, Star, Sparkles } from 'lucide-react';
+import { Tag, Search, Star } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { ICategory } from '@/lib/models/Category';
 

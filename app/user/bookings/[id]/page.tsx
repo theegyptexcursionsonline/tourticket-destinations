@@ -8,18 +8,14 @@ import {
   ArrowLeft,
   Calendar,
   Clock,
-  User,
-  Mail,
   Phone,
   Users,
-  DollarSign,
   MapPin,
   MessageSquare,
   AlertTriangle,
   RefreshCw,
   XCircle,
   CheckCircle,
-  Download,
   Package,
   Receipt,
   QrCode,
@@ -265,14 +261,6 @@ const UserBookingDetailPage = () => {
       default:
         return `${baseClasses} bg-gray-100 text-gray-800`;
     }
-  };
-
-  const formatUserName = (user: BookingUser) => {
-    if (user.name) return user.name;
-    if (user.firstName && user.lastName) {
-      return `${user.firstName} ${user.lastName}`;
-    }
-    return user.firstName || user.email;
   };
 
   const formatGuestBreakdown = (booking: BookingDetails) => {

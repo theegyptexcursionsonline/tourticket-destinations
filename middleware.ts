@@ -440,7 +440,7 @@ function getTenantIdFromDomain(hostname: string): string {
 /**
  * Check if path is reserved (not a tour slug)
  */
-function isReservedPath(pathname: string): boolean {
+function _isReservedPath(pathname: string): boolean {
   return reservedPaths.some(path => 
     pathname === path || pathname.startsWith(path + '/')
   );

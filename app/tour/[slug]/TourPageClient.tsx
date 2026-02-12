@@ -9,10 +9,10 @@ import { AnimatePresence, motion, useInView } from 'framer-motion';
 import {
   ArrowLeft, Clock, Star, Users, ShoppingCart, Calendar, MapPin,
   Info, CheckCircle, Heart, Share2, MessageCircle, Camera, ChevronDown,
-  ChevronUp, Shield, Umbrella, Thermometer, Bus, Utensils, Mountain,
-  Languages, CreditCard, Phone, Mail, AlertCircle, Car, Plane,
-  Navigation, Backpack, Sun, CloudRain, Snowflake, Eye, Gift,
-  Accessibility, Baby, PawPrint, Smartphone, Wifi, Headphones,
+  ChevronUp, Shield, Umbrella, Bus, Utensils, Mountain,
+  Languages, CreditCard, Phone, Mail,
+  Navigation, Backpack, Sun, Snowflake, Eye,
+  Accessibility, Smartphone, Headphones,
   ChevronLeft, ChevronRight, X, ZoomIn
 } from 'lucide-react';
 
@@ -26,7 +26,6 @@ import ReviewList from '@/components/reviews/ReviewList';
 import ReviewForm from '@/components/reviews/ReviewForm';
 // Add these new imports for reviews
 import ReviewsStructuredData from '@/components/ReviewsStructuredData';
-import Reviews from '@/components/Reviews';
 import ElfsightWidget from '@/components/ElfsightWidget';
 
 // Hooks and Types
@@ -961,7 +960,7 @@ export default function TourPageClient({ tour, relatedTours, initialReviews }: T
       try {
         await navigator.clipboard.writeText(window.location.href);
         toast.success('Tour link copied to clipboard!');
-      } catch (err) {
+      } catch {
         toast.error('Could not copy link.');
       }
     }

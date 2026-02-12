@@ -134,7 +134,7 @@ export async function getTenantDomainFromRequest(): Promise<string> {
   try {
     const headersList = await headers();
     return headersList.get('x-tenant-domain') || headersList.get('host') || 'localhost';
-  } catch (error) {
+  } catch (_error) {
     return 'localhost';
   }
 }
@@ -147,7 +147,7 @@ export async function isPreviewMode(): Promise<boolean> {
   try {
     const headersList = await headers();
     return headersList.get('x-tenant-preview') === 'true';
-  } catch (error) {
+  } catch (_error) {
     // Fallback to cookie
     try {
       const cookieStore = await cookies();
@@ -180,7 +180,7 @@ export async function getPreviewInfo(): Promise<{
       tenantId: headersList.get('x-tenant-id') || 'default',
       originalDomain: headersList.get('x-tenant-domain') || 'localhost',
     };
-  } catch (error) {
+  } catch (_error) {
     return null;
   }
 }

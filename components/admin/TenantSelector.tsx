@@ -4,7 +4,7 @@
 // Dropdown component for selecting which tenant (brand) to manage in admin panel
 
 import React from 'react';
-import { Globe, ChevronDown, Building2 } from 'lucide-react';
+import { Globe, ChevronDown } from 'lucide-react';
 import { useAdminTenant, ALL_TENANTS_VALUE } from '@/contexts/AdminTenantContext';
 
 interface TenantSelectorProps {

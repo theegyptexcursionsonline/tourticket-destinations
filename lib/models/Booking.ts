@@ -1,5 +1,5 @@
 // lib/models/Booking.ts (Complete - Nothing Omitted)
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 import mongoose, { Document, Schema, Model } from 'mongoose';
 
 export interface IBooking extends Document {

@@ -4,7 +4,6 @@ import React, { useState, useEffect, useRef, useMemo, FC, useCallback } from 're
 import {
   ChevronDown,
   Search,
-  Globe,
   ShoppingCart,
   X,
   Landmark,
@@ -175,7 +174,7 @@ const SearchSuggestion: FC<{
 // =================================================================
 // --- ALGOLIA SEARCH COMPONENTS ---
 // =================================================================
-function CustomSearchBox({ searchQuery, onSearchChange }: { searchQuery: string; onSearchChange: (value: string) => void }) {
+function CustomSearchBox({ searchQuery, onSearchChange: _onSearchChange }: { searchQuery: string; onSearchChange: (value: string) => void }) {
   const { refine } = useSearchBox();
 
   useEffect(() => {
@@ -388,6 +387,7 @@ const MobileInlineSearch: FC<{ isOpen: boolean; onClose: () => void }> = React.m
 MobileInlineSearch.displayName = 'MobileInlineSearch';
 
 // Old SearchModal component removed - now using MobileInlineSearch
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const SearchModal_REMOVED: FC<{ onClose: () => void; onSearch: (term: string) => void }> = ({ onClose, onSearch }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<Tour[]>([]);
@@ -704,7 +704,7 @@ const MobileMenu: FC<{
   onOpenAuth: (state: 'login' | 'signup') => void;
   destinations: Destination[];
   categories: Category[];
-}> = React.memo(({ isOpen, onClose, onOpenSearch, onOpenAuth, destinations, categories }) => {
+}> = React.memo(({ isOpen, onClose, onOpenSearch, onOpenAuth: _onOpenAuth, destinations, categories }) => {
   const menuRef = useRef<HTMLDivElement>(null);
   const { user, logout } = useAuth();
 
@@ -881,7 +881,7 @@ export default function Header2({ startSolid = false }: { startSolid?: boolean }
   const { openWishlistSidebar, wishlist } = useWishlist();
 
   const { scrollY, isVisible } = useScrollDirection();
-  const { addSearchTerm } = useRecentSearches();
+  const { addSearchTerm: _addSearchTerm } = useRecentSearches();
 
   const isScrolled = scrollY > 100;
   const isTransparent = !startSolid && scrollY < 100;

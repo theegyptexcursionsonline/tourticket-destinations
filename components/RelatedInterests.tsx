@@ -82,9 +82,8 @@ const getInterestImage = (name: string): string => {
 };
 
 // Icon mapping function - matches categories with appropriate icons
-const getIconForInterest = (name: string, slug: string) => {
+const getIconForInterest = (name: string, _slug: string) => {
   const lowerName = name.toLowerCase();
-  const lowerSlug = slug.toLowerCase();
 
   // Historical & Cultural
   if (lowerName.includes('pyramid') || lowerName.includes('giza')) return { Icon: Landmark, gradient: 'from-amber-500 to-yellow-600' };

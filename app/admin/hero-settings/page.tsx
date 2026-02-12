@@ -5,10 +5,10 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { 
-  Image as ImageIcon, Settings, Upload, Trash2, Check, 
-  Eye, EyeOff, Plus, Edit, Save, X, Monitor, Smartphone,
-  Palette, Type, MousePointer, Users, Star, RefreshCw,
-  Hash, Search, Play, Pause, Zap, Globe, Timer, Sparkles
+  Image as ImageIcon, Upload, Trash2, Check, 
+  Eye, EyeOff, Plus, Save, X, Monitor, Smartphone,
+  Palette, Type, Users, RefreshCw,
+  Hash, Search, Play, Pause, Globe, Timer, Sparkles
 } from 'lucide-react';
 import Image from 'next/image';
 import withAuth from '@/components/admin/withAuth';

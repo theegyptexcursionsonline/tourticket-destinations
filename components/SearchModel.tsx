@@ -17,7 +17,7 @@ const AlgoliaChat = dynamic(() => import('@/components/search/AlgoliaChat'), {
   ),
 });
 
-const SearchModal: FC<{ onClose: () => void; onSearch: (term: string) => void; }> = ({ onClose, onSearch }) => {
+const SearchModal: FC<{ onClose: () => void; onSearch: (term: string) => void; }> = ({ onClose, onSearch: _onSearch }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [showAIChat, setShowAIChat] = useState(false);
     const modalRef = useRef<HTMLDivElement>(null);

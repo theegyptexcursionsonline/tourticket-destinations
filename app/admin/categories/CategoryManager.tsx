@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { 
   PlusCircle, Edit, Trash2, Loader2, X, Tag, Image as ImageIcon,
-  Save, Upload, Sparkles, Eye, EyeOff
+  Save, Upload, Sparkles
 } from 'lucide-react';
 import { ICategory } from '@/lib/models/Category';
 import Image from 'next/image';

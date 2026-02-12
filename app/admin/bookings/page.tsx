@@ -228,27 +228,6 @@ const BookingsPage = () => {
     router.push(`/admin/bookings/${id}`);
   };
 
-  const getStatusBadge = (status: string) => {
-    const baseClasses = "px-2 py-1 text-xs font-semibold rounded-full";
-    const code = toBookingStatusCode(status) || BOOKING_STATUS.CONFIRMED;
-    switch (code) {
-      case BOOKING_STATUS.CONFIRMED:
-        return `${baseClasses} bg-green-100 text-green-800`;
-      case BOOKING_STATUS.PENDING:
-        return `${baseClasses} bg-yellow-100 text-yellow-800`;
-      case BOOKING_STATUS.COMPLETED:
-        return `${baseClasses} bg-emerald-100 text-emerald-800`;
-      case BOOKING_STATUS.REFUNDED:
-        return `${baseClasses} bg-orange-100 text-orange-800`;
-      case BOOKING_STATUS.PARTIAL_REFUNDED:
-        return `${baseClasses} bg-orange-50 text-orange-700`;
-      case BOOKING_STATUS.CANCELLED:
-        return `${baseClasses} bg-red-100 text-red-800`;
-      default:
-        return `${baseClasses} bg-gray-100 text-gray-800`;
-    }
-  };
-
   const formatUserName = (user: BookingUser | null | undefined) => {
     if (!user) return 'Deleted User';
     if (user?.name) return user.name;

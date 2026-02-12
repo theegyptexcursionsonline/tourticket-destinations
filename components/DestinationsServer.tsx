@@ -15,7 +15,7 @@ interface DestinationsServerProps {
 }
 
 export default function DestinationsServer({ destinations }: DestinationsServerProps) {
-  const { tenant } = useTenant();
+  const { tenant: _tenant } = useTenant();
 
   if (!destinations || destinations.length === 0) {
     return null;

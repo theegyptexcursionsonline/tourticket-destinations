@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { Loader2, Lock, ShieldCheck, CreditCard, CheckCircle2 } from 'lucide-react';
-import toast from 'react-hot-toast';
 
 // Initialize Stripe
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
@@ -18,7 +17,7 @@ interface PaymentFormProps {
 }
 
 const PaymentForm: React.FC<PaymentFormProps> = ({
-  clientSecret,
+  clientSecret: _clientSecret,
   onSuccess,
   onError,
   isProcessing,

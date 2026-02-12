@@ -73,7 +73,7 @@ if (typeof window !== 'undefined') {
         if (process.env.NODE_ENV === 'production' && app) {
           try {
             analytics = getAnalytics(app);
-          } catch (e) {
+          } catch (_e) {
             // Analytics is optional, don't log errors
           }
         }

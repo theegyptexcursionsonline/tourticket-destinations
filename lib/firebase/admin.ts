@@ -210,7 +210,7 @@ async function getAdminAuth() {
 }
 
 // Helper to get adminDb with lazy initialization
-async function getAdminDb() {
+async function _getAdminDb() {
   await ensureInitialized();
   return admin.firestore();
 }

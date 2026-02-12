@@ -5,7 +5,6 @@ import User from '@/lib/models/user';
 import { requireAdminAuth } from '@/lib/auth/adminAuth';
 import mongoose from 'mongoose';
 import { EmailService } from '@/lib/email/emailService';
-import Tenant from '@/lib/models/Tenant';
 
 const getSupportEmail = () =>
   process.env.SUPPORT_EMAIL ||

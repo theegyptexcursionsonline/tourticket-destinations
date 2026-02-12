@@ -181,10 +181,8 @@ async function getHomePageDataInternal(tenantId: string) {
         )
     ]);
 
-    // Get all destination IDs and category IDs for batch counting
+    // Get all destination IDs for batch counting
     const destinationIds = destinations.map((d: any) => d._id);
-    const categoryIds = categories.map((c: any) => c._id);
-    const allCategoryIds = allCategories.map((c: any) => c._id);
 
     // Batch count tours by destination using aggregation (single query instead of N queries)
     const [destinationCounts, categoryCounts] = await Promise.all([

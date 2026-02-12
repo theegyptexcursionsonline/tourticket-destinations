@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, X, Search, ChevronUp, MapPin, Clock, AlertCircle, Compass, Tag, FileText, MessageCircle, ArrowLeft, Bot, Loader2, ChevronLeft, ChevronRight, DollarSign, Star, Send } from 'lucide-react';
 import { liteClient as algoliasearch } from 'algoliasearch/lite';
 import type { SearchResponse } from 'algoliasearch';
-import { InstantSearch, Index, useSearchBox, useHits, Configure, Chat } from 'react-instantsearch';
+import { InstantSearch, Index, useSearchBox, useHits, Configure } from 'react-instantsearch';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import ReactMarkdown from 'react-markdown';
@@ -26,8 +26,8 @@ const AGENT_ID = 'fb2ac93a-1b89-40e2-a9cb-c85c1bbd978e';
 // Create search client outside component to avoid recreating on every render
 const searchClient = algoliasearch(ALGOLIA_APP_ID, ALGOLIA_SEARCH_KEY);
 
-// Tour card creation helper
-const createTourCardHTML = (tour: any): string => {
+// Tour card creation helper (unused - kept for potential future use)
+const _createTourCardHTML = (tour: any): string => {
   const discountPercent = tour.discountPrice && tour.discountPrice < tour.price
     ? Math.round(((tour.price - tour.discountPrice) / tour.price) * 100)
     : 0;
@@ -99,7 +99,7 @@ const createTourCardHTML = (tour: any): string => {
 };
 
 // Custom SearchBox component
-function CustomSearchBox({ searchQuery, onSearchChange }: { searchQuery: string; onSearchChange: (value: string) => void }) {
+function CustomSearchBox({ searchQuery, onSearchChange: _onSearchChange }: { searchQuery: string; onSearchChange: (value: string) => void }) {
   const { refine } = useSearchBox();
 
   useEffect(() => {
@@ -278,7 +278,7 @@ function DestinationHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; l
           </span>
         </div>
       </div>
-      {limitedHits.map((hit: any, index) => (
+      {limitedHits.map((hit: any, _index) => (
         <a
           key={hit.objectID}
           href={`/destinations/${hit.slug || hit.objectID}`}
@@ -333,7 +333,7 @@ function CategoryHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limi
           </span>
         </div>
       </div>
-      {limitedHits.map((hit: any, index) => (
+      {limitedHits.map((hit: any, _index) => (
         <a
           key={hit.objectID}
           href={`/categories/${hit.slug || hit.objectID}`}
@@ -385,7 +385,7 @@ function BlogHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: 
           </span>
         </div>
       </div>
-      {limitedHits.map((hit: any, index) => (
+      {limitedHits.map((hit: any, _index) => (
         <a
           key={hit.objectID}
           href={`/blog/${hit.slug || hit.objectID}`}
@@ -598,7 +598,7 @@ export default function AISearchWidget() {
   const [searchQuery, setSearchQuery] = useState('');
   const [inputValue, setInputValue] = useState('');
   const [featuredTours, setFeaturedTours] = useState<any[]>([]);
-  const [algoliaError, setAlgoliaError] = useState<string | null>(null);
+  const [algoliaError, _setAlgoliaError] = useState<string | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [chatMode, setChatMode] = useState(false);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
@@ -879,7 +879,7 @@ export default function AISearchWidget() {
       if (potentialTours.size > 0) {
         // Search Algolia for these tours - limit to first 4 mentioned tours
         const toursArray = Array.from(potentialTours.entries()).slice(0, 4);
-        const searchPromises = toursArray.map(async ([tourTitle, price]) => {
+        const searchPromises = toursArray.map(async ([tourTitle, _price]) => {
           try {
             // First try exact title match
             let response = await searchClient.search([{
@@ -1091,13 +1091,13 @@ export default function AISearchWidget() {
 
   // Memoize ReactMarkdown components to avoid recreation on every render
   const markdownComponents = useMemo(() => ({
-    p: ({node, ...props}: any) => <p className="text-gray-700 text-sm sm:text-base mb-2 leading-relaxed last:mb-0" {...props} />,
-    strong: ({node, ...props}: any) => <strong className="font-semibold text-gray-900" {...props} />,
-    h1: ({node, ...props}: any) => <h1 className="text-xl font-bold text-gray-900 mb-3" {...props} />,
-    h2: ({node, ...props}: any) => <h2 className="text-lg font-bold text-gray-900 mb-2" {...props} />,
-    h3: ({node, ...props}: any) => <h3 className="text-base font-semibold text-gray-900 mb-2" {...props} />,
-    ul: ({node, ...props}: any) => <ul className="list-disc list-inside space-y-1 text-gray-700 text-sm" {...props} />,
-    ol: ({node, ...props}: any) => <ol className="list-decimal list-inside space-y-1 text-gray-700 text-sm" {...props} />,
+    p: ({ node: _node, ...props }: any) => <p className="text-gray-700 text-sm sm:text-base mb-2 leading-relaxed last:mb-0" {...props} />,
+    strong: ({ node: _node, ...props }: any) => <strong className="font-semibold text-gray-900" {...props} />,
+    h1: ({ node: _node, ...props }: any) => <h1 className="text-xl font-bold text-gray-900 mb-3" {...props} />,
+    h2: ({ node: _node, ...props }: any) => <h2 className="text-lg font-bold text-gray-900 mb-2" {...props} />,
+    h3: ({ node: _node, ...props }: any) => <h3 className="text-base font-semibold text-gray-900 mb-2" {...props} />,
+    ul: ({ node: _node, ...props }: any) => <ul className="list-disc list-inside space-y-1 text-gray-700 text-sm" {...props} />,
+    ol: ({ node: _node, ...props }: any) => <ol className="list-decimal list-inside space-y-1 text-gray-700 text-sm" {...props} />,
   }), []);
 
   // Render message content (memoized)
@@ -1609,7 +1609,7 @@ export default function AISearchWidget() {
                       ) : (
                         <div>
                           {featuredTours.length > 0 ? (
-                            featuredTours.map((tour, index) => (
+                            featuredTours.map((tour, _index) => (
                               <a
                                 key={tour.objectID}
                                 href={`/${tour.slug || tour.objectID}`}

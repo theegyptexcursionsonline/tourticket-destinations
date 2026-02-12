@@ -8,7 +8,6 @@ import Link from 'next/link';
 import { 
   MapPin, Star, Clock, Users, ArrowRight, 
   Grid, List, LayoutGrid, Filter, Search, 
-  ChevronDown, Eye, Calendar, Heart, Share2,
   Award, Globe, Camera, Zap
 } from 'lucide-react';
 import Header from '@/components/Header';
@@ -417,7 +416,7 @@ const DestinationsGrid = ({ destinations, viewMode }: { destinations: any[], vie
   );
 };
 
-const CategoriesGrid = ({ categories, viewMode }: { categories: any[], viewMode: string }) => {
+const CategoriesGrid = ({ categories, viewMode: _viewMode }: { categories: any[], viewMode: string }) => {
   if (categories.length === 0) {
     return <EmptyState type="categories" />;
   }
@@ -431,7 +430,7 @@ const CategoriesGrid = ({ categories, viewMode }: { categories: any[], viewMode:
   );
 };
 
-const ReviewsGrid = ({ reviews, viewMode }: { reviews: any[], viewMode: string }) => {
+const ReviewsGrid = ({ reviews, viewMode: _viewMode }: { reviews: any[], viewMode: string }) => {
   if (reviews.length === 0) {
     return <EmptyState type="reviews" />;
   }

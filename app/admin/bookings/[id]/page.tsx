@@ -17,7 +17,6 @@ import {
   Tag,
   MapPin,
   Edit,
-  Trash2,
   MessageSquare,
   CreditCard,
   Download,
@@ -28,7 +27,6 @@ import {
   Package,
   Receipt,
   QrCode,
-  Ticket,
   Info
 } from 'lucide-react';
 import Image from 'next/image';

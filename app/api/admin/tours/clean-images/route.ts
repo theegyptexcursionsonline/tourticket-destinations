@@ -12,7 +12,7 @@ const PLACEHOLDER_PATTERNS = [
   'example.com'
 ];
 
-const isPlaceholderUrl = (url: string) => {
+const _isPlaceholderUrl = (url: string) => {
   return PLACEHOLDER_PATTERNS.some(pattern => 
     url.toLowerCase().includes(pattern.toLowerCase())
   );

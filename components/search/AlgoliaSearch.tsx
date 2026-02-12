@@ -5,7 +5,6 @@ import { InstantSearch, SearchBox, Hits, Configure, useInstantSearch } from 'rea
 import { AlertCircle, MapPin, Clock, DollarSign, Search as SearchIcon, Star, Sparkles } from 'lucide-react';
 import 'instantsearch.css/themes/satellite.css';
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
 
 const ALGOLIA_APP_ID = process.env.NEXT_PUBLIC_ALGOLIA_APP_ID || 'WMDNV9WSOI';
 const ALGOLIA_SEARCH_KEY = process.env.NEXT_PUBLIC_ALGOLIA_SEARCH_API_KEY || 'f485b4906072cedbd2f51a46e5ac2637';

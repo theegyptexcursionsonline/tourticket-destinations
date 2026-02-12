@@ -206,7 +206,7 @@ export default function DayTripsSection({ initialTours }: DayTripsSectionProps =
 
         if (!response.ok) {
           let parsedBody: any = bodyText;
-          try { parsedBody = JSON.parse(bodyText); } catch (e) { /* keep text */ }
+          try { parsedBody = JSON.parse(bodyText); } catch (_e) { /* keep text */ }
           console.error('API call failed', {
             url,
             status: response.status,
@@ -318,7 +318,7 @@ export default function DayTripsSection({ initialTours }: DayTripsSectionProps =
       const text = await response.text();
       if (!response.ok) {
         let parsed = text;
-        try { parsed = JSON.parse(text); } catch (e) {}
+        try { parsed = JSON.parse(text); } catch (_e) {}
         setFetchError(`Server returned ${response.status} ${response.statusText}: ${typeof parsed === 'string' ? parsed : JSON.stringify(parsed).slice(0, 300)}`);
         setTours([]);
       } else {

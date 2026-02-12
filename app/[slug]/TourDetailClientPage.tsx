@@ -982,7 +982,7 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
       try {
         await navigator.clipboard.writeText(window.location.href);
         toast.success('Tour link copied to clipboard!');
-      } catch (err: unknown) {
+      } catch {
         toast.error('Could not copy link.');
       }
     }

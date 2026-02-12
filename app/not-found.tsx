@@ -10,7 +10,7 @@ export default async function NotFoundPage() {
     if (tenant?.name) {
       siteName = tenant.name;
     }
-  } catch (error) {
+  } catch {
     // Use default
   }
 

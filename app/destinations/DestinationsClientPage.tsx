@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { MapPin, Search, Sparkles, X, Bot, Loader2, Send, ChevronLeft, ChevronRight, DollarSign, Star } from 'lucide-react';
+import { MapPin, Search, Sparkles, X, Bot, Loader2, ChevronLeft, ChevronRight, DollarSign, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
@@ -149,7 +149,6 @@ export default function DestinationsClientPage({ destinations }: DestinationsCli
     messages,
     sendMessage,
     isLoading,
-    stop,
   } = useChat({
     transport: new DefaultChatTransport({
       api: `https://${ALGOLIA_APP_ID}.algolia.net/agent-studio/1/agents/${AGENT_ID}/completions?stream=true&compatibilityMode=ai-sdk-5`,

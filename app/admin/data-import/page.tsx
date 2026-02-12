@@ -385,7 +385,7 @@ function DataImportPage() {
 
       setParsedItems(items);
       setCurrentStep(2);
-    } catch (error) {
+    } catch {
       alert('Error parsing JSON data');
     }
   };

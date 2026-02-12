@@ -10,7 +10,7 @@ import {
   Pagination,
   Configure
 } from 'react-instantsearch';
-import { Sparkles, MapPin, Clock, Star, DollarSign } from 'lucide-react';
+import { Sparkles, MapPin, Clock, Star } from 'lucide-react';
 import 'instantsearch.css/themes/satellite.css';
 import Link from 'next/link';
 

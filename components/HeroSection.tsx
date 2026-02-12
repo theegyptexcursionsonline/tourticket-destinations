@@ -3,7 +3,7 @@
 
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useTenant } from '@/contexts/TenantContext';
-import { Search, MapPin, Clock, Compass, Tag, FileText, X, Sparkles, ChevronUp, Bot, Loader2, ArrowLeft, Send, ChevronLeft, ChevronRight, DollarSign, Star } from "lucide-react";
+import { Search, MapPin, Clock, Compass, Tag, X, Sparkles, ChevronUp, Bot, Loader2, ArrowLeft, ChevronLeft, ChevronRight, DollarSign, Star } from "lucide-react";
 import Image from "next/image";
 import { liteClient as algoliasearch } from 'algoliasearch/lite';
 import { InstantSearch, Index, useSearchBox, useHits, Configure } from 'react-instantsearch';
@@ -56,7 +56,6 @@ const ALGOLIA_SEARCH_KEY = process.env.NEXT_PUBLIC_ALGOLIA_SEARCH_API_KEY || 'f4
 const INDEX_TOURS = process.env.NEXT_PUBLIC_ALGOLIA_INDEX_NAME || 'foxes_technology';
 const INDEX_DESTINATIONS = 'destinations';
 const INDEX_CATEGORIES = 'categories';
-const INDEX_BLOGS = 'blogs';
 const AGENT_ID = 'fb2ac93a-1b89-40e2-a9cb-c85c1bbd978e';
 
 const searchClient = algoliasearch(ALGOLIA_APP_ID, ALGOLIA_SEARCH_KEY);
@@ -95,7 +94,7 @@ const DEFAULT_SETTINGS: HeroSettings = {
 };
 
 // --- Algolia Search Components ---
-function CustomSearchBox({ searchQuery, onSearchChange }: { searchQuery: string; onSearchChange: (value: string) => void }) {
+function CustomSearchBox({ searchQuery, onSearchChange: _onSearchChange }: { searchQuery: string; onSearchChange: (value: string) => void }) {
   const { refine } = useSearchBox();
 
   useEffect(() => {
@@ -450,6 +449,7 @@ function CategoryHits({ onHitClick, limit = 3 }: { onHitClick?: () => void; limi
 }
 
 // --- Helper Hooks ---
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const useIsMobile = (breakpoint = 768) => {
   const [isMobile, setIsMobile] = useState(false);
   
@@ -789,7 +789,7 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
     messages,
     sendMessage,
     status,
-    stop,
+    stop: _stop,
   } = useChat({
     transport: new DefaultChatTransport({
       api: `https://${ALGOLIA_APP_ID}.algolia.net/agent-studio/1/agents/${AGENT_ID}/completions?stream=true&compatibilityMode=ai-sdk-5`,
@@ -1151,7 +1151,7 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
   // Render message content - enhanced version with hide details option
   const renderContent = useCallback((parts: any[], messageId?: string, hideDetails: boolean = false, isUser: boolean = false) => {
     const hasDetectedTours = messageId && detectedToursByMessage[messageId];
-    const hasDetectedDestinations = messageId && detectedDestinationsByMessage[messageId];
+    const _hasDetectedDestinations = messageId && detectedDestinationsByMessage[messageId];
 
     return parts.map((p: any, idx: number) => {
       if (p.type === 'tool-result') {

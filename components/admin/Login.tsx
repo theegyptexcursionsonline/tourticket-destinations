@@ -10,7 +10,7 @@ interface LoginProps {
   onLoginSuccess: () => void;
 }
 
-export default function Login({ onLoginSuccess }: LoginProps) {
+export default function Login({ onLoginSuccess: _onLoginSuccess }: LoginProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { login, isLoading } = useAdminAuth();

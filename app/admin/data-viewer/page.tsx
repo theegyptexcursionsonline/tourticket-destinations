@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Package, MapPin, Folder, Image,
   ChevronDown, ChevronRight, Search,
-  FileText, Calendar, Globe, Tag,
+  FileText, Globe,
   DollarSign, Clock, Users, Star,
   CheckCircle, XCircle, Loader2
 } from 'lucide-react';

@@ -8,10 +8,10 @@ import {
   X, ArrowRight, ArrowLeft, Calendar, ShoppingCart, CreditCard,
   Loader2, Clock, User, Users, Plus, Minus, Check, Languages,
   ChevronDown, ChevronLeft, ChevronRight, Star, MapPin, Shield,
-  ChevronUp, Info, Zap, Award, Heart, Eye, Camera, Car,
+  Heart, Camera, Car,
   Gift, Sparkles, TrendingUp, CheckCircle, AlertCircle,
-  Phone, Mail, MessageCircle, Globe, Wifi, Coffee, Calculator,
-  BadgeDollarSign, Edit, Edit3, Settings, RefreshCw,
+  Coffee, Calculator,
+  BadgeDollarSign, Edit,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useCart } from '@/hooks/useCart';
@@ -761,8 +761,8 @@ const AddOnCard: React.FC<{
   const isSelected = quantity > 0;
   
   const calculatedQuantity = addOn.perGuest ? guestCount : 1;
-  const totalPrice = isSelected ? addOn.price * calculatedQuantity : 0;
-  const totalSavings = isSelected && addOn.savings ? addOn.savings * calculatedQuantity : 0;
+  const _totalPrice = isSelected ? addOn.price * calculatedQuantity : 0;
+  const _totalSavings = isSelected && addOn.savings ? addOn.savings * calculatedQuantity : 0;
 
   const getCategoryColor = (category: string) => {
     switch (category) {
@@ -871,7 +871,7 @@ const BookingSummaryCard: React.FC<{
   availability: AvailabilityData | null;
   onEditClick: (section: 'date' | 'guests' | 'language') => void;
 }> = ({ bookingData, tour, availability, onEditClick }) => {
-  const { formatPrice } = useSettings();
+  const { formatPrice: _formatPrice } = useSettings();
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('en-US', {
@@ -1234,7 +1234,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour }
   };
 
   // OPTIMIZED: Use pre-fetched data from tour prop (SSR/ISR) instead of client-side API calls
-  const fetchAvailability = async (date: Date, totalGuests: number) => {
+  const fetchAvailability = async (date: Date, _totalGuests: number) => {
     setIsLoading(true);
     setError('');
 
@@ -1387,7 +1387,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour }
     const subtotalCalc = (bookingData.adults * basePrice) + (bookingData.children * basePrice * 0.5);
     const originalSubtotal = (bookingData.adults * originalBasePrice) + (bookingData.children * originalBasePrice * 0.5);
 
-    const addOnsCalc = Object.entries(bookingData.selectedAddOns).reduce((acc, [addOnId, quantity]) => {
+    const addOnsCalc = Object.entries(bookingData.selectedAddOns).reduce((acc, [addOnId, _quantity]) => {
       const addOn = availability?.addOns.find(a => a.id === addOnId);
       if (addOn) {
         const itemQuantity = addOn.perGuest ? totalGuests : 1;
@@ -1396,7 +1396,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour }
       return acc;
     }, 0);
 
-    const addOnsSavings = Object.entries(bookingData.selectedAddOns).reduce((acc, [addOnId, quantity]) => {
+    const addOnsSavings = Object.entries(bookingData.selectedAddOns).reduce((acc, [addOnId, _quantity]) => {
       const addOn = availability?.addOns.find(a => a.id === addOnId);
       if (addOn && addOn.savings) {
         const itemQuantity = addOn.perGuest ? totalGuests : 1;
@@ -1715,7 +1715,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour }
           style: { background: '#059669', color: 'white' }
         });
       }
-    } catch (error) {
+    } catch (_error) {
       toast.dismiss(loadingToast);
       toast.error('Something went wrong. Please try again.');
     } finally {
@@ -2102,7 +2102,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour }
                   Tour Enhancements
                 </h3>
                 <div className="space-y-3">
-                  {Object.entries(bookingData.selectedAddOns).map(([addOnId, quantity]) => {
+                  {Object.entries(bookingData.selectedAddOns).map(([addOnId, _quantity]) => {
                     const addOn = availability?.addOns.find(a => a.id === addOnId);
                     if (!addOn) return null;
                     

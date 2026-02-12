@@ -17,11 +17,9 @@ import {
   DollarSign,
   ChevronLeft,
   ChevronRight,
-  MoreHorizontal,
   FileText,
   CheckCircle,
-  Edit3,
-  Sparkles
+  Edit3
 } from 'lucide-react';
 import Image from 'next/image';
 import { TourActions } from './TourActions';

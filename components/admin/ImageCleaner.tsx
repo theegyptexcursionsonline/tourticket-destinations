@@ -103,7 +103,7 @@ export default function ImageCleaner() {
       } else {
         setError(data.error || 'Failed to check images');
       }
-    } catch (err) {
+    } catch (_err) {
       setError('Network error while checking images');
     } finally {
       setIsChecking(false);
@@ -128,7 +128,7 @@ export default function ImageCleaner() {
       } else {
         setError(data.error || 'Failed to clean images');
       }
-    } catch (err) {
+    } catch (_err) {
       setError('Network error while cleaning images');
     } finally {
       setIsCleaning(false);

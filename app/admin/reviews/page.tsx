@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import withAuth from '@/components/admin/withAuth';
-import { Star, MessageSquare, User, Map, Trash2, CheckCircle, ShieldCheck, Clock, TrendingUp, Users, Filter } from 'lucide-react';
+import { Star, MessageSquare, Map, Trash2, CheckCircle, ShieldCheck, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAdminTenant } from '@/contexts/AdminTenantContext';
 

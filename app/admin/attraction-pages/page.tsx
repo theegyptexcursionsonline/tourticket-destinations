@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { Plus, Edit, Trash2, Eye, Search, Filter } from 'lucide-react';
+import { Plus, Edit, Trash2, Eye, Search } from 'lucide-react';
 import { AttractionPage } from '@/types';
 import withAuth from '@/components/admin/withAuth';
 import { useAdminTenant } from '@/contexts/AdminTenantContext';

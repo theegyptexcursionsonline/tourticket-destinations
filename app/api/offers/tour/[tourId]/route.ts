@@ -14,7 +14,6 @@ import dbConnect from '@/lib/dbConnect';
 import SpecialOffer from '@/lib/models/SpecialOffer';
 import Tour from '@/lib/models/Tour';
 import { 
-  isOfferValid, 
   isOfferApplicableToTour, 
   isOfferApplicableByTravelDate,
   calculateDiscountedPrice,

@@ -19,7 +19,7 @@ const withAuth = <P extends object>(
     const {
       isAuthenticated,
       isLoading,
-      refreshUser,
+      refreshUser: _refreshUser,
       hasPermission,
       hasAnyPermission,
     } = useAdminAuth();

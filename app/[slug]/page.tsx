@@ -118,8 +118,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       return { title: 'Tour Not Found' };
     }
 
-    const destination = typeof tour.destination === 'object' ? (tour.destination as any) : null;
-
     return {
       title: tour.metaTitle || `${tour.title} | ${siteName}`,
       description: tour.metaDescription || tour.description?.substring(0, 160),

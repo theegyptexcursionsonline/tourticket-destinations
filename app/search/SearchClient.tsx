@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Tour as TourType, Category, Destination } from '@/types';
 import TourCard from '@/components/user/TourCard';
-import { Star, Search as SearchIcon, Loader2, SlidersHorizontal } from 'lucide-react';
+import { Star, Search as SearchIcon, SlidersHorizontal } from 'lucide-react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import Header from '@/components/Headersearch';
 import Footer from '@/components/Footer';

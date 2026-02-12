@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 import mongoose, { Document, Schema, Model } from 'mongoose';
 
 export interface IAttractionPage extends Document {

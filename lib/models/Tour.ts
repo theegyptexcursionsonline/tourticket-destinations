@@ -1,5 +1,5 @@
 // lib/models/Tour.ts
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 import mongoose, { Document, Schema, Model } from 'mongoose';
 import crypto from 'crypto';
 import './Review';

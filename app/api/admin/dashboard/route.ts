@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Connect to database with timeout
-    const dbConnection = await Promise.race([
+    const _dbConnection = await Promise.race([
       dbConnect(effectiveTenantId || undefined),
       new Promise((_, reject) => setTimeout(() => reject(new Error('Database connection timeout')), 10000))
     ]);

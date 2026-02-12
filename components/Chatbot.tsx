@@ -35,7 +35,7 @@ export default function Chatbot() {
 
   // Listen for external events (from Footer)
   useEffect(() => {
-    const handler = (e: Event) => {
+    const handler = (_e: Event) => {
       // Optionally, you could read e.detail if you want to pass metadata
       setIsOpen(true);
 

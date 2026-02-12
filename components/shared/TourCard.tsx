@@ -56,7 +56,7 @@ const TourCard: React.FC<TourCardProps> = ({
   const { formatPrice, t } = useSettings();
   const { addToWishlist, removeFromWishlist, isWishlisted } = useWishlist();
   const { addToCart } = useCart();
-  const { tenant } = useTenant();
+  const { tenant: _tenant } = useTenant();
   const [isHovered, setIsHovered] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   

@@ -19,7 +19,6 @@ import {
   AlertCircle,
   Check,
   Users,
-  Calendar,
   TrendingUp,
   Zap
 } from 'lucide-react';
@@ -407,7 +406,7 @@ const DiscountsPage = () => {
             // Cards View
             <div className="p-8">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {discounts.map((discount, index) => (
+                {discounts.map((discount) => (
                   <div 
                     key={discount._id}
                     className="group bg-white border border-slate-200/60 rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"

@@ -12,7 +12,7 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Sparkles, Tag, Timer, Clock, Users, Gift, 
-  ChevronDown, ChevronUp, AlertCircle, Percent
+  ChevronDown, Percent
 } from 'lucide-react';
 import { useSettings } from '@/hooks/useSettings';
 
@@ -81,7 +81,7 @@ function getOfferColors(type: string) {
 
 const TourOfferSection: React.FC<TourOfferSectionProps> = ({
   tourId,
-  originalPrice,
+  originalPrice: _originalPrice,
   travelDate,
   groupSize = 1,
   className = '',

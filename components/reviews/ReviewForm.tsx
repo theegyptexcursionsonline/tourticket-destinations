@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Star, Loader2, User, AlertCircle, Edit2 } from 'lucide-react';
+import { Star, Loader2, User, Edit2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 import LoginModal from '@/components/auth/LoginModal';

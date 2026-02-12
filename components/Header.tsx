@@ -4,7 +4,6 @@ import React, { useState, useEffect, useRef, useMemo, FC, useCallback } from 're
 import {
   ChevronDown,
   Search,
-  Globe,
   ShoppingCart,
   X,
   Landmark,
@@ -18,7 +17,6 @@ import {
   LogOut,
   Calendar,
   Sparkles,
-  ChevronUp,
   Bot,
   Loader2,
   ArrowLeft,
@@ -39,7 +37,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTenant } from '@/contexts/TenantContext';
 import CurrencyLanguageSwitcher from '@/components/shared/CurrencyLanguageSwitcher';
 import AuthModal from '@/components/AuthModal';
-import { Destination, Category, Tour } from '@/types';
+import { Destination, Category } from '@/types';
 import { useWishlist } from '@/contexts/WishlistContext';
 import { useSettings } from '@/hooks/useSettings';
 import { liteClient as algoliasearch } from 'algoliasearch/lite';
@@ -107,6 +105,7 @@ const useRecentSearches = (storageKey = 'recentTravelSearches') => {
   return { recentSearches, addSearchTerm, removeSearchTerm };
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const usePopularSearches = () => useMemo(() => ['LIGHT FESTIVAL', 'MUSEUM', 'CANAL CRUISE'], []);
 
 /** Sliding suggestions for placeholder */
@@ -168,7 +167,7 @@ const useSlidingText = (texts: string[], interval = 3000) => {
 // =================================================================
 // --- ALGOLIA SEARCH COMPONENTS ---
 // =================================================================
-function CustomSearchBox({ searchQuery, onSearchChange }: { searchQuery: string; onSearchChange: (value: string) => void }) {
+function CustomSearchBox({ searchQuery, onSearchChange: _onSearchChange }: { searchQuery: string; onSearchChange: (value: string) => void }) {
   const { refine } = useSearchBox();
 
   useEffect(() => {
@@ -529,7 +528,7 @@ const TourSlider = ({ tours }: { tours: any[] }) => {
 
 // Mobile Inline Search Component with AI
 const MobileInlineSearch: FC<{ isOpen: boolean; onClose: () => void }> = React.memo(({ isOpen, onClose }) => {
-  const { getSiteName } = useTenant();
+  const { getSiteName: _getSiteName } = useTenant();
   const [inputValue, setInputValue] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [chatMode, setChatMode] = useState(false);
@@ -940,6 +939,7 @@ MobileInlineSearch.displayName = 'MobileInlineSearch';
 // =================================================================
 // --- SUB-COMPONENTS ---
 // =================================================================
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const SearchSuggestion: FC<{
   term: string;
   icon: React.ElementType;
@@ -969,6 +969,7 @@ const SearchSuggestion: FC<{
   </div>
 ));
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const TourResultSkeleton = () => (
   <div className="bg-white rounded-lg shadow-md overflow-hidden animate-pulse">
     <div className="w-full h-32 bg-slate-200" />
@@ -1219,7 +1220,7 @@ const MobileMenu: FC<{
   destinations: Destination[];
   categories: Category[];
   tenantId?: string;
-}> = React.memo(({ isOpen, onClose, onOpenSearch, onOpenAuth, destinations, categories, tenantId }) => {
+}> = React.memo(({ isOpen, onClose, onOpenSearch, onOpenAuth: _onOpenAuth, destinations, categories, tenantId }) => {
   const menuRef = useRef<HTMLDivElement>(null);
   const { user, logout } = useAuth();
   const { t } = useSettings();
@@ -1375,7 +1376,7 @@ MobileMenu.displayName = 'MobileMenu';
 // =================================================================
 const HeaderSearchBar: FC<{ onFocus: () => void; isTransparent: boolean }> = React.memo(({ onFocus, isTransparent }) => {
   const { t } = useSettings();
-  const currentSuggestion = useSlidingText(SEARCH_SUGGESTIONS, 2500);
+  const _currentSuggestion = useSlidingText(SEARCH_SUGGESTIONS, 2500);
   const borderColor = isTransparent ? 'border-transparent' : 'border-slate-200';
   return (
     <div className="hidden lg:block flex-1 max-w-2xl mx-8 transition-colors duration-500">
@@ -1454,7 +1455,7 @@ export default function Header({
   const handleMobileMenuClose = useCallback(() => setMobileMenuOpen(false), []);
   const handleAuthModalOpen = useCallback((state: 'login' | 'signup') => { setAuthModalState(state); setAuthModalOpen(true); }, []);
   const handleAuthModalClose = useCallback(() => setAuthModalOpen(false), []);
-  const handleSearch = useCallback((term: string) => addSearchTerm(term), [addSearchTerm]);
+  const _handleSearch = useCallback((term: string) => addSearchTerm(term), [addSearchTerm]);
 
   // Tenant-aware styling
   const headerBg = isTransparent 

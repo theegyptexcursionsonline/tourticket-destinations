@@ -5,8 +5,6 @@ import { liteClient as algoliasearch } from 'algoliasearch/lite';
 import { InstantSearch, Chat } from 'react-instantsearch';
 // ReactMarkdown and remarkGfm are imported but not used in the user's manual-DOM-parser approach.
 // I will leave them in case they are used elsewhere, but they are not used in this component's logic.
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import 'instantsearch.css/themes/satellite.css';
 
 const ALGOLIA_APP_ID = process.env.NEXT_PUBLIC_ALGOLIA_APP_ID || 'WMDNV9WSOI';
@@ -194,7 +192,7 @@ export default function AIAgentWidget() {
               if (obj.title && (obj.slug || obj.objectID)) {
                 tours.push(obj);
               }
-            } catch (e) {
+            } catch (_e) {
               // Not valid JSON, skip
             }
             jsonStart = -1;

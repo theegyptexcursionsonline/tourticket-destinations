@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Clock, Star, MapPin, Search, X, Filter, SlidersHorizontal, Calendar, Users, DollarSign, Tag } from 'lucide-react';
+import { Clock, Star, MapPin, Search, X, SlidersHorizontal, Tag } from 'lucide-react';
 import { ITour } from '@/lib/models/Tour';
 import { useSettings } from '@/hooks/useSettings';
 import { motion, AnimatePresence } from 'framer-motion';

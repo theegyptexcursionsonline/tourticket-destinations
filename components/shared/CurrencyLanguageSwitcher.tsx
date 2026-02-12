@@ -1,7 +1,7 @@
 // components/shared/CurrencyLanguageSwitcher.tsx
 'use client';
 
-import React, { useState, useEffect, FC } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Search, Globe, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSettings } from '@/hooks/useSettings';

@@ -30,7 +30,7 @@ export default function ComingSoonPage() {
         const data = await response.json();
         setError(data.message || 'Failed to subscribe. Please try again.');
       }
-    } catch (err) {
+    } catch {
       setError('Something went wrong. Please try again.');
     } finally {
       setIsSubmitting(false);

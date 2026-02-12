@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, X, Search, MapPin, Clock, AlertCircle, Compass, Tag, FileText, MessageCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Sparkles, X, Search, MapPin, Clock, Compass, MessageCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { liteClient as algoliasearch } from 'algoliasearch/lite';
 import { InstantSearch, Index, useSearchBox, useHits, Configure } from 'react-instantsearch';
 import 'instantsearch.css/themes/satellite.css';
@@ -12,13 +12,11 @@ const ALGOLIA_APP_ID = process.env.NEXT_PUBLIC_ALGOLIA_APP_ID || 'WMDNV9WSOI';
 const ALGOLIA_SEARCH_KEY = process.env.NEXT_PUBLIC_ALGOLIA_SEARCH_API_KEY || 'f485b4906072cedbd2f51a46e5ac2637';
 const INDEX_TOURS = process.env.NEXT_PUBLIC_ALGOLIA_INDEX_NAME || 'foxes_technology';
 const INDEX_DESTINATIONS = 'destinations';
-const INDEX_CATEGORIES = 'categories';
-const INDEX_BLOGS = 'blogs';
 
 const searchClient = algoliasearch(ALGOLIA_APP_ID, ALGOLIA_SEARCH_KEY);
 
 // Custom SearchBox component
-function CustomSearchBox({ searchQuery, onSearchChange }: { searchQuery: string; onSearchChange: (value: string) => void }) {
+function CustomSearchBox({ searchQuery, onSearchChange: _onSearchChange }: { searchQuery: string; onSearchChange: (value: string) => void }) {
   const { refine } = useSearchBox();
 
   useEffect(() => {
@@ -63,7 +61,7 @@ function TourHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: 
           className="flex gap-3 overflow-x-auto scrollbar-hide scroll-smooth"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
-          {limitedHits.map((hit: any, index) => (
+          {limitedHits.map((hit: any, _index) => (
             <a
               key={hit.objectID}
               href={`/${hit.slug || hit.objectID}`}

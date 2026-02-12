@@ -6,7 +6,7 @@ import withAuth from '@/components/admin/withAuth';
 import { 
   Sparkles, Plus, Pencil, Trash2, X, Calendar, Tag, Users, 
   Percent, DollarSign, Clock, Star, Search, Loader2,
-  CheckCircle, XCircle, Copy, ChevronDown, ChevronUp, Package,
+  Copy, ChevronDown, ChevronUp, Package,
   AlertCircle, Eye, EyeOff
 } from 'lucide-react';
 import { useAdminTenant } from '@/contexts/AdminTenantContext';
@@ -544,11 +544,6 @@ function OfferModal({
     priority: offer?.priority || 0,
   });
   
-  // Helper to get option ID from booking option (moved outside for initialization)
-  const getOptionIdFromOption = (option: BookingOption, idx: number): string => {
-    return option.id || `${option.type}-${idx}`;
-  };
-
   // Tour and option selections state
   const [tourSelections, setTourSelections] = useState<Map<string, { allOptions: boolean; selectedOptions: string[] }>>(
     () => {
@@ -619,7 +614,8 @@ function OfferModal({
     });
   };
 
-  // Toggle all options for a tour
+  // Toggle all options for a tour (tour kept for consistent API with callers)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- required by call signature
   const toggleAllOptions = (tourId: string, tour: Tour) => {
     setTourSelections(prev => {
       const newMap = new Map(prev);

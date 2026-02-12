@@ -9,7 +9,7 @@ interface StickyBookButtonProps {
   onClick: () => void;
 }
 
-const StickyBookButton: React.FC<StickyBookButtonProps> = ({ price, currency, onClick }) => {
+const StickyBookButton: React.FC<StickyBookButtonProps> = ({ price, currency: _currency, onClick }) => {
   const [isVisible, setIsVisible] = useState(false);
   const { formatPrice } = useSettings();
 

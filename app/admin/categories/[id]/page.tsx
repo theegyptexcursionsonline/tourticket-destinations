@@ -2,7 +2,6 @@
 import { notFound } from 'next/navigation';
 import dbConnect from '@/lib/dbConnect';
 import Category from '@/lib/models/Category';
-import Tour from '@/lib/models/Tour';
 
 export default async function CategoryPage({ params }: { params: { slug: string } }) {
   await dbConnect();
@@ -11,10 +10,6 @@ export default async function CategoryPage({ params }: { params: { slug: string 
   if (!category) {
     notFound();
   }
-
-  const tours = await Tour.find({ category: { $in: [category._id] } })
-    .populate('destination')
-    .lean();
 
   return (
     <div>

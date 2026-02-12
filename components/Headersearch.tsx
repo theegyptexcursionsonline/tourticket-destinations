@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useMemo, FC, useCallback } from 'react';
-import { ChevronDown, Search, Globe, ShoppingCart, X, Landmark, Ticket, Star, Clock, Zap, Menu, User, LogOut, Calendar } from 'lucide-react';
+import React, { useState, useEffect, useRef, FC, useCallback } from 'react';
+import { ChevronDown, Search, ShoppingCart, X, Landmark, Ticket, Star, Clock, Zap, Menu, User, LogOut, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import { useCart } from '@/hooks/useCart';
@@ -214,7 +214,7 @@ const UserMenu: FC<{ user: any; onLogout: () => void; }> = ({ user, onLogout }) 
   );
 };
 
-const MobileMenu: FC<{ isOpen: boolean; onClose: () => void; onOpenSearch: () => void; onOpenAuth: (state: 'login' | 'signup') => void; destinations: Destination[]; categories: Category[]; }> = React.memo(({ isOpen, onClose, onOpenSearch, onOpenAuth, destinations, categories }) => {
+const MobileMenu: FC<{ isOpen: boolean; onClose: () => void; onOpenSearch: () => void; onOpenAuth: (state: 'login' | 'signup') => void; destinations: Destination[]; categories: Category[]; }> = React.memo(({ isOpen, onClose, onOpenSearch, onOpenAuth: _onOpenAuth, destinations, categories }) => {
   const menuRef = useRef<HTMLDivElement>(null);
   const { user, logout } = useAuth();
 
@@ -375,7 +375,7 @@ MobileMenu.displayName = 'MobileMenu';
 // =================================================================
 // --- ALGOLIA SEARCH COMPONENTS ---
 // =================================================================
-function CustomSearchBox({ searchQuery, onSearchChange }: { searchQuery: string; onSearchChange: (value: string) => void }) {
+function CustomSearchBox({ searchQuery, onSearchChange: _onSearchChange }: { searchQuery: string; onSearchChange: (value: string) => void }) {
   const { refine } = useSearchBox();
 
   useEffect(() => {

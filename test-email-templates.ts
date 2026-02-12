@@ -4,8 +4,6 @@ import type {
   BookingEmailData,
   PaymentEmailData,
   BookingStatusUpdateData,
-  TripReminderData,
-  CancellationData,
 } from './lib/email/type';
 
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';

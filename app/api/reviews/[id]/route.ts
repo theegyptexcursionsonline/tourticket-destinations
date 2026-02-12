@@ -4,7 +4,6 @@ import User from '@/lib/models/user';
 import { NextResponse, NextRequest } from 'next/server';
 import { verifyToken } from '@/lib/jwt';
 import { verifyFirebaseToken } from '@/lib/firebase/admin';
-import mongoose from 'mongoose';
 
 interface Params {
   id: string;

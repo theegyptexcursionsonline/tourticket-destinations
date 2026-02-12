@@ -1,5 +1,5 @@
 // app/api/hero-settings/route.ts (Public endpoint for frontend)
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import HeroSettings from '@/lib/models/HeroSettings';
 

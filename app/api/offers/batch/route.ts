@@ -11,7 +11,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import SpecialOffer from '@/lib/models/SpecialOffer';
 import { 
-  isOfferValid,
   getOfferDisplayText,
   getOfferBadgeColor,
   formatOfferTimeRemaining,

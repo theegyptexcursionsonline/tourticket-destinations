@@ -18,7 +18,7 @@ const INDEX_BLOGS = 'blogs';
 const searchClient = algoliasearch(ALGOLIA_APP_ID, ALGOLIA_SEARCH_KEY);
 
 // Custom SearchBox component
-function CustomSearchBox({ searchQuery, onSearchChange }: { searchQuery: string; onSearchChange: (value: string) => void }) {
+function CustomSearchBox({ searchQuery, onSearchChange: _onSearchChange }: { searchQuery: string; onSearchChange: (value: string) => void }) {
   const { refine } = useSearchBox();
 
   useEffect(() => {
@@ -178,7 +178,7 @@ function BlogHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: 
 export default function AISearchIconWidget() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [algoliaError, setAlgoliaError] = useState<string | null>(null);
+  const [algoliaError, _setAlgoliaError] = useState<string | null>(null);
   const [isVisible, setIsVisible] = useState(false);
 
   // Scroll detection

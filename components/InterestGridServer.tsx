@@ -42,7 +42,6 @@ import {
   X,
   MapPin,
   Clock,
-  DollarSign
 } from "lucide-react";
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Pagination, Grid } from 'swiper/modules';
@@ -87,7 +86,7 @@ interface Interest {
 }
 
 // Icon Mapping System
-const getIconForInterest = (name: string, slug: string) => {
+const getIconForInterest = (name: string, _slug: string) => {
   const lowerName = name.toLowerCase();
 
   if (lowerName.includes('pyramid') || lowerName.includes('giza')) return { Icon: Landmark, gradient: 'from-amber-500 to-yellow-600' };
@@ -185,7 +184,7 @@ const InterestCard = ({ interest }: { interest: Interest }) => {
 };
 
 // Custom SearchBox component
-function CustomSearchBox({ searchQuery, onSearchChange }: { searchQuery: string; onSearchChange: (value: string) => void }) {
+function CustomSearchBox({ searchQuery, onSearchChange: _onSearchChange }: { searchQuery: string; onSearchChange: (value: string) => void }) {
   const { refine } = useSearchBox();
 
   useEffect(() => {
@@ -363,7 +362,7 @@ function DestinationHits({ onHitClick, limit = 3 }: { onHitClick?: () => void; l
           </span>
         </div>
       </div>
-      {limitedHits.map((hit: any, index) => (
+      {limitedHits.map((hit: any, _index) => (
         <a
           key={hit.objectID}
           href={`/destinations/${hit.slug || hit.objectID}`}
@@ -418,7 +417,7 @@ function CategoryHits({ onHitClick, limit = 3 }: { onHitClick?: () => void; limi
           </span>
         </div>
       </div>
-      {limitedHits.map((hit: any, index) => (
+      {limitedHits.map((hit: any, _index) => (
         <a
           key={hit.objectID}
           href={`/categories/${hit.slug || hit.objectID}`}
@@ -464,7 +463,7 @@ export default function InterestGridServer({ categories }: InterestGridServerPro
     messages,
     sendMessage,
     status,
-    stop,
+    stop: _stop,
   } = useChat({
     transport: new DefaultChatTransport({
       api: `https://${ALGOLIA_APP_ID}.algolia.net/agent-studio/1/agents/${AGENT_ID}/completions?stream=true&compatibilityMode=ai-sdk-5`,

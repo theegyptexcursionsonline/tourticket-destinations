@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, MessageCircle } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import SearchModal from './SearchModel';
 
 export default function AIAssistantButton() {

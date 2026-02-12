@@ -66,7 +66,7 @@ export default function IntercomClient() {
               hide_default_launcher: true
             });
             console.log('✅ IntercomClient: Intercom booted');
-          } catch (bootErr) {
+          } catch (_bootErr) {
             // Might already be booted, that's okay
             console.log('ℹ️ IntercomClient: Intercom already booted or boot failed (this is okay)');
           }
@@ -132,7 +132,7 @@ export default function IntercomClient() {
                     hide_default_launcher: true
                   });
                   console.log('✅ IntercomClient: Intercom booted before show');
-                } catch (bootErr) {
+                } catch (_bootErr) {
                   // Already booted, that's fine
                   console.log('ℹ️ IntercomClient: Intercom already booted');
                 }
@@ -201,7 +201,7 @@ export default function IntercomClient() {
         if (typeof w.Intercom === "function") {
           w.Intercom("shutdown");
         }
-      } catch (e) {
+      } catch (_e) {
         // ignore
       }
     };

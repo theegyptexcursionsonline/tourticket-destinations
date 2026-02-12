@@ -914,7 +914,7 @@ export async function POST(request: NextRequest) {
     console.log('\n============================================\n');
 
     // Determine success based on whether any items were processed
-    const totalProcessed = report.destinationsCreated + report.destinationsUpdated +
+    const _totalProcessed = report.destinationsCreated + report.destinationsUpdated +
                           report.categoriesCreated + report.categoriesUpdated +
                           report.attractionPagesCreated + report.attractionPagesUpdated +
                           report.toursCreated + report.toursUpdated;

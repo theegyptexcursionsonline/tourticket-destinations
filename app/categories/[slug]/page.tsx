@@ -1,9 +1,8 @@
 // app/categories/[slug]/page.tsx
-import { notFound, redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import dbConnect from '@/lib/dbConnect';
 import TourModel from '@/lib/models/Tour';
 import CategoryModel from '@/lib/models/Category';
-import { Tour, Category } from '@/types';
 import CategoryPageClient from './CategoryPageClient';
 import { getTenantFromRequest, getTenantConfig, buildTenantQuery } from '@/lib/tenant';
 

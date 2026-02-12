@@ -27,7 +27,6 @@ import { ITenant } from '@/lib/models/Tenant';
 import { EmailService } from '@/lib/email/emailService';
 import { TenantEmailBranding } from '@/lib/email/type';
 import {
-  calculateDiscountedPrice,
   getBestOffer,
   isOfferApplicableToTour,
   isOfferApplicableByTravelDate,

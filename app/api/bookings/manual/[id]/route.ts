@@ -14,7 +14,6 @@ import Tour from '@/lib/models/Tour';
 import SpecialOffer from '@/lib/models/SpecialOffer';
 import { requireAdminAuth } from '@/lib/auth/adminAuth';
 import {
-  calculateDiscountedPrice,
   getBestOffer,
   isOfferApplicableByTravelDate,
   isOfferApplicableToTour,

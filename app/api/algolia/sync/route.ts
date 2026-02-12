@@ -4,7 +4,7 @@ import dbConnect from '@/lib/dbConnect';
 import Tour from '@/lib/models/Tour';
 import { syncToursToAlgolia, configureAlgoliaIndex } from '@/lib/algolia';
 
-export async function POST(request: Request) {
+export async function POST(_request: Request) {
   try {
     await dbConnect();
 

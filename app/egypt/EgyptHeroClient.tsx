@@ -11,7 +11,7 @@ export default function EgyptHeroClient() {
   const bgRef = useRef<HTMLDivElement | null>(null);
   const rafRef = useRef<number | null>(null);
   const lastScrollRef = useRef<number>(0);
-  const [loaded, setLoaded] = useState(false);
+  const [, setLoaded] = useState(false);
 
   const prefersReducedMotion =
     typeof window !== 'undefined' && window.matchMedia

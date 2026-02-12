@@ -3,14 +3,13 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Star, Clock, ShoppingCart, Loader2, Search, MapPin, Users, Award, TrendingUp, CheckCircle2, Tag } from 'lucide-react';
+import { Star, Clock, ShoppingCart, Search, MapPin, Users, Award, TrendingUp, CheckCircle2, Tag } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import AISearchWidget from '@/components/AISearchWidget';
 import RelatedInterests from '@/components/RelatedInterests';
-import { Tour, Category, CartItem } from '@/types';
+import { Tour, Category } from '@/types';
 import { useSettings } from '@/hooks/useSettings';
-import { useCart } from '@/hooks/useCart';
 import BookingSidebar from '@/components/BookingSidebar';
 
 // --- SearchAndFilter Component ---
@@ -89,7 +88,7 @@ const SearchAndFilter = ({
 );
 
 // --- StatsSection Component ---
-const StatsSection = ({ category, tours }: { category: Category; tours: Tour[] }) => {
+const StatsSection = ({ tours }: { category: Category; tours: Tour[] }) => {
   const totalTours = tours?.length || 0;
 
   // Calculate average rating from tours

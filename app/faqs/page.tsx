@@ -2,8 +2,7 @@
 
 import React, { useState } from "react";
 import { 
-  Facebook, Instagram, Twitter, Youtube, Phone, Mail, MessageSquare, 
-  Menu, Search, ChevronDown, Plus, Minus
+  Plus, Minus
 } from "lucide-react";
 import Image from "next/image";
 

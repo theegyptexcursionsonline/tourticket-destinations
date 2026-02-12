@@ -4,13 +4,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import withAuth from '@/components/admin/withAuth';
 import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-  LineChart, Line, PieChart, Pie, Cell, AreaChart, Area
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  AreaChart, Area
 } from 'recharts';
 import { 
   DollarSign, BookOpen, Percent, TrendingUp, Crown, Star, 
   XCircle, Calendar, Users, Ticket, ArrowUpRight, ArrowDownRight,
-  RefreshCw, Download, Filter, ChevronDown, X, Check, AlertCircle
+  RefreshCw, Download, ChevronDown, X, Check, AlertCircle
 } from 'lucide-react';
 import { useAdminTenant } from '@/contexts/AdminTenantContext';
 
@@ -162,9 +162,6 @@ const StarRating = ({ rating, size = 'sm' }: { rating: number; size?: 'sm' | 'lg
     </span>
   </div>
 );
-
-// Chart colors
-const CHART_COLORS = ['#0ea5e9', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444'];
 
 const ReportsPage = () => {
   const [reportData, setReportData] = useState<ReportData | null>(null);

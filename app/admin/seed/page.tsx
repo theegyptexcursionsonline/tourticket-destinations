@@ -3,7 +3,7 @@
 
 import { useState, useRef } from 'react';
 import toast from 'react-hot-toast';
-import { AlertTriangle, FileJson, Upload, Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { AlertTriangle, FileJson, Loader2, CheckCircle, XCircle } from 'lucide-react';
 import withAuth from '@/components/admin/withAuth';
 
 type SeedReport = {

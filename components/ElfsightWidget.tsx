@@ -29,7 +29,7 @@ export default function ElfsightWidget({
 }: Props) {
   useEffect(() => {
     // Try to initialize/re-init widget after platform.js loads (or if already loaded).
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const w = window as any;
 
     const tryInit = () => {
@@ -43,7 +43,7 @@ export default function ElfsightWidget({
           // This is safe — it will stop once the script loads.
           // Limit number of retries to avoid runaway loops.
         }
-      } catch (e) {
+      } catch (_e) {
         // swallow
       }
     };

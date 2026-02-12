@@ -50,7 +50,7 @@ const normalizeRole = (role: unknown): AdminRole => {
   return 'operations';
 };
 
-const getPortalLink = () => {
+const _getPortalLink = () => {
   const base = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || 'https://tourticket.app';
   return `${base.replace(/\/$/, '')}/admin`;
 };

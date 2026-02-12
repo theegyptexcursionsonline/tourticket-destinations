@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Tour from '@/lib/models/Tour';
-import Destination from '@/lib/models/Destination';
-import Category from '@/lib/models/Category';
 
 export async function GET(request: NextRequest) {
   try {

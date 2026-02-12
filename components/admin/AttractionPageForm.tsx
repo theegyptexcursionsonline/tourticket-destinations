@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 import {
     Loader2, X, Plus, Check, ChevronDown, Camera, Grid3x3, Info, Globe, 
     UploadCloud, Trash2, Eye, Tag, FileText, Sparkles, MapPin,
-    ArrowLeft, Edit, PlusCircle, Minus, XCircle, HelpCircle
+    ArrowLeft, Edit, PlusCircle, Minus, HelpCircle
 } from 'lucide-react';
 import { AttractionPageFormData, Category } from '@/types';
 
@@ -74,7 +74,7 @@ export default function AttractionPageForm({ pageId }: AttractionPageFormProps) 
   
   const [formData, setFormData] = useState<AttractionPageFormData>(defaultFormData);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [availableTours, setAvailableTours] = useState<Tour[]>([]);
+  const [_availableTours, setAvailableTours] = useState<Tour[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -159,7 +159,7 @@ export default function AttractionPageForm({ pageId }: AttractionPageFormProps) 
       } else {
         setError(data.error || 'Failed to fetch page data');
       }
-    } catch (err) {
+    } catch (_err) {
       setError('Network error');
     } finally {
       setLoading(false);

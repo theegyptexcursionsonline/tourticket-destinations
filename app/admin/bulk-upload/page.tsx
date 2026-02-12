@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import toast from 'react-hot-toast';
-import { UploadCloud, Loader2, FileJson, Package, MapPin, Star, Image as ImageIcon, Check, X, Upload, Link as LinkIcon, AlertCircle } from 'lucide-react';
+import { UploadCloud, Loader2, FileJson, Package, MapPin, Star, Image as ImageIcon, Check, Upload, Link as LinkIcon, AlertCircle } from 'lucide-react';
 import withAuth from '@/components/admin/withAuth';
 
 // Types for missing images

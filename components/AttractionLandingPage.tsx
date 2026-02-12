@@ -6,13 +6,12 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  ArrowRight, Star, Users, Clock, MapPin, Search, Filter, 
-  Grid, List, Eye, Heart, Share2, Award, Calendar, 
-  MessageCircle, ChevronDown, ChevronUp, Shield, CheckCircle,
-  TrendingUp, Globe, Zap, Trophy, Target, Gift, Info
+  ArrowRight, Star, Clock, Search, 
+  Grid, List, Award, 
+  ChevronDown, ChevronUp, CheckCircle,
+  Target, Info
 } from 'lucide-react';
 import { Tour, Review } from '@/types';
-import { useSettings } from '@/hooks/useSettings';
 import TourCard from '@/components/shared/TourCard';
 import RelatedInterests from '@/components/RelatedInterests';
 import PopularInterestsGrid from '@/components/PopularInterestsGrid';

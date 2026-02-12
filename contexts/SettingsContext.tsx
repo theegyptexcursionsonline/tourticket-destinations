@@ -279,7 +279,7 @@ const usePersistentState = <T,>(key: string, defaultValue: T): [T, (value: T) =>
         try {
           const parsedItem = JSON.parse(item);
           setState(parsedItem);
-        } catch (parseError) {
+        } catch (_parseError) {
           console.log(`Item ${key} in localStorage is not valid JSON, checking if it's a simple string value`);
           
           // Handle legacy storage format or simple string values
@@ -301,8 +301,8 @@ const usePersistentState = <T,>(key: string, defaultValue: T): [T, (value: T) =>
           }
         }
       }
-    } catch (error) {
-      console.error(`Error loading ${key} from localStorage:`, error);
+    } catch (_error) {
+      console.error(`Error loading ${key} from localStorage:`, _error);
       // Clear corrupted data
       try {
         window.localStorage.removeItem(key);
@@ -320,8 +320,8 @@ const usePersistentState = <T,>(key: string, defaultValue: T): [T, (value: T) =>
       if (isLoaded) {
         window.localStorage.setItem(key, JSON.stringify(value));
       }
-    } catch (error) {
-      console.error(`Error saving ${key} to localStorage:`, error);
+    } catch (_error) {
+      console.error(`Error saving ${key} to localStorage:`, _error);
     }
   };
   
@@ -342,7 +342,7 @@ const fetchExchangeRates = async (): Promise<{ [key: string]: number }> => {
         return rates;
       }
     }
-  } catch (error) {
+  } catch (_error) {
     console.log('Error reading cached exchange rates');
   }
 
@@ -374,19 +374,19 @@ const fetchExchangeRates = async (): Promise<{ [key: string]: number }> => {
               rates,
               timestamp: Date.now(),
             }));
-          } catch (error) {
+          } catch (_error) {
             console.log('Error caching exchange rates');
           }
           
           return rates;
         }
-      } catch (error) {
-        console.log(`Failed to fetch from ${apiUrl}:`, error);
+      } catch (_error) {
+        console.log(`Failed to fetch from ${apiUrl}:`, _error);
         continue;
       }
     }
-  } catch (error) {
-    console.error('Failed to fetch exchange rates:', error);
+  } catch (_error) {
+    console.error('Failed to fetch exchange rates:', _error);
   }
   
   // Enhanced fallback rates (more comprehensive and recent)
@@ -436,7 +436,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         const language = languages.find(l => l.code === browserLang);
         if (language) return language;
       }
-    } catch (error) {
+    } catch (_error) {
       console.log('Could not detect browser language');
     }
     return languages[0]; // Default to English
@@ -507,7 +507,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       });
 
       return formatter.format(convertedPrice);
-    } catch (error) {
+    } catch (_error) {
       const decimals = ['JPY', 'KRW', 'VND', 'IDR'].includes(selectedCurrency.code) ? 0 : 2;
       const formattedNumber = convertedPrice.toLocaleString('en-US', { 
         minimumFractionDigits: decimals, 
@@ -547,7 +547,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
     try {
       return new Intl.NumberFormat(getLocale()).format(number);
-    } catch (error) {
+    } catch (_error) {
       return number.toLocaleString('en-US');
     }
   }, [selectedLanguage]);
@@ -571,7 +571,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         month: 'long',
         day: 'numeric',
       }).format(dateObj);
-    } catch (error) {
+    } catch (_error) {
       return dateObj.toLocaleDateString('en-US');
     }
   }, [selectedLanguage]);

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Calendar, Clock, Users, MapPin, Loader2, AlertTriangle, ChevronRight, Star } from 'lucide-react';
+import { Calendar, Clock, Users, MapPin, AlertTriangle, ChevronRight, Star } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface Booking {
@@ -198,7 +198,7 @@ const BookingCard = ({ booking }: { booking: Booking }) => {
 };
 
 export default function BookingsPage() {
-  const { user, token, isAuthenticated } = useAuth();
+  const { token, isAuthenticated } = useAuth();
   const router = useRouter();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);

@@ -16,7 +16,6 @@ import {
   Calendar,
   User,
   Eye,
-  EyeOff,
   Star,
   Clock,
   Tag,
@@ -26,7 +25,6 @@ import {
   Send,
   AlertCircle,
   Search,
-  Filter,
   Heart,
   BarChart3
 } from 'lucide-react';
@@ -101,7 +99,7 @@ function RichTextEditor({
     if (editorRef.current && value !== editorRef.current.innerHTML) {
       editorRef.current.innerHTML = value || '';
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [value]);
 
   // Generic exec for most formatting

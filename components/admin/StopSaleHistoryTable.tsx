@@ -4,8 +4,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   History,
-  Search,
-  Filter,
   Calendar,
   ChevronLeft,
   ChevronRight,

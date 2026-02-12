@@ -1,4 +1,6 @@
 // components/BackgroundSlideshow.tsx (Updated version)
+import React, { useState, useRef, useEffect } from 'react';
+
 const BackgroundSlideshow = ({ 
   slides = [], 
   delay = 6000, 
@@ -66,3 +68,5 @@ const BackgroundSlideshow = ({
     </div>
   );
 };
+
+export default BackgroundSlideshow;

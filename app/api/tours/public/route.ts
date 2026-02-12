@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
     );
 
     return response;
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json(
       { success: false, error: 'Failed to fetch tours' }, 
       { status: 500 }

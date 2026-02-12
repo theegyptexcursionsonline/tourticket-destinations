@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   try {
     // For stateless JWT, server-side logout is primarily about clearing cookies if they are used.
     // If tokens are stored in localStorage, the client handles their removal.

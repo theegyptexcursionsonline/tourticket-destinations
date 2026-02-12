@@ -1,14 +1,14 @@
 // components/landing/MasonryLandingPage.tsx
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
 import { 
-  Search, Star, Clock, MapPin, Users, ArrowRight, 
-  Filter, Eye, Heart, Share2, Award, Calendar,
-  Camera, Grid, List, LayoutGrid, Zap
+  Search, Star, Clock, MapPin, ArrowRight, 
+  Eye, Heart, Share2, Award,
+  Camera, Zap
 } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -319,8 +319,8 @@ export default function MasonryLandingPage({
 }
 
 const MasonryContentCard = ({ item, index }: { item: any; index: number }) => {
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const [cardHeight, setCardHeight] = useState('auto');
+  const [_imageLoaded, _setImageLoaded] = useState(false);
+  const [_cardHeight, _setCardHeight] = useState('auto');
 
   // Randomize card heights for masonry effect
   const heights = ['h-64', 'h-80', 'h-72', 'h-96', 'h-60'];
@@ -466,7 +466,7 @@ const DestinationMasonryCard = ({ item, height }: { item: any; height: string })
   </Link>
 );
 
-const CategoryMasonryCard = ({ item, height }: { item: any; height: string }) => (
+const CategoryMasonryCard = ({ item, height: _height }: { item: any; height: string }) => (
   <Link href={`/${item.slug}`} className="group block">
     <div className="bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 hover:rotate-1 p-8">
       <div className="text-center">
@@ -490,7 +490,7 @@ const CategoryMasonryCard = ({ item, height }: { item: any; height: string }) =>
   </Link>
 );
 
-const ReviewMasonryCard = ({ item, height }: { item: any; height: string }) => (
+const ReviewMasonryCard = ({ item, height: _height }: { item: any; height: string }) => (
   <div className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300">
     <div className="flex items-start gap-4 mb-4">
       <div className="w-12 h-12 bg-gradient-to-br from-indigo-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0">

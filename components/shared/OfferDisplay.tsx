@@ -13,7 +13,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { 
   Tag, Timer, Sparkles, Users, Clock, Gift, 
-  CheckCircle, AlertCircle, Percent, DollarSign
+  CheckCircle, Percent, DollarSign
 } from 'lucide-react';
 import { 
   type OfferData, 
@@ -150,7 +150,7 @@ export function OfferCard({
   const showUrgency = shouldShowUrgency(offer.endDate);
   
   const discountedPrice = discountResult?.discountedPrice ?? originalPrice;
-  const discountPercentage = discountResult?.discountPercentage ?? 0;
+  const _discountPercentage = discountResult?.discountPercentage ?? 0;
   const discountAmount = discountResult?.discountAmount ?? 0;
   const isApplicable = discountResult?.isApplicable ?? false;
   
@@ -249,7 +249,7 @@ export function OfferCard({
 export function OfferInline({
   offer,
   discountResult,
-  originalPrice,
+  originalPrice: _originalPrice,
   formatPrice,
   className = ''
 }: OfferDisplayProps) {

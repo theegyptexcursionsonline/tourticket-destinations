@@ -1,9 +1,6 @@
 'use client';
 
 import React from "react";
-import { 
-  Menu, Search, ChevronDown
-} from "lucide-react";
 import Image from "next/image";
 
 // Import reusable components

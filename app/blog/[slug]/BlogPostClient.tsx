@@ -19,7 +19,6 @@ import {
   Phone,
   MapPin,
   Star,
-  Sparkles,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 

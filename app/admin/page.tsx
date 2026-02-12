@@ -12,15 +12,13 @@ import {
   BarChart2, 
   DollarSign, 
   BookOpen, 
-  Clock, 
   Users,
   TrendingUp,
   Activity,
   Sparkles,
   ArrowUpRight,
   Calendar,
-  Zap,
-  Building2
+  Zap
 } from 'lucide-react';
 import { useAdminTenant } from '@/contexts/AdminTenantContext';
 
@@ -552,7 +550,7 @@ const AdminDashboard = () => {
           
           <div className="space-y-4 max-h-80 overflow-y-auto">
             {stats.recentActivities.length > 0 ? (
-              stats.recentActivities.map((activity, index) => (
+              stats.recentActivities.map((activity) => (
                 <div key={activity.id} className="flex items-start gap-4 p-4 bg-slate-50 rounded-2xl hover:bg-slate-100 transition-colors">
                   <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-purple-100 rounded-2xl flex items-center justify-center flex-shrink-0">
                     <BookOpen className="h-4 w-4 text-blue-600"/>

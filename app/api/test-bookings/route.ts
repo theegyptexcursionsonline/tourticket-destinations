@@ -319,7 +319,7 @@ export async function POST(request: Request) {
         updatedAt: new Date().toISOString(),
       },
     });
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json(
       { success: false, message: 'Failed to process mock booking' },
       { status: 400 }

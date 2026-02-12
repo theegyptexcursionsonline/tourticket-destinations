@@ -35,7 +35,7 @@ const POPULAR_AREAS = [
   { name: 'Heliopolis', lat: 30.0866, lng: 31.3225 },
 ];
 
-export default function HotelPickupMap({ onLocationSelect, initialLocation, tourLocation = 'Cairo, Egypt' }: HotelPickupMapProps) {
+export default function HotelPickupMap({ onLocationSelect, initialLocation, tourLocation: _tourLocation = 'Cairo, Egypt' }: HotelPickupMapProps) {
   const [pickupOption, setPickupOption] = useState<'now' | 'later' | null>(null);
   const [searchQuery, setSearchQuery] = useState(initialLocation?.address || '');
   const [selectedLocation, setSelectedLocation] = useState<HotelPickupLocation | null>(initialLocation || null);
@@ -44,7 +44,7 @@ export default function HotelPickupMap({ onLocationSelect, initialLocation, tour
   const [mapError, setMapError] = useState(false);
   const [predictions, setPredictions] = useState<any[]>([]);
   const [showPredictions, setShowPredictions] = useState(false);
-  const [isSearching, setIsSearching] = useState(false);
+  const [_isSearching, setIsSearching] = useState(false);
 
   const mapRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);

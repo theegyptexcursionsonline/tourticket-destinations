@@ -5,13 +5,9 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ArrowLeft,
   Lock,
   Shield,
   CheckCircle,
-  CalendarDays,
-  Calendar,
-  Clock,
   User,
   Trash2,
   Smartphone,
@@ -39,46 +35,6 @@ import { useTenant } from '@/contexts/TenantContext';
 import { CartItem } from '@/types';
 import toast from 'react-hot-toast';
 import { parseLocalDate } from '@/utils/date';
-
-// Small payment SVG icons (keeping existing ones)
-const VisaIcon = ({ className = '', width = 48, height = 28 }: { className?: string; width?: number; height?: number }) => (
-  <svg width={width} height={height} viewBox="0 0 48 28" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" className={className}>
-    <rect width="48" height="28" rx="4" fill="#1A1F71" />
-    <path d="M11.2 19.6h2.1l2.1-11.2H13L11.2 19.6zM18.9 8.4c-1.15 0-2.05.55-2.6 1.3l-.5-1.9h-2.9l-1.9 11.2h2.4l.7-3.9c.65-.35 1.45-.55 2.3-.55 3.15 0 5.15-2.2 5.7-5.15.35-1.55.05-2.75-.65-3.45-.8-.8-1.95-1.2-3.45-1.2zM28.3 16.1c-.25 1.45-1.3 2.45-2.8 2.45-.7 0-1.2-.25-1.6-.8-.35-.6-.3-1.25-.05-2 .25-1.45 1.3-2.45 2.8-2.45.7 0 1.2.25 1.6.8.35.6.3 1.25.05 2z" fill="#fff" />
-  </svg>
-);
-
-const MastercardIcon = ({ className = '', width = 48, height = 28 }: { className?: string; width?: number; height?: number }) => (
-  <svg width={width} height={height} viewBox="0 0 48 28" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" className={className}>
-    <rect width="48" height="28" rx="4" fill="#fff" stroke="#e6e7ea" />
-    <g transform="translate(8,4)">
-      <circle cx="10" cy="10" r="8" fill="#EB001B" />
-      <circle cx="22" cy="10" r="8" fill="#F79E1B" />
-      <path d="M16 2c1.6 1.3 2.6 3.2 2.6 5.2 0 2-1 3.9-2.6 5.2-1.6-1.3-2.6-3.2-2.6-5.2C13.4 5.2 14.4 3.3 16 2z" fill="#FF5F00" />
-    </g>
-  </svg>
-);
-
-const AmexIcon = ({ className = '', width = 48, height = 28 }: { className?: string; width?: number; height?: number }) => (
-  <svg width={width} height={height} viewBox="0 0 48 28" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" className={className}>
-    <rect width="48" height="28" rx="4" fill="#006FCF" />
-    <g transform="translate(4,6)" fill="#fff">
-      <path d="M2 2h6l1 2 1-2h6v8h-3v-4l-1 2h-2l-1-2v4H2V2z" />
-      <path d="M14 2h8v2h-5v1h4v2h-4v1h5v2h-8v-8z" />
-      <path d="M26 2h4l3 5v-5h3v8h-4l-3-5v5h-3v-8z" />
-    </g>
-  </svg>
-);
-
-const PayPalIcon = ({ className = '', width = 36, height = 24 }: { className?: string; width?: number; height?: number }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={width} height={height} viewBox="0 0 36 24" aria-hidden="true" className={className}>
-    <g fill="none" fillRule="evenodd">
-      <path fill="#003087" d="M11.9 1.2H6.4C5.8 1.2 5.3 1.6 5.1 2.2L2 14.6c-.1.4.2.8.6.8h3.1l-.2 1.3c-.1.4.2.8.6.8h2.4c.4 0 .8-.3.9-.7l.5-3.1.1-.6c.1-.4.4-.7.8-.7h1.1c3 0 5.4-1.1 6.5-3.7.4-1 .4-2.1.1-3.1-.3-1.4-1.1-2.4-2.1-3.1-.4-.2-.8-.4-1.2-.5-1.2-.3-2.6-.3-4.1-.3z" />
-      <path fill="#009CDE" d="M6.7 16.3h2.1c.4 0 .8-.3.9-.7l.5-3.1c.1-.4.4-.7.8-.7h1.1c2.9 0 5-1.1 5.7-3.9.2-1 .1-1.9-.3-2.7.8.5 1.3 1.4 1.5 2.6.3 1.5.2 2.7-.4 3.9-.9 1.9-2.8 3.3-5.6 3.7H9.3c-.6 0-1 .4-1.1 1l-.2 1.3z" />
-      <path fill="#112E51" d="M9.8 6.2h3.9c1 0 1.8.2 2.3.6.2.1.4.3.6.5.2.2.3.5.4.8.1.4.1.9-.1 1.4-.6 2-2.3 3.2-5.2 3.2H9.3c-.6 0-1 .4-1.1 1l-.2 1.3h3.4l-.2 1.3H7.2L9.8 6.2z" />
-    </g>
-  </svg>
-);
 
 const FormInput = ({ label, name, type = 'text', placeholder, required = true, value, onChange, disabled = false }: any) => (
   <div>
@@ -733,7 +689,6 @@ const ThankYouPage = ({
   pricing,
   customer,
   lastOrderId,
-  discount = 0,
 }: {
   orderedItems: CartItem[];
   pricing: any;
@@ -748,7 +703,6 @@ const ThankYouPage = ({
 
   // Get first item's booking details
   const firstItem = orderedItems[0];
-  const bookingDate = formatBookingDate(firstItem?.selectedDate);
   const bookingTime = firstItem?.selectedTime || '';
   const [timeUntil, setTimeUntil] = useState<TimeUntilTour | null>(() =>
     getTimeUntilTour(firstItem?.selectedDate, firstItem?.selectedTime)
@@ -759,7 +713,6 @@ const ThankYouPage = ({
   const dayOfWeek = dateObj.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
   const dayNum = dateObj.getDate();
   const month = dateObj.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
-  const year = dateObj.getFullYear();
 
   const formatTimerUnit = (value: number) => String(value).padStart(2, '0');
 

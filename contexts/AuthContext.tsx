@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   signInWithEmailAndPassword,
@@ -10,8 +10,6 @@ import {
   signInWithPopup,
   updateProfile,
   User as FirebaseUser,
-  Auth,
-  GoogleAuthProvider,
 } from 'firebase/auth';
 import { firebaseReady, getFirebaseAuth, getGoogleProvider } from '@/lib/firebase/config';
 
@@ -245,7 +243,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     
     setIsLoading(true);
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const _userCredential = await signInWithEmailAndPassword(auth, email, password);
       // User state will be updated by onAuthStateChanged listener
     } catch (error: any) {
       console.error('Login error:', error);
@@ -326,7 +324,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     
     setIsLoading(true);
     try {
-      const userCredential = await signInWithPopup(auth, googleProvider);
+      const _userCredential = await signInWithPopup(auth, googleProvider);
       // User state will be updated by onAuthStateChanged listener
     } catch (error: any) {
       console.error('Google login error:', error);

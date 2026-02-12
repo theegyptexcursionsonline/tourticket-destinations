@@ -2,8 +2,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import StopSaleLog from '@/lib/models/StopSaleLog';
-import Tour from '@/lib/models/Tour';
-import User from '@/lib/models/user';
 import { requireAdminAuth } from '@/lib/auth/adminAuth';
 
 export const dynamic = 'force-dynamic';

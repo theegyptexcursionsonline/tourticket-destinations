@@ -6,8 +6,7 @@ import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowRight, Star, Users, Clock, MapPin, Search, Filter, 
-  Grid, List, Eye, Heart, Share2, Award, Calendar, Euro, DollarSign,
-  MessageCircle, ChevronDown, ChevronUp
+  Grid, List, MessageCircle, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { CategoryPageData, Tour, Review } from '@/types';
 import { useSettings } from '@/hooks/useSettings';

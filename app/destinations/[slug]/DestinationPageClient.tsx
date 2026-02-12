@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useState, useEffect, useCallback, useMemo } from "react";
+import React, { useRef, useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -41,27 +41,11 @@ const ALGOLIA_SEARCH_KEY = process.env.NEXT_PUBLIC_ALGOLIA_SEARCH_API_KEY || 'f4
 const INDEX_TOURS = process.env.NEXT_PUBLIC_ALGOLIA_INDEX_NAME || 'foxes_technology';
 const INDEX_DESTINATIONS = 'destinations';
 const INDEX_CATEGORIES = 'categories';
-const INDEX_BLOGS = 'blogs';
 const AGENT_ID = 'fb2ac93a-1b89-40e2-a9cb-c85c1bbd978e';
 
 const searchClient = algoliasearch(ALGOLIA_APP_ID, ALGOLIA_SEARCH_KEY);
 
 // --- Hero Helper Hooks ---
-const useIsMobile = (breakpoint = 768) => {
-  const [isMobile, setIsMobile] = useState(false);
-  
-  useEffect(() => {
-    const checkIsMobile = () => setIsMobile(window.innerWidth < breakpoint);
-    if (typeof window !== "undefined") {
-      checkIsMobile();
-      window.addEventListener("resize", checkIsMobile);
-      return () => window.removeEventListener("resize", checkIsMobile);
-    }
-  }, [breakpoint]);
-  
-  return isMobile;
-};
-
 const useSlidingText = (texts: string[], interval = 3000) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -262,7 +246,7 @@ const DestinationSlider = ({ destinations }: { destinations: any[] }) => {
 };
 
 // Custom SearchBox component
-function CustomSearchBox({ searchQuery, onSearchChange }: { searchQuery: string; onSearchChange: (value: string) => void }) {
+function CustomSearchBox({ searchQuery }: { searchQuery: string; onSearchChange: (value: string) => void }) {
   const { refine } = useSearchBox();
 
   useEffect(() => {
@@ -814,7 +798,6 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
 
   const renderContent = useCallback((parts: any[], messageId?: string, hideDetails: boolean = false, isUser: boolean = false) => {
     const hasDetectedTours = messageId && detectedToursByMessage[messageId];
-    const hasDetectedDestinations = messageId && detectedDestinationsByMessage[messageId];
 
     return parts.map((part: any, idx: number) => {
       if (part.type === 'tool-result') {

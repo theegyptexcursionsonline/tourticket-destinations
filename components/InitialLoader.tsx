@@ -21,7 +21,7 @@ export default function InitialLoader() {
     const t = setTimeout(() => {
       try {
         if (el.parentNode) el.parentNode.removeChild(el);
-      } catch (e) {
+      } catch (_e) {
         // ignore
       }
     }, 420);

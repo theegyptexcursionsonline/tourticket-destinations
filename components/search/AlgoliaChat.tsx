@@ -1,8 +1,8 @@
 'use client';
 
 import { liteClient as algoliasearch } from 'algoliasearch/lite';
-import { InstantSearch, Chat, SearchBox, Hits, Configure, useInstantSearch } from 'react-instantsearch';
-import { Sparkles, MessageCircle, Zap, Shield, Globe2, AlertCircle, ArrowRight, MapPin, DollarSign, Clock } from 'lucide-react';
+import { InstantSearch, Chat, SearchBox, Hits, useInstantSearch } from 'react-instantsearch';
+import { Sparkles, MessageCircle, Zap, Shield, Globe2, AlertCircle, MapPin, Clock } from 'lucide-react';
 import 'instantsearch.css/themes/satellite.css';
 import { useState, useEffect } from 'react';
 

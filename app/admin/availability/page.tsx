@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback } from 'react';
 import withAuth from '@/components/admin/withAuth';
 import { 
   Calendar, ChevronLeft, ChevronRight, X, Lock, Unlock, 
-  AlertCircle, CheckCircle, Clock, Users, RefreshCw,
+  AlertCircle, Users, RefreshCw,
   Plus, Minus, Save, Loader2, History, Info
 } from 'lucide-react';
 import { useAdminTenant } from '@/contexts/AdminTenantContext';
@@ -218,7 +218,7 @@ const AvailabilityPage = () => {
       } else {
         toast.error(data.error || 'Failed to update');
       }
-    } catch (error) {
+    } catch {
       toast.error('Failed to update dates');
     } finally {
       setIsSaving(false);
@@ -874,7 +874,7 @@ function SlotEditorModal({
           setStopSaleReason(json.data.reasons.all);
         }
       }
-    } catch (e) {
+    } catch {
       // silent; keep existing UI state
     } finally {
       setIsStopSaleLoading(false);
@@ -908,7 +908,7 @@ function SlotEditorModal({
         toast.success(enabled ? 'Stop-sale applied (all options)' : 'Stop-sale removed (all options)');
       }
       await refreshStopSaleInfo();
-    } catch (e) {
+    } catch {
       toast.error('Failed to update stop-sale');
     } finally {
       setIsStopSaleLoading(false);
@@ -938,7 +938,7 @@ function SlotEditorModal({
         toast.success(enabled ? 'Option stop-sale applied' : 'Option stop-sale removed');
       }
       await refreshStopSaleInfo();
-    } catch (e) {
+    } catch {
       toast.error('Failed to update stop-sale');
     } finally {
       setIsStopSaleLoading(false);
@@ -982,7 +982,7 @@ function SlotEditorModal({
       } else {
         toast.error(data.error || 'Failed to save');
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to save');
     } finally {
       setIsSaving(false);

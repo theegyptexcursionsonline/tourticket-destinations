@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
-    Loader2, X, Plus, Check, ChevronDown, Camera, Grid3x3, Info, Globe, 
-    UploadCloud, Trash2, Eye, Tag, FileText, Sparkles, ArrowLeft, Edit, 
-    PlusCircle, Minus, HelpCircle, Palette
+    Loader2, X, Plus, Check, Camera, Grid3x3, Info, Globe, 
+    UploadCloud, Trash2, Eye, Tag, FileText, Sparkles, ArrowLeft, 
+    Minus, HelpCircle, Palette
 } from 'lucide-react';
 import Image from 'next/image';
 
@@ -77,7 +77,7 @@ const textareaBase = "block w-full px-4 py-3 border border-slate-300 rounded-xl 
 
 export default function CategoryForm({ categoryId }: CategoryFormProps) {
   const router = useRouter();
-  const [isPanelOpen, setIsPanelOpen] = useState(true);
+  const [isPanelOpen] = useState(true);
   const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(false);
   const [activeTab, setActiveTab] = useState('basic');
   
@@ -127,7 +127,7 @@ export default function CategoryForm({ categoryId }: CategoryFormProps) {
         setError(data.error || 'Failed to fetch category data');
         toast.error(data.error || 'Failed to load category');
       }
-    } catch (err) {
+    } catch (_err) {
       setError('Network error');
       toast.error('Failed to load category');
     } finally {

@@ -110,7 +110,7 @@ export default function Reviews({
   const showElfsightWidget = dbContent?.showElfsightWidget !== false;
 
   useEffect(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const w = window as any;
     const tryInit = () => {
       try {

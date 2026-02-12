@@ -19,7 +19,7 @@ const searchClient = algoliasearch(ALGOLIA_APP_ID, ALGOLIA_API_KEY);
 
 export default function AIAgentModal() {
   const [isOpen, setIsOpen] = useState(false);
-  const [initialQuery, setInitialQuery] = useState('');
+  const [_initialQuery, setInitialQuery] = useState('');
   const [detectedTours, setDetectedTours] = useState<any[]>([]);
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -29,7 +29,7 @@ export default function AIAgentModal() {
     messages,
     sendMessage,
     isLoading,
-    stop,
+    stop: _stop,
   } = useChat({
     transport: new DefaultChatTransport({
       api: `https://${ALGOLIA_APP_ID}.algolia.net/agent-studio/1/agents/${AGENT_ID}/completions?stream=true&compatibilityMode=ai-sdk-5`,

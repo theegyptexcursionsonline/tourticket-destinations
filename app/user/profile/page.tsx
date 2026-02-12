@@ -61,7 +61,7 @@ const ProfileForm = () => {
       } else {
         setMessage({ type: 'error', text: data.error || 'Failed to update profile' });
       }
-    } catch (error) {
+    } catch {
       setMessage({ type: 'error', text: 'Network error. Please try again.' });
     } finally {
       setIsLoading(false);
@@ -236,7 +236,7 @@ const ChangePasswordForm = () => {
       } else {
         setMessage({ type: 'error', text: data.error || 'Failed to change password' });
       }
-    } catch (error) {
+    } catch {
       setMessage({ type: 'error', text: 'Network error. Please try again.' });
     } finally {
       setIsLoading(false);
