@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Plus, Edit, Trash2, Eye, Search, Filter } from 'lucide-react';
 import { AttractionPage } from '@/types';
 import withAuth from '@/components/admin/withAuth';
+import { useAdminTenant } from '@/contexts/AdminTenantContext';
 
 function AttractionPagesAdmin() {
   const [pages, setPages] = useState<AttractionPage[]>([]);
@@ -13,14 +14,16 @@ function AttractionPagesAdmin() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'attraction' | 'category'>('all');
   const [filterStatus, setFilterStatus] = useState<'all' | 'published' | 'draft'>('all');
+  const { selectedTenantId } = useAdminTenant();
 
-  useEffect(() => {
-    fetchPages();
-  }, []);
-
-  const fetchPages = async () => {
+  const fetchPages = useCallback(async () => {
+    setLoading(true);
     try {
-      const response = await fetch('/api/admin/attraction-pages');
+      const params = new URLSearchParams();
+      if (selectedTenantId && selectedTenantId !== 'all') {
+        params.set('tenantId', selectedTenantId);
+      }
+      const response = await fetch(`/api/admin/attraction-pages?${params.toString()}`);
       const data = await response.json();
       
       if (data.success) {
@@ -34,7 +37,11 @@ function AttractionPagesAdmin() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedTenantId]);
+
+  useEffect(() => {
+    fetchPages();
+  }, [fetchPages]);
 
   const deletePage = async (id: string, title: string) => {
     if (!window.confirm(`Are you sure you want to delete "${title}"?`)) {

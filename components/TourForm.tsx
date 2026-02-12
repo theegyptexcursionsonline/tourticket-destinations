@@ -308,13 +308,13 @@ const AvailabilityManager = ({ availability, setAvailability }: { availability: 
 };
 
 // --- Main Tour Form Component ---
-export default function TourForm({ tourToEdit, onSave }: { tourToEdit?: Tour, onSave?: () => void }) {
+export default function TourForm({ tourToEdit, onSave, fullPage = false }: { tourToEdit?: Tour, onSave?: () => void, fullPage?: boolean }) {
     const router = useRouter();
     const { selectedCurrency } = useSettings();
     const { tenants, selectedTenantId, isAllTenantsSelected } = useAdminTenant();
     const CurrencyIcon = selectedCurrency.code === 'USD' ? DollarSign : Euro;
     
-    const [isPanelOpen, setIsPanelOpen] = useState(false);
+    const [isPanelOpen, setIsPanelOpen] = useState(fullPage);
     const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(false);
     const [activeTab, setActiveTab] = useState('basic');
 
@@ -919,8 +919,11 @@ const addItineraryItem = () => {
                 toast.success(`Tour ${tourToEdit ? 'updated' : 'created'} successfully!`);
                 setIsPanelOpen(false);
                 if (onSave) onSave();
-                // router.push('/admin/tours'); // <-- THIS LINE IS REMOVED
-                router.refresh();
+                if (fullPage) {
+                    router.push('/admin/tours');
+                } else {
+                    router.refresh();
+                }
             } else {
                 const errorMessage = responseData?.error || responseData?.message || `HTTP ${response.status}: ${response.statusText}`;
                 console.error('API Error:', errorMessage, responseData);
@@ -1014,57 +1017,64 @@ const addItineraryItem = () => {
     );
 
     return (
-        <div className="space-y-8">
-            {!isPanelOpen && <TourOverview />}
+        <div className={fullPage ? '' : 'space-y-8'}>
+            {!fullPage && !isPanelOpen && <TourOverview />}
             
-            {/* Backdrop Overlay */}
-            <AnimatePresence>
-                {isPanelOpen && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
-                        onClick={() => setIsPanelOpen(false)}
-                    />
-                )}
-            </AnimatePresence>
+            {/* Backdrop Overlay - hidden in full-page mode */}
+            {!fullPage && (
+                <AnimatePresence>
+                    {isPanelOpen && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+                            onClick={() => setIsPanelOpen(false)}
+                        />
+                    )}
+                </AnimatePresence>
+            )}
 
-            {/* Enhanced Slide Panel */}
+            {/* Form Panel - full-page inline or slide-out panel */}
             <AnimatePresence>
                 {isPanelOpen && (
                     <motion.div
-                        initial={{ x: '100%' }}
-                        animate={{ x: 0 }}
-                        exit={{ x: '100%' }}
-                        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                        className="fixed top-0 right-0 h-full w-full max-w-5xl bg-white z-50 shadow-2xl flex flex-col"
+                        initial={fullPage ? false : { x: '100%' }}
+                        animate={fullPage ? {} : { x: 0 }}
+                        exit={fullPage ? {} : { x: '100%' }}
+                        transition={fullPage ? {} : { type: 'spring', stiffness: 300, damping: 30 }}
+                        className={fullPage
+                            ? 'bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col'
+                            : 'fixed top-0 right-0 h-full w-full max-w-5xl bg-white z-50 shadow-2xl flex flex-col'
+                        }
                     >
-                        {/* Panel Header */}
-                        <div className="flex items-center justify-between p-8 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white">
-                            <div className="flex items-center gap-3">
-                                <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-sm">
-                                    {tourToEdit ? <Edit className="h-5 w-5 text-white" /> : <PlusCircle className="h-5 w-5 text-white" />}
+                        {/* Panel Header - hidden in full-page mode (page has its own header) */}
+                        {!fullPage && (
+                            <div className="flex items-center justify-between p-8 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white">
+                                <div className="flex items-center gap-3">
+                                    <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-sm">
+                                        {tourToEdit ? <Edit className="h-5 w-5 text-white" /> : <PlusCircle className="h-5 w-5 text-white" />}
+                                    </div>
+                                    <div>
+                                        <h2 className="text-xl font-bold text-slate-800">
+                                            {tourToEdit ? 'Edit Tour' : 'Create New Tour'}
+                                        </h2>
+                                        <p className="text-sm text-slate-500">
+                                            {tourToEdit ? `Editing: ${tourToEdit.title}` : 'Fill out the form to create your tour'}
+                                        </p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h2 className="text-xl font-bold text-slate-800">
-                                        {tourToEdit ? 'Edit Tour' : 'Create New Tour'}
-                                    </h2>
-                                    <p className="text-sm text-slate-500">
-                                        {tourToEdit ? `Editing: ${tourToEdit.title}` : 'Fill out the form to create your tour'}
-                                    </p>
-                                </div>
+                                <button 
+                                    onClick={() => setIsPanelOpen(false)} 
+                                    className="flex items-center justify-center w-10 h-10 rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-all duration-200"
+                                >
+                                    <X size={20} />
+                                </button>
                             </div>
-                            <button 
-                                onClick={() => setIsPanelOpen(false)} 
-                                className="flex items-center justify-center w-10 h-10 rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-all duration-200"
-                            >
-                                <X size={20} />
-                            </button>
-                        </div>
+                        )}
 
                         {/* Tab Navigation */}
-                        <div className="flex border-b border-slate-200 bg-slate-50 px-8 overflow-x-auto">
+                        <div className={`flex border-b border-slate-200 bg-slate-50 px-8 overflow-x-auto ${fullPage ? 'rounded-t-2xl' : ''}`}>
                             {tabs.map((tab) => {
                                 const Icon = tab.icon;
                                 return (
@@ -1085,7 +1095,7 @@ const addItineraryItem = () => {
                         </div>
 
                         {/* Form Content */}
-                        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
+                        <form onSubmit={handleSubmit} className={fullPage ? 'flex-1' : 'flex-1 overflow-y-auto'}>
                             <div className="p-8 space-y-8">
                                 
                                 {/* Basic Info Tab */}
@@ -2242,11 +2252,11 @@ const addItineraryItem = () => {
                         </form>
 
                         {/* Panel Footer */}
-                        <div className="p-8 border-t border-slate-200 bg-gradient-to-r from-slate-50 to-white">
+                        <div className={`p-8 border-t border-slate-200 bg-gradient-to-r from-slate-50 to-white ${fullPage ? 'rounded-b-2xl' : ''}`}>
                             <div className="flex items-center gap-4">
                                 <button
                                     type="button"
-                                    onClick={() => setIsPanelOpen(false)}
+                                    onClick={() => fullPage ? router.push('/admin/tours') : setIsPanelOpen(false)}
                                     className="flex-1 px-6 py-3 text-slate-700 font-semibold border border-slate-300 rounded-xl hover:bg-slate-50 transition-all duration-200"
                                 >
                                     Cancel

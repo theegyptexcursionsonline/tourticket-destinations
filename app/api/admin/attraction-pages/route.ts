@@ -12,9 +12,16 @@ export async function GET(request: NextRequest) {
     console.log('Starting to fetch attraction pages...');
     await dbConnect();
     console.log('Database connected successfully');
-    
+
+    const { searchParams } = new URL(request.url);
+    const tenantId = searchParams.get('tenantId');
+    const filter: Record<string, unknown> = {};
+    if (tenantId && tenantId !== 'all') {
+      filter.tenantId = tenantId;
+    }
+
     // First, get all pages without population
-    const pages = await AttractionPage.find({})
+    const pages = await AttractionPage.find(filter)
       .sort({ featured: -1, createdAt: -1 })
       .lean();
 

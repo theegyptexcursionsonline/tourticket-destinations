@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Edit, Plus, Tag, Trash2, Loader2, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import withAuth from '@/components/admin/withAuth';
+import { useAdminTenant } from '@/contexts/AdminTenantContext';
 
 interface ICategory {
   _id: string;
@@ -23,14 +24,16 @@ function CategoriesPage() {
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const { selectedTenantId } = useAdminTenant();
 
-  useEffect(() => {
-    fetchCategories();
-  }, []);
-
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
+    setLoading(true);
     try {
-      const response = await fetch('/api/categories');
+      const params = new URLSearchParams();
+      if (selectedTenantId && selectedTenantId !== 'all') {
+        params.set('tenantId', selectedTenantId);
+      }
+      const response = await fetch(`/api/categories?${params.toString()}`);
       const data = await response.json();
       if (data.success) {
         setCategories(data.data);
@@ -41,7 +44,11 @@ function CategoriesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedTenantId]);
+
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
 
   const handleDelete = async (id: string, name: string) => {
     if (!confirm(`Are you sure you want to delete "${name}"? This action cannot be undone.`)) {

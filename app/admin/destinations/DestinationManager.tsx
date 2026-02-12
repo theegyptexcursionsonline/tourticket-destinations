@@ -29,6 +29,7 @@ import {
   Minus
 } from 'lucide-react';
 import { IDestination } from '@/lib/models/Destination';
+import { useAdminTenant } from '@/contexts/AdminTenantContext';
 
 interface Tour {
   _id: string;
@@ -76,11 +77,33 @@ const generateSlug = (name: string) =>
 
 export default function DestinationManager({ initialDestinations }: { initialDestinations: IDestination[] }) {
   const router = useRouter();
+  const { selectedTenantId } = useAdminTenant();
+  const [destinations, setDestinations] = useState<IDestination[]>(initialDestinations);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [editingDestination, setEditingDestination] = useState<IDestination | null>(null);
   const [activeTab, setActiveTab] = useState('basic');
+
+  // Re-fetch destinations when selected brand changes
+  useEffect(() => {
+    const fetchDestinations = async () => {
+      try {
+        const params = new URLSearchParams();
+        if (selectedTenantId && selectedTenantId !== 'all') {
+          params.set('tenantId', selectedTenantId);
+        }
+        const response = await fetch(`/api/admin/destinations?${params.toString()}`);
+        const data = await response.json();
+        if (data.success) {
+          setDestinations(data.data);
+        }
+      } catch (error) {
+        console.error('Error fetching destinations:', error);
+      }
+    };
+    fetchDestinations();
+  }, [selectedTenantId]);
   
   const [formData, setFormData] = useState<FormData>({
     name: '',
@@ -498,15 +521,15 @@ setTimeout(() => router.refresh(), 0);
         <div className="mt-6 pt-6 border-t border-slate-200/60">
           <div className="flex items-center gap-2 text-sm text-slate-600">
             <MapPin className="h-4 w-4 text-indigo-500" />
-            <span className="font-medium">{initialDestinations.length}</span>
-            <span>destination{initialDestinations.length !== 1 ? 's' : ''} available</span>
+            <span className="font-medium">{destinations.length}</span>
+            <span>destination{destinations.length !== 1 ? 's' : ''} available</span>
           </div>
         </div>
       </div>
 
       {/* Destinations Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {initialDestinations.map((dest, index) => (
+        {destinations.map((dest, index) => (
           <motion.div
             key={dest._id as string}
             initial={{ opacity: 0, y: 20 }}
@@ -599,7 +622,7 @@ setTimeout(() => router.refresh(), 0);
         ))}
 
         {/* Empty State */}
-        {initialDestinations.length === 0 && (
+        {destinations.length === 0 && (
           <div className="col-span-full">
             <div className="text-center py-16">
               <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-slate-100 to-slate-200 rounded-full flex items-center justify-center">

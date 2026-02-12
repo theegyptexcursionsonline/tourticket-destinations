@@ -9,7 +9,15 @@ export async function GET(request: NextRequest) {
   if (auth instanceof NextResponse) return auth;
   try {
     await dbConnect();
-    const posts = await Blog.find().sort({ createdAt: -1 }).lean();
+
+    const { searchParams } = new URL(request.url);
+    const tenantId = searchParams.get('tenantId');
+    const filter: Record<string, unknown> = {};
+    if (tenantId && tenantId !== 'all') {
+      filter.tenantId = tenantId;
+    }
+
+    const posts = await Blog.find(filter).sort({ createdAt: -1 }).lean();
     return NextResponse.json({ success: true, data: posts }, { status: 200 });
   } catch (error) {
     console.error('Error listing blog posts:', error);

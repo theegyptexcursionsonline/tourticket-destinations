@@ -10,12 +10,20 @@ export async function GET(request: NextRequest) {
 
   try {
     await dbConnect();
-    
-    let settings = await HeroSettings.findOne({ isActive: true });
+    const { searchParams } = new URL(request.url);
+    const tenantId = searchParams.get('tenantId');
+    const filter: Record<string, unknown> = { isActive: true };
+    if (tenantId && tenantId !== 'all') {
+      filter.tenantId = tenantId;
+    }
+
+    let settings = await HeroSettings.findOne(filter);
     
     if (!settings) {
       // Create default settings if none exist
+      const defaultTenantId = typeof filter.tenantId === 'string' ? filter.tenantId : 'default';
       settings = new HeroSettings({
+        tenantId: defaultTenantId,
         backgroundImages: [
           {
             desktop: '/hero2.png',
@@ -99,10 +107,16 @@ export async function PUT(request: NextRequest) {
 
   try {
     await dbConnect();
+    const { searchParams } = new URL(request.url);
     const body = await request.json();
-    
+    const tenantId = (body?.tenantId as string | undefined) ?? searchParams.get('tenantId');
+    const updateFilter: Record<string, unknown> = { isActive: true };
+    if (tenantId && tenantId !== 'all') {
+      updateFilter.tenantId = tenantId;
+    }
+
     const settings = await HeroSettings.findOneAndUpdate(
-      { isActive: true },
+      updateFilter,
       body,
       { new: true, upsert: true, runValidators: true }
     );

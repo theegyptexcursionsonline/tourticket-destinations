@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import withAuth from '@/components/admin/withAuth';
+import { useAdminTenant } from '@/contexts/AdminTenantContext';
 
 interface HeroSettings {
   _id?: string;
@@ -72,15 +73,18 @@ const HeroSettingsPage = () => {
   });
   const [newTag, setNewTag] = useState('');
   const [newSuggestion, setNewSuggestion] = useState('');
+  const { selectedTenantId } = useAdminTenant();
+
+  const tenantQuery = selectedTenantId && selectedTenantId !== 'all' ? `?tenantId=${encodeURIComponent(selectedTenantId)}` : '';
 
   useEffect(() => {
     fetchHeroSettings();
-  }, []);
+  }, [selectedTenantId]);
 
 const fetchHeroSettings = async () => {
   try {
     setIsLoading(true);
-    const response = await fetch('/api/admin/hero-settings');
+    const response = await fetch(`/api/admin/hero-settings${tenantQuery}`);
     const result = await response.json();
     
     if (result.success) {
@@ -104,7 +108,7 @@ const handleAddBackgroundImage = async () => {
   }
 
   try {
-    const response = await fetch('/api/admin/hero-settings/images', {
+    const response = await fetch(`/api/admin/hero-settings/images${tenantQuery}`, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json'
@@ -132,7 +136,7 @@ const handleDeleteImage = async (imageIndex: number) => {
   if (!confirm('Are you sure you want to delete this background image?')) return;
 
   try {
-    const response = await fetch(`/api/admin/hero-settings/images/${imageIndex}`, {
+    const response = await fetch(`/api/admin/hero-settings/images/${imageIndex}${tenantQuery}`, {
       method: 'DELETE',
     });
 
@@ -153,7 +157,7 @@ const handleDeleteImage = async (imageIndex: number) => {
 
 const handleSetActiveImage = async (imageIndex: number) => {
   try {
-    const response = await fetch(`/api/admin/hero-settings/images/${imageIndex}/activate`, {
+    const response = await fetch(`/api/admin/hero-settings/images/${imageIndex}/activate${tenantQuery}`, {
       method: 'PUT',
       headers: { 
         'Content-Type': 'application/json'
@@ -180,7 +184,7 @@ const handleSaveSettings = async () => {
 
   try {
     setIsSaving(true);
-    const response = await fetch('/api/admin/hero-settings', {
+    const response = await fetch(`/api/admin/hero-settings${tenantQuery}`, {
       method: 'PUT',
       headers: { 
         'Content-Type': 'application/json'

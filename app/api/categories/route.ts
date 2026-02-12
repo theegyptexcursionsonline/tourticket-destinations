@@ -7,8 +7,10 @@ import { getTenantFromRequest, buildTenantQuery } from '@/lib/tenant';
 
 export async function GET(request: NextRequest) {
   try {
-    // Get tenant from request
-    const tenantId = await getTenantFromRequest();
+    // Allow explicit tenantId query param (admin panel) or detect from domain
+    const { searchParams } = new URL(request.url);
+    const explicitTenantId = searchParams.get('tenantId');
+    const tenantId = (explicitTenantId && explicitTenantId !== 'all') ? explicitTenantId : await getTenantFromRequest();
     await dbConnect(tenantId);
     
     // If tenant has its own categories, show only those (no default fallback)

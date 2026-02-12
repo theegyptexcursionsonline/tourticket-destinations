@@ -31,6 +31,7 @@ import {
   BarChart3
 } from 'lucide-react';
 import { IBlog } from '@/lib/models/Blog';
+import { useAdminTenant } from '@/contexts/AdminTenantContext';
 
 interface FormData {
   title: string;
@@ -210,6 +211,8 @@ function RichTextEditor({
 /* -------------------- Main BlogManager (full file) -------------------- */
 export default function BlogManager({ initialBlogs }: { initialBlogs: IBlog[] }) {
   const router = useRouter();
+  const { selectedTenantId } = useAdminTenant();
+  const [blogs, setBlogs] = useState<IBlog[]>(initialBlogs);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -217,6 +220,26 @@ export default function BlogManager({ initialBlogs }: { initialBlogs: IBlog[] })
   const [activeTab, setActiveTab] = useState('content');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
+
+  // Re-fetch blogs when selected brand changes
+  useEffect(() => {
+    const fetchBlogs = async () => {
+      try {
+        const params = new URLSearchParams();
+        if (selectedTenantId && selectedTenantId !== 'all') {
+          params.set('tenantId', selectedTenantId);
+        }
+        const response = await fetch(`/api/admin/blog?${params.toString()}`);
+        const data = await response.json();
+        if (data.success) {
+          setBlogs(data.data);
+        }
+      } catch (error) {
+        console.error('Error fetching blogs:', error);
+      }
+    };
+    fetchBlogs();
+  }, [selectedTenantId]);
   const [filterStatus, setFilterStatus] = useState('');
 
   const [formData, setFormData] = useState<FormData>({
@@ -486,7 +509,7 @@ export default function BlogManager({ initialBlogs }: { initialBlogs: IBlog[] })
   };
 
   // Filter blogs
-  const filteredBlogs = initialBlogs.filter(blog => {
+  const filteredBlogs = blogs.filter(blog => {
     const matchesSearch = blog.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       blog.excerpt.toLowerCase().includes(searchTerm.toLowerCase()) ||
       blog.author.toLowerCase().includes(searchTerm.toLowerCase());

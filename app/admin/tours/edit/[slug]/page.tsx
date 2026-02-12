@@ -352,7 +352,7 @@ const EditTourPage = () => {
                 </div>
 
                 {/* Use the comprehensive TourForm component */}
-                <TourForm tourToEdit={tourData} />
+                <TourForm tourToEdit={tourData} fullPage />
             </div>
         </div>
     );

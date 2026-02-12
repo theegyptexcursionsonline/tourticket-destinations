@@ -10,7 +10,13 @@ export async function GET(request: NextRequest) {
   if (auth instanceof NextResponse) return auth;
   await dbConnect();
   try {
-    const destinations = await Destination.find({}).sort({ name: 1 });
+    const { searchParams } = new URL(request.url);
+    const tenantId = searchParams.get('tenantId');
+    const filter: Record<string, unknown> = {};
+    if (tenantId && tenantId !== 'all') {
+      filter.tenantId = tenantId;
+    }
+    const destinations = await Destination.find(filter).sort({ name: 1 });
     return NextResponse.json({ success: true, data: destinations });
   } catch (error) {
     return NextResponse.json({ success: false, error: (error as Error).message }, { status: 500 });
