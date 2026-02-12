@@ -142,7 +142,7 @@ const TENANT_HOMEPAGE_CONTENT: Record<string, {
       imageAlt: 'Beautiful Red Sea coastline in Hurghada',
       ctaText: 'About Us',
       ctaLink: '/about',
-      accentColor: 'from-cyan-600 to-teal-600',
+      accentColor: 'from-red-600 to-red-700',
     },
     reviewsContent: {
       title: 'Traveler Reviews',
@@ -220,7 +220,7 @@ const TENANT_HOMEPAGE_CONTENT: Record<string, {
       imageAlt: 'The Great Pyramids of Giza at sunset',
       ctaText: 'Learn More',
       ctaLink: '/about',
-      accentColor: 'from-amber-500 to-amber-600',
+      accentColor: 'from-blue-600 to-blue-700',
     },
     reviewsContent: {
       title: 'Guest Testimonials',

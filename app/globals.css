@@ -190,13 +190,79 @@
 }
 
 /* ============================================
-   LEGACY: SPEEDBOAT THEME STYLES
-   Components now use CSS variables directly
-   (--primary-color, --gradient-primary, etc.)
-   These overrides are kept for backward compatibility
+   TENANT BRAND COLOR OVERRIDES
+   Maps red Tailwind utilities → tenant CSS variables
+   so every component uses the tenant brand color
+   automatically. For the default tenant (red),
+   this is a no-op since --primary-color IS red.
    ============================================ */
 
-/* Wave Animation (generic - can be used by any tenant) */
+/* --- Text Colors --- */
+:root .text-red-100 { color: rgba(255, 255, 255, 0.75); }
+:root .text-red-500 { color: var(--primary-color, #ef4444); }
+:root .text-red-600 { color: var(--primary-color, #dc2626); }
+:root .text-red-700 { color: var(--primary-hover, #b91c1c); }
+
+/* --- Background Colors --- */
+:root .bg-red-500 { background-color: var(--primary-color, #ef4444); }
+:root .bg-red-600 { background-color: var(--primary-color, #dc2626); }
+:root .bg-red-700 { background-color: var(--primary-hover, #b91c1c); }
+:root .bg-red-50 { background-color: var(--primary-light, #fef2f2); }
+:root .bg-red-100 { background-color: var(--primary-light, #fee2e2); }
+
+/* --- Border Colors --- */
+:root .border-red-100 { border-color: var(--primary-light, #fee2e2); }
+:root .border-red-200 { border-color: var(--primary-light, #fecaca); }
+:root .border-red-300 { border-color: var(--primary-light, #fca5a5); }
+:root .border-red-500 { border-color: var(--primary-color, #ef4444); }
+:root .border-red-600 { border-color: var(--primary-color, #dc2626); }
+
+/* --- Gradient From/To --- */
+:root .from-red-100 { --tw-gradient-from: var(--primary-light, #fee2e2); }
+:root .from-red-500 { --tw-gradient-from: var(--primary-color, #ef4444); }
+:root .from-red-600 { --tw-gradient-from: var(--primary-color, #dc2626); }
+:root .to-red-500 { --tw-gradient-to: var(--primary-color, #ef4444); }
+:root .to-red-600 { --tw-gradient-to: var(--primary-color, #dc2626); }
+:root .to-red-700 { --tw-gradient-to: var(--primary-hover, #b91c1c); }
+
+/* --- Ring Colors --- */
+:root .ring-red-500 { --tw-ring-color: var(--primary-color, #ef4444); }
+:root .ring-red-600 { --tw-ring-color: var(--primary-color, #dc2626); }
+
+/* --- Focus States --- */
+:root .focus\:ring-red-500:focus { --tw-ring-color: var(--primary-color, #ef4444); }
+:root .focus\:ring-red-600:focus { --tw-ring-color: var(--primary-color, #dc2626); }
+:root .focus\:border-red-500:focus { border-color: var(--primary-color, #ef4444); }
+:root .focus-visible\:ring-red-300:focus-visible { --tw-ring-color: var(--primary-light, #fca5a5); }
+:root .focus-visible\:ring-red-500:focus-visible { --tw-ring-color: var(--primary-color, #ef4444); }
+
+/* --- Hover States --- */
+:root .hover\:text-red-500:hover { color: var(--primary-color, #ef4444); }
+:root .hover\:text-red-600:hover { color: var(--primary-color, #dc2626); }
+:root .hover\:text-red-700:hover { color: var(--primary-hover, #b91c1c); }
+:root .hover\:bg-red-50:hover { background-color: var(--primary-light, #fef2f2); }
+:root .hover\:bg-red-600:hover { background-color: var(--primary-color, #dc2626); }
+:root .hover\:bg-red-700:hover { background-color: var(--primary-hover, #b91c1c); }
+:root .hover\:border-red-300:hover { border-color: var(--primary-color, #fca5a5); }
+:root .hover\:border-red-600:hover { border-color: var(--primary-color, #dc2626); }
+:root .hover\:from-red-500:hover { --tw-gradient-from: var(--primary-color, #ef4444); }
+:root .hover\:from-red-700:hover { --tw-gradient-from: var(--primary-hover, #b91c1c); }
+
+/* --- Group Hover --- */
+:root .group:hover .group-hover\:text-red-500 { color: var(--primary-color, #ef4444); }
+:root .group:hover .group-hover\:text-red-600 { color: var(--primary-color, #dc2626); }
+
+/* --- Group Focus Within --- */
+:root .group:focus-within .group-focus-within\:text-red-500 { color: var(--primary-color, #ef4444); }
+
+/* --- Disabled States --- */
+:root .disabled\:bg-red-400:disabled { background-color: var(--primary-color, #f87171); opacity: 0.7; }
+
+/* ============================================
+   GENERIC UTILITIES
+   ============================================ */
+
+/* Wave Animation */
 @keyframes wave {
   0%, 100% { transform: translateX(0) translateY(0); }
   25% { transform: translateX(-5px) translateY(-5px); }

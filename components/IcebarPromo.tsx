@@ -47,7 +47,7 @@ const FALLBACK_PROMO: Record<string, {
     primaryText: 'Browse All Tours',
   },
   'cairo-excursions-online': {
-    image: 'https://images.unsplash.com/photo-1539768942893-daf53e736b68?w=1200',
+    image: 'https://images.unsplash.com/photo-1539650116574-8efeb43e2750?w=1200',
     imageAlt: 'Great Pyramids of Giza at sunset',
     heading: 'Explore Cairo',
     subheading: '5,000 years of history at your fingertips',
@@ -74,7 +74,7 @@ const FALLBACK_PROMO: Record<string, {
     primaryText: 'Browse All Tours',
   },
   'luxor-excursions': {
-    image: 'https://images.unsplash.com/photo-1568322445389-f64e1cf1d6a0?w=1200',
+    image: 'https://images.unsplash.com/photo-1568322445389-f64ac2515020?w=1200',
     imageAlt: 'Ancient temples in Luxor at sunrise',
     heading: 'Walk Through History',
     subheading: 'Temples, tombs & timeless Nile sunsets',
