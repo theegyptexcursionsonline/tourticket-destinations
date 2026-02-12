@@ -20,7 +20,9 @@ export const dynamic = 'force-dynamic';
  * - skip: Number of results to skip (for pagination)
  */
 export async function GET(request: NextRequest) {
-  const auth = await requireAdminAuth(request, { permissions: ['manageUsers'] });
+  // Tenant listing requires basic admin auth (no specific permission)
+  // so all admin roles can see the brand selector dropdown
+  const auth = await requireAdminAuth(request);
   if (auth instanceof NextResponse) return auth;
   try {
     await dbConnect();

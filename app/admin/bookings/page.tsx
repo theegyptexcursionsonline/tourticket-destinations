@@ -32,6 +32,7 @@ interface BookingTour {
 
 interface Booking {
   _id: string;
+  tenantId?: string;
   bookingReference?: string;
   source?: 'online' | 'manual';
   paymentStatus?: 'paid' | 'pending' | 'pay_on_arrival';
@@ -127,7 +128,7 @@ const BookingsPage = () => {
   const { token } = useAdminAuth();
   
   // Get tenant filter from context
-  const { selectedTenantId, getSelectedTenant, isAllTenantsSelected } = useAdminTenant();
+  const { selectedTenantId, getSelectedTenant, isAllTenantsSelected, tenants } = useAdminTenant();
   const selectedTenant = getSelectedTenant();
   const tenantQuery = selectedTenantId && selectedTenantId !== 'all' ? `?tenantId=${encodeURIComponent(selectedTenantId)}` : '';
 
@@ -278,6 +279,20 @@ const BookingsPage = () => {
     if (!booking || !booking.tour) return null;
     if (!booking.tour.destination) return null;
     return booking.tour.destination?.name || null;
+  };
+
+  const tenantNameMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const t of tenants) {
+      map[t.tenantId] = t.name;
+    }
+    return map;
+  }, [tenants]);
+
+  const getBrandName = (booking: Booking): string => {
+    const tid = booking.tenantId || booking.tour?.tenantId;
+    if (!tid) return 'Default';
+    return tenantNameMap[tid] || tid;
   };
 
   const StatusDropdown = ({ booking, onStatusChange }: { 
@@ -701,6 +716,11 @@ const BookingsPage = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Tour & Customer
                   </th>
+                  {isAllTenantsSelected() && (
+                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                      Brand
+                    </th>
+                  )}
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Date & Time
                   </th>
@@ -764,6 +784,13 @@ const BookingsPage = () => {
                           )}
                         </div>
                       </td>
+                      {isAllTenantsSelected() && (
+                        <td className="px-6 py-4">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
+                            {getBrandName(booking)}
+                          </span>
+                        </td>
+                      )}
                       <td className="px-6 py-4">
                         <div className="text-sm text-slate-900">
                           {formatDisplayDate(booking.dateString || booking.date)}
