@@ -25,11 +25,16 @@ export async function POST(request: NextRequest) {
   try {
     await dbConnect();
     
-    const results = {
+    const results: {
+      tours: { count: number; cleaned: any[] };
+      categories: { count: number; cleaned: any[] };
+      destinations: { count: number; cleaned: any[] };
+      attractionPages: { count: number; cleaned: any[] };
+    } = {
       tours: { count: 0, cleaned: [] },
       categories: { count: 0, cleaned: [] },
       destinations: { count: 0, cleaned: [] },
-      attractionPages: { count: 0, cleaned: [] } // Add this
+      attractionPages: { count: 0, cleaned: [] }
     };
 
     // Clean Tours
@@ -199,7 +204,7 @@ export async function POST(request: NextRequest) {
       results
     });
     
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error cleaning images:', error);
     return NextResponse.json({
       success: false,
@@ -216,11 +221,16 @@ export async function GET(request: NextRequest) {
   try {
     await dbConnect();
     
-    const results = {
+    const results: {
+      tours: { count: number; items: any[] };
+      categories: { count: number; items: any[] };
+      destinations: { count: number; items: any[] };
+      attractionPages: { count: number; items: any[] };
+    } = {
       tours: { count: 0, items: [] },
       categories: { count: 0, items: [] },
       destinations: { count: 0, items: [] },
-      attractionPages: { count: 0, items: [] } // Add this
+      attractionPages: { count: 0, items: [] }
     };
 
     // Check Tours
@@ -306,7 +316,7 @@ export async function GET(request: NextRequest) {
       allItems
     });
     
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error checking placeholder images:', error);
     return NextResponse.json({
       success: false,

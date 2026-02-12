@@ -1,12 +1,11 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Discount from '@/lib/models/Discount';
-// import { isAdmin } from '@/lib/auth';
+import { requireAdminAuth } from '@/lib/auth/adminAuth';
 
-export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  // if (!isAdmin(request)) {
-  //   return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-  // }
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const auth = await requireAdminAuth(request, { permissions: ['manageDiscounts'] });
+  if (auth instanceof NextResponse) return auth;
 
   await dbConnect();
 
@@ -29,10 +28,9 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   }
 }
 
-export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  // if (!isAdmin(request)) {
-  //   return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-  // }
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const auth = await requireAdminAuth(request, { permissions: ['manageDiscounts'] });
+  if (auth instanceof NextResponse) return auth;
 
   await dbConnect();
 

@@ -11,6 +11,7 @@ import {
   Hash, Search, Play, Pause, Zap, Globe, Timer, Sparkles
 } from 'lucide-react';
 import Image from 'next/image';
+import withAuth from '@/components/admin/withAuth';
 
 interface HeroSettings {
   _id?: string;
@@ -1322,4 +1323,4 @@ const handleImageUpload = async (file: File, type: 'desktop' | 'mobile') => {
   );
 };
 
-export default HeroSettingsPage;
+export default withAuth(HeroSettingsPage, { permissions: ['manageContent'] });

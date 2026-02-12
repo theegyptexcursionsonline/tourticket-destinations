@@ -13,6 +13,7 @@ import {
   Settings, Eye, Layout, Shield,
   ExternalLink, Copy, Loader2, Star, CheckCircle2, XCircle
 } from 'lucide-react';
+import withAuth from '@/components/admin/withAuth';
 
 interface TenantData {
   _id: string;
@@ -244,7 +245,7 @@ const UI = {
   checkbox: 'h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500',
 };
 
-export default function EditTenantPage() {
+function EditTenantPage() {
   const params = useParams();
   const router = useRouter();
   const tenantId = params.tenantId as string;
@@ -627,6 +628,8 @@ export default function EditTenantPage() {
     </div>
   );
 }
+
+export default withAuth(EditTenantPage, { permissions: ['manageUsers'] });
 
 // Tab Components
 function GeneralTab({ tenant, updateField }: { tenant: TenantData; updateField: (path: string, value: unknown) => void }) {

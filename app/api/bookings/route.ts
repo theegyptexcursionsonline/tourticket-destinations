@@ -8,6 +8,7 @@ import User from '@/lib/models/user';
 import { verifyToken } from '@/lib/jwt';
 import { verifyFirebaseToken } from '@/lib/firebase/admin';
 import { getTenantConfigCached } from '@/lib/tenant';
+import { requireAdminAuth } from '@/lib/auth/adminAuth';
 
 export async function GET(request: NextRequest) {
   await dbConnect();
@@ -15,26 +16,22 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const isAdmin = searchParams.get('admin') === 'true';
-    const userId = searchParams.get('userId');
     const limit = parseInt(searchParams.get('limit') || '50');
     const page = parseInt(searchParams.get('page') || '1');
     const status = searchParams.get('status');
 
     let query: any = {};
-    let requireAuth = false;
 
     if (isAdmin) {
-      // Admin requests use JWT authentication (unchanged)
+      // Admin requests require proper admin auth with manageBookings permission
+      const adminAuth = await requireAdminAuth(request, { permissions: ['manageBookings'] });
+      if (adminAuth instanceof NextResponse) return adminAuth;
+
       if (status) {
         query.status = status;
       }
-    } else if (userId) {
-      query.user = userId;
-      requireAuth = true;
     } else {
-      // User requests use Firebase authentication
-      requireAuth = true;
-
+      // All user requests require authentication - derive user from token
       const authHeader = request.headers.get('Authorization');
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return NextResponse.json(
@@ -59,7 +56,7 @@ export async function GET(request: NextRequest) {
         }
         query.user = user._id;
       } else {
-        // Fallback to JWT (for backwards compatibility or admin)
+        // Fallback to JWT (for backwards compatibility)
         const payload = await verifyToken(token);
         if (!payload || !payload.sub) {
           return NextResponse.json(
@@ -100,7 +97,7 @@ export async function GET(request: NextRequest) {
     const totalCount = validBookings.length;
     const totalPages = Math.ceil(totalCount / limit);
 
-    const transformedBookings = validBookings.map(booking => ({
+    const transformedBookings = validBookings.map((booking: any) => ({
       ...booking,
       id: booking._id,
       bookingDate: booking.date,
@@ -169,7 +166,7 @@ export async function POST(request: NextRequest) {
           { status: 404 }
         );
       }
-      userId = user._id.toString();
+      userId = (user._id as any).toString();
     } else {
       // Fallback to JWT (for backwards compatibility)
       const payload = await verifyToken(token);

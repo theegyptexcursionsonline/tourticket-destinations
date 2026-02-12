@@ -170,18 +170,18 @@ export async function POST(request: NextRequest) {
 
     // Handle category, attractions and interests arrays
     if (body.category && Array.isArray(body.category)) {
-      body.category = body.category.filter(id => id && id.trim());
+      body.category = body.category.filter((id: any) => id && id.trim());
     }
     if (body.attractions && Array.isArray(body.attractions)) {
-      body.attractions = body.attractions.filter(id => id && id.trim());
+      body.attractions = body.attractions.filter((id: any) => id && id.trim());
     }
     if (body.interests && Array.isArray(body.interests)) {
-      body.interests = body.interests.filter(id => id && id.trim());
+      body.interests = body.interests.filter((id: any) => id && id.trim());
     }
 
     const tour = await Tour.create(body);
     
-    let populated = tour;
+    let populated: any = tour;
     try {
       populated = await Tour.findById(tour._id)
         .populate('category')

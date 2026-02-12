@@ -1,9 +1,12 @@
 // app/api/admin/hero-settings/debug/route.ts
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { requireAdminAuth } from '@/lib/auth/adminAuth';
 import dbConnect from '@/lib/dbConnect';
 import HeroSettings from '@/lib/models/HeroSettings';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const auth = await requireAdminAuth(request, { permissions: ['manageContent'] });
+  if (auth instanceof NextResponse) return auth;
   try {
     await dbConnect();
     

@@ -350,7 +350,7 @@ export async function POST(request: NextRequest) {
             .filter(Boolean)
             .join(', '),
           totalPrice: formatMoney(discountedTotal),
-          bookingId: bookingDoc.bookingReference || bookingDoc._id.toString(),
+          bookingId: bookingDoc.bookingReference || (bookingDoc._id as any).toString(),
           bookingOption: String(selectedOption.label),
           specialRequests: specialRequests ? String(specialRequests) : undefined,
           hotelPickupDetails: hotelPickupDetails ? String(hotelPickupDetails) : undefined,
@@ -394,7 +394,6 @@ export async function POST(request: NextRequest) {
         customerPhone: String(customerPhone),
         tourTitle: (tour as any).title || 'Tour',
         bookingId: bookingDoc.bookingReference || String(bookingDoc._id),
-        bookingId: bookingDoc.bookingReference || String(bookingDoc._id),
         bookingDate: new Date(`${dateString}T00:00:00.000Z`).toLocaleDateString('en-US', {
           weekday: 'long',
           year: 'numeric',
@@ -435,7 +434,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        id: bookingDoc._id.toString(),
+        id: (bookingDoc._id as any).toString(),
         bookingReference: bookingDoc.bookingReference,
         totalPrice: bookingDoc.totalPrice,
         subtotal,

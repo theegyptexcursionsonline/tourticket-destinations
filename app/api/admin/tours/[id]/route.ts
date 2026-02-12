@@ -356,7 +356,7 @@ export async function DELETE(
 
         // Remove from Algolia
         try {
-            await deleteTourFromAlgolia(deletedTour._id.toString());
+            await deleteTourFromAlgolia((deletedTour._id as any).toString());
         } catch (algoliaErr) {
             console.warn('Failed to remove deleted tour from Algolia:', algoliaErr);
         }

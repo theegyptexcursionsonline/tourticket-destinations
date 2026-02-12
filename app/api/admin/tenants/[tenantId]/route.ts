@@ -3,6 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
+import { requireAdminAuth } from '@/lib/auth/adminAuth';
 import Tenant from '@/lib/models/Tenant';
 import { clearTenantCache } from '@/lib/tenant';
 
@@ -22,6 +23,8 @@ export async function GET(
   request: NextRequest,
   { params }: RouteParams
 ) {
+  const auth = await requireAdminAuth(request, { permissions: ['manageUsers'] });
+  if (auth instanceof NextResponse) return auth;
   try {
     await dbConnect();
     
@@ -63,6 +66,8 @@ export async function PUT(
   request: NextRequest,
   { params }: RouteParams
 ) {
+  const auth = await requireAdminAuth(request, { permissions: ['manageUsers'] });
+  if (auth instanceof NextResponse) return auth;
   try {
     await dbConnect();
     
@@ -156,6 +161,8 @@ export async function DELETE(
   request: NextRequest,
   { params }: RouteParams
 ) {
+  const auth = await requireAdminAuth(request, { permissions: ['manageUsers'] });
+  if (auth instanceof NextResponse) return auth;
   try {
     await dbConnect();
     
@@ -230,6 +237,8 @@ export async function PATCH(
   request: NextRequest,
   { params }: RouteParams
 ) {
+  const auth = await requireAdminAuth(request, { permissions: ['manageUsers'] });
+  if (auth instanceof NextResponse) return auth;
   try {
     await dbConnect();
     

@@ -1,10 +1,13 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { requireAdminAuth } from '@/lib/auth/adminAuth';
 import dbConnect from '@/lib/dbConnect';
 import AttractionPage from '@/lib/models/AttractionPage';
 import Tour from '@/lib/models/Tour';
 import Category from '@/lib/models/Category';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const auth = await requireAdminAuth(request, { permissions: ['manageContent'] });
+  if (auth instanceof NextResponse) return auth;
   try {
     console.log('Starting to fetch attraction pages...');
     await dbConnect();
@@ -25,10 +28,10 @@ export async function GET() {
         if (page.categoryId) {
           try {
             const category = await Category.findById(page.categoryId).select('name slug').lean();
-            populatedPage.categoryId = category;
+            populatedPage.categoryId = category as any;
           } catch (error) {
             console.error(`Error populating category for page ${page._id}:`, error);
-            populatedPage.categoryId = null;
+            populatedPage.categoryId = null as any;
           }
         }
         
@@ -45,7 +48,7 @@ export async function GET() {
         
         try {
           if (page.pageType === 'category' && page.categoryId) {
-            const categoryId = typeof page.categoryId === 'object' ? page.categoryId._id : page.categoryId;
+            const categoryId = typeof page.categoryId === 'object' ? (page.categoryId as any)._id : page.categoryId;
             tourCount = await Tour.countDocuments({
               category: categoryId,
               isPublished: true
@@ -108,7 +111,9 @@ export async function GET() {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const auth = await requireAdminAuth(request, { permissions: ['manageContent'] });
+  if (auth instanceof NextResponse) return auth;
   try {
     await dbConnect();
     

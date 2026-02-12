@@ -4,8 +4,12 @@ import dbConnect from '@/lib/dbConnect';
 import Booking from '@/lib/models/Booking';
 import Tour from '@/lib/models/Tour';
 import { startOfMonth, endOfMonth, subMonths, format } from 'date-fns';
+import { requireAdminAuth } from '@/lib/auth/adminAuth';
 
 export async function GET(request: NextRequest) {
+  const auth = await requireAdminAuth(request, { permissions: ['manageReports'] });
+  if (auth instanceof NextResponse) return auth;
+
   try {
     // Get tenant filter from query params
     const { searchParams } = new URL(request.url);

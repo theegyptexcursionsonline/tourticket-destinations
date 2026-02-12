@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import toast from 'react-hot-toast';
 import { UploadCloud, Loader2, FileJson, Package, MapPin, Star, Image as ImageIcon, Check, X, Upload, Link as LinkIcon, AlertCircle } from 'lucide-react';
+import withAuth from '@/components/admin/withAuth';
 
 // Types for missing images
 interface MissingImage {
@@ -308,7 +309,7 @@ const ResultDisplay = ({ results }: { results: UploadResults }) => {
 };
 
 // Main Component
-export default function BulkUploadPage() {
+function BulkUploadPage() {
     const [jsonInput, setJsonInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [results, setResults] = useState<UploadResults | null>(null);
@@ -485,3 +486,5 @@ export default function BulkUploadPage() {
         </div>
     );
 }
+
+export default withAuth(BulkUploadPage, { permissions: ['manageTours'] });

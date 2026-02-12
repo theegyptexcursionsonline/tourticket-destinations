@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Edit, Plus, Tag, Trash2, Loader2, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
+import withAuth from '@/components/admin/withAuth';
 
 interface ICategory {
   _id: string;
@@ -17,7 +18,7 @@ interface ICategory {
   order?: number;
 }
 
-export default function CategoriesPage() {
+function CategoriesPage() {
   const [categories, setCategories] = useState<ICategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -265,3 +266,5 @@ export default function CategoriesPage() {
     </div>
   );
 }
+
+export default withAuth(CategoriesPage, { permissions: ['manageContent'] });

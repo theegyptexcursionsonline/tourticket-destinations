@@ -1,8 +1,9 @@
 // File: app/api/upload/route.ts
 
 import { v2 as cloudinary } from 'cloudinary';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { Readable } from 'stream';
+import { requireAdminAuth } from '@/lib/auth/adminAuth';
 
 // Configure Cloudinary with credentials from .env.local
 cloudinary.config({
@@ -19,7 +20,10 @@ function bufferToStream(buffer: Buffer): Readable {
   return stream;
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  // Only authenticated admins can upload files
+  const auth = await requireAdminAuth(request);
+  if (auth instanceof NextResponse) return auth;
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File;

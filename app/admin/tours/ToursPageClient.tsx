@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { Plus, RefreshCw, AlertCircle } from 'lucide-react';
 import { ToursListClient } from './ToursListClient';
 import { useAdminTenant } from '@/contexts/AdminTenantContext';
+import withAuth from '@/components/admin/withAuth';
 
 type TourType = {
   _id: string;
@@ -27,7 +28,7 @@ type TourType = {
   tenantId?: string;
 };
 
-export function ToursPageClient() {
+function ToursPageClientComponent() {
   const { selectedTenantId, getSelectedTenant, isAllTenantsSelected } = useAdminTenant();
   const [tours, setTours] = useState<TourType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -205,3 +206,5 @@ export function ToursPageClient() {
     </div>
   );
 }
+
+export const ToursPageClient = withAuth(ToursPageClientComponent, { permissions: ['manageTours'] });

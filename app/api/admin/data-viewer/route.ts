@@ -1,12 +1,15 @@
 // app/api/admin/data-viewer/route.ts
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
+import { requireAdminAuth } from '@/lib/auth/adminAuth';
 import Tour from '@/lib/models/Tour';
 import Destination from '@/lib/models/Destination';
 import Category from '@/lib/models/Category';
 import AttractionPage from '@/lib/models/AttractionPage';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const auth = await requireAdminAuth(request, { permissions: ['manageContent'] });
+  if (auth instanceof NextResponse) return auth;
   try {
     await dbConnect();
 

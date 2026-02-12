@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
+import withAuth from '@/components/admin/withAuth';
 
 interface Tenant {
   _id: string;
@@ -42,7 +43,7 @@ interface Tenant {
   updatedAt: string;
 }
 
-export default function TenantsPage() {
+function TenantsPage() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   // Keep an immediate input value for responsiveness + debounce before fetching
@@ -564,6 +565,8 @@ export default function TenantsPage() {
     </div>
   );
 }
+
+export default withAuth(TenantsPage, { permissions: ['manageUsers'] });
 
 // Create Tenant Modal Component
 function CreateTenantModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {

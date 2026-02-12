@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdminAuth } from '@/lib/auth/adminAuth';
 import dbConnect from '@/lib/dbConnect';
 import Blog from '@/lib/models/Blog';
 import mongoose from 'mongoose';
@@ -7,6 +8,8 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireAdminAuth(request, { permissions: ['manageContent'] });
+  if (auth instanceof NextResponse) return auth;
   try {
     await dbConnect();
     
@@ -71,6 +74,8 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireAdminAuth(request, { permissions: ['manageContent'] });
+  if (auth instanceof NextResponse) return auth;
   try {
     await dbConnect();
     

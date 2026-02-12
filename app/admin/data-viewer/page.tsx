@@ -8,6 +8,7 @@ import {
   DollarSign, Clock, Users, Star,
   CheckCircle, XCircle, Loader2
 } from 'lucide-react';
+import withAuth from '@/components/admin/withAuth';
 
 interface DataViewerState {
   summary: any;
@@ -17,7 +18,7 @@ interface DataViewerState {
   attractions: any[];
 }
 
-export default function DataViewerPage() {
+function DataViewerPage() {
   const [data, setData] = useState<DataViewerState | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -296,6 +297,8 @@ export default function DataViewerPage() {
     </div>
   );
 }
+
+export default withAuth(DataViewerPage, { permissions: ['manageContent'] });
 
 const SummaryCard = ({ label, value, icon, color }: any) => {
   const colorClasses: any = {

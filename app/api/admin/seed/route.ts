@@ -1,5 +1,6 @@
 // app/api/admin/seed/route.ts
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { requireAdminAuth } from '@/lib/auth/adminAuth';
 import dbConnect from '@/lib/dbConnect';
 import Tour from '@/lib/models/Tour';
 import Category from '@/lib/models/Category';
@@ -201,7 +202,10 @@ interface ImportReport {
   warnings: string[];
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const auth = await requireAdminAuth(request);
+  if (auth instanceof NextResponse) return auth;
+
   console.log('\n🚀 ============================================');
   console.log('   DATA IMPORT PROCESS STARTED');
   console.log('============================================\n');

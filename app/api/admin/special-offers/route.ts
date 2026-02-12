@@ -2,11 +2,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import SpecialOffer from '@/lib/models/SpecialOffer';
+import { requireAdminAuth } from '@/lib/auth/adminAuth';
 
 export const dynamic = 'force-dynamic';
 
 // GET - Fetch all special offers
 export async function GET(request: NextRequest) {
+  const auth = await requireAdminAuth(request, { permissions: ['managePricing'], requireAll: false });
+  if (auth instanceof NextResponse) return auth;
+
   try {
     await dbConnect();
 
@@ -67,6 +71,9 @@ export async function GET(request: NextRequest) {
 
 // POST - Create new special offer
 export async function POST(request: NextRequest) {
+  const auth = await requireAdminAuth(request, { permissions: ['managePricing'] });
+  if (auth instanceof NextResponse) return auth;
+
   try {
     await dbConnect();
 
@@ -206,6 +213,9 @@ export async function POST(request: NextRequest) {
 
 // PUT - Update special offer
 export async function PUT(request: NextRequest) {
+  const auth = await requireAdminAuth(request, { permissions: ['managePricing'] });
+  if (auth instanceof NextResponse) return auth;
+
   try {
     await dbConnect();
 
@@ -294,6 +304,9 @@ export async function PUT(request: NextRequest) {
 
 // DELETE - Delete special offer
 export async function DELETE(request: NextRequest) {
+  const auth = await requireAdminAuth(request, { permissions: ['managePricing'] });
+  if (auth instanceof NextResponse) return auth;
+
   try {
     await dbConnect();
 

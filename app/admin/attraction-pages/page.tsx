@@ -4,8 +4,9 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Plus, Edit, Trash2, Eye, Search, Filter } from 'lucide-react';
 import { AttractionPage } from '@/types';
+import withAuth from '@/components/admin/withAuth';
 
-export default function AttractionPagesAdmin() {
+function AttractionPagesAdmin() {
   const [pages, setPages] = useState<AttractionPage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -281,3 +282,5 @@ export default function AttractionPagesAdmin() {
     </div>
   );
 }
+
+export default withAuth(AttractionPagesAdmin, { permissions: ['manageContent'] });

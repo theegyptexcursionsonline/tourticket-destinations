@@ -4,9 +4,13 @@ import dbConnect from '@/lib/dbConnect';
 import Review from '@/lib/models/Review';
 import User from '@/lib/models/user';
 import Tour from '@/lib/models/Tour';
+import { requireAdminAuth } from '@/lib/auth/adminAuth';
 
 // GET all reviews for the admin panel
 export async function GET(request: NextRequest) {
+  const auth = await requireAdminAuth(request, { permissions: ['manageContent'] });
+  if (auth instanceof NextResponse) return auth;
+
   await dbConnect();
   try {
     // Get tenant filter from query params

@@ -1,13 +1,17 @@
 // app/api/admin/reviews/[id]/route.ts
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Review from '@/lib/models/Review';
+import { requireAdminAuth } from '@/lib/auth/adminAuth';
 
 // --- PATCH: Update a specific review (e.g., approve it) ---
 export async function PATCH(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireAdminAuth(request, { permissions: ['manageContent'] });
+  if (auth instanceof NextResponse) return auth;
+
   const { id } = await params;
   await dbConnect();
 
@@ -33,9 +37,12 @@ export async function PATCH(
 
 // --- DELETE: Remove a specific review ---
 export async function DELETE(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireAdminAuth(request, { permissions: ['manageContent'] });
+  if (auth instanceof NextResponse) return auth;
+
   const { id } = await params;
   await dbConnect();
 

@@ -1,5 +1,6 @@
 // app/api/admin/hero-settings/images/[imageIndex]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdminAuth } from '@/lib/auth/adminAuth';
 import dbConnect from '@/lib/dbConnect';
 import HeroSettings from '@/lib/models/HeroSettings';
 
@@ -7,6 +8,8 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ imageIndex: string }> }
 ) {
+  const auth = await requireAdminAuth(request, { permissions: ['manageContent'] });
+  if (auth instanceof NextResponse) return auth;
   try {
     await dbConnect();
     

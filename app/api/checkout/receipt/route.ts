@@ -2,9 +2,44 @@
 // Uses the shared generateReceiptPdf utility for consistency
 import { NextRequest, NextResponse } from 'next/server';
 import { generateReceiptPdf } from '@/lib/utils/generateReceiptPdf';
+import { verifyFirebaseToken } from '@/lib/firebase/admin';
+import { verifyToken } from '@/lib/jwt';
 
 export async function POST(req: NextRequest) {
   try {
+    // Require authentication to generate receipts
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { message: 'Authentication required to generate receipts' },
+        { status: 401 }
+      );
+    }
+
+    const token = authHeader.split(' ')[1];
+    let authenticated = false;
+
+    // Try Firebase auth first
+    const firebaseResult = await verifyFirebaseToken(token);
+    if (firebaseResult.success && firebaseResult.uid) {
+      authenticated = true;
+    }
+
+    // Fallback to JWT (admin tokens)
+    if (!authenticated) {
+      const payload = await verifyToken(token);
+      if (payload && payload.sub) {
+        authenticated = true;
+      }
+    }
+
+    if (!authenticated) {
+      return NextResponse.json(
+        { message: 'Invalid or expired authentication token' },
+        { status: 401 }
+      );
+    }
+
     const body = await req.json();
 
     const {

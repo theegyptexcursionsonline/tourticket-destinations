@@ -3,6 +3,7 @@
 
 import React, { useState } from 'react';
 import { Upload, FileText, CheckCircle, XCircle, AlertCircle, Download, Trash2, Image as ImageIcon, ArrowRight, ArrowLeft, Loader2 } from 'lucide-react';
+import withAuth from '@/components/admin/withAuth';
 
 interface ImportReport {
   wipedData: boolean;
@@ -53,7 +54,7 @@ interface ParsedItem {
   isUploading?: boolean;
 }
 
-export default function DataImportPage() {
+function DataImportPage() {
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
   const [jsonData, setJsonData] = useState<string>('');
   const [parsedData, setParsedData] = useState<any>(null);
@@ -1023,3 +1024,5 @@ export default function DataImportPage() {
     </div>
   );
 }
+
+export default withAuth(DataImportPage, { permissions: ['manageTours'] });

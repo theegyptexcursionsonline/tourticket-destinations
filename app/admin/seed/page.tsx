@@ -4,6 +4,7 @@
 import { useState, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { AlertTriangle, FileJson, Upload, Loader2, CheckCircle, XCircle } from 'lucide-react';
+import withAuth from '@/components/admin/withAuth';
 
 type SeedReport = {
   wipedData: boolean;
@@ -13,7 +14,7 @@ type SeedReport = {
   errors: string[];
 };
 
-export default function SeedPage() {
+function SeedPage() {
   const [jsonFile, setJsonFile] = useState<File | null>(null);
   const [wipeData, setWipeData] = useState(false);
   const [isSeeding, setIsSeeding] = useState(false);
@@ -211,3 +212,5 @@ export default function SeedPage() {
     </div>
   );
 }
+
+export default withAuth(SeedPage, { permissions: ['manageDashboard'] });

@@ -53,7 +53,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<Pa
         return NextResponse.json({ error: 'User not found' }, { status: 404 });
       }
 
-      userId = user._id.toString();
+      userId = (user._id as any).toString();
     } else {
       // Fallback to JWT (for backwards compatibility)
       const payload = await verifyToken(token);
@@ -93,7 +93,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<Pa
         userEmail: review.userEmail // Keep existing userEmail
       },
       { new: true, runValidators: true }
-    ).populate('user', 'firstName lastName name picture');
+    ).populate('user', 'firstName lastName name picture') as any;
+
+    if (!updatedReview) {
+      return NextResponse.json({ error: 'Failed to update review' }, { status: 500 });
+    }
 
     // Transform the response to match what the frontend expects
     const transformedReview = {
@@ -103,9 +107,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<Pa
       comment: updatedReview.comment,
       createdAt: updatedReview.createdAt,
       user: {
-        _id: updatedReview.user._id,
+        _id: updatedReview.user?._id,
         name: updatedReview.userName,
-        picture: updatedReview.user.picture
+        picture: updatedReview.user?.picture
       }
     };
 
@@ -143,7 +147,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
         return NextResponse.json({ error: 'User not found' }, { status: 404 });
       }
 
-      userId = user._id.toString();
+      userId = (user._id as any).toString();
     } else {
       // Fallback to JWT (for backwards compatibility)
       const payload = await verifyToken(token);

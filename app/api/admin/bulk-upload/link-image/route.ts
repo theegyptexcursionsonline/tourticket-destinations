@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { requireAdminAuth } from '@/lib/auth/adminAuth';
 import mongoose from 'mongoose';
 import dbConnect from '@/lib/dbConnect';
 import Tour from '@/lib/models/Tour';
@@ -11,7 +12,10 @@ const models = {
     Attractions: AttractionPage
 };
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+    const auth = await requireAdminAuth(req);
+    if (auth instanceof NextResponse) return auth;
+
     await dbConnect();
 
     try {
@@ -30,7 +34,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ success: false, error: 'Invalid document ID.' }, { status: 400 });
         }
 
-        const updateResult = await Model.updateOne(
+        const updateResult = await (Model as any).updateOne(
             { _id: docId },
             { $set: { [imageField]: imageUrl } }
         );

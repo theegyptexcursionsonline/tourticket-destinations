@@ -1,10 +1,13 @@
 // app/api/admin/destinations/route.ts
 import dbConnect from '@/lib/dbConnect';
 import Destination from '@/lib/models/Destination';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { MongoError } from 'mongodb';
+import { requireAdminAuth } from '@/lib/auth/adminAuth';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const auth = await requireAdminAuth(request, { permissions: ['manageContent'] });
+  if (auth instanceof NextResponse) return auth;
   await dbConnect();
   try {
     const destinations = await Destination.find({}).sort({ name: 1 });
@@ -14,7 +17,9 @@ export async function GET() {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const auth = await requireAdminAuth(request, { permissions: ['manageContent'] });
+  if (auth instanceof NextResponse) return auth;
   await dbConnect();
   try {
     const body = await request.json();

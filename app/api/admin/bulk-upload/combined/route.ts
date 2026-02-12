@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { requireAdminAuth } from '@/lib/auth/adminAuth';
 import dbConnect from '@/lib/dbConnect';
 import Tour from '@/lib/models/Tour';
 import Destination from '@/lib/models/Destination';
@@ -9,7 +10,10 @@ const findByName = async (Model: any, name: string) => {
     return Model.findOne({ name: new RegExp(`^${name}$`, 'i') }).lean();
 };
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+    const auth = await requireAdminAuth(req);
+    if (auth instanceof NextResponse) return auth;
+
     await dbConnect();
 
     try {
@@ -36,7 +40,7 @@ export async function POST(req: Request) {
                     } else {
                         results.destinations.created++;
                         // Check if image is missing
-                        const newDoc = await Destination.findOne({ slug: item.slug }).lean();
+                        const newDoc = await Destination.findOne({ slug: item.slug }).lean() as any;
                         if (newDoc && !newDoc.image) {
                             results.missingImages.push({
                                 _id: newDoc._id.toString(),

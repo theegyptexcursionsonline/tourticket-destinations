@@ -198,6 +198,9 @@ export async function GET(request: NextRequest) {
 
 // POST - Create or update availability
 export async function POST(request: NextRequest) {
+  const auth = await requireAdminAuth(request, { permissions: ['manageTours'] });
+  if (auth instanceof NextResponse) return auth;
+
   try {
     await dbConnect();
 
@@ -275,6 +278,9 @@ export async function POST(request: NextRequest) {
 
 // PUT - Bulk update availability
 export async function PUT(request: NextRequest) {
+  const auth = await requireAdminAuth(request, { permissions: ['manageTours'] });
+  if (auth instanceof NextResponse) return auth;
+
   try {
     await dbConnect();
 
