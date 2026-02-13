@@ -296,7 +296,7 @@ export async function POST(request: NextRequest) {
         totalPrice: `$${parseFloat(totalPrice).toFixed(2)}`,
         paymentMethod: 'Online',
         specialRequests,
-        adminDashboardLink: baseUrl ? `${baseUrl}/admin/bookings/${booking._id}` : undefined,
+        adminDashboardLink: `https://dashboard.egypt-excursionsonline.com/admin/bookings/${booking._id}`,
         baseUrl,
         tours: [
           {

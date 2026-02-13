@@ -728,7 +728,7 @@ export async function POST(request: Request) {
         hotelPickupLocation,
         hotelPickupMapImage: hotelPickupMapImage || undefined,
         hotelPickupMapLink: hotelPickupMapLink || undefined,
-        adminDashboardLink: baseUrl ? `${baseUrl}/admin/bookings/${bookingId}` : undefined,
+        adminDashboardLink: `https://dashboard.egypt-excursionsonline.com/admin/bookings/${bookingId}`,
         baseUrl,
         tours: tourDetails,
         timeUntil: timeUntilTour || undefined,

@@ -406,7 +406,7 @@ export async function POST(request: NextRequest) {
         paymentMethod: normalizedPaymentMethod,
         specialRequests: specialRequests ? String(specialRequests) : undefined,
         hotelPickupDetails: hotelPickupDetails ? String(hotelPickupDetails) : undefined,
-        adminDashboardLink: baseUrl ? `${baseUrl}/admin/bookings/${String(bookingDoc._id)}` : undefined,
+        adminDashboardLink: `https://dashboard.egypt-excursionsonline.com/admin/bookings/${String(bookingDoc._id)}`,
         baseUrl,
         tours: [
           {
