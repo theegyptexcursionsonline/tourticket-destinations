@@ -31,7 +31,7 @@ export class EmailService {
     'booking-cancellation': '❌ Booking Cancelled - {{tourTitle}}',
     'booking-update': '📢 Booking Status Update - {{tourTitle}}',
     'welcome': '🎊 Welcome to {{companyName}}!',
-    'admin-booking-alert': '📋 [{{companyName}}] New Booking - {{tourTitle}}',
+    'admin-booking-alert': '[{{companyName}}] New Booking - {{tourTitle}}',
     'admin-invite': "You've been invited to manage {{companyName}}",
     'admin-access-update': 'Your admin access has been {{action}}'
   };
