@@ -308,23 +308,29 @@ export class EmailService {
 
   // ADMIN BOOKING ALERT
   static async sendAdminBookingAlert(data: AdminAlertData & { tenantBranding?: TenantEmailBranding; adminEmail?: string; adminCcEmail?: string }): Promise<void> {
-    // Use tenant-specific admin email if provided, otherwise fall back to env var
-    const adminEmail = data.adminEmail || process.env.ADMIN_NOTIFICATION_EMAIL;
-    const adminCcEmail = data.adminCcEmail || process.env.ADMIN_NOTIFICATION_CC_EMAIL;
+    // Always send TO the central admin email (ADMIN_NOTIFICATION_EMAIL)
+    // Tenant contact email and CC email are merged into CC list
+    const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL;
     const branding = data.tenantBranding;
 
     if (!adminEmail) {
-      console.error('⚠️ ADMIN EMAIL NOT CONFIGURED: Neither tenant contact email nor ADMIN_NOTIFICATION_EMAIL env var is set. Admin/operator notification for booking', data.bookingId, 'was NOT sent.');
+      console.error('⚠️ ADMIN_NOTIFICATION_EMAIL env var is not set. Admin/operator notification for booking', data.bookingId, 'was NOT sent.');
       return;
     }
 
-    console.log(`📧 Sending admin/operator notification for booking ${data.bookingId} to: ${adminEmail}${adminCcEmail ? ` (cc: ${adminCcEmail})` : ''}`);
-    console.log(`📧 [Admin Alert] Using MAILGUN_FROM_EMAIL (not tenant fromEmail) for sender address`);
+    // Build CC list: include both configured CC and tenant contact email (if different from TO)
+    const ccEmails = new Set<string>();
+    if (data.adminCcEmail) ccEmails.add(data.adminCcEmail);
+    if (process.env.ADMIN_NOTIFICATION_CC_EMAIL) ccEmails.add(process.env.ADMIN_NOTIFICATION_CC_EMAIL);
+    if (data.adminEmail && data.adminEmail !== adminEmail) ccEmails.add(data.adminEmail);
+    const adminCcEmail = ccEmails.size > 0 ? Array.from(ccEmails).join(', ') : undefined;
+
+    console.log(`📧 [Admin Alert] Booking ${data.bookingId} → TO: ${adminEmail}${adminCcEmail ? ` | CC: ${adminCcEmail}` : ''}`);
 
     try {
       const template = await this.generateEmailTemplate('admin-booking-alert', data, branding);
 
-      // Admin alerts always use MAILGUN_FROM_EMAIL (not tenant fromEmail) to avoid domain mismatch
+      // Admin alerts always use ADMIN_NOTIFICATION_EMAIL as TO and MAILGUN_FROM_EMAIL as sender
       await sendEmail({
         to: adminEmail,
         cc: adminCcEmail,
@@ -335,9 +341,9 @@ export class EmailService {
         // Do NOT pass fromEmail — let mailgun.ts use MAILGUN_FROM_EMAIL default
       });
 
-      console.log(`✅ Admin/operator notification sent successfully for booking ${data.bookingId} to ${adminEmail}${adminCcEmail ? ` (cc: ${adminCcEmail})` : ''}`);
+      console.log(`✅ Admin alert sent for booking ${data.bookingId} to ${adminEmail}${adminCcEmail ? ` (cc: ${adminCcEmail})` : ''}`);
     } catch (sendError) {
-      console.error(`❌ Failed to send admin/operator email for booking ${data.bookingId}:`, sendError);
+      console.error(`❌ Failed to send admin alert for booking ${data.bookingId}:`, sendError);
       throw sendError;
     }
   }
