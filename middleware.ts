@@ -186,6 +186,7 @@ function getTenantDomains(): TenantDomainMapping {
     // Main brand (Egypt Excursions Online)
     'egypt-excursionsonline.com': 'default',
     'www.egypt-excursionsonline.com': 'default',
+    'dashboard.egypt-excursionsonline.com': 'default',
     
     // ============================================
     // NEW TENANTS - PRIORITY (Client Request Jan 2026)
@@ -535,6 +536,21 @@ export function middleware(request: NextRequest) {
   // Skip middleware for static files
   if (isStaticFile(pathname)) {
     return NextResponse.next();
+  }
+
+  // ============================================
+  // ADMIN DASHBOARD SUBDOMAIN
+  // ============================================
+  // dashboard.egypt-excursionsonline.com -> rewrite all paths to /admin/*
+  // URL stays clean (no /admin visible in browser)
+  const cleanHost = hostname.replace(/:\d+$/, '').replace(/^www\./, '');
+  if (cleanHost === 'dashboard.egypt-excursionsonline.com') {
+    // Skip paths that are already /admin, /api, /_next, or static assets
+    if (!pathname.startsWith('/admin') && !pathname.startsWith('/api') && !pathname.startsWith('/_next') && !isStaticFile(pathname)) {
+      const url = request.nextUrl.clone();
+      url.pathname = pathname === '/' ? '/admin' : `/admin${pathname}`;
+      return NextResponse.rewrite(url);
+    }
   }
 
   // ============================================

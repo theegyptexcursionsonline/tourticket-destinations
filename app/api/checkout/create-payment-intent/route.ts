@@ -72,6 +72,42 @@ export async function POST(request: Request) {
       );
     }
 
+    // Build compact cart summary for Stripe metadata (500 char limit per value)
+    const cartSummary = cart.map((item: any, index: number) => ({
+      i: index,                                    // item index
+      t: item._id || item.id,                      // tour ID
+      d: item.selectedDate,                        // date YYYY-MM-DD
+      tm: item.selectedTime || '10:00',            // time
+      a: item.quantity || 1,                       // adults
+      c: item.childQuantity || 0,                  // children
+      n: item.infantQuantity || 0,                 // infants
+      bp: item.selectedBookingOption?.price || item.discountPrice || item.price || 0, // base price
+      bo: item.selectedBookingOption?.id || '',     // booking option ID
+      bot: item.selectedBookingOption?.title || '', // booking option title
+      ao: (item.selectedAddOns && item.selectedAddOnDetails)
+        ? Object.entries(item.selectedAddOns).map(([id, q]) => ({
+            id,
+            q: Number(q),
+            p: item.selectedAddOnDetails?.[id]?.price || 0,
+            pg: !!item.selectedAddOnDetails?.[id]?.perGuest,
+            t: item.selectedAddOnDetails?.[id]?.title || '',
+          }))
+        : [],
+    }));
+
+    // Serialize cart data, split if needed (Stripe metadata value limit is 500 chars)
+    const cartJson = JSON.stringify(cartSummary);
+    const cartData = cartJson.substring(0, 500);
+    const cartData2 = cartJson.length > 500 ? cartJson.substring(500) : '';
+
+    // Serialize hotel pickup location if present
+    let hotelPickupLocationStr = '';
+    if (customer.hotelPickupLocation) {
+      try {
+        hotelPickupLocationStr = JSON.stringify(customer.hotelPickupLocation);
+      } catch { /* ignore */ }
+    }
+
     // Use tenant-specific Stripe account if configured, otherwise use default
     // Note: For Stripe Connect, you would use stripeAccount parameter
     const stripeOptions: Stripe.PaymentIntentCreateParams = {
@@ -79,11 +115,24 @@ export async function POST(request: Request) {
       currency: (pricing.currency || tenantConfig?.payments?.currency || 'USD').toLowerCase(),
       description: `Booking for ${cart.length} tour${cart.length > 1 ? 's' : ''} - ${tenantConfig?.name || 'Tour Booking'}`,
       metadata: {
+        has_booking_data: 'true',
         tenant_id: tenantId,
         tenant_name: tenantConfig?.name || 'Default',
         customer_email: customer.email,
-        customer_name: `${customer.firstName} ${customer.lastName}`,
-        tours: cart.map((item: any) => item.title).join(', '),
+        customer_first_name: customer.firstName,
+        customer_last_name: customer.lastName,
+        customer_phone: customer.phone || '',
+        hotel_pickup_details: customer.hotelPickupDetails || '',
+        hotel_pickup_location: hotelPickupLocationStr,
+        special_requests: customer.specialRequests || '',
+        cart_data: cartData,
+        ...(cartData2 && { cart_data_2: cartData2 }),
+        pricing_total: String(pricing.total),
+        pricing_subtotal: String(pricing.subtotal || 0),
+        pricing_service_fee: String(pricing.serviceFee || 0),
+        pricing_tax: String(pricing.tax || 0),
+        pricing_discount: String(pricing.discount || 0),
+        pricing_currency: pricing.currency || tenantConfig?.payments?.currency || 'USD',
         discount_code: discountCode || 'none',
       },
       // receipt_email removed - we send our own booking confirmation email
