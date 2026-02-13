@@ -552,7 +552,7 @@ export default function InterestGridServer({ categories }: InterestGridServerPro
         /(?:^|\n)\s*(?:\d+\.\s*)?([^—\n]{15,}?)\s+—\s*\$(\d+)/gm,
       ];
 
-      const potentialTours = new Map<string, number>();
+      const potentialTours: Map<string, number> = new (Map as any)();
 
       for (const pattern of tourPatterns) {
         const matches = text.matchAll(pattern);
@@ -569,7 +569,7 @@ export default function InterestGridServer({ categories }: InterestGridServerPro
 
       if (potentialTours.size > 0) {
         const toursArray = Array.from(potentialTours.entries()).slice(0, 4);
-        const searchPromises = toursArray.map(async ([tourTitle]) => {
+        const searchPromises = toursArray.map(async ([tourTitle]: any) => {
           try {
             let response = await searchClient.search([{
               indexName: INDEX_TOURS,
@@ -581,7 +581,7 @@ export default function InterestGridServer({ categories }: InterestGridServerPro
             let firstResult = response.results[0] as any;
 
             if (!firstResult?.hits?.length) {
-              const keywords = tourTitle.split(/\s+/).filter(w => w.length > 3).slice(0, 4).join(' ');
+              const keywords = tourTitle.split(/\s+/).filter((w: string) => w.length > 3).slice(0, 4).join(' ');
               response = await searchClient.search([{
                 indexName: INDEX_TOURS,
                 params: {

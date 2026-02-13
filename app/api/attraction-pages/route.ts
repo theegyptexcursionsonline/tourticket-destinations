@@ -25,10 +25,10 @@ export async function GET() {
             const category = await Category.findById(page.categoryId)
               .select('name slug')
               .lean();
-            populatedPage.categoryId = category;
+            populatedPage.categoryId = category as any;
           } catch (error) {
             console.error(`Error populating category for page ${page._id}:`, error);
-            populatedPage.categoryId = null;
+            populatedPage.categoryId = null as any;
           }
         }
         

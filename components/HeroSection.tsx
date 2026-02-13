@@ -884,7 +884,7 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
     const container = chatContainerRef.current;
     if (!container || !chatMode) return;
     
-    let scrollTimeout: NodeJS.Timeout;
+    let scrollTimeout: NodeJS.Timeout | undefined;
     
     const handleScroll = () => {
       // Don't interfere if this is a programmatic scroll

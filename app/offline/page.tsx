@@ -5,7 +5,7 @@ import { WifiOff, Mail, Phone } from 'lucide-react';
 import { useTenant } from '@/contexts/TenantContext';
 
 export default function OfflinePage() {
-  const { config } = useTenant();
+  const { tenant: config } = useTenant();
   
   const brandName = config?.name || 'Egypt Excursions Online';
   const primaryColor = config?.branding?.primaryColor || '#E63946';

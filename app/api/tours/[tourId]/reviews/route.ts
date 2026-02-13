@@ -49,7 +49,7 @@ export async function POST(
         return NextResponse.json({ error: 'User not found' }, { status: 404 });
       }
 
-      userId = user._id.toString();
+      userId = (user._id as any).toString();
     } else {
       // Fallback to JWT (for backwards compatibility)
       const payload = await verifyToken(token);
@@ -146,18 +146,18 @@ export async function POST(
     return NextResponse.json({
       success: true,
       message: 'Review submitted successfully!',
-      data: {
+      data: populatedReview ? {
         _id: populatedReview._id,
         rating: populatedReview.rating,
         title: populatedReview.title,
         comment: populatedReview.comment,
         createdAt: populatedReview.createdAt,
         user: {
-          _id: populatedReview.user._id,
+          _id: (populatedReview.user as any)?._id,
           name: populatedReview.userName,
           email: populatedReview.userEmail
         }
-      }
+      } : null
     }, { status: 201 });
 
   } catch (error: any) {
@@ -215,7 +215,7 @@ export async function GET(
       comment: review.comment,
       createdAt: review.createdAt,
       user: {
-        _id: review.user._id,
+        _id: (review.user as any)?._id,
         name: review.userName,
         email: review.userEmail
       }

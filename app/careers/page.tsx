@@ -4,7 +4,7 @@ import { Metadata } from "next";
 import CareersClientPage from "./CareersClientPage";
 import dbConnect from "@/lib/dbConnect";
 import Job from "@/lib/models/Job";
-import { Job as JobType } from "@/types";
+type JobType = any;
 import { getTenantFromRequest, getTenantPublicConfig } from "@/lib/tenant";
 
 // Enable ISR with 60 second revalidation for instant page loads

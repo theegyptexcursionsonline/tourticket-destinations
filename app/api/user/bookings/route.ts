@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'User not found' }, { status: 404 });
       }
 
-      userId = user._id.toString();
+      userId = (user._id as any).toString();
       console.log('👤 User found via Firebase UID:', userId);
     } else {
       console.log('⚠️ Firebase verification failed, trying JWT fallback...');
@@ -107,7 +107,7 @@ export async function GET(request: NextRequest) {
     console.log('📦 Raw bookings fetched:', bookings.length);
     console.log('📋 First booking sample:', bookings[0] ? {
       id: bookings[0]._id,
-      tourTitle: bookings[0].tour?.title || 'No tour',
+      tourTitle: (bookings[0].tour as any)?.title || 'No tour',
       date: bookings[0].date,
       time: bookings[0].time,
       guests: bookings[0].guests
@@ -121,8 +121,8 @@ export async function GET(request: NextRequest) {
       bookingTime: booking.time,
       participants: booking.guests,
       tour: booking.tour ? {
-        ...booking.tour,
-        id: booking.tour._id?.toString() || '',
+        ...(booking.tour as any),
+        id: (booking.tour as any)._id?.toString() || '',
       } : null,
     }));
 

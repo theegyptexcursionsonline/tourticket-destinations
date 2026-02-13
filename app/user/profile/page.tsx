@@ -359,7 +359,7 @@ export default function ProfilePage() {
             </div>
             <div className="flex items-center justify-center sm:justify-start gap-2 text-slate-600 text-sm sm:text-base">
               <Calendar size={16} className="flex-shrink-0" />
-              <span>Member since {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'Recently'}</span>
+              <span>Member since {(user as any)?.createdAt ? new Date((user as any).createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'Recently'}</span>
             </div>
           </div>
         </div>

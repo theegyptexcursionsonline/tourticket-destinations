@@ -38,7 +38,7 @@ export default function AIAgentModal() {
         'x-algolia-api-key': ALGOLIA_API_KEY,
       },
     }),
-  });
+  }) as any;
 
   /** ---------- OPEN MODAL FROM FLOATING BUTTON ---------- **/
   useEffect(() => {
@@ -90,14 +90,14 @@ export default function AIAgentModal() {
         const toursArray = Array.from(potentialTours).slice(0, 5);
         const searchPromises = toursArray.map(async (tourTitle) => {
           try {
-            const response = await searchClient.search([{
+            const response = await (searchClient as any).search([{
               indexName: INDEX_TOURS,
               query: tourTitle,
               params: {
                 hitsPerPage: 1,
               }
             }]);
-            return response.results[0]?.hits[0];
+            return (response.results[0] as any)?.hits[0];
           } catch (error) {
             console.error('Error searching for tour:', tourTitle, error);
             return null;
@@ -408,7 +408,7 @@ export default function AIAgentModal() {
                 </div>
               )}
 
-              {messages.map((m, mIdx) => (
+              {messages.map((m: any, mIdx: any) => (
                 <div key={m.id}>
                   <div
                     className={`flex ${

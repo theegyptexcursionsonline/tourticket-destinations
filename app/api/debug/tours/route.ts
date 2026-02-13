@@ -20,15 +20,15 @@ export async function GET() {
         title: tour.title,
         slug: tour.slug,
         isPublished: tour.isPublished,
-        destination: tour.destination?.name || 'No destination',
-        category: tour.category?.name || 'No category'
+        destination: (tour.destination as any)?.name || 'No destination',
+        category: (tour.category as any)?.name || 'No category'
       }))
     });
   } catch (error) {
     console.error('Debug API error:', error);
     return NextResponse.json({
       success: false,
-      error: error.message
+      error: (error as any).message
     }, { status: 500 });
   }
 }

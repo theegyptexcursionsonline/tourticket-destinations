@@ -105,7 +105,7 @@ export default async function AttractionPage({ params }: AttractionPageProps) {
   return (
     <>
       <Header startSolid />
-      <AttractionLandingPage attraction={page} />
+      <AttractionLandingPage attraction={page as any} />
       <Footer />
     </>
   );

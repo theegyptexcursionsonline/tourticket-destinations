@@ -36,15 +36,15 @@ export async function GET(request: NextRequest) {
     // Add tour counts to destinations
     const destinationsWithCountsData = destinations.map(dest => ({
       ...dest,
-      tourCount: tourCounts[dest._id.toString()] || 0,
+      tourCount: tourCounts[(dest._id as any).toString()] || 0,
     }));
 
     const destinationsWithCounts = destinationsWithCountsData
-      .filter(dest => dest.tourCount > 0 || dest.featured)
+      .filter(dest => dest.tourCount > 0 || (dest as any).featured)
       .sort((a, b) => {
         // Featured first
-        if (a.featured && !b.featured) return -1;
-        if (!a.featured && b.featured) return 1;
+        if ((a as any).featured && !(b as any).featured) return -1;
+        if (!(a as any).featured && (b as any).featured) return 1;
         // Then by tour count
         return b.tourCount - a.tourCount;
       });

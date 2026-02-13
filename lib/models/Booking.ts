@@ -325,9 +325,9 @@ const BookingSchema: Schema<IBooking> = new Schema({
 // Virtual for guest breakdown text
 BookingSchema.virtual('guestBreakdown').get(function() {
   const parts = [];
-  if (this.adultGuests > 0) parts.push(`${this.adultGuests} adult${this.adultGuests > 1 ? 's' : ''}`);
-  if (this.childGuests > 0) parts.push(`${this.childGuests} child${this.childGuests > 1 ? 'ren' : ''}`);
-  if (this.infantGuests > 0) parts.push(`${this.infantGuests} infant${this.infantGuests > 1 ? 's' : ''}`);
+  if (this.adultGuests && this.adultGuests > 0) parts.push(`${this.adultGuests} adult${this.adultGuests > 1 ? 's' : ''}`);
+  if (this.childGuests && this.childGuests > 0) parts.push(`${this.childGuests} child${this.childGuests > 1 ? 'ren' : ''}`);
+  if (this.infantGuests && this.infantGuests > 0) parts.push(`${this.infantGuests} infant${this.infantGuests > 1 ? 's' : ''}`);
   return parts.join(', ');
 });
 

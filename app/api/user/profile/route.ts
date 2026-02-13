@@ -47,7 +47,7 @@ export async function PUT(request: NextRequest) {
 
     // Update user profile
     const updatedUser = await User.findByIdAndUpdate(
-      user._id,
+      user!._id,
       {
         firstName: firstName.trim(),
         lastName: lastName.trim(),

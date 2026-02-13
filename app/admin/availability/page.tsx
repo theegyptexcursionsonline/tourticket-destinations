@@ -508,7 +508,7 @@ const AvailabilityPage = () => {
                 } ${isSelected ? 'ring-2 ring-indigo-500 ring-inset' : ''} ${
                   isPast ? 'opacity-50' : ''
                 }`}
-                onClick={() => !isPast && handleDateClick(dateStr, hasStopSale)}
+                onClick={() => !isPast && handleDateClick(dateStr, !!hasStopSale)}
               >
                 <div className="flex items-start justify-between">
                   <span className="text-sm font-medium">
@@ -549,13 +549,13 @@ const AvailabilityPage = () => {
                 {(avail?.stopSaleStatus === 'full' || avail?.stopSale) && (
                   <div className="mt-1 text-xs text-rose-800 flex items-center gap-1">
                     <span>Stop-sale</span>
-                    <Info className="w-3 h-3 opacity-60" title="Click to see who applied" />
+                    <Info className="w-3 h-3 opacity-60" />
                   </div>
                 )}
                 {avail?.stopSaleStatus === 'partial' && (
                   <div className="mt-1 text-xs text-amber-800 flex items-center gap-1">
                     <span>Partial ({avail.stoppedOptionIds?.length || 0})</span>
-                    <Info className="w-3 h-3 opacity-60" title="Click to see who applied" />
+                    <Info className="w-3 h-3 opacity-60" />
                   </div>
                 )}
               </div>

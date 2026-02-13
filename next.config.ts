@@ -177,7 +177,7 @@ const nextConfig = {
   },
 
   // Webpack configuration for additional optimization
-  webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
+  webpack: (config: any, { buildId, dev, isServer, defaultLoaders, webpack }: any) => {
     config.resolve.alias = {
       ...config.resolve.alias,
       // Add any specific aliases you need

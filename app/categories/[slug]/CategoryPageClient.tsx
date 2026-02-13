@@ -481,7 +481,7 @@ export default function CategoryPageClient({ category, categoryTours }: { catego
             <BookingSidebar
                 isOpen={isBookingSidebarOpen}
                 onClose={closeSidebar}
-                tour={selectedTour}
+                tour={selectedTour as any}
             />
         </>
     );

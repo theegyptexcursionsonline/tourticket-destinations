@@ -43,7 +43,7 @@ export async function GET(
         return NextResponse.json({ hasReview: false });
       }
 
-      userId = user._id.toString();
+      userId = (user._id as any).toString();
     } else {
       // Fallback to JWT (for backwards compatibility)
       const payload = await verifyToken(token);

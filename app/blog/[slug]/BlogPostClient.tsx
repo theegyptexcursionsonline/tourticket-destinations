@@ -79,7 +79,7 @@ function ShareAndLike({ blog }: { blog: IBlog }) {
     if (liked) return;
     try {
       await fetch(`/api/blog/${encodeURIComponent(blog.slug)}/like`, { method: 'POST' });
-      setLikes((s) => s + 1);
+      setLikes((s: any) => s + 1);
       setLiked(true);
       toast.success('Thanks for liking!');
     } catch {

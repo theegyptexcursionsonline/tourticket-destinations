@@ -76,9 +76,9 @@ export async function GET() {
       // Get AFTER state
       const afterSetting = await HeroSettings.findById(setting._id);
       const afterState = {
-        _id: afterSetting._id,
-        title: JSON.parse(JSON.stringify(afterSetting.title)),
-        hasSubtitle: afterSetting.title && 'subtitle' in afterSetting.title
+        _id: afterSetting?._id,
+        title: afterSetting?.title ? JSON.parse(JSON.stringify(afterSetting.title)) : null,
+        hasSubtitle: afterSetting?.title && 'subtitle' in afterSetting.title
       };
       
       databaseRecords.push({

@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
         if (offerData.excludedTours?.includes(tourId)) continue;
         
         // Check if offer applies to this specific tour
-        if (!appliesToAll && !offerData.applicableTours.includes(tourId)) continue;
+        if (!appliesToAll && !offerData.applicableTours?.includes(tourId)) continue;
         
         const existing = tourOffersMap.get(tourId);
         if (!existing) continue;

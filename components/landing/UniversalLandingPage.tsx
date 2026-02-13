@@ -215,7 +215,7 @@ export default function UniversalLandingPage({
                   ].map(({ mode, icon: Icon }) => (
                     <button
                       key={mode}
-                      onClick={() => setViewMode(mode)}
+                      onClick={() => setViewMode(mode as any)}
                       className={`p-2 rounded-md transition-all ${
                         viewMode === mode
                           ? 'bg-white text-indigo-600 shadow-sm'

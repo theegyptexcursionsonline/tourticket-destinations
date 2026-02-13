@@ -399,7 +399,7 @@ export async function POST(request: Request) {
     try {
       if (isBankTransfer) {
         // Get tenant-specific bank details or use defaults
-        const bankDetails = tenantConfig?.payments?.bankDetails || {
+        const bankDetails = (tenantConfig?.payments as any)?.bankDetails || {
           bankName: 'Commercial International Bank (CIB)',
           accountName: tenantConfig?.name || 'Egypt Excursions Online',
           accountNumber: '1001234567890',

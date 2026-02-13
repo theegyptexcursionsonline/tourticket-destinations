@@ -118,13 +118,13 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
                 tourId: item._id || item.id,
                 tourSlug: item.slug,
                 tourTitle: item.title,
-                tourImage: item.images?.[0]?.url,
+                tourImage: (item.images?.[0] as any)?.url,
                 selectedDate: item.selectedDate,
                 selectedTime: item.selectedTime,
                 quantity: item.quantity,
                 childQuantity: item.childQuantity,
-                adultPrice: item.pricing?.adult || 0,
-                childPrice: item.pricing?.child || 0,
+                adultPrice: (item as any).pricing?.adult || 0,
+                childPrice: (item as any).pricing?.child || 0,
                 selectedAddOns: item.selectedAddOnDetails ?
                     Object.values(item.selectedAddOnDetails).map(addon => ({
                         id: addon.id,
@@ -193,13 +193,13 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
                         tourId: item._id || item.id,
                         tourSlug: item.slug,
                         tourTitle: item.title,
-                        tourImage: item.images?.[0]?.url,
+                        tourImage: (item.images?.[0] as any)?.url,
                         selectedDate: item.selectedDate,
                         selectedTime: item.selectedTime,
                         quantity: item.quantity,
                         childQuantity: item.childQuantity,
-                        adultPrice: item.pricing?.adult || 0,
-                        childPrice: item.pricing?.child || 0,
+                        adultPrice: (item as any).pricing?.adult || 0,
+                        childPrice: (item as any).pricing?.child || 0,
                         selectedAddOns: item.selectedAddOnDetails ?
                             Object.values(item.selectedAddOnDetails).map(addon => ({
                                 id: addon.id,

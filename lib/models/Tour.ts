@@ -787,7 +787,7 @@ TourSchema.pre('save', async function(next) {
       let slug = baseSlug;
       let counter = 1;
       
-      while (await this.constructor.findOne({ 
+      while (await (this.constructor as any).findOne({ 
         slug, 
         _id: { $ne: this._id } 
       }).lean()) {
@@ -825,7 +825,7 @@ TourSchema.pre('save', async function(next) {
     
     next();
   } catch (error) {
-    next(error);
+    next(error as any);
   }
 });
 
@@ -997,7 +997,7 @@ TourSchema.statics.generateUniqueSlug = async function(baseSlug: string, tenantI
   let slug = baseSlug;
   let counter = 1;
   
-  while (!(await this.isSlugAvailable(slug, tenantId, excludeId))) {
+  while (!(await (this as any).isSlugAvailable(slug, tenantId, excludeId))) {
     slug = `${baseSlug}-${counter}`;
     counter++;
     
@@ -1061,7 +1061,7 @@ TourSchema.methods.generateSlug = async function() {
     .replace(/-+/g, '-')
     .replace(/^-+|-+$/g, '');
   
-  this.slug = await this.constructor.generateUniqueSlug(baseSlug, this._id);
+  this.slug = await (this.constructor as any).generateUniqueSlug(baseSlug, this._id);
 };
 
 // Create and export the model
@@ -1070,4 +1070,4 @@ const Tour: Model<ITour> = mongoose.models.Tour || mongoose.model<ITour>('Tour',
 export default Tour;
 
 // Export additional types for use in other files
-export type { ITour, IItineraryItem, IAvailability, IFAQ, IBookingOption, IAddOn };
+// Types are already exported via interface declarations above

@@ -79,7 +79,7 @@ export default async function DestinationsIndexPage() {
     <>
       <Header startSolid />
       <main className="min-h-screen bg-slate-50 pt-20">
-        <DestinationsClientPage destinations={destinations} />
+        <DestinationsClientPage destinations={destinations as any} />
       </main>
       <Footer />
       {/* AI Search Widget */}

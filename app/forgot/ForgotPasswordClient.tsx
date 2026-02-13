@@ -32,7 +32,7 @@ export default function ForgotPasswordClient() {
 
     try {
       // Send password reset email using Firebase
-      await sendPasswordResetEmail(auth, email, {
+      await sendPasswordResetEmail(auth!, email, {
         url: window.location.origin + '/login',
         handleCodeInApp: false,
       });

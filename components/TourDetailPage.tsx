@@ -76,8 +76,8 @@ const extractEnhancementData = (tour: Tour): TourEnhancement => {
     // Use database itinerary with proper icon handling, only fallback if completely empty
     itinerary: tour.itinerary && tour.itinerary.length > 0 ? tour.itinerary.map(item => ({
       ...item,
-      icon: item.icon || 'location' // Ensure icon is properly set
-    })) : [],
+      icon: (item as any).icon || 'location' // Ensure icon is properly set
+    })) as any[] : [],
     
     // Use database data first, only fallback if not available
     whatToBring: tour.whatToBring && tour.whatToBring.length > 0 ? tour.whatToBring : [
@@ -920,15 +920,15 @@ export default function TourPageClient({ tour, relatedTours, initialReviews }: T
   const reviewsRef = useRef<HTMLDivElement>(null);
   const faqRef = useRef<HTMLDivElement>(null);
 
-  const inViewOptions = { threshold: 0.1 };
-  const isOverviewInView = useInView(overviewRef, inViewOptions);
-  const isItineraryInView = useInView(itineraryRef, inViewOptions);
-  const isPracticalInView = useInView(practicalRef, inViewOptions);
-  const isAccessibilityInView = useInView(accessibilityRef, inViewOptions);
-  const isPoliciesInView = useInView(policiesRef, inViewOptions);
-  const isCulturalInView = useInView(culturalRef, inViewOptions);
-  const isReviewsInView = useInView(reviewsRef, inViewOptions);
-  const isFaqInView = useInView(faqRef, inViewOptions);
+  const inViewOptions = { threshold: 0.1 } as any;
+  const isOverviewInView = useInView(overviewRef as any, inViewOptions);
+  const isItineraryInView = useInView(itineraryRef as any, inViewOptions);
+  const isPracticalInView = useInView(practicalRef as any, inViewOptions);
+  const isAccessibilityInView = useInView(accessibilityRef as any, inViewOptions);
+  const isPoliciesInView = useInView(policiesRef as any, inViewOptions);
+  const isCulturalInView = useInView(culturalRef as any, inViewOptions);
+  const isReviewsInView = useInView(reviewsRef as any, inViewOptions);
+  const isFaqInView = useInView(faqRef as any, inViewOptions);
 
   useEffect(() => {
     if (isFaqInView) setActiveTab('faq');
@@ -1187,26 +1187,26 @@ export default function TourPageClient({ tour, relatedTours, initialReviews }: T
                 isHeaderVisible={isHeaderVisible}
               />
 
-              <OverviewSection tour={tour} sectionRef={overviewRef} />
+              <OverviewSection tour={tour} sectionRef={overviewRef as any} />
               
               {/* Only show itinerary if we have real data */}
               {enhancement.itinerary && enhancement.itinerary.length > 0 && (
-                <ItinerarySection itinerary={enhancement.itinerary} sectionRef={itineraryRef} />
+                <ItinerarySection itinerary={enhancement.itinerary} sectionRef={itineraryRef as any} />
               )}
               
-              <PracticalInfoSection enhancement={enhancement} sectionRef={practicalRef} />
-              <AccessibilitySection enhancement={enhancement} sectionRef={accessibilityRef} />
-              <PoliciesSection enhancement={enhancement} sectionRef={policiesRef} />
-              <CulturalSection enhancement={enhancement} sectionRef={culturalRef} />
+              <PracticalInfoSection enhancement={enhancement} sectionRef={practicalRef as any} />
+              <AccessibilitySection enhancement={enhancement} sectionRef={accessibilityRef as any} />
+              <PoliciesSection enhancement={enhancement} sectionRef={policiesRef as any} />
+              <CulturalSection enhancement={enhancement} sectionRef={culturalRef as any} />
               
               <ReviewsSection 
                 tour={tour} 
                 reviews={reviews} 
                 onReviewSubmitted={handleReviewSubmitted} 
-                sectionRef={reviewsRef} 
+                sectionRef={reviewsRef as any} 
               />
               
-              <EnhancedFAQ faqs={tour.faq || []} sectionRef={faqRef} />
+              <EnhancedFAQ faqs={tour.faq || []} sectionRef={faqRef as any} />
 
               {tour.meetingPoint && (
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">

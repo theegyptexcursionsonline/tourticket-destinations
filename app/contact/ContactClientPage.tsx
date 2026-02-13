@@ -150,7 +150,7 @@ export default function ContactClientPage() {
     setFormLoadTime(Date.now());
   }, []);
 
-  const tenantSocials = tenant?.branding?.socialLinks || tenant?.socialLinks;
+  const tenantSocials = (tenant?.branding as any)?.socialLinks || (tenant as any)?.socialLinks;
   const socialLinks = [
     tenantSocials?.facebook ? { icon: Facebook, href: tenantSocials.facebook } : { icon: Facebook, href: "https://web.facebook.com/EGexcursionsonline/?_rdc=1&_rdr#" },
     tenantSocials?.instagram ? { icon: Instagram, href: tenantSocials.instagram } : { icon: Instagram, href: "https://www.instagram.com/egyptexcursionsonline/" },

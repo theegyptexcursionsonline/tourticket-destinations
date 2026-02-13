@@ -61,7 +61,7 @@ jest.mock('@/components/SearchModel', () => {
 })
 
 describe('DestinationPageClient', () => {
-  const mockDestination: Destination = {
+  const mockDestination = {
     _id: '1',
     name: 'Cairo',
     slug: 'cairo',
@@ -89,9 +89,9 @@ describe('DestinationPageClient', () => {
     metaDescription: 'Explore the wonders of Cairo',
     tags: ['ancient', 'pyramids'],
     tourCount: 50,
-  }
+  } as Destination
 
-  const mockTours: Tour[] = [
+  const mockTours = [
     {
       _id: '1',
       title: 'Pyramids Tour',
@@ -104,6 +104,7 @@ describe('DestinationPageClient', () => {
       originalPrice: 100,
       discountPrice: 80,
       isFeatured: true,
+      destination: '1',
       category: { _id: 'cat1', name: 'Historical', slug: 'historical' },
       tags: ['popular'],
     },
@@ -119,10 +120,11 @@ describe('DestinationPageClient', () => {
       originalPrice: 60,
       discountPrice: 50,
       isFeatured: false,
+      destination: '1',
       category: { _id: 'cat1', name: 'Historical', slug: 'historical' },
       tags: [],
     },
-  ]
+  ] as Tour[]
 
   const mockCategories: Category[] = [
     {
@@ -437,7 +439,7 @@ describe('DestinationPageClient', () => {
         },
       ]
 
-      const props = { ...defaultProps, reviews }
+      const props = { ...defaultProps, reviews } as any
       render(<DestinationPageClient {...props} />)
 
       expect(screen.getByText(/What Travelers Say About Cairo/i)).toBeInTheDocument()

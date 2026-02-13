@@ -292,7 +292,7 @@ HeroSettingsSchema.pre('save', function(next) {
 // Ensure only one settings document is active per tenant (not globally)
 HeroSettingsSchema.pre('save', async function(next) {
   if (this.isActive && this.isNew) {
-    await this.constructor.updateMany(
+    await (this.constructor as any).updateMany(
       { _id: { $ne: this._id }, tenantId: this.tenantId },
       { $set: { isActive: false } }
     );

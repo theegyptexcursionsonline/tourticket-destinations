@@ -35,7 +35,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     const destination = await DestinationModel.findOne({ slug, ...tenantFilter })
       .select('name description image country')
       .sort({ tenantId: tenantId !== 'default' ? -1 : 1 })
-      .lean();
+      .lean() as any;
 
     if (!destination) {
       return {
@@ -81,7 +81,7 @@ async function getPageData(slug: string, tenantId: string) {
       ...tenantFilter 
     })
       .sort({ tenantId: tenantId !== 'default' ? -1 : 1 })
-      .lean();
+      .lean() as any;
   
     if (!destination) {
       return {

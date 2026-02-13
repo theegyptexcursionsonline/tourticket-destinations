@@ -83,7 +83,7 @@ async function fetchCategories(): Promise<Category[]> {
 
     // Filter published categories with tours
     const publishedCategories = categoriesWithCounts.filter(
-      (c) => c.isPublished !== false && (c.tourCount || 0) > 0
+      (c: any) => c.isPublished !== false && (c.tourCount || 0) > 0
     );
 
     // Convert MongoDB documents to plain objects

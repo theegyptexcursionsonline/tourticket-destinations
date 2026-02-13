@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
 
     await dbConnect();
 
-    const user = await User.findById(authResult.user._id).select('cart');
+    const user = await User.findById(authResult.user!._id).select('cart');
 
     if (!user) {
       return NextResponse.json(
@@ -86,7 +86,7 @@ export async function PUT(request: NextRequest) {
     }));
 
     const user = await User.findByIdAndUpdate(
-      authResult.user._id,
+      authResult.user!._id,
       { cart: cartItems },
       { new: true }
     ).select('cart');
@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
     };
 
     // Check if item with same uniqueId exists
-    const user = await User.findById(authResult.user._id);
+    const user = await User.findById(authResult.user!._id);
     if (!user) {
       return NextResponse.json(
         { success: false, error: 'User not found' },
@@ -170,7 +170,7 @@ export async function POST(request: NextRequest) {
     if (existingIndex !== undefined && existingIndex >= 0) {
       // Update existing item
       updatedUser = await User.findByIdAndUpdate(
-        authResult.user._id,
+        authResult.user!._id,
         {
           $set: {
             [`cart.${existingIndex}.quantity`]:
@@ -182,7 +182,7 @@ export async function POST(request: NextRequest) {
     } else {
       // Add new item
       updatedUser = await User.findByIdAndUpdate(
-        authResult.user._id,
+        authResult.user!._id,
         { $push: { cart: cartItem } },
         { new: true }
       ).select('cart');
@@ -227,14 +227,14 @@ export async function DELETE(request: NextRequest) {
     if (clearAll) {
       // Clear entire cart
       user = await User.findByIdAndUpdate(
-        authResult.user._id,
+        authResult.user!._id,
         { cart: [] },
         { new: true }
       ).select('cart');
     } else if (uniqueId) {
       // Remove specific item
       user = await User.findByIdAndUpdate(
-        authResult.user._id,
+        authResult.user!._id,
         { $pull: { cart: { uniqueId } } },
         { new: true }
       ).select('cart');

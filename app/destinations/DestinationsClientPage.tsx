@@ -121,7 +121,7 @@ const DestinationCard = ({ destination }: { destination: DestinationWithCount })
   <Link href={`/destinations/${destination.slug}`} className="group block bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 overflow-hidden">
     <div className="relative h-48">
       <Image
-        src={destination.image}
+        src={destination.image || '/hero2.jpg'}
         alt={`Image of ${destination.name}`}
         fill
         className="object-cover transition-transform duration-300 group-hover:scale-105"
@@ -157,7 +157,7 @@ export default function DestinationsClientPage({ destinations }: DestinationsCli
         'x-algolia-api-key': ALGOLIA_SEARCH_KEY,
       },
     }),
-  });
+  }) as any;
 
   // Filter destinations based on search query
   const filteredDestinations = useMemo(() => {
@@ -212,7 +212,7 @@ export default function DestinationsClientPage({ destinations }: DestinationsCli
     const container = chatContainerRef.current;
     if (!container || !showAIChat) return;
     
-    let scrollTimeout: NodeJS.Timeout;
+    let scrollTimeout: any;
     
     const handleScroll = () => {
       // Don't interfere if this is a programmatic scroll
@@ -366,7 +366,7 @@ export default function DestinationsClientPage({ destinations }: DestinationsCli
         >
           {filteredDestinations.map((dest, index) => (
             <motion.div
-              key={dest._id}
+              key={String(dest._id)}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: index * 0.05 }}
@@ -476,7 +476,7 @@ export default function DestinationsClientPage({ destinations }: DestinationsCli
                   </div>
                 )}
 
-                {messages.map((m) => (
+                {messages.map((m: any) => (
                   <div
                     key={m.id}
                     className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}

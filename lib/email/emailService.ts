@@ -56,7 +56,7 @@ export class EmailService {
 
   private static async generateEmailTemplate(
     type: EmailType,
-    data: Record<string, unknown>,
+    data: any,
     branding?: TenantEmailBranding
   ): Promise<EmailTemplate> {
     try {

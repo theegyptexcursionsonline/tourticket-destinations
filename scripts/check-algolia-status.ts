@@ -31,7 +31,7 @@ async function checkStatus() {
       if (indexExists) {
         const index = indices.find((idx: any) => idx.name === INDEX_NAME);
         console.log('✅ Index exists!');
-        console.log('   Entries:', index.entries);
+        console.log('   Entries:', index?.entries);
       } else {
         console.log('❌ Index does not exist!');
         console.log('   Creating index...');

@@ -78,7 +78,7 @@ const extractEnhancementData = (tour: Tour): TourEnhancement => {
     itinerary: tour.itinerary && tour.itinerary.length > 0 ? tour.itinerary.map(item => ({
       ...item,
       icon: item.icon || 'location' // Ensure icon is properly set
-    })) : [],
+    })) as any : [],
     
     // Use database data first, only fallback if not available
     whatToBring: tour.whatToBring && tour.whatToBring.length > 0 ? tour.whatToBring : [
@@ -984,7 +984,7 @@ export default function TourPageClient({ tour, relatedTours, initialReviews }: T
   const reviewsRef = useRef<HTMLDivElement>(null);
   const faqRef = useRef<HTMLDivElement>(null);
 
-  const inViewOptions = { threshold: 0.1 };
+  const inViewOptions = { threshold: 0.1 } as any;
   const isOverviewInView = useInView(overviewRef, inViewOptions);
   const isItineraryInView = useInView(itineraryRef, inViewOptions);
   const isPracticalInView = useInView(practicalRef, inViewOptions);
@@ -1285,26 +1285,26 @@ export default function TourPageClient({ tour, relatedTours, initialReviews }: T
                 isHeaderVisible={isHeaderVisible}
               />
 
-              <OverviewSection tour={tour} sectionRef={overviewRef} />
+              <OverviewSection tour={tour} sectionRef={overviewRef as any} />
               
               {/* Only show itinerary if we have real data */}
               {enhancement.itinerary && enhancement.itinerary.length > 0 && (
-                <ItinerarySection itinerary={enhancement.itinerary} tour={tour} sectionRef={itineraryRef} />
+                <ItinerarySection itinerary={enhancement.itinerary} tour={tour} sectionRef={itineraryRef as any} />
               )}
               
-              <PracticalInfoSection enhancement={enhancement} sectionRef={practicalRef} />
-              <AccessibilitySection enhancement={enhancement} sectionRef={accessibilityRef} />
-              <PoliciesSection enhancement={enhancement} sectionRef={policiesRef} />
-              <CulturalSection enhancement={enhancement} sectionRef={culturalRef} />
+              <PracticalInfoSection enhancement={enhancement} sectionRef={practicalRef as any} />
+              <AccessibilitySection enhancement={enhancement} sectionRef={accessibilityRef as any} />
+              <PoliciesSection enhancement={enhancement} sectionRef={policiesRef as any} />
+              <CulturalSection enhancement={enhancement} sectionRef={culturalRef as any} />
               
               <ReviewsSection 
                 tour={tour} 
                 reviews={reviews} 
                 onReviewSubmitted={handleReviewSubmitted} 
-                sectionRef={reviewsRef} 
+                sectionRef={reviewsRef as any} 
               />
               
-              <EnhancedFAQ faqs={tour.faq || []} sectionRef={faqRef} />
+              <EnhancedFAQ faqs={tour.faq || []} sectionRef={faqRef as any} />
 
               {tour.meetingPoint && (
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
@@ -1316,7 +1316,7 @@ export default function TourPageClient({ tour, relatedTours, initialReviews }: T
                         <p className="font-semibold text-slate-800">{tour.meetingPoint}</p>
                         <p className="text-sm text-slate-600 mt-1">Check-in 15 minutes before departure time</p>
                         <button
-                          onClick={() => window.open(`https://www.google.com/maps/search/${encodeURIComponent(tour.meetingPoint)}`, '_blank')}
+                          onClick={() => window.open(`https://www.google.com/maps/search/${encodeURIComponent(tour.meetingPoint || '')}`, '_blank')}
                           className="text-red-600 hover:underline text-sm font-medium mt-2 inline-flex items-center gap-1"
                         >
                           <Navigation size={14} />

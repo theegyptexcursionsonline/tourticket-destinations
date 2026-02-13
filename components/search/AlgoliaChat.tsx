@@ -409,11 +409,13 @@ export default function AlgoliaChat({ initialQuery, minimal = false }: AlgoliaCh
               <div className="absolute inset-0 bg-gradient-to-br from-blue-100/20 to-indigo-100/20 rounded-2xl blur-xl"></div>
               <div className="relative bg-white rounded-2xl shadow-xl border border-slate-200/60 overflow-hidden">
                 <Chat
-                  agentId={AGENT_ID}
-                  classNames={{
-                    root: 'min-h-[500px] algolia-chat-enhanced',
-                  }}
-                  placeholder="Type your question here... (e.g., 'Find romantic sunset cruises in Cairo')"
+                  {...{
+                    agentId: AGENT_ID,
+                    classNames: {
+                      root: 'min-h-[500px] algolia-chat-enhanced',
+                    },
+                    placeholder: "Type your question here... (e.g., 'Find romantic sunset cruises in Cairo')",
+                  } as any}
                 />
               </div>
             </div>

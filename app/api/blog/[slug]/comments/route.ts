@@ -99,7 +99,7 @@ export async function POST(
     return NextResponse.json(
       {
         comment: {
-          _id: comment._id.toString(),
+          _id: (comment._id as any).toString(),
           name: comment.name,
           email: comment.email,
           body: comment.body,

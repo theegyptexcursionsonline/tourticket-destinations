@@ -8,7 +8,7 @@ import Link from "next/link";
 // Import reusable components
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { Job as JobType } from "@/types"; // Assuming Job type is defined in types/index.ts
+type JobType = any; // Job type
 
 // Dark Hero Section Component
 function DarkHero() {

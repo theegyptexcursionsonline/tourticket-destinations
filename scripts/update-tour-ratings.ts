@@ -95,7 +95,7 @@ async function updateTourRatings() {
 
       // Update the tour
       tour.rating = rating;
-      tour.reviewCount = reviewCount;
+      (tour as any).reviewCount = reviewCount;
       await tour.save();
 
       updatedCount++;

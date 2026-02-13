@@ -57,6 +57,7 @@ interface BookingDetails {
   tour: BookingTour;
   user: BookingUser;
   date: string;
+  dateString?: string;
   time: string;
   guests: number;
   totalPrice: number;

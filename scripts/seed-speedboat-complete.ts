@@ -1026,7 +1026,7 @@ async function seedSpeedboatData() {
   try {
     // Connect to database
     console.log('📡 Connecting to database...');
-    await mongoose.connect(MONGODB_URI);
+    await mongoose.connect(MONGODB_URI as string);
     console.log('✅ Connected to MongoDB\n');
 
     // Import models

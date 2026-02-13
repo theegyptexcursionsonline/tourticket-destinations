@@ -16,7 +16,7 @@ const ComingSoonModal: FC<ComingSoonModalProps> = ({ isOpen, onClose, destinatio
     visible: { opacity: 1 },
   };
 
-  const modalVariants = {
+  const modalVariants: any = {
     hidden: { scale: 0.9, opacity: 0 },
     visible: { scale: 1, opacity: 1, transition: { type: 'spring', stiffness: 300, damping: 25 } },
   };

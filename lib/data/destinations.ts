@@ -1,6 +1,6 @@
 import { Destination } from '@/types';
 
-export const destinations: Destination[] = [
+export const destinations = [
   {
     id: 'amsterdam',
     name: 'Amsterdam',
@@ -349,7 +349,7 @@ export const destinations: Destination[] = [
     currency: 'SEK',
     timezone: 'CET'
   }
-];
+] as Destination[];
 
 export const getDestinationById = (id: string): Destination | undefined => {
   return destinations.find(dest => dest.id === id || dest.slug === id);
@@ -364,11 +364,11 @@ export const getAllDestinations = (): Destination[] => {
 };
 
 export const getDestinationsByCountry = (country: string): Destination[] => {
-  return destinations.filter(dest => dest.country.toLowerCase() === country.toLowerCase());
+  return destinations.filter(dest => dest.country?.toLowerCase() === country.toLowerCase());
 };
 
 export const getEuropeanDestinations = (): Destination[] => {
   return destinations.filter(dest => 
-    ['Netherlands', 'Germany', 'Denmark', 'Sweden'].includes(dest.country)
+    ['Netherlands', 'Germany', 'Denmark', 'Sweden'].includes(dest.country as string)
   );
 };

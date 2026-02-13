@@ -5,7 +5,7 @@ import { Rocket, Mail, Bell, Sparkles, Clock, MapPin } from 'lucide-react';
 import { useTenant } from '@/contexts/TenantContext';
 
 export default function ComingSoonPage() {
-  const { config } = useTenant();
+  const { tenant: config } = useTenant();
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);

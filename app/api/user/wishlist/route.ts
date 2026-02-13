@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
 
     await dbConnect();
 
-    const user = await User.findById(authResult.user._id)
+    const user = await User.findById(authResult.user!._id)
       .populate({
         path: 'wishlist',
         model: Tour,
@@ -78,7 +78,7 @@ export async function PUT(request: NextRequest) {
     const tourIds = wishlist.map((item: any) => item._id || item.id || item);
 
     const user = await User.findByIdAndUpdate(
-      authResult.user._id,
+      authResult.user!._id,
       { wishlist: tourIds },
       { new: true }
     ).populate({
@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
     await dbConnect();
 
     const user = await User.findByIdAndUpdate(
-      authResult.user._id,
+      authResult.user!._id,
       { $addToSet: { wishlist: tourId } },
       { new: true }
     ).populate({
@@ -191,7 +191,7 @@ export async function DELETE(request: NextRequest) {
     await dbConnect();
 
     const user = await User.findByIdAndUpdate(
-      authResult.user._id,
+      authResult.user!._id,
       { $pull: { wishlist: tourId } },
       { new: true }
     ).populate({

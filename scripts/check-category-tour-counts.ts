@@ -22,7 +22,7 @@ async function checkCategoryTourCounts() {
     console.log(`Published tours: ${publishedTours.length}\n`);
 
     // Check tours with categories
-    const toursWithCategories = allTours.filter(tour => tour.category && tour.category.length > 0);
+    const toursWithCategories = allTours.filter(tour => tour.category && (tour.category as any).length > 0);
     console.log(`Tours with categories assigned: ${toursWithCategories.length}`);
     console.log(`Tours without categories: ${allTours.length - toursWithCategories.length}\n`);
 

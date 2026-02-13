@@ -5,7 +5,7 @@ import { Wrench, Clock, RefreshCw, Mail } from 'lucide-react';
 import { useTenant } from '@/contexts/TenantContext';
 
 export default function MaintenancePage() {
-  const { config } = useTenant();
+  const { tenant: config } = useTenant();
   
   const brandName = config?.name || 'Egypt Excursions Online';
   const primaryColor = config?.branding?.primaryColor || '#E63946';

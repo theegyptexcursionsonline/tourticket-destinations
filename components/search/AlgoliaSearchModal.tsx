@@ -10,7 +10,7 @@ interface AlgoliaSearchModalProps {
   onClose: () => void;
 }
 
-function useOnClickOutside(ref: React.RefObject<HTMLElement>, handler: () => void) {
+function useOnClickOutside(ref: { current: HTMLElement | null }, handler: () => void) {
   useEffect(() => {
     const listener = (event: MouseEvent | TouchEvent) => {
       if (!ref.current || ref.current.contains(event.target as Node)) return;

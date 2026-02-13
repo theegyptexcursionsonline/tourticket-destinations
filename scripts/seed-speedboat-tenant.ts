@@ -381,13 +381,13 @@ async function seedSpeedboatTenant() {
     const tenant = await Tenant.findOne({ tenantId: 'hurghada-speedboat' }).lean();
     
     console.log('📊 Tenant Details:');
-    console.log('   ID:', tenant?.tenantId);
-    console.log('   Name:', tenant?.name);
-    console.log('   Domain:', tenant?.domain);
-    console.log('   Active:', tenant?.isActive);
-    console.log('   Primary Color:', tenant?.branding?.primaryColor);
-    console.log('   Created:', tenant?.createdAt);
-    console.log('   Updated:', tenant?.updatedAt);
+    console.log('   ID:', (tenant as any)?.tenantId);
+    console.log('   Name:', (tenant as any)?.name);
+    console.log('   Domain:', (tenant as any)?.domain);
+    console.log('   Active:', (tenant as any)?.isActive);
+    console.log('   Primary Color:', (tenant as any)?.branding?.primaryColor);
+    console.log('   Created:', (tenant as any)?.createdAt);
+    console.log('   Updated:', (tenant as any)?.updatedAt);
     console.log('');
 
     // Show domain mapping instructions

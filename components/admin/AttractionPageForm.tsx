@@ -278,7 +278,7 @@ export default function AttractionPageForm({ pageId }: AttractionPageFormProps) 
       
       // If pageType is 'attraction' or categoryId is empty, remove categoryId field entirely
       if (cleanedData.pageType === 'attraction' || !cleanedData.categoryId.trim()) {
-        delete cleanedData.categoryId;
+        delete (cleanedData as any).categoryId;
       }
       
       // FIX: Ensure arrays are properly formatted WITHOUT aggressive filtering

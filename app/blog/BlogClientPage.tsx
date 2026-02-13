@@ -26,7 +26,7 @@ const BlogCard = ({ blog }: { blog: IBlog }) => (
       {/* Category Badge */}
       <div className="absolute top-4 left-4">
         <span className="px-3 py-1.5 bg-indigo-500/90 backdrop-blur-sm rounded-full text-white text-xs font-semibold">
-          {blog.categoryDisplay}
+          {(blog as any).categoryDisplay}
         </span>
       </div>
       
@@ -57,7 +57,7 @@ const BlogCard = ({ blog }: { blog: IBlog }) => (
           </div>
           <div className="flex items-center gap-1">
             <Clock className="h-3 w-3" />
-            <span>{blog.readTimeText}</span>
+            <span>{(blog as any).readTimeText}</span>
           </div>
         </div>
         
@@ -76,7 +76,7 @@ const BlogCard = ({ blog }: { blog: IBlog }) => (
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1 text-xs text-slate-500">
           <Calendar className="h-3 w-3" />
-          <span>{blog.publishedDate}</span>
+          <span>{(blog as any).publishedDate}</span>
         </div>
         
         {blog.tags && blog.tags.length > 0 && (
@@ -109,7 +109,7 @@ const FeaturedBlogCard = ({ blog }: { blog: IBlog }) => (
           Featured
         </span>
         <span className="px-3 py-1 bg-indigo-500/80 backdrop-blur-sm rounded-full">
-          {blog.categoryDisplay}
+          {(blog as any).categoryDisplay}
         </span>
       </div>
       
@@ -128,11 +128,11 @@ const FeaturedBlogCard = ({ blog }: { blog: IBlog }) => (
         </div>
         <div className="flex items-center gap-1">
           <Clock className="h-4 w-4" />
-          <span>{blog.readTimeText}</span>
+          <span>{(blog as any).readTimeText}</span>
         </div>
         <div className="flex items-center gap-1">
           <Calendar className="h-4 w-4" />
-          <span>{blog.publishedDate}</span>
+          <span>{(blog as any).publishedDate}</span>
         </div>
       </div>
     </div>
@@ -198,7 +198,7 @@ export default function BlogClientPage({ blogs, categories, featuredPosts }: Blo
             <h2 className="text-3xl font-bold text-slate-900 mb-8 text-center">Featured Stories</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {featuredPosts.map((post) => (
-                <FeaturedBlogCard key={post._id} blog={post} />
+                <FeaturedBlogCard key={post._id as any} blog={post} />
               ))}
             </div>
           </div>
@@ -285,7 +285,7 @@ export default function BlogClientPage({ blogs, categories, featuredPosts }: Blo
               {filteredBlogs.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   {filteredBlogs.map((blog) => (
-                    <BlogCard key={blog._id} blog={blog} />
+                    <BlogCard key={blog._id as any} blog={blog} />
                   ))}
                 </div>
               ) : (

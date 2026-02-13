@@ -60,8 +60,7 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
         },
         {
           userAgent: 'Googlebot-Image',
-          allow: '/images/',
-          allow: '/uploads/',
+          allow: ['/images/', '/uploads/'],
           disallow: '/admin/',
         },
       ],

@@ -18,7 +18,7 @@ async function migrateCategoriesToArray() {
     const singleCategoryTours = allTours.filter(tour =>
       tour.category &&
       !Array.isArray(tour.category) &&
-      mongoose.Types.ObjectId.isValid(tour.category)
+      mongoose.Types.ObjectId.isValid(tour.category as any)
     );
 
     const arrayCategoryTours = allTours.filter(tour =>

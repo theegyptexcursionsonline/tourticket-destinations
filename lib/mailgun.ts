@@ -141,7 +141,7 @@ function generateContactFormHTML(data: ContactFormData): string {
       <p><strong>Email:</strong> ${data.fromEmail}</p>
       <p><strong>Message:</strong></p>
       <div style="background: #f5f5f5; padding: 15px; border-radius: 5px;">
-        ${data.message.replace(/\n/g, '<br>')}
+        ${data.message?.replace(/\n/g, '<br>') || ''}
       </div>
     </div>
   `;

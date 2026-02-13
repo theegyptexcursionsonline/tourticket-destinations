@@ -697,6 +697,7 @@ const ThankYouPage = ({
   discount?: number;
 }) => {
   const { formatPrice } = useSettings();
+  const { tenant } = useTenant();
   const router = useRouter();
   const [isDownloading, setIsDownloading] = useState(false);
   const [showConfetti, setShowConfetti] = useState(true);

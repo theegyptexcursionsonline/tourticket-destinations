@@ -31,7 +31,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     const metaCatQuery = ownCatCount > 0 ? { slug, tenantId } : { slug };
     const category = await CategoryModel.findOne(metaCatQuery)
       .select('name description heroImage metaTitle metaDescription keywords')
-      .lean();
+      .lean() as any;
 
     if (!category) {
       return {
@@ -69,7 +69,7 @@ async function getPageData(slug: string, tenantId: string) {
     ? { slug, tenantId }
     : { slug };
 
-  const category = await CategoryModel.findOne(categoryQuery).lean();
+  const category = await CategoryModel.findOne(categoryQuery).lean() as any;
   if (!category) {
     return { category: null, categoryTours: [] };
   }

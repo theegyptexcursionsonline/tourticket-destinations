@@ -121,10 +121,11 @@ const ReviewList: React.FC<ReviewListProps> = ({ reviews, onReviewUpdated, onRev
   };
 
   const isReviewOwner = (review: Review) => {
+    const reviewUser = review.user as any;
     return (
       user &&
-      review.user &&
-      (review.user._id === (user.id || user._id) || review.user.id === (user.id || user._id))
+      reviewUser &&
+      (reviewUser._id === (user.id || (user as any)._id) || reviewUser.id === (user.id || (user as any)._id))
     );
   };
 
@@ -149,11 +150,11 @@ const ReviewList: React.FC<ReviewListProps> = ({ reviews, onReviewUpdated, onRev
           >
             <div className="flex items-start gap-4">
               <div className="flex-shrink-0">
-                {review.user?.picture ? (
+                {(review.user as any)?.picture ? (
                   <img
                     className="h-10 w-10 rounded-full object-cover ring-1 ring-gray-200"
-                    src={review.user.picture}
-                    alt={review.user.name || 'Reviewer avatar'}
+                    src={(review.user as any).picture}
+                    alt={(review.user as any).name || 'Reviewer avatar'}
                   />
                 ) : (
                   <div className="h-10 w-10 rounded-full bg-white flex items-center justify-center ring-1 ring-gray-200">
@@ -166,10 +167,10 @@ const ReviewList: React.FC<ReviewListProps> = ({ reviews, onReviewUpdated, onRev
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
                     <p id={`review-title-${review._id}`} className="text-base font-semibold text-gray-900">
-                      {review.user?.name || 'Anonymous'}
+                      {(review.user as any)?.name || 'Anonymous'}
                     </p>
                     <p className="text-xs text-gray-500 mt-0.5">
-                      {formatDate(review.createdAt)}
+                      {formatDate(review.createdAt as string)}
                     </p>
                   </div>
 

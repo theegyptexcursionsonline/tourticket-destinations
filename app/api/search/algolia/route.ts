@@ -133,7 +133,7 @@ export async function GET(request: Request) {
       }]
     });
 
-    const searchResults = results.results[0];
+    const searchResults = results.results[0] as any;
 
     // Transform hits to match expected format
     const transformedHits = searchResults.hits.map((hit: any) => ({

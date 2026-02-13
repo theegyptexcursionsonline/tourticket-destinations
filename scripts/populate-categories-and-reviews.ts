@@ -164,7 +164,7 @@ async function populateCategoriesAndReviews() {
         // Get tours that don't have this category yet
         const availableTours = allTours.filter(tour => {
           const categories = Array.isArray(tour.category) ? tour.category : [tour.category];
-          return !categories.some(cat => cat.toString() === category._id.toString());
+          return !categories.some(cat => cat.toString() === (category as any)._id.toString());
         });
 
         // Randomly select tours to assign

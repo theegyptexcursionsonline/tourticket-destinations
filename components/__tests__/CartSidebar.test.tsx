@@ -46,33 +46,33 @@ describe('CartSidebar', () => {
   }
 
   it('should render when open', () => {
-    render(<CartSidebar {...mockProps} />)
+    render(<CartSidebar {...mockProps as any} />)
 
     expect(screen.getByText(/cart|shopping/i)).toBeInTheDocument()
   })
 
   it('should not render when closed', () => {
-    render(<CartSidebar {...mockProps} isOpen={false} />)
+    render(<CartSidebar {...{...mockProps, isOpen: false} as any} />)
 
     expect(screen.queryByText(/cart|shopping/i)).not.toBeInTheDocument()
   })
 
   it('should display cart items', () => {
-    render(<CartSidebar {...mockProps} />)
+    render(<CartSidebar {...mockProps as any} />)
 
     expect(screen.getByText('Pyramids Tour')).toBeInTheDocument()
     expect(screen.getByText(/\$100\.00/)).toBeInTheDocument()
   })
 
   it('should display total price', () => {
-    render(<CartSidebar {...mockProps} />)
+    render(<CartSidebar {...mockProps as any} />)
 
     expect(screen.getByText(/\$200\.00/)).toBeInTheDocument()
   })
 
   it('should call onClose when close button clicked', async () => {
     const user = userEvent.setup()
-    render(<CartSidebar {...mockProps} />)
+    render(<CartSidebar {...mockProps as any} />)
 
     const closeButton = screen.getByLabelText(/close/i) || screen.getByRole('button', { name: /close/i })
     await user.click(closeButton)
@@ -81,13 +81,13 @@ describe('CartSidebar', () => {
   })
 
   it('should display item quantity', () => {
-    render(<CartSidebar {...mockProps} />)
+    render(<CartSidebar {...mockProps as any} />)
 
     expect(screen.getByText('2') || screen.getByDisplayValue('2')).toBeInTheDocument()
   })
 
   it('should have checkout button', () => {
-    render(<CartSidebar {...mockProps} />)
+    render(<CartSidebar {...mockProps as any} />)
 
     expect(screen.getByRole('button', { name: /checkout|proceed/i })).toBeInTheDocument()
   })
@@ -107,13 +107,13 @@ describe('CartSidebar', () => {
       closeCart: jest.fn(),
     })
 
-    render(<CartSidebar {...mockProps} />)
+    render(<CartSidebar {...mockProps as any} />)
 
     expect(screen.getByText(/empty|no items|cart is empty/i)).toBeInTheDocument()
   })
 
   it('should have remove button for each item', () => {
-    render(<CartSidebar {...mockProps} />)
+    render(<CartSidebar {...mockProps as any} />)
 
     const removeButtons = screen.getAllByRole('button').filter(btn =>
       btn.getAttribute('aria-label')?.includes('remove') ||
@@ -124,9 +124,9 @@ describe('CartSidebar', () => {
   })
 
   it('should display item image', () => {
-    render(<CartSidebar {...mockProps} />)
+    render(<CartSidebar {...mockProps as any} />)
 
-    const image = screen.getByAlt(/pyramids tour/i)
+    const image = (screen as any).getByAlt(/pyramids tour/i)
     expect(image).toBeInTheDocument()
   })
 })

@@ -36,14 +36,14 @@ export async function GET(
     if (page.categoryId) {
       try {
         const category = await Category.findById(page.categoryId).select('name slug').lean();
-        populatedPage.categoryId = category;
+        populatedPage.categoryId = category as any;
       } catch (error) {
         console.error('Error populating category:', error);
-        populatedPage.categoryId = null;
+        populatedPage.categoryId = null as any;
       }
     }
 
-    let tours = [];
+    let tours: any[] = [];
     let totalTours = 0;
 
     if (populatedPage.pageType === 'category' && populatedPage.categoryId) {
@@ -55,8 +55,8 @@ export async function GET(
           { isPublished: true },
           {
             $or: [
-              { interests: page._id },
-              { category: populatedPage.categoryId._id || populatedPage.categoryId }
+              { interests: (page as any)._id },
+              { category: (populatedPage.categoryId as any)._id || populatedPage.categoryId }
             ]
           }
         ]
@@ -79,8 +79,8 @@ export async function GET(
           { isPublished: true },
           {
             $or: [
-              { interests: page._id },
-              { category: populatedPage.categoryId._id || populatedPage.categoryId }
+              { interests: (page as any)._id },
+              { category: (populatedPage.categoryId as any)._id || populatedPage.categoryId }
             ]
           }
         ]
@@ -192,8 +192,8 @@ export async function GET(
 
     // Fetch reviews for the tours
     const tourIds = tours.map(tour => tour._id);
-    let reviews = [];
-    let reviewStats = [];
+    let reviews: any[] = [];
+    let reviewStats: any[] = [];
 
     if (tourIds.length > 0) {
       reviews = await Review.find({
@@ -230,14 +230,14 @@ export async function GET(
     }, {});
 
     // Update tours with review data
-    tours = tours.map(tour => ({
+    tours = (tours as any[]).map(tour => ({
       ...tour,
       reviewCount: reviewStatsMap[tour._id.toString()]?.count || 0,
       rating: reviewStatsMap[tour._id.toString()]?.avgRating || tour.rating || 4.5
     }));
 
     // Transform reviews to include user names
-    const transformedReviews = reviews.map(review => ({
+    const transformedReviews = (reviews as any[]).map(review => ({
       ...review,
       userName: review.user 
         ? `${review.user.firstName} ${review.user.lastName}`.trim()

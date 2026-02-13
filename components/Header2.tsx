@@ -95,7 +95,7 @@ const SEARCH_SUGGESTIONS = [
   'Cultural experiences'
 ];
 
-function useOnClickOutside(ref: React.RefObject<HTMLElement>, handler: (event: MouseEvent | TouchEvent) => void) {
+function useOnClickOutside(ref: { current: HTMLElement | null }, handler: (event: MouseEvent | TouchEvent) => void) {
   useEffect(() => {
     const listener = (event: MouseEvent | TouchEvent) => {
       if (!ref.current || ref.current.contains(event.target as Node)) return;
@@ -507,7 +507,7 @@ const SearchModal_REMOVED: FC<{ onClose: () => void; onSearch: (term: string) =>
             <h3 className="text-slate-500 font-bold text-base tracking-wider uppercase mb-4">Searching...</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {[...Array(3)].map((_, i) => (
-                <TourResultSkeleton key={i} />
+                <div key={i} className="animate-pulse bg-slate-200 rounded-lg h-48" />
               ))}
             </div>
           </div>
@@ -992,7 +992,7 @@ export default function Header2({ startSolid = false }: { startSolid?: boolean }
       />
 
       {/* Auth modal */}
-      <AuthModal isOpen={isAuthModalOpen} onClose={handleAuthModalClose} initialState={authModalState} />
+      <AuthModal isOpen={isAuthModalOpen} onClose={handleAuthModalClose} initialMode={authModalState} />
     </>
   );
 }

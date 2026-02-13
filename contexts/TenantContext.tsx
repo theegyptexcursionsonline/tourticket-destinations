@@ -762,6 +762,5 @@ export { DEFAULT_TENANT_CONFIG };
 export type {
   TenantContextType,
   TenantProviderProps,
-  TenantThemeConfig,
 };
 

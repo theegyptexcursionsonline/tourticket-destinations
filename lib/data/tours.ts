@@ -1,6 +1,6 @@
 import { Tour } from '@/types';
 
-export const tours: Tour[] = [
+export const tours = [
   {
     id: 'new-york-pizza-lovers-canal-cruise',
     title: 'New York Pizza by LOVERS Canal Cruise in Amsterdam',
@@ -549,22 +549,22 @@ export const tours: Tour[] = [
     categoryIds: ['walking-tours', 'historical'],
     featured: false
   }
-];
+] as any[];
 
 export const getTourById = (id: string): Tour | undefined => {
-  return tours.find(tour => tour.id === id || tour.slug === id);
+  return tours.find((tour: any) => tour.id === id || tour.slug === id);
 };
 
 export const getToursByDestination = (destinationId: string): Tour[] => {
-  return tours.filter(tour => tour.destinationId === destinationId);
+  return tours.filter((tour: any) => tour.destinationId === destinationId);
 };
 
 export const getToursByCategory = (categoryId: string): Tour[] => {
-  return tours.filter(tour => tour.categoryIds.includes(categoryId));
+  return tours.filter((tour: any) => tour.categoryIds?.includes(categoryId));
 };
 
 export const getFeaturedTours = (): Tour[] => {
-  return tours.filter(tour => tour.featured);
+  return tours.filter((tour: any) => tour.featured);
 };
 
 export const searchTours = (query: string): Tour[] => {
@@ -572,6 +572,6 @@ export const searchTours = (query: string): Tour[] => {
   return tours.filter(tour =>
     tour.title.toLowerCase().includes(searchTerm) ||
     tour.description?.toLowerCase().includes(searchTerm) ||
-    tour.tags?.some(tag => tag.toLowerCase().includes(searchTerm))
+    tour.tags?.some((tag: any) => tag.toLowerCase().includes(searchTerm))
   );
 };

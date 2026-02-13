@@ -269,7 +269,7 @@ const BookingsPage = () => {
   }, [tenants]);
 
   const getBrandName = (booking: Booking): string => {
-    const tid = booking.tenantId || booking.tour?.tenantId;
+    const tid = booking.tenantId || (booking.tour as any)?.tenantId;
     if (!tid) return 'Default';
     return tenantNameMap[tid] || tid;
   };

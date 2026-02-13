@@ -388,7 +388,7 @@ const ReviewsSection = ({ reviews }: { reviews: Review[] }) => {
               </p>
               
               <div className="text-xs text-slate-500">
-                {new Date(review.createdAt || review.date).toLocaleDateString()}
+                {new Date(review.createdAt || review.date || '').toLocaleDateString()}
               </div>
             </motion.div>
           ))}

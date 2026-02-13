@@ -1002,7 +1002,7 @@ function OfferModal({
                                   ? 'All options' 
                                   : selection?.selectedOptions.length === 0 
                                     ? 'No options selected' 
-                                    : `${selection?.selectedOptions.length} option${selection?.selectedOptions.length > 1 ? 's' : ''} selected`})
+                                    : `${selection?.selectedOptions?.length} option${(selection?.selectedOptions?.length ?? 0) > 1 ? 's' : ''} selected`})
                               </span>
                             )}
                           </div>

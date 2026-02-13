@@ -19,7 +19,7 @@ const CategoryCard = ({ category }: { category: CategoryWithCount }) => (
   <Link href={`/interests/${category.slug}`} className="group block bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 overflow-hidden">
     <div className="relative h-48">
       <Image
-        src={category.heroImage || category.image || '/hero2.jpg'}
+        src={category.heroImage || (category as any).image || '/hero2.jpg'}
         alt={`Image of ${category.name}`}
         fill
         className="object-cover transition-transform duration-300 group-hover:scale-105"
@@ -119,7 +119,7 @@ export default function InterestsClientPage({ categories }: InterestsClientPageP
         >
           {filteredCategories.map((cat, index) => (
             <motion.div
-              key={cat._id}
+              key={String(cat._id)}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: index * 0.05 }}

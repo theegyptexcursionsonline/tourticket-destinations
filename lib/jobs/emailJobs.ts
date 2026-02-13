@@ -60,12 +60,12 @@ export async function sendTripReminders() {
         const companyName = tenantConfig?.name || 'Excursions Online';
 
         await EmailService.sendTripReminder({
-          customerName: `${booking.user.firstName} ${booking.user.lastName}`,
-          customerEmail: booking.user.email,
-          tourTitle: booking.tour.title,
+          customerName: `${(booking.user as any).firstName} ${(booking.user as any).lastName}`,
+          customerEmail: (booking.user as any).email,
+          tourTitle: (booking.tour as any).title,
           bookingDate: formatBookingDate(booking.date),
           bookingTime: booking.time,
-          meetingPoint: booking.tour.meetingPoint || "Meeting point will be provided via WhatsApp",
+          meetingPoint: (booking.tour as any).meetingPoint || "Meeting point will be provided via WhatsApp",
           contactNumber: tenantConfig?.contact?.phone || "+20 11 42255624",
           weatherInfo: "Sunny, 28°C - Perfect weather for sightseeing!",
           whatToBring: [
@@ -76,7 +76,7 @@ export async function sendTripReminders() {
             "Light jacket for evening"
           ],
           importantNotes: `Please arrive 15 minutes early at the meeting point. Our guide will be wearing a ${companyName} badge.`,
-          bookingId: booking._id.toString(),
+          bookingId: (booking._id as any).toString(),
           tenantBranding,
         });
 
@@ -126,11 +126,11 @@ export async function sendTripCompletionEmails() {
         const tenantBranding = getTenantEmailBranding(tenantConfig as any, baseUrl);
 
         await EmailService.sendTripCompletion({
-          customerName: `${booking.user.firstName} ${booking.user.lastName}`,
-          customerEmail: booking.user.email,
-          tourTitle: booking.tour.title,
+          customerName: `${(booking.user as any).firstName} ${(booking.user as any).lastName}`,
+          customerEmail: (booking.user as any).email,
+          tourTitle: (booking.tour as any).title,
           bookingDate: formatBookingDate(booking.date),
-          reviewLink: `${baseUrl}/tour/${booking.tour.slug}?review=true`,
+          reviewLink: `${baseUrl}/tour/${(booking.tour as any).slug}?review=true`,
           photoSharingLink: `${baseUrl}/share-photos/${booking._id}`,
           recommendedTours: [
             {

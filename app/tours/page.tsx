@@ -60,7 +60,7 @@ export default async function ToursIndexPage() {
     <>
       <Header startSolid />
       <main className="min-h-screen bg-slate-50 pt-20">
-        <ToursClientPage tours={tours} />
+        <ToursClientPage tours={tours as any} />
       </main>
       <Footer />
       {/* AI Search Widget */}

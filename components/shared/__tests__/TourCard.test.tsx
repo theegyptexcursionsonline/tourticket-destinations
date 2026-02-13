@@ -58,7 +58,7 @@ describe('TourCard', () => {
   it('should render tour image', () => {
     render(<TourCard tour={mockTour as Tour} />)
 
-    const image = screen.getByAlt('Pyramids Tour')
+    const image = (screen as any).getByAlt('Pyramids Tour')
     expect(image).toBeInTheDocument()
     expect(image).toHaveAttribute('src', expect.stringContaining('pyramid.jpg'))
   })

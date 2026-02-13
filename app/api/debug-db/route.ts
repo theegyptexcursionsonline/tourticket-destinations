@@ -25,7 +25,7 @@ export async function GET() {
     const db = conn.db;
     const dbName = db?.databaseName ?? null;
 
-    const collections = Array.isArray(await db.listCollections().toArray())
+    const collections = db && Array.isArray(await db.listCollections().toArray())
       ? (await db.listCollections().toArray()).map((c: any) => c.name)
       : [];
 

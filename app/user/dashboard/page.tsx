@@ -54,7 +54,7 @@ const StatCard = ({ title, value, icon: Icon }: { title: string; value: string |
 const BookingCard = ({ booking }: { booking: PopulatedBooking & { dateString?: string } }) => {
   // Prefer dateString (YYYY-MM-DD) for timezone-safe display, fall back to date
   const dateSource = booking.dateString || booking.date;
-  const bookingDate = parseLocalDate(dateSource) || new Date(booking.date);
+  const bookingDate = parseLocalDate(dateSource) || new Date(booking.date as any);
   const isPast = bookingDate < new Date();
 
   return (
@@ -98,17 +98,17 @@ const BookingCard = ({ booking }: { booking: PopulatedBooking & { dateString?: s
           <div className="space-y-2 mb-4 flex-grow">
             <div className="flex items-center gap-2 text-slate-600 text-sm">
               <Calendar size={14} className="flex-shrink-0" />
-              <span className="font-medium">{formatDisplayDate(booking.date)}</span>
+              <span className="font-medium">{formatDisplayDate(booking.date as any)}</span>
             </div>
             
             <div className="flex items-center gap-2 text-slate-600 text-sm">
               <Clock size={14} className="flex-shrink-0" />
-              <span>{booking.time}</span>
+              <span>{(booking as any).time}</span>
             </div>
             
             <div className="flex items-center gap-2 text-slate-600 text-sm">
               <Users size={14} className="flex-shrink-0" />
-              <span>{booking.guests} guest{booking.guests > 1 ? 's' : ''}</span>
+              <span>{(booking as any).guests} guest{(booking as any).guests > 1 ? 's' : ''}</span>
             </div>
           </div>
 
@@ -202,7 +202,7 @@ const DashboardContent = () => {
     now.setHours(0, 0, 0, 0);
     return bookings.reduce(
       (acc, booking) => {
-        const bdate = new Date(booking.date);
+        const bdate = new Date(booking.date as any);
         if (bdate >= now) {
           acc.upcomingBookings.push(booking);
         } else {

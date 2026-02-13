@@ -204,11 +204,11 @@ export async function GET(request: Request) {
         const sortBy = searchParams.get('sortBy');
         if (tours.length > 0 && sortBy && searchQuery) {
             if (sortBy === 'price-asc') {
-                tours.sort((a, b) => (a.discountPrice || a.price) - (b.discountPrice || b.price));
+                tours.sort((a, b) => (a.discountPrice || a.price || 0) - (b.discountPrice || b.price || 0));
             } else if (sortBy === 'price-desc') {
-                tours.sort((a, b) => (b.discountPrice || b.price) - (a.discountPrice || a.price));
+                tours.sort((a, b) => (b.discountPrice || b.price || 0) - (a.discountPrice || a.price || 0));
             } else if (sortBy === 'rating') {
-                tours.sort((a, b) => b.rating - a.rating);
+                tours.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
             }
         }
 

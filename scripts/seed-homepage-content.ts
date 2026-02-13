@@ -555,6 +555,7 @@ const TENANT_HOMEPAGE_CONTENT: Record<string, {
     reviewsContent: {
       title: 'What Our Guests Say',
       subtitle: 'Real stories from travellers who explored Aswan with us.',
+      showElfsightWidget: false,
       reviews: [
         { name: 'Thomas K.', country: 'Germany', review: 'The Abu Simbel sunrise tour was absolutely magical. Our guide was incredibly knowledgeable about the history.', rating: 5, datePublished: '2025-09-12' },
         { name: 'Marie L.', country: 'France', review: 'The Nubian village visit was the highlight of our Egypt trip. Such warm hospitality and beautiful colours everywhere!', rating: 5, datePublished: '2025-08-20' },
@@ -563,12 +564,13 @@ const TENANT_HOMEPAGE_CONTENT: Record<string, {
     },
     faqContent: {
       title: 'Frequently Asked Questions',
-      subtitle: 'Everything you need to know about Aswan tours.',
       faqs: [
         { question: 'How early does the Abu Simbel trip depart?', answer: 'The Abu Simbel day trip departs around 3:00 AM to arrive for the stunning sunrise. The drive is approximately 3 hours each way.' },
         { question: 'What should I wear to visit temples?', answer: 'Comfortable shoes, sun hat, and light clothing. Temples have no dress code but modest clothing is respectful. Bring sunscreen and water.' },
         { question: 'Are felucca rides safe?', answer: 'Absolutely! Feluccas have been sailing the Nile for centuries. Our captains are experienced and life jackets are provided.' },
       ],
+      ctaText: 'VIEW ALL FAQS',
+      ctaLink: '/faqs',
     },
     promoContent: {
       image: 'https://images.unsplash.com/photo-1568322445389-f64ac2515020?w=800',
@@ -600,6 +602,7 @@ const TENANT_HOMEPAGE_CONTENT: Record<string, {
     reviewsContent: {
       title: 'What Our Guests Say',
       subtitle: 'Real stories from marine adventurers.',
+      showElfsightWidget: false,
       reviews: [
         { name: 'Sophie M.', country: 'Netherlands', review: 'We swam with a dugong at Abu Dabbab! A once-in-a-lifetime experience. The guides were excellent at spotting wildlife.', rating: 5, datePublished: '2025-10-05' },
         { name: 'Klaus H.', country: 'Germany', review: 'Sataya Reef was incredible — pods of spinner dolphins all around us. The most beautiful reef I have ever seen.', rating: 5, datePublished: '2025-09-18' },
@@ -608,12 +611,13 @@ const TENANT_HOMEPAGE_CONTENT: Record<string, {
     },
     faqContent: {
       title: 'Frequently Asked Questions',
-      subtitle: 'Everything you need to know about Marsa Alam marine tours.',
       faqs: [
         { question: 'When is the best time to see dugongs?', answer: 'Dugongs at Abu Dabbab can be seen year-round, but sightings are most frequent in the morning. We recommend early departures for the best chance.' },
         { question: 'Do I need diving experience?', answer: 'Not at all! Most of our popular tours are snorkeling-based. The reefs are shallow enough to enjoy from the surface.' },
         { question: 'How far are the reefs from shore?', answer: 'Many of our best sites like Abu Dabbab are accessible from the beach. Offshore reefs like Sataya and Elphinstone are reached by a comfortable boat ride.' },
       ],
+      ctaText: 'VIEW ALL FAQS',
+      ctaLink: '/faqs',
     },
     promoContent: {
       image: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800',
@@ -645,6 +649,7 @@ const TENANT_HOMEPAGE_CONTENT: Record<string, {
     reviewsContent: {
       title: 'What Our Guests Say',
       subtitle: 'Real stories from Dahab adventurers.',
+      showElfsightWidget: false,
       reviews: [
         { name: 'Jake P.', country: 'USA', review: 'Snorkeling at the Blue Hole was surreal — staring into that endless blue abyss. The reef around the rim is gorgeous too.', rating: 5, datePublished: '2025-10-10' },
         { name: 'Anna S.', country: 'Sweden', review: 'Watching sunrise from the top of Mount Sinai was deeply moving. The night trek was challenging but so worth it.', rating: 5, datePublished: '2025-09-25' },
@@ -653,12 +658,13 @@ const TENANT_HOMEPAGE_CONTENT: Record<string, {
     },
     faqContent: {
       title: 'Frequently Asked Questions',
-      subtitle: 'Everything you need to know about Dahab adventures.',
       faqs: [
         { question: 'Is the Blue Hole safe for snorkeling?', answer: 'Absolutely! The rim of the Blue Hole is only 6-8 metres deep with beautiful coral — perfect for snorkeling. The deep diving requires advanced certification.' },
         { question: 'How difficult is the Mount Sinai trek?', answer: 'It is a moderate trek suitable for most fitness levels. The "camel path" is the easier route (2-3 hours). Warm clothing is essential as the summit is cold even in summer.' },
         { question: 'What is the vibe in Dahab?', answer: 'Dahab is famously laid-back and bohemian. Think beachfront cafes, yoga retreats, and a friendly international community. Very different from resort towns like Sharm.' },
       ],
+      ctaText: 'VIEW ALL FAQS',
+      ctaLink: '/faqs',
     },
     promoContent: {
       image: 'https://images.unsplash.com/photo-1682407186023-12c70a4a35e0?w=800',

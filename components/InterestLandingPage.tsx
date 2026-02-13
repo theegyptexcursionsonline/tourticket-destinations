@@ -436,7 +436,7 @@ const ReviewsSection = ({ reviews }: { reviews: Review[] }) => {
               </p>
 
               <div className="text-xs text-gray-500 mt-3">
-                {new Date(review.createdAt || review.date).toLocaleDateString()}
+                {new Date(review.createdAt || review.date || '').toLocaleDateString()}
               </div>
             </div>
           ))}

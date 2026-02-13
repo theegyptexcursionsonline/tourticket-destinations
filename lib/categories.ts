@@ -1,6 +1,6 @@
 import { Category } from '@/types';
 
-export const categories: Category[] = [
+export const categories = [
   {
     id: 'canal-cruises',
     name: 'Canal Cruises',
@@ -91,7 +91,7 @@ export const categories: Category[] = [
     color: 'from-lime-500 to-green-600',
     tourCount: 26
   }
-];
+] as Category[];
 
 export const getCategoryById = (id: string): Category | undefined => {
   return categories.find(cat => cat.id === id || cat.slug === id);

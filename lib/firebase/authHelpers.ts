@@ -155,8 +155,8 @@ export async function syncFirebaseUserToMongo(firebaseUser: {
     success: true,
     isNewUser,
     user: {
-      id: user._id.toString(),
-      _id: user._id.toString(),
+      id: (user._id as any).toString(),
+      _id: (user._id as any).toString(),
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,

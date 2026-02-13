@@ -483,7 +483,7 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
     const container = chatContainerRef.current;
     if (!container || !chatMode) return;
     
-    let scrollTimeout: NodeJS.Timeout;
+    let scrollTimeout: NodeJS.Timeout | undefined;
     
     const handleScroll = () => {
       // Don't interfere if this is a programmatic scroll
@@ -1113,7 +1113,7 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
                             <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
                               <div className={`max-w-[85%] ${isUser ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl rounded-br-sm px-4 py-3' : 'bg-gray-50 text-gray-800 rounded-2xl rounded-bl-sm px-4 py-3 border border-gray-200'}`}>
                                 {isUser ? (
-                                  <p className="text-sm leading-relaxed">{msg.content}</p>
+                                  <p className="text-sm leading-relaxed">{(msg as any).content}</p>
                                 ) : (
                                   renderContent(msg.parts, msg.id, hasDetectedContent, isUser)
                                 )}

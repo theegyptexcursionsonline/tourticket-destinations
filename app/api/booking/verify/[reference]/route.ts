@@ -45,14 +45,14 @@ export async function GET(
     const transformedBooking = {
       bookingReference: booking.bookingReference,
       tour: {
-        title: booking.tour.title,
-        image: booking.tour.image,
-        duration: booking.tour.duration,
+        title: (booking.tour as any).title,
+        image: (booking.tour as any).image,
+        duration: (booking.tour as any).duration,
       },
       user: {
-        firstName: booking.user.firstName,
-        lastName: booking.user.lastName,
-        email: booking.user.email,
+        firstName: (booking.user as any).firstName,
+        lastName: (booking.user as any).lastName,
+        email: (booking.user as any).email,
       },
       date: booking.date,
       time: booking.time,
