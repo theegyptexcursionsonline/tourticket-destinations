@@ -52,9 +52,11 @@ interface EmailOptions {
 
 export async function sendEmail(options: EmailOptions): Promise<void> {
   try {
-    // Use tenant-specific from name/email if provided, otherwise fall back to defaults
+    // Always use MAILGUN_FROM_EMAIL as sender - tenant fromEmail is only used if it matches the Mailgun domain
     const senderName = options.fromName || 'Egypt Excursions Online';
-    const senderEmail = options.fromEmail || FROM_EMAIL;
+    const senderEmail = (options.fromEmail && DOMAIN && options.fromEmail.endsWith(`@${DOMAIN}`))
+      ? options.fromEmail
+      : FROM_EMAIL;
     
     const messageData: any = {
       from: `${senderName} <${senderEmail}>`,
