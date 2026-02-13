@@ -880,7 +880,8 @@ const handleDownloadReceipt = async () => {
       specialRequests: customer?.specialRequests ?? '',
     };
 
-    const qrData = `https://your-site.example.com/booking/${orderId}`;
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://egypt-excursionsonline.com';
+    const qrData = `${baseUrl}/booking/verify/${orderId}`;
 
     const payload = {
       orderId,
