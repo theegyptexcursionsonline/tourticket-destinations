@@ -52,12 +52,12 @@ interface EmailOptions {
 
 export async function sendEmail(options: EmailOptions): Promise<void> {
   try {
-    // Always use MAILGUN_FROM_EMAIL as sender - tenant fromEmail is only used if it matches the Mailgun domain
+    // Use tenant-specific from name/email if provided, otherwise fall back to defaults
     const senderName = options.fromName || 'Egypt Excursions Online';
-    const senderEmail = (options.fromEmail && DOMAIN && options.fromEmail.endsWith(`@${DOMAIN}`))
-      ? options.fromEmail
-      : FROM_EMAIL;
+    const senderEmail = options.fromEmail || FROM_EMAIL;
     
+    console.log(`📧 [Mailgun] Preparing email: type=${options.type}, to=${options.to}, from=${senderName} <${senderEmail}>, domain=${DOMAIN}${options.cc ? `, cc=${options.cc}` : ''}`);
+
     const messageData: any = {
       from: `${senderName} <${senderEmail}>`,
       to: [options.to],

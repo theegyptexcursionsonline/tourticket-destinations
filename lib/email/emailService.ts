@@ -306,19 +306,27 @@ export class EmailService {
     }
 
     console.log(`📧 Sending admin/operator notification for booking ${data.bookingId} to: ${adminEmail}${adminCcEmail ? ` (cc: ${adminCcEmail})` : ''}`);
+    console.log(`📧 [Admin Alert] Using MAILGUN_FROM_EMAIL (not tenant fromEmail) for sender address`);
 
-    const template = await this.generateEmailTemplate('admin-booking-alert', data, branding);
-    await sendEmail({
-      to: adminEmail,
-      cc: adminCcEmail,
-      subject: template.subject,
-      html: template.html,
-      type: 'admin-booking-alert',
-      fromName: branding?.fromName || branding?.companyName,
-      fromEmail: branding?.fromEmail
-    });
+    try {
+      const template = await this.generateEmailTemplate('admin-booking-alert', data, branding);
 
-    console.log(`✅ Admin/operator notification sent successfully for booking ${data.bookingId} to ${adminEmail}${adminCcEmail ? ` (cc: ${adminCcEmail})` : ''}`);
+      // Admin alerts always use MAILGUN_FROM_EMAIL (not tenant fromEmail) to avoid domain mismatch
+      await sendEmail({
+        to: adminEmail,
+        cc: adminCcEmail,
+        subject: template.subject,
+        html: template.html,
+        type: 'admin-booking-alert',
+        fromName: branding?.companyName || 'Excursions Online',
+        // Do NOT pass fromEmail — let mailgun.ts use MAILGUN_FROM_EMAIL default
+      });
+
+      console.log(`✅ Admin/operator notification sent successfully for booking ${data.bookingId} to ${adminEmail}${adminCcEmail ? ` (cc: ${adminCcEmail})` : ''}`);
+    } catch (sendError) {
+      console.error(`❌ Failed to send admin/operator email for booking ${data.bookingId}:`, sendError);
+      throw sendError;
+    }
   }
 
   static async sendAdminInviteEmail(data: AdminInviteEmailData & { tenantBranding?: TenantEmailBranding }): Promise<void> {
