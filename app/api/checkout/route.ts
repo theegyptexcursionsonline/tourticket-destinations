@@ -716,6 +716,9 @@ export async function POST(request: Request) {
 
       const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || '';
 
+      const operatorEmail = tenantConfig?.contact?.email || process.env.ADMIN_NOTIFICATION_EMAIL;
+      console.log(`📧 [Checkout] Sending operator notification for booking ${bookingId} to: ${operatorEmail || 'NOT CONFIGURED'}`);
+
       await EmailService.sendAdminBookingAlert({
         customerName: `${customer.firstName} ${customer.lastName}`,
         customerEmail: customer.email,
@@ -740,7 +743,7 @@ export async function POST(request: Request) {
         adminEmail: tenantConfig?.contact?.email // Use tenant admin email if available
       });
     } catch (emailError) {
-      console.error('Failed to send admin alert email:', emailError);
+      console.error(`❌ [Checkout] Failed to send operator notification email for booking ${bookingId}:`, emailError);
       // Don't fail the booking if admin email fails
     }
 

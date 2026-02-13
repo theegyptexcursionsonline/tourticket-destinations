@@ -7,8 +7,9 @@ import Tour from '@/lib/models/Tour';
 import User from '@/lib/models/user';
 import { verifyToken } from '@/lib/jwt';
 import { verifyFirebaseToken } from '@/lib/firebase/admin';
-import { getTenantConfigCached } from '@/lib/tenant';
+import { getTenantConfigCached, getTenantEmailBranding } from '@/lib/tenant';
 import { requireAdminAuth } from '@/lib/auth/adminAuth';
+import { EmailService } from '@/lib/email/emailService';
 
 export async function GET(request: NextRequest) {
   await dbConnect();
@@ -273,6 +274,49 @@ export async function POST(request: NextRequest) {
       bookingTime: populatedBooking?.time,
       participants: populatedBooking?.guests,
     };
+
+    // Send admin/operator notification email
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || '';
+      const tenantBranding = getTenantEmailBranding(tenantConfig as any, baseUrl);
+      const bookingDate = new Date(date).toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+
+      await EmailService.sendAdminBookingAlert({
+        customerName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
+        customerEmail: user.email,
+        customerPhone: (user as any).phone || '',
+        tourTitle: tour.title || 'Tour',
+        bookingId: bookingReference,
+        bookingDate,
+        totalPrice: `$${parseFloat(totalPrice).toFixed(2)}`,
+        paymentMethod: 'Online',
+        specialRequests,
+        adminDashboardLink: baseUrl ? `${baseUrl}/admin/bookings/${booking._id}` : undefined,
+        baseUrl,
+        tours: [
+          {
+            title: tour.title || 'Tour',
+            date: bookingDate,
+            time: time || '',
+            adults,
+            children,
+            infants,
+            price: `$${parseFloat(totalPrice).toFixed(2)}`,
+          },
+        ],
+        tenantBranding,
+        adminEmail: tenantConfig?.contact?.email,
+      });
+      console.log(`✅ Admin/operator notification email sent for booking ${bookingReference}`);
+    } catch (emailError) {
+      console.error(`❌ Failed to send admin/operator notification email for booking ${bookingReference}:`, emailError);
+      // Don't fail the booking if email fails
+    }
 
     return NextResponse.json({
       success: true,

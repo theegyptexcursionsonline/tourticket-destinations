@@ -300,9 +300,11 @@ export class EmailService {
     const branding = data.tenantBranding;
 
     if (!adminEmail) {
-      console.warn('ADMIN_NOTIFICATION_EMAIL is not set. Skipping admin notification.');
+      console.error('⚠️ ADMIN EMAIL NOT CONFIGURED: Neither tenant contact email nor ADMIN_NOTIFICATION_EMAIL env var is set. Admin/operator notification for booking', data.bookingId, 'was NOT sent.');
       return;
     }
+
+    console.log(`📧 Sending admin/operator notification for booking ${data.bookingId} to: ${adminEmail}`);
 
     const template = await this.generateEmailTemplate('admin-booking-alert', data, branding);
     await sendEmail({
@@ -313,6 +315,8 @@ export class EmailService {
       fromName: branding?.fromName || branding?.companyName,
       fromEmail: branding?.fromEmail
     });
+
+    console.log(`✅ Admin/operator notification sent successfully for booking ${data.bookingId} to ${adminEmail}`);
   }
 
   static async sendAdminInviteEmail(data: AdminInviteEmailData & { tenantBranding?: TenantEmailBranding }): Promise<void> {

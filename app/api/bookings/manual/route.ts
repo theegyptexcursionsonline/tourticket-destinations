@@ -384,9 +384,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Admin alert email (always try; independent of customer confirmation toggle)
+    // Admin/operator alert email (always try; independent of customer confirmation toggle)
     try {
       const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || '';
+      const operatorEmail = tenantConfig?.contact?.email || process.env.ADMIN_NOTIFICATION_EMAIL;
+      console.log(`📧 [Manual Booking] Sending operator notification for booking ${bookingDoc.bookingReference || bookingDoc._id} to: ${operatorEmail || 'NOT CONFIGURED'}`);
+
       await EmailService.sendAdminBookingAlert({
         customerName: String(customerName),
         customerEmail: emailLower,
@@ -427,7 +430,7 @@ export async function POST(request: NextRequest) {
         adminEmail: tenantConfig?.contact?.email,
       } as any);
     } catch (e) {
-      console.error('Manual booking: failed to send admin alert email', e);
+      console.error(`❌ [Manual Booking] Failed to send operator notification email for booking ${bookingDoc.bookingReference || bookingDoc._id}:`, e);
     }
 
     return NextResponse.json({
