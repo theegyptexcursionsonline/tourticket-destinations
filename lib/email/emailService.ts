@@ -38,16 +38,29 @@ export class EmailService {
 
   // Helper to extract branding data for templates
   private static getBrandingTemplateData(branding?: TenantEmailBranding) {
+    const website = branding?.website || process.env.NEXT_PUBLIC_BASE_URL || 'https://egypt-excursionsonline.com';
+
+    // Convert relative logo paths to absolute URLs for email compatibility
+    let companyLogo = branding?.logo || '';
+    if (companyLogo && companyLogo.startsWith('/')) {
+      // Relative path — prepend base URL
+      companyLogo = `${website.replace(/\/$/, '')}${companyLogo}`;
+    }
+    // If still empty or just a slash, don't show a broken image
+    if (!companyLogo || companyLogo === '/') {
+      companyLogo = '';
+    }
+
     return {
       companyName: branding?.companyName || 'Excursions Online',
-      companyLogo: branding?.logo || '/EEO-logo.png',
+      companyLogo,
       primaryColor: branding?.primaryColor || '#E63946',
       secondaryColor: branding?.secondaryColor || '#1D3557',
       accentColor: branding?.accentColor || '#F4A261',
       contactEmail: branding?.contactEmail || 'info@excursions.online',
       contactPhone: branding?.contactPhone || '',
       supportEmail: branding?.supportEmail || branding?.contactEmail || 'support@excursions.online',
-      website: branding?.website || 'https://excursions.online',
+      website,
       facebookUrl: branding?.socialLinks?.facebook,
       instagramUrl: branding?.socialLinks?.instagram,
       twitterUrl: branding?.socialLinks?.twitter,
