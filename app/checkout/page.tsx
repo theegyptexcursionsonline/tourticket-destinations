@@ -383,8 +383,8 @@ const CheckoutFormStep = ({
   promoCode: string;
   paymentIntentId: string;
   setPaymentIntentId: (id: string) => void;
-  paymentMethod: 'card' | 'paypal';
-  setPaymentMethod: (method: 'card' | 'paypal') => void;
+  paymentMethod: 'card' | 'paypal' | 'pay_later';
+  setPaymentMethod: (method: 'card' | 'paypal' | 'pay_later') => void;
   supportedPaymentMethods: string[];
 }) => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -394,6 +394,12 @@ const CheckoutFormStep = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (paymentMethod === 'pay_later') {
+      // Pay Later doesn't require Stripe payment - process directly
+      onPaymentProcessWithIntent('PAY_LATER');
+      return;
+    }
 
     // Validate that we have a payment intent ID from Stripe
     if (!paymentIntentId) {
@@ -584,6 +590,22 @@ const CheckoutFormStep = ({
               </button>
             )}
 
+            {isPaymentMethodSupported('pay_later') && (
+              <button
+                type="button"
+                onClick={() => setPaymentMethod('pay_later')}
+                aria-pressed={paymentMethod === 'pay_later'}
+                className={`flex flex-col items-center justify-center gap-1 sm:gap-2 p-3 sm:p-4 border border-slate-200 rounded-lg transition-shadow ${paymentMethod === 'pay_later' ? 'bg-red-50 border-red-200 shadow-sm' : 'bg-white hover:shadow-sm'}`}
+              >
+                <div className="h-7 sm:h-10 flex items-center">
+                  <svg className="w-6 h-6 sm:w-8 sm:h-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <span className="text-xs sm:text-sm font-medium text-slate-700">Pay Later</span>
+              </button>
+            )}
+
           </div>
 
           <AnimatePresence mode="wait">
@@ -626,6 +648,66 @@ const CheckoutFormStep = ({
                 <div className="p-6 bg-slate-50 border border-slate-200 rounded-lg text-center text-slate-700">
                   <p className="font-medium">PayPal integration is coming soon!</p>
                   <p className="text-sm text-slate-500 mt-2">Please use card payment for now.</p>
+                </div>
+              )}
+              {paymentMethod === 'pay_later' && (
+                <div className="p-6 bg-emerald-50 border border-emerald-200 rounded-lg text-slate-700">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
+                      <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-emerald-800">Pay on Arrival</p>
+                      <p className="text-sm text-emerald-700 mt-1">
+                        Reserve your spot now and pay when you arrive. No payment required at this time.
+                      </p>
+                      <ul className="text-sm text-emerald-700 mt-3 space-y-1.5">
+                        <li className="flex items-center gap-2">
+                          <svg className="w-4 h-4 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                          Your booking will be confirmed instantly
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <svg className="w-4 h-4 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                          Pay in cash or card on the day of your tour
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <svg className="w-4 h-4 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                          Free cancellation up to 24 hours before
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isProcessing}
+                    className="w-full mt-5 py-3.5 px-6 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {isProcessing ? (
+                      <>
+                        <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Reserve Now — Pay on Arrival
+                      </>
+                    )}
+                  </button>
                 </div>
               )}
             </motion.div>
@@ -1235,11 +1317,11 @@ export default function CheckoutPage() {
 
   const supportedPaymentMethods =
     tenant?.payments?.supportedPaymentMethods && tenant.payments.supportedPaymentMethods.length > 0
-      ? tenant.payments.supportedPaymentMethods.filter(method => method !== 'pay_later')
-      : ['card', 'paypal'];
+      ? tenant.payments.supportedPaymentMethods
+      : ['card', 'paypal', 'pay_later'];
 
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'paypal'>(
-    (supportedPaymentMethods[0] as 'card' | 'paypal') || 'card'
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'paypal' | 'pay_later'>(
+    (supportedPaymentMethods[0] as 'card' | 'paypal' | 'pay_later') || 'card'
   );
 
   // Stripe payment intent ID
@@ -1308,7 +1390,7 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     if (!supportedPaymentMethods.includes(paymentMethod)) {
-      const fallback = supportedPaymentMethods[0] as 'card' | 'paypal' | undefined;
+      const fallback = supportedPaymentMethods[0] as 'card' | 'paypal' | 'pay_later' | undefined;
       setPaymentMethod(fallback || 'card');
     }
   }, [supportedPaymentMethods, paymentMethod]);
@@ -1430,7 +1512,11 @@ export default function CheckoutPage() {
         clearCart();
         setIsConfirmed(true);
 
-        toast.success('Booking confirmed! Check your email for details.', { duration: 5000 });
+        if (paymentMethod === 'pay_later') {
+          toast.success('Booking reserved! Pay on arrival. Check your email for details.', { duration: 5000 });
+        } else {
+          toast.success('Booking confirmed! Check your email for details.', { duration: 5000 });
+        }
       } else {
         toast.error(result.message || 'Booking failed. Please try again.');
       }
@@ -1443,6 +1529,12 @@ export default function CheckoutPage() {
   };
 
   const handlePaymentProcess = async () => {
+    // Pay Later doesn't require a payment intent
+    if (paymentMethod === 'pay_later') {
+      await handlePaymentProcessWithIntent('PAY_LATER');
+      return;
+    }
+
     // This is called when form is manually submitted
     if (!paymentIntentId) {
       toast.error('Please complete the payment before submitting');

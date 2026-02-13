@@ -294,9 +294,10 @@ export class EmailService {
   }
 
   // ADMIN BOOKING ALERT
-  static async sendAdminBookingAlert(data: AdminAlertData & { tenantBranding?: TenantEmailBranding; adminEmail?: string }): Promise<void> {
+  static async sendAdminBookingAlert(data: AdminAlertData & { tenantBranding?: TenantEmailBranding; adminEmail?: string; adminCcEmail?: string }): Promise<void> {
     // Use tenant-specific admin email if provided, otherwise fall back to env var
     const adminEmail = data.adminEmail || process.env.ADMIN_NOTIFICATION_EMAIL;
+    const adminCcEmail = data.adminCcEmail || process.env.ADMIN_NOTIFICATION_CC_EMAIL;
     const branding = data.tenantBranding;
 
     if (!adminEmail) {
@@ -304,11 +305,12 @@ export class EmailService {
       return;
     }
 
-    console.log(`📧 Sending admin/operator notification for booking ${data.bookingId} to: ${adminEmail}`);
+    console.log(`📧 Sending admin/operator notification for booking ${data.bookingId} to: ${adminEmail}${adminCcEmail ? ` (cc: ${adminCcEmail})` : ''}`);
 
     const template = await this.generateEmailTemplate('admin-booking-alert', data, branding);
     await sendEmail({
       to: adminEmail,
+      cc: adminCcEmail,
       subject: template.subject,
       html: template.html,
       type: 'admin-booking-alert',
@@ -316,7 +318,7 @@ export class EmailService {
       fromEmail: branding?.fromEmail
     });
 
-    console.log(`✅ Admin/operator notification sent successfully for booking ${data.bookingId} to ${adminEmail}`);
+    console.log(`✅ Admin/operator notification sent successfully for booking ${data.bookingId} to ${adminEmail}${adminCcEmail ? ` (cc: ${adminCcEmail})` : ''}`);
   }
 
   static async sendAdminInviteEmail(data: AdminInviteEmailData & { tenantBranding?: TenantEmailBranding }): Promise<void> {
