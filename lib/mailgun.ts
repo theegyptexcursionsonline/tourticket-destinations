@@ -20,8 +20,10 @@ function getMg() {
   return _mg;
 }
 
-const DOMAIN = process.env.MAILGUN_DOMAIN || '';
-const FROM_EMAIL = process.env.MAILGUN_FROM_EMAIL || 'booking@egypt-excursionsonline.com';
+// Read env vars lazily at call time (not module load time) to ensure they're available
+// in serverless environments where env vars may not be set during module initialization
+function getDomain() { return process.env.MAILGUN_DOMAIN || ''; }
+function getFromEmail() { return process.env.MAILGUN_FROM_EMAIL || 'booking@egypt-excursionsonline.com'; }
 
 interface InlineAttachment {
   filename: string;
@@ -54,9 +56,15 @@ export async function sendEmail(options: EmailOptions): Promise<void> {
   try {
     // Use tenant-specific from name/email if provided, otherwise fall back to defaults
     const senderName = options.fromName || 'Egypt Excursions Online';
-    const senderEmail = options.fromEmail || FROM_EMAIL;
+    const senderEmail = options.fromEmail || getFromEmail();
+    const domain = getDomain();
     
-    console.log(`📧 [Mailgun] Preparing email: type=${options.type}, to=${options.to}, from=${senderName} <${senderEmail}>, domain=${DOMAIN}${options.cc ? `, cc=${options.cc}` : ''}`);
+    if (!domain) {
+      console.error(`❌ [Mailgun] MAILGUN_DOMAIN is not set! Cannot send email.`);
+      throw new Error('MAILGUN_DOMAIN environment variable is not set');
+    }
+
+    console.log(`📧 [Mailgun] Preparing email: type=${options.type}, to=${options.to}, from=${senderName} <${senderEmail}>, domain=${domain}${options.cc ? `, cc=${options.cc}` : ''}`);
 
     const messageData: any = {
       from: `${senderName} <${senderEmail}>`,
@@ -98,7 +106,7 @@ export async function sendEmail(options: EmailOptions): Promise<void> {
 
     console.log(`📧 Sending email with inline: ${messageData.inline?.length || 0}, attachments: ${messageData.attachment?.length || 0}`);
     const mg = getMg();
-    const result = await mg.messages.create(DOMAIN, messageData);
+    const result = await mg.messages.create(domain, messageData);
     console.log(`📮 Mailgun response ID: ${result.id}`);
 
     console.log(`✅ Email sent successfully: ${options.type} to ${options.to}`);
