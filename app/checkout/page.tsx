@@ -1315,10 +1315,12 @@ export default function CheckoutPage() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<'login' | 'signup'>('login');
 
-  const supportedPaymentMethods =
+  const baseMethods =
     tenant?.payments?.supportedPaymentMethods && tenant.payments.supportedPaymentMethods.length > 0
       ? tenant.payments.supportedPaymentMethods
-      : ['card', 'paypal', 'pay_later'];
+      : ['card', 'paypal'];
+  // Always include pay_later as an option for all tenants
+  const supportedPaymentMethods = baseMethods.includes('pay_later') ? baseMethods : [...baseMethods, 'pay_later'];
 
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'paypal' | 'pay_later'>(
     (supportedPaymentMethods[0] as 'card' | 'paypal' | 'pay_later') || 'card'
