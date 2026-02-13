@@ -16,6 +16,9 @@ import ConditionalAIWidgets from "@/components/ConditionalAIWidgets";
 import { getTenantFromRequest, getTenantPublicConfig, TenantPublicConfig } from "@/lib/tenant";
 import ComingSoonPage from "@/components/ComingSoonPage";
 
+// Force all routes to be dynamic - root layout uses headers() for tenant detection
+export const dynamic = 'force-dynamic';
+
 const COMING_SOON_MODE = false;
 
 const inter = Inter({ subsets: ["latin"], variable: '--font-inter' });
