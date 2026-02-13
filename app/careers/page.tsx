@@ -40,8 +40,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 async function getJobs(): Promise<JobType[]> {
-    await dbConnect();
     try {
+        await dbConnect();
         const jobs = await Job.find({ isActive: true }).sort({ createdAt: -1 }).lean();
         return JSON.parse(JSON.stringify(jobs));
     } catch (error) {
