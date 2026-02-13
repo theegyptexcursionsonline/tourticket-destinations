@@ -166,11 +166,16 @@ export interface AdminAlertData {
   customerName: string;
   customerEmail: string;
   customerPhone?: string;
+  customerCountry?: string;
   tourTitle: string;
   bookingId: string;
   bookingDate: string;
+  bookingTime?: string;
   totalPrice: string;
   paymentMethod?: string;
+  paymentStatus?: string;
+  paymentId?: string;
+  bookingSource?: 'online' | 'manual';
   specialRequests?: string;
   hotelPickupDetails?: string;
   hotelPickupLocation?: {
@@ -188,6 +193,7 @@ export interface AdminAlertData {
   };
   adminDashboardLink?: string;
   baseUrl?: string;
+  bookedAt?: string;
   tours?: Array<{
     title: string;
     date: string;

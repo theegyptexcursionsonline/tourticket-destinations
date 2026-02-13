@@ -717,12 +717,16 @@ export async function POST(request: Request) {
         customerName: `${customer.firstName} ${customer.lastName}`,
         customerEmail: customer.email,
         customerPhone: customer.phone,
+        customerCountry: customer.country || undefined,
         tourTitle: cart.length === 1 ? mainTour?.title || 'Tour' : `${cart.length} Tours`,
         bookingId: bookingId,
         // Use original cart date to avoid timezone issues with MongoDB UTC storage
         bookingDate: emailBookingDate,
+        bookingTime: cart[0]?.time || undefined,
         totalPrice: formatMoney(pricing?.total),
-        paymentMethod: paymentMethod,
+        paymentMethod: paymentMethod === 'pay_later' ? 'Pay on Arrival' : paymentMethod === 'card' ? 'Card (Stripe)' : paymentMethod,
+        paymentStatus: paymentMethod === 'pay_later' ? 'Pay on Arrival' : 'Paid',
+        bookingSource: 'online',
         specialRequests: customer.specialRequests,
         hotelPickupDetails: customer.hotelPickupDetails,
         hotelPickupLocation,
@@ -733,8 +737,9 @@ export async function POST(request: Request) {
         tours: tourDetails,
         timeUntil: timeUntilTour || undefined,
         dateBadge,
+        bookedAt: new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }),
         tenantBranding: getTenantEmailBranding(tenantConfig, baseUrl),
-        adminEmail: tenantConfig?.contact?.email // Use tenant admin email if available
+        adminEmail: tenantConfig?.contact?.email,
       });
     } catch (emailError) {
       console.error(`❌ [Checkout] Failed to send operator notification email for booking ${bookingId}:`, emailError);

@@ -38,16 +38,22 @@ export class EmailService {
 
   // Helper to extract branding data for templates
   private static getBrandingTemplateData(branding?: TenantEmailBranding) {
-    const website = branding?.website || process.env.NEXT_PUBLIC_BASE_URL || 'https://egypt-excursionsonline.com';
+    // Always use the main base URL for assets (logos, images) to ensure they load
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://egypt-excursionsonline.com';
+    const website = branding?.website || baseUrl;
 
-    // Convert relative logo paths to absolute URLs for email compatibility
+    // Convert relative logo paths to absolute URLs using the main base URL
     let companyLogo = branding?.logo || '';
     if (companyLogo && companyLogo.startsWith('/')) {
-      // Relative path — prepend base URL
-      companyLogo = `${website.replace(/\/$/, '')}${companyLogo}`;
+      // Relative path — always prepend the main base URL (not tenant domain)
+      // because static assets are served from the primary deployment
+      companyLogo = `${baseUrl.replace(/\/$/, '')}${companyLogo}`;
+    } else if (companyLogo && !companyLogo.startsWith('http')) {
+      // Missing protocol — add https://
+      companyLogo = `https://${companyLogo}`;
     }
     // If still empty or just a slash, don't show a broken image
-    if (!companyLogo || companyLogo === '/') {
+    if (!companyLogo || companyLogo === '/' || companyLogo === 'https://') {
       companyLogo = '';
     }
 

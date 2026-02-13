@@ -26,15 +26,20 @@ async function testAdminEmail() {
 
   try {
     await EmailService.sendAdminBookingAlert({
-      customerName: 'Test Customer',
-      customerEmail: 'test@example.com',
+      customerName: 'Ahmed Hassan',
+      customerEmail: 'ahmed@example.com',
       customerPhone: '+20 11 42255624',
       tourTitle: 'Luxor Day Trip from Makadi Bay',
-      bookingId: 'TEST-' + Date.now(),
+      bookingId: 'BK-' + Date.now(),
       bookingDate: 'Saturday, February 15, 2026',
-      totalPrice: '$85.00',
-      paymentMethod: 'card',
-      specialRequests: 'Please arrange early morning pickup.',
+      totalPrice: '$185.00',
+      paymentMethod: 'Card (Stripe)',
+      paymentStatus: 'Paid',
+      bookingSource: 'online',
+      bookingTime: '06:00 AM',
+      bookedAt: new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }),
+      specialRequests: 'Please arrange early morning pickup. We have a child who needs a booster seat.',
+      hotelPickupDetails: 'Sunrise Royal Makadi Resort, Makadi Bay - Lobby pickup at 5:30 AM',
       adminDashboardLink: 'https://dashboard.egypt-excursionsonline.com/admin/bookings/test',
       baseUrl: 'https://egypt-excursionsonline.com',
       tours: [
@@ -45,10 +50,22 @@ async function testAdminEmail() {
           adults: 2,
           children: 1,
           infants: 0,
-          bookingOption: 'Private Tour',
-          price: '$85.00'
+          bookingOption: 'Private Tour with Egyptologist Guide',
+          addOns: ['Hotel Pickup & Drop-off', 'Lunch Included', 'Entrance Tickets'],
+          price: '$185.00'
         }
-      ]
+      ],
+      tenantBranding: {
+        tenantId: 'makadi-bay',
+        companyName: 'Makadi Bay Excursions',
+        logo: '/tenants/makadi-bay/logo.png',
+        primaryColor: '#D97706',
+        secondaryColor: '#1D3557',
+        accentColor: '#F59E0B',
+        contactEmail: 'info@makadibayexcursions.com',
+        contactPhone: '+20 65 344 5678',
+        website: 'https://makadibayexcursions.com',
+      },
     });
 
     console.log('\n✅ Admin Booking Alert sent successfully!');

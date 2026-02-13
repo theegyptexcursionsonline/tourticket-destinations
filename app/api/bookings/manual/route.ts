@@ -402,8 +402,11 @@ export async function POST(request: NextRequest) {
           month: 'long',
           day: 'numeric',
         }),
+        bookingTime: String(time),
         totalPrice: formatMoney(discountedTotal),
         paymentMethod: normalizedPaymentMethod,
+        paymentStatus: normalizedPaymentMethod === 'pay_later' ? 'Pay on Arrival' : 'Paid',
+        bookingSource: 'manual',
         specialRequests: specialRequests ? String(specialRequests) : undefined,
         hotelPickupDetails: hotelPickupDetails ? String(hotelPickupDetails) : undefined,
         adminDashboardLink: `https://dashboard.egypt-excursionsonline.com/admin/bookings/${String(bookingDoc._id)}`,
@@ -425,8 +428,8 @@ export async function POST(request: NextRequest) {
             price: formatMoney(discountedTotal),
           },
         ],
+        bookedAt: new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }),
         tenantBranding: getTenantEmailBranding(tenantConfig, baseUrl),
-        // Prefer tenant contact email if set; EmailService will fallback to ADMIN_NOTIFICATION_EMAIL
         adminEmail: tenantConfig?.contact?.email,
       } as any);
     } catch (e) {
