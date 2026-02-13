@@ -7,8 +7,8 @@ import Job from "@/lib/models/Job";
 type JobType = any;
 import { getTenantFromRequest, getTenantPublicConfig } from "@/lib/tenant";
 
-// Enable ISR with 60 second revalidation for instant page loads
-export const revalidate = 60;
+// Force dynamic rendering to avoid build-time DB connection issues
+export const dynamic = 'force-dynamic';
 
 // Generate dynamic metadata based on tenant
 export async function generateMetadata(): Promise<Metadata> {
