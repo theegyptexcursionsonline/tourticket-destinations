@@ -258,7 +258,8 @@ export async function POST(request: Request) {
       );
     }
 
-    if (supportedPaymentMethods?.length && !supportedPaymentMethods.includes(paymentMethod)) {
+    // pay_later is always allowed regardless of tenant config
+    if (paymentMethod !== 'pay_later' && supportedPaymentMethods?.length && !supportedPaymentMethods.includes(paymentMethod)) {
       return NextResponse.json(
         { success: false, message: 'Selected payment method is not available for this tenant.' },
         { status: 400 }
