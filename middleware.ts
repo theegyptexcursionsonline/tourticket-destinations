@@ -597,7 +597,7 @@ export function middleware(request: NextRequest) {
   // ADMIN PANEL ACCESS RESTRICTION
   // ============================================
   // Only allow admin panel on specific tenants
-  const ADMIN_ALLOWED_TENANTS = ['default', 'hurghada-speedboat'];
+  const ADMIN_ALLOWED_TENANTS = ['default'];
 
   if (isAdminPath(pathname) && !ADMIN_ALLOWED_TENANTS.includes(tenantId)) {
     // API routes return 403, pages redirect to homepage
