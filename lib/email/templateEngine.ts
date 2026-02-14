@@ -36,6 +36,14 @@ export class TemplateEngine {
   }
 
   static generateSubject(template: string, data: Record<string, unknown> | any): string {
-    return this.replaceVariables(template, data);
+    // Subjects are plain text — decode HTML entities that Handlebars auto-escapes
+    const rendered = this.replaceVariables(template, data);
+    return rendered
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#x27;/g, "'")
+      .replace(/&#39;/g, "'");
   }
 }

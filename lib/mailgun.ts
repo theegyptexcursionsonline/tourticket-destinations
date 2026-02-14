@@ -55,7 +55,7 @@ interface EmailOptions {
 export async function sendEmail(options: EmailOptions): Promise<void> {
   try {
     // Use tenant-specific from name/email if provided, otherwise fall back to defaults
-    const senderName = options.fromName || 'Egypt Excursions Online';
+    const senderName = options.fromName || 'Excursions Online';
     const senderEmail = options.fromEmail || getFromEmail();
     const domain = getDomain();
     

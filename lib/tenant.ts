@@ -688,4 +688,3 @@ export function getTenantEmailBranding(tenantConfig: ITenant | null, baseUrl?: s
     fromEmail: tenantConfig.email?.fromEmail,
   };
 }
-

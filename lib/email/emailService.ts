@@ -324,30 +324,20 @@ export class EmailService {
       return;
     }
 
-    // Build CC list: include both configured CC and tenant contact email (if different from TO)
-    const ccEmails = new Set<string>();
-    if (data.adminCcEmail) ccEmails.add(data.adminCcEmail);
-    if (process.env.ADMIN_NOTIFICATION_CC_EMAIL) ccEmails.add(process.env.ADMIN_NOTIFICATION_CC_EMAIL);
-    if (data.adminEmail && data.adminEmail !== adminEmail) ccEmails.add(data.adminEmail);
-    const adminCcEmail = ccEmails.size > 0 ? Array.from(ccEmails).join(', ') : undefined;
-
-    console.log(`📧 [Admin Alert] Booking ${data.bookingId} → TO: ${adminEmail}${adminCcEmail ? ` | CC: ${adminCcEmail}` : ''}`);
+    console.log(`📧 [Admin Alert] Booking ${data.bookingId} → TO: ${adminEmail}`);
 
     try {
       const template = await this.generateEmailTemplate('admin-booking-alert', data, branding);
 
-      // Admin alerts always use ADMIN_NOTIFICATION_EMAIL as TO and MAILGUN_FROM_EMAIL as sender
       await sendEmail({
         to: adminEmail,
-        cc: adminCcEmail,
         subject: template.subject,
         html: template.html,
         type: 'admin-booking-alert',
         fromName: branding?.companyName || 'Excursions Online',
-        // Do NOT pass fromEmail — let mailgun.ts use MAILGUN_FROM_EMAIL default
       });
 
-      console.log(`✅ Admin alert sent for booking ${data.bookingId} to ${adminEmail}${adminCcEmail ? ` (cc: ${adminCcEmail})` : ''}`);
+      console.log(`✅ Admin alert sent for booking ${data.bookingId} to ${adminEmail}`);
     } catch (sendError) {
       console.error(`❌ Failed to send admin alert for booking ${data.bookingId}:`, sendError);
       throw sendError;
