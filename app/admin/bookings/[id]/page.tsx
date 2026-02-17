@@ -210,7 +210,12 @@ const BookingDetailPage = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/admin/bookings/${id}${tenantQuery}`);
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`/api/admin/bookings/${id}${tenantQuery}`, { headers });
       if (!response.ok) {
         if (response.status === 404) {
           throw new Error('Booking not found');
@@ -309,23 +314,30 @@ const BookingDetailPage = () => {
     
     setUpdating(true);
     try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
       const response = await fetch(`/api/admin/bookings/${id}${tenantQuery}`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({ status: newStatus }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error('Failed to update booking status');
+        throw new Error(data?.message || data?.error || 'Failed to update booking status');
       }
 
-      const updatedBooking = await response.json();
-      setBooking(updatedBooking);
-    } catch (err) {
+      setBooking(data);
+      toast.success(`Booking status updated to ${newStatus}`);
+    } catch (err: any) {
       console.error('Error updating booking:', err);
-      alert('Failed to update booking status');
+      toast.error(err?.message || 'Failed to update booking status');
     } finally {
       setUpdating(false);
     }

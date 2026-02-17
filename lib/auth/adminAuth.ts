@@ -18,15 +18,19 @@ interface RequireAdminOptions {
   requireAll?: boolean;
 }
 
-const UNAUTHORIZED_RESPONSE = NextResponse.json(
-  { success: false, error: 'Admin authorization required' },
-  { status: 401 },
-);
+function unauthorizedResponse() {
+  return NextResponse.json(
+    { success: false, error: 'Admin authorization required' },
+    { status: 401 },
+  );
+}
 
-const FORBIDDEN_RESPONSE = NextResponse.json(
-  { success: false, error: 'You do not have permission to perform this action.' },
-  { status: 403 },
-);
+function forbiddenResponse() {
+  return NextResponse.json(
+    { success: false, error: 'You do not have permission to perform this action.' },
+    { status: 403 },
+  );
+}
 
 export async function requireAdminAuth(
   request: NextRequest,
@@ -46,12 +50,12 @@ export async function requireAdminAuth(
   }
 
   if (!token) {
-    return UNAUTHORIZED_RESPONSE;
+    return unauthorizedResponse();
   }
 
   const payload = await verifyToken(token);
   if (!payload || payload.scope !== 'admin') {
-    return UNAUTHORIZED_RESPONSE;
+    return unauthorizedResponse();
   }
 
   const role = (payload.role as AdminRole) || 'customer';
@@ -76,7 +80,7 @@ export async function requireAdminAuth(
     : permissions.some((perm) => authContext.permissions.includes(perm) || role === 'super_admin');
 
   if (!hasPermissions) {
-    return FORBIDDEN_RESPONSE;
+    return forbiddenResponse();
   }
 
   return authContext;
