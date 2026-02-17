@@ -1,46 +1,67 @@
-import { render, screen, fireEvent } from '@testing-library/react';
-import '@testing-library/jest-dom';
-import Header from '@/components/Header';
+import React from 'react'
+import { render, screen } from '@testing-library/react'
+import Header from '@/components/Header'
 
-// Mock next/navigation
-jest.mock('next/navigation', () => ({
-  useRouter: () => ({
-    push: jest.fn(),
-    pathname: '/',
+jest.mock('@/hooks/useCart', () => ({
+  useCart: () => ({
+    items: [],
+    totalItems: 0,
+    cart: [],
+    isCartOpen: false,
+    openCart: jest.fn(),
+    closeCart: jest.fn(),
   }),
-  usePathname: () => '/',
-}));
- 
-
-
-
-
+}))
 
 jest.mock('@/contexts/AuthContext', () => ({
   useAuth: () => ({
     user: null,
+    login: jest.fn(),
     logout: jest.fn(),
+    isAuthenticated: false,
   }),
-}));
+}))
 
-describe('Header Component', () => {
-  it('renders the header with logo', () => {
-    render(<Header />);
-    // Update this test based on your actual Header implementation
-    expect(screen.getByRole('banner')).toBeInTheDocument();
-  });
+jest.mock('@/components/shared/CurrencyLanguageSwitcher', () => {
+  return function MockSwitcher() {
+    return <div data-testid="switcher">Switcher</div>
+  }
+})
 
-  it('displays cart with correct item count', () => {
-    render(<Header />);
-    // This test should be updated based on your actual implementation
-    // Example: expect(screen.getByText(/cart/i)).toBeInTheDocument();
-  });
+jest.mock('@/components/AuthModal', () => {
+  return function MockAuthModal() { return null }
+})
 
-  it('shows login link when user is not authenticated', () => {
-    render(<Header />);
-    // Update based on your Header implementation
-    // Example: expect(screen.getByText(/login/i)).toBeInTheDocument();
-  });
+jest.mock('framer-motion', () => ({
+  motion: {
+    div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
+    button: ({ children, ...props }: any) => <button {...props}>{children}</button>,
+    span: ({ children, ...props }: any) => <span {...props}>{children}</span>,
+    nav: ({ children, ...props }: any) => <nav {...props}>{children}</nav>,
+    li: ({ children, ...props }: any) => <li {...props}>{children}</li>,
+    a: ({ children, ...props }: any) => <a {...props}>{children}</a>,
+    header: ({ children, ...props }: any) => <header {...props}>{children}</header>,
+  },
+  AnimatePresence: ({ children }: any) => <>{children}</>,
+  useScroll: () => ({ scrollY: { get: () => 0 } }),
+  useMotionValueEvent: jest.fn(),
+  useInView: () => true,
+}))
 
-  // Add more tests specific to your Header component
-});
+describe('Header (integration)', () => {
+  beforeEach(() => {
+    global.fetch = jest.fn(() =>
+      Promise.resolve({ ok: true, json: () => Promise.resolve({ destinations: [], categories: [] }) })
+    ) as jest.Mock
+  })
+
+  it('should render without crashing', () => {
+    const { container } = render(<Header />)
+    expect(container.firstChild).toBeTruthy()
+  })
+
+  it('should render the switcher', () => {
+    render(<Header />)
+    expect(screen.getByTestId('switcher')).toBeInTheDocument()
+  })
+})

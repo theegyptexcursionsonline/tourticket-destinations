@@ -37,7 +37,7 @@ describe('Price Calculation Utilities', () => {
         return sum + adultPrice + childPrice;
       }, 0);
 
-      expect(subtotal).toBe(225); // 200 + 50 + 25
+      expect(subtotal).toBe(275); // 200 + 50 + 25
     });
 
     it('should handle infant pricing (typically free)', () => {

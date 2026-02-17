@@ -12,6 +12,14 @@ const customJestConfig = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
   },
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '/e2e/',
+    'supertest',
+  ],
+  transformIgnorePatterns: [
+    '/node_modules/(?!(react-markdown|remark-gfm|rehype-raw|rehype-sanitize|devlop|hast-util-.*|mdast-util-.*|micromark.*|unist-.*|unified|bail|is-plain-obj|trough|vfile.*|property-information|comma-separated-tokens|space-separated-tokens|decode-named-character-reference|character-entities|ccount|escape-string-regexp|markdown-table|trim-lines|estree-util-.*|hast-to-estree|zwitch)/)',
+  ],
   collectCoverageFrom: [
     'components/**/*.{js,jsx,ts,tsx}',
     'app/**/*.{js,jsx,ts,tsx}',

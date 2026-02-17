@@ -435,7 +435,7 @@ describe('Admin Bookings API — filter logic', () => {
         (s: any) => s.$match && s.$match.$or
       );
       expect(matchStages).toHaveLength(1);
-      expect(matchStages[0].$match.$or[0].tenantId).toBe(
+      expect((matchStages[0] as any).$match.$or[0].tenantId).toBe(
         'cairo-excursions-online'
       );
     });
