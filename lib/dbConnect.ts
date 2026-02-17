@@ -7,14 +7,16 @@ import mongoose from 'mongoose';
 /**
  * Multi-tenant database connection support
  * 
+ * All tenants share the default MONGODB_URI database.
+ * A tenant can optionally use its own database via MONGODB_URI_{TENANT_ID}.
+ * 
  * Environment Variables:
- * - MONGODB_URI: Default/main database
- * - MONGODB_URI_SPEEDBOAT: Speedboat tenant database (optional - falls back to MONGODB_URI)
- * - MONGODB_URI_{TENANT_ID}: Custom database for any tenant
+ * - MONGODB_URI: Shared database for all tenants
+ * - MONGODB_URI_{TENANT_ID}: Optional per-tenant override (e.g. MONGODB_URI_HURGHADA_SPEEDBOAT)
  * 
  * Usage:
- * - dbConnect() - connects to default database
- * - dbConnect('hurghada-speedboat') - connects to speedboat database if configured
+ * - dbConnect()              - connects to shared database
+ * - dbConnect('some-tenant') - shared DB (or tenant-specific DB if env var exists)
  */
 
 // Separate connection cache per database URI
@@ -40,33 +42,23 @@ if (!cached) {
  * Priority: Tenant-specific env var > Default env var
  */
 function getMongoURIForTenant(tenantId?: string): string {
-  // If tenant specified, check for tenant-specific database
+  // Check for a tenant-specific database override (e.g. MONGODB_URI_HURGHADA_SPEEDBOAT)
   if (tenantId) {
-    // Convert tenant ID to env var format: hurghada-speedboat -> SPEEDBOAT
-    const tenantEnvKey = tenantId.toUpperCase().replace(/-/g, '_').replace('HURGHADA_', '');
-    const tenantUri = process.env[`MONGODB_URI_${tenantEnvKey}`];
-    
+    const envKey = `MONGODB_URI_${tenantId.toUpperCase().replace(/-/g, '_')}`;
+    const tenantUri = process.env[envKey];
     if (tenantUri) {
-      console.log(`Using tenant-specific database for: ${tenantId}`);
       return tenantUri;
     }
-    
-    // Also try the full tenant ID format
-    const fullTenantUri = process.env[`MONGODB_URI_${tenantId.toUpperCase().replace(/-/g, '_')}`];
-    if (fullTenantUri) {
-      console.log(`Using tenant-specific database for: ${tenantId}`);
-      return fullTenantUri;
-    }
   }
-  
-  // Fall back to default database
+
+  // All tenants share the default database
   const defaultUri = process.env.MONGODB_URI;
   if (!defaultUri) {
     throw new Error(
       'Please define the MONGODB_URI environment variable inside .env.local'
     );
   }
-  
+
   return defaultUri;
 }
 
@@ -225,11 +217,8 @@ export async function closeConnection() {
  * Check if a tenant has a dedicated database configured
  */
 export function hasTenantDatabase(tenantId: string): boolean {
-  const tenantEnvKey = tenantId.toUpperCase().replace(/-/g, '_').replace('HURGHADA_', '');
-  return !!(
-    process.env[`MONGODB_URI_${tenantEnvKey}`] || 
-    process.env[`MONGODB_URI_${tenantId.toUpperCase().replace(/-/g, '_')}`]
-  );
+  const envKey = `MONGODB_URI_${tenantId.toUpperCase().replace(/-/g, '_')}`;
+  return !!process.env[envKey];
 }
 
 /**
