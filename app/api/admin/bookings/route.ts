@@ -104,7 +104,9 @@ export async function GET(request: NextRequest) {
         },
       },
       { $unwind: { path: '$tour', preserveNullAndEmptyArrays: true } },
-      // Tenant filter (apply after join too, to handle any legacy bookings missing tenantId)
+      // Tenant filter: strict match when a specific brand is selected;
+      // when "all" is selected, exclude 'default' (EEO) bookings so only
+      // branded-tenant bookings are shown.
       ...(effectiveTenantId
         ? [
             {
@@ -113,7 +115,13 @@ export async function GET(request: NextRequest) {
               },
             },
           ]
-        : []),
+        : [
+            {
+              $match: {
+                tenantId: { $exists: true, $ne: 'default' },
+              },
+            },
+          ]),
       // Join Destination (optional)
       {
         $lookup: {
