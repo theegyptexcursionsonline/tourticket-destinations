@@ -338,6 +338,7 @@ BookingSchema.index({ tenantId: 1, tour: 1, date: 1 });
 BookingSchema.index({ tenantId: 1, status: 1 });
 BookingSchema.index({ tenantId: 1, createdAt: -1 });
 BookingSchema.index({ tenantId: 1, source: 1, createdAt: -1 });
+BookingSchema.index({ tenantId: 1, status: 1, createdAt: -1 });
 
 const Booking: Model<IBooking> = mongoose.models.Booking || mongoose.model<IBooking>('Booking', BookingSchema);
 

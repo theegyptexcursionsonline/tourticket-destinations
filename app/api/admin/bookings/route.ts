@@ -39,6 +39,11 @@ export async function GET(request: NextRequest) {
 
     const baseMatch: Record<string, unknown> = {};
 
+    // Early tenant filter — narrows working set BEFORE expensive $lookups
+    if (effectiveTenantId) {
+      baseMatch.tenantId = effectiveTenantId;
+    }
+
     // Status filter
     if (status && status !== 'all') {
       // Accept both status codes (e.g. refunded) and DB labels (e.g. Refunded)

@@ -145,7 +145,14 @@ const nextConfig = {
         ],
       },
       {
-        // API routes - no caching
+        // Admin dashboard & reports — short server cache with stale-while-revalidate
+        source: '/api/admin/(dashboard|reports)(.*)',
+        headers: [
+          { key: 'Cache-Control', value: 'private, s-maxage=60, stale-while-revalidate=120' },
+        ],
+      },
+      {
+        // All other API routes - no caching
         source: '/api/(.*)',
         headers: [
           { key: 'Cache-Control', value: 'no-store, max-age=0' },
