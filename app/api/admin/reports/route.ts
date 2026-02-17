@@ -22,11 +22,10 @@ export async function GET(request: NextRequest) {
     // IMPORTANT: connect to tenant-specific DB when a specific brand is selected
     await dbConnect(effectiveTenantId || undefined);
     
-    // Build filter for tenant-specific queries
+    // Build strict tenant filter for bookings
     const tenantFilter: Record<string, unknown> = {};
     if (effectiveTenantId) {
-      // Be tolerant of legacy records that might have missing tenantId in a tenant DB
-      tenantFilter.$or = [{ tenantId: effectiveTenantId }, { tenantId: { $exists: false } }, { tenantId: null }];
+      tenantFilter.tenantId = effectiveTenantId;
     }
 
     // --- 1. Monthly Revenue for the Last 6 Months ---

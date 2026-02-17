@@ -30,10 +30,16 @@ export async function GET(request: NextRequest) {
       searchParams.get('brand_id');
     const effectiveTenantId = tenantId && tenantId !== 'all' ? tenantId : undefined;
     
-    // Build filter for tenant-specific queries
-    const tenantFilter: Record<string, unknown> = {};
+    // Build strict tenant filters
+    // Tours: include selected tenant + 'default' (shared tours visible to all tenants)
+    // Bookings: strict match — only bookings that belong to this tenant
+    const tourTenantFilter: Record<string, unknown> = {};
+    const bookingTenantFilter: Record<string, unknown> = {};
     if (effectiveTenantId) {
-      tenantFilter.$or = [{ tenantId: effectiveTenantId }, { tenantId: { $exists: false } }, { tenantId: null }];
+      tourTenantFilter.tenantId = effectiveTenantId !== 'default'
+        ? { $in: [effectiveTenantId, 'default'] }
+        : effectiveTenantId;
+      bookingTenantFilter.tenantId = effectiveTenantId;
     }
 
     // Connect to database with timeout
@@ -51,11 +57,11 @@ export async function GET(request: NextRequest) {
       recentBookingsCount,
       recentBookings
     ] = await Promise.allSettled([
-      Tour.countDocuments({ isPublished: true, ...tenantFilter }),
-      Booking.countDocuments(tenantFilter),
-      User.countDocuments(), // Users are not tenant-specific
+      Tour.countDocuments({ isPublished: true, ...tourTenantFilter }),
+      Booking.countDocuments(bookingTenantFilter),
+      User.countDocuments(bookingTenantFilter.tenantId ? bookingTenantFilter : {}),
       Booking.aggregate([
-        { $match: tenantFilter },
+        { $match: bookingTenantFilter },
         { $group: { _id: null, totalRevenue: { $sum: '$totalPrice' } } },
       ]),
       (async () => {
@@ -63,10 +69,10 @@ export async function GET(request: NextRequest) {
         twentyFourHoursAgo.setDate(twentyFourHoursAgo.getDate() - 1);
         return await Booking.countDocuments({
           createdAt: { $gte: twentyFourHoursAgo },
-          ...tenantFilter,
+          ...bookingTenantFilter,
         });
       })(),
-      Booking.find(tenantFilter)
+      Booking.find(bookingTenantFilter)
         .sort({ createdAt: -1 })
         .limit(5)
         .populate({ path: 'tour', model: Tour, select: 'title' })

@@ -188,7 +188,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Tour not found.' }, { status: 404 });
     }
 
-    if (tour.tenantId !== tenantId) {
+    // Allow tours that belong to the selected tenant OR are shared from 'default'
+    if (tour.tenantId !== tenantId && tour.tenantId !== 'default') {
       return NextResponse.json(
         { success: false, error: 'Selected tour does not belong to selected brand.' },
         { status: 400 },

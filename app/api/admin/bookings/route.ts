@@ -105,8 +105,7 @@ export async function GET(request: NextRequest) {
       },
       { $unwind: { path: '$tour', preserveNullAndEmptyArrays: true } },
       // Tenant filter: strict match when a specific brand is selected;
-      // when "all" is selected, exclude 'default' (EEO) bookings so only
-      // branded-tenant bookings are shown.
+      // when "all" is selected, show all bookings (no filter).
       ...(effectiveTenantId
         ? [
             {
@@ -115,13 +114,7 @@ export async function GET(request: NextRequest) {
               },
             },
           ]
-        : [
-            {
-              $match: {
-                tenantId: { $exists: true, $ne: 'default' },
-              },
-            },
-          ]),
+        : []),
       // Join Destination (optional)
       {
         $lookup: {

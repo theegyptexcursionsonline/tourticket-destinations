@@ -7,7 +7,7 @@ import Tour from '@/lib/models/Tour';
 import User from '@/lib/models/user';
 import { verifyToken } from '@/lib/jwt';
 import { verifyFirebaseToken } from '@/lib/firebase/admin';
-import { getTenantConfigCached, getTenantEmailBranding } from '@/lib/tenant';
+import { getTenantConfigCached, getTenantEmailBranding, getTenantFromRequest } from '@/lib/tenant';
 import { requireAdminAuth } from '@/lib/auth/adminAuth';
 import { EmailService } from '@/lib/email/emailService';
 
@@ -218,8 +218,13 @@ export async function POST(request: NextRequest) {
 
     const totalGuests = adults + children + infants;
 
-    // Get tenant config for booking reference prefix
-    const tenantId = tour.tenantId || 'default';
+    // Resolve tenantId from the request domain (middleware), not the tour
+    let tenantId = 'default';
+    try {
+      tenantId = await getTenantFromRequest();
+    } catch {
+      tenantId = tour.tenantId || 'default';
+    }
     const tenantConfig = await getTenantConfigCached(tenantId);
     
     // Generate tenant-specific booking reference
@@ -239,7 +244,7 @@ export async function POST(request: NextRequest) {
     const bookingReference = `${prefix}-${timestamp}-${random}`;
 
     const booking = await Booking.create({
-      tenantId: tour.tenantId || 'default', // Inherit tenant from tour
+      tenantId, // Use the resolved tenant (from request domain, not tour)
       bookingReference,
       tour: tourId,
       user: user._id, // Use the ObjectId from the user document

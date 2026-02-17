@@ -9,7 +9,7 @@ import { EmailService } from '@/lib/email/emailService';
 import Stripe from 'stripe';
 import { parseLocalDate, ensureDateOnlyString } from '@/utils/date';
 import { buildGoogleMapsLink, buildStaticMapImageUrl } from '@/lib/utils/mapImage';
-import { getTenantConfigCached } from '@/lib/tenant';
+import { getTenantConfigCached, getTenantFromRequest } from '@/lib/tenant';
 import { ITenant } from '@/lib/models/Tenant';
 import { TenantEmailBranding } from '@/lib/email/type';
 
@@ -163,10 +163,22 @@ export async function POST(request: Request) {
       );
     }
 
-    // Get tenantId from first cart item's tour (will be validated later when we fetch the tour)
-    // This ensures all bookings are for the same tenant
-    const firstTour = await Tour.findById(cart[0]._id || cart[0].id).select('tenantId').lean();
-    const tenantId = firstTour?.tenantId || requestTenantId || 'default';
+    // Resolve tenantId: request domain (middleware) > frontend payload > tour > default
+    // The middleware sets x-tenant-id based on the domain the customer is browsing,
+    // which is the correct tenant for the booking even when tours are shared.
+    let tenantId = 'default';
+    try {
+      tenantId = await getTenantFromRequest();
+    } catch {
+      // Fallback if headers aren't available
+    }
+    if (!tenantId || tenantId === 'default') {
+      tenantId = requestTenantId || 'default';
+    }
+    if (!tenantId || tenantId === 'default') {
+      const firstTour = await Tour.findById(cart[0]._id || cart[0].id).select('tenantId').lean();
+      tenantId = firstTour?.tenantId || 'default';
+    }
     
     // Get tenant configuration for tenant-specific settings
     const tenantConfig = await getTenantConfigCached(tenantId);
@@ -485,7 +497,7 @@ export async function POST(request: Request) {
         const bookingReference = await generateUniqueBookingReference(tenantId, tenantConfig);
 
         const booking = await Booking.create({
-          tenantId: tour.tenantId || 'default', // Inherit tenant from tour
+          tenantId, // Use the resolved tenant (from request domain, not tour)
           bookingReference, // Provide the reference explicitly
           tour: tour._id,
           user: user._id,
