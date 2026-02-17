@@ -3,6 +3,25 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import withAuth from '@/components/admin/withAuth';
+
+function timeAgo(dateStr?: string): string {
+  if (!dateStr) return 'Just now';
+  const now = Date.now();
+  const then = new Date(dateStr).getTime();
+  const diff = now - then;
+  if (diff < 0 || isNaN(diff)) return 'Just now';
+  const seconds = Math.floor(diff / 1000);
+  if (seconds < 60) return 'Just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  const weeks = Math.floor(days / 7);
+  if (weeks < 4) return `${weeks}w ago`;
+  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { 
@@ -40,7 +59,7 @@ interface DashboardStats {
   totalTours: number;
   totalUsers: number;
   recentBookingsCount: number;
-  recentActivities: { id: string; text: string }[];
+  recentActivities: { id: string; text: string; createdAt?: string }[];
 }
 
 interface MonthlyRevenue {
@@ -557,7 +576,7 @@ const AdminDashboard = () => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-slate-700 leading-relaxed">{activity.text}</p>
-                    <p className="text-xs text-slate-500 mt-1">Just now</p>
+                    <p className="text-xs text-slate-500 mt-1">{timeAgo(activity.createdAt)}</p>
                   </div>
                 </div>
               ))

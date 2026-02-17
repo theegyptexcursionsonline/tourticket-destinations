@@ -78,11 +78,13 @@ async function fetchDashboardStats(effectiveTenantId: string | undefined) {
             return {
               id: booking._id.toString(),
               text: `New booking for "${tourTitle}" by ${userName}`,
+              createdAt: booking.createdAt || booking._id.getTimestamp(),
             };
           } catch {
             return {
               id: booking._id.toString(),
               text: 'New booking received',
+              createdAt: booking.createdAt || booking._id.getTimestamp(),
             };
           }
         })
