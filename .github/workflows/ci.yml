@@ -1,0 +1,153 @@
+name: CI — Tests
+
+on:
+  push:
+    branches: [main, develop, 'feature/**']
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # ─────────────────────────────────────────────
+  # 1. Unit & Component tests (Jest)
+  # ─────────────────────────────────────────────
+  jest:
+    name: Jest Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Run Jest tests
+        run: pnpm test -- --ci --forceExit --maxWorkers=2
+
+  # ─────────────────────────────────────────────
+  # 2. API integration tests (Supertest)
+  # ─────────────────────────────────────────────
+  supertest:
+    name: Supertest API Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build Next.js
+        run: pnpm build
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-test-jwt-secret-32chars-long!!' }}
+          NEXT_PUBLIC_BASE_URL: http://localhost:3000
+
+      - name: Start server & run Supertest
+        run: |
+          pnpm start &
+          SERVER_PID=$!
+
+          # Wait for server to be ready (up to 30s)
+          for i in $(seq 1 30); do
+            if curl -s http://localhost:3000 > /dev/null 2>&1; then
+              echo "Server ready after ${i}s"
+              break
+            fi
+            sleep 1
+          done
+
+          pnpm test:api || TEST_EXIT=$?
+
+          kill $SERVER_PID 2>/dev/null || true
+          exit ${TEST_EXIT:-0}
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-test-jwt-secret-32chars-long!!' }}
+          TEST_BASE_URL: http://localhost:3000
+
+  # ─────────────────────────────────────────────
+  # 3. End-to-end tests (Playwright)
+  # ─────────────────────────────────────────────
+  playwright:
+    name: Playwright E2E Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Build Next.js
+        run: pnpm build
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-test-jwt-secret-32chars-long!!' }}
+          NEXT_PUBLIC_BASE_URL: http://localhost:3000
+
+      - name: Start server & run Playwright
+        run: |
+          pnpm start &
+          SERVER_PID=$!
+
+          for i in $(seq 1 30); do
+            if curl -s http://localhost:3000 > /dev/null 2>&1; then
+              echo "Server ready after ${i}s"
+              break
+            fi
+            sleep 1
+          done
+
+          PLAYWRIGHT_BASE_URL=http://localhost:3000 pnpm test:e2e || TEST_EXIT=$?
+
+          kill $SERVER_PID 2>/dev/null || true
+          exit ${TEST_EXIT:-0}
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-test-jwt-secret-32chars-long!!' }}
+          CI: true
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
