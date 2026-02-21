@@ -61,7 +61,7 @@ const ItineraryMap: React.FC<ItineraryMapProps> = ({ itinerary, tourTitle }) => 
         <div className="p-4 md:p-6">
           <div className="relative">
             {/* Route line */}
-            <div className="absolute left-3 md:left-4 top-8 bottom-8 w-0.5 bg-gradient-to-b from-blue-400 via-indigo-400 to-purple-400"></div>
+            <div className="absolute start-3 md:start-4 top-8 bottom-8 w-0.5 bg-gradient-to-b from-blue-400 via-indigo-400 to-purple-400"></div>
 
             {/* Location markers */}
             <div className="space-y-6">
@@ -74,7 +74,7 @@ const ItineraryMap: React.FC<ItineraryMapProps> = ({ itinerary, tourTitle }) => 
                   `}>
                     <MapPin size={16} className="text-white" />
                     {index === 0 && (
-                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full animate-ping"></div>
+                      <div className="absolute -top-1 -end-1 w-3 h-3 bg-green-400 rounded-full animate-ping"></div>
                     )}
                   </div>
 

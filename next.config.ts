@@ -1,5 +1,7 @@
 // next.config.js
 const { withSentryConfig } = require('@sentry/nextjs');
+const createNextIntlPlugin = require('next-intl/plugin');
+const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -214,8 +216,8 @@ const nextConfig = {
   },
 };
 
-// Export with Sentry configuration
-module.exports = withSentryConfig(nextConfig, {
+// Export with next-intl and Sentry configuration
+module.exports = withSentryConfig(withNextIntl(nextConfig), {
   org: 'egyptexcursionsonline',
   project: 'javascript-nextjs',
   silent: !process.env.CI,

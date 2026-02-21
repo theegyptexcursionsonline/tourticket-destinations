@@ -4,7 +4,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { 
   Search, Star, Clock, MapPin, ArrowRight, 
   Eye, Heart, Share2, Award,
@@ -119,7 +119,7 @@ export default function MasonryLandingPage({
                 }`}>
                   <div className="flex items-center gap-4">
                     <div className="relative flex-1">
-                      <Search className="absolute left-6 top-1/2 transform -translate-y-1/2 h-6 w-6 text-white/70" />
+                      <Search className="absolute start-6 top-1/2 transform -translate-y-1/2 h-6 w-6 text-white/70" />
                       <input
                         type="text"
                         placeholder="Discover amazing experiences..."
@@ -127,7 +127,7 @@ export default function MasonryLandingPage({
                         onChange={(e) => setSearchQuery(e.target.value)}
                         onFocus={() => setIsSearchFocused(true)}
                         onBlur={() => setIsSearchFocused(false)}
-                        className="w-full bg-transparent text-white placeholder-white/70 pl-16 pr-6 py-6 focus:outline-none text-lg font-medium"
+                        className="w-full bg-transparent text-white placeholder-white/70 ps-16 pe-6 py-6 focus:outline-none text-lg font-medium"
                       />
                     </div>
                     <motion.button 
@@ -147,7 +147,7 @@ export default function MasonryLandingPage({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 1.5 }}
-              className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
+              className="absolute bottom-8 start-1/2 transform -translate-x-1/2"
             >
               <motion.div
                 animate={{ y: [0, 15, 0] }}
@@ -372,7 +372,7 @@ const TourMasonryCard = ({ item, height }: { item: any; height: string }) => (
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
         
         {/* Floating Price Tag */}
-        <div className="absolute top-4 right-4">
+        <div className="absolute top-4 end-4">
           <motion.div
             whileHover={{ scale: 1.1, rotate: 5 }}
             className="bg-white/90 backdrop-blur-sm rounded-full px-4 py-2 shadow-lg"
@@ -384,7 +384,7 @@ const TourMasonryCard = ({ item, height }: { item: any; height: string }) => (
         </div>
 
         {/* Content Overlay */}
-        <div className="absolute bottom-0 left-0 right-0 p-6">
+        <div className="absolute bottom-0 start-0 end-0 p-6">
           <h3 className="text-xl font-bold text-white mb-2 group-hover:text-yellow-300 transition-colors">
             {item.title}
           </h3>
@@ -441,7 +441,7 @@ const DestinationMasonryCard = ({ item, height }: { item: any; height: string })
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/20" />
         
         {/* Content Overlay */}
-        <div className="absolute top-6 left-6 right-6">
+        <div className="absolute top-6 start-6 end-6">
           <h3 className="text-2xl font-bold text-white mb-1 group-hover:text-yellow-300 transition-colors">
             {item.name}
           </h3>
@@ -450,7 +450,7 @@ const DestinationMasonryCard = ({ item, height }: { item: any; height: string })
           )}
         </div>
 
-        <div className="absolute bottom-6 left-6 right-6">
+        <div className="absolute bottom-6 start-6 end-6">
           <div className="flex items-center justify-between text-white">
             <span className="text-sm">
               {item.tourCount || 0} tours available

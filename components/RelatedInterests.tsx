@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import {
@@ -167,7 +167,7 @@ const InterestCard = ({ interest }: { interest: Interest }) => {
       </div>
 
       {/* Content Overlay */}
-      <div className="absolute bottom-0 left-0 right-0 p-5 z-10">
+      <div className="absolute bottom-0 start-0 end-0 p-5 z-10">
         <div className="bg-white/95 backdrop-blur-sm rounded-xl p-4 shadow-lg transform transition-all duration-300 group-hover:bg-white">
           {/* Icon Badge */}
           <div className="flex items-start justify-between gap-3 mb-3">
@@ -196,7 +196,7 @@ const InterestCard = ({ interest }: { interest: Interest }) => {
 
       {/* Featured Badge */}
       {interest.featured && (
-        <div className="absolute top-4 right-4 z-20 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-lg flex items-center gap-1">
+        <div className="absolute top-4 end-4 z-20 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-lg flex items-center gap-1">
           <TrendingUp className="w-3 h-3" />
           Featured
         </div>

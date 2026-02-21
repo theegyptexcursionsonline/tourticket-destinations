@@ -1,5 +1,6 @@
 import type { Config } from "tailwindcss";
-import scrollbarHide from "tailwind-scrollbar-hide"; // Import the plugin
+import scrollbarHide from "tailwind-scrollbar-hide";
+import rtl from "tailwindcss-rtl";
 
 const config: Config = {
   content: [
@@ -11,13 +12,13 @@ const config: Config = {
     extend: {
       fontFamily: {
         sans: ["var(--font-inter)"],
-        mono: ["var(--font-almarai)"],
+        arabic: ["var(--font-almarai)"],
       },
       screens: {
         'xs': '475px',
       },
     },
   },
-  plugins: [scrollbarHide], // Add the plugin here
+  plugins: [scrollbarHide, rtl],
 };
 export default config;

@@ -41,7 +41,7 @@ const ComingSoonModal: FC<ComingSoonModalProps> = ({ isOpen, onClose, destinatio
           >
             <button
               onClick={onClose}
-              className="absolute top-4 right-4 p-2 rounded-full text-slate-500 hover:bg-slate-100 transition-colors"
+              className="absolute top-4 end-4 p-2 rounded-full text-slate-500 hover:bg-slate-100 transition-colors"
             >
               <X size={24} />
             </button>

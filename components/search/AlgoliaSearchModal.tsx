@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import AlgoliaSearch from './AlgoliaSearch';
+import { useTranslations } from 'next-intl';
 
 interface AlgoliaSearchModalProps {
   isOpen: boolean;
@@ -28,6 +29,7 @@ function useOnClickOutside(ref: { current: HTMLElement | null }, handler: () => 
 }
 
 export default function AlgoliaSearchModal({ isOpen, onClose }: AlgoliaSearchModalProps) {
+  const t = useTranslations();
   const modalRef = useRef<HTMLDivElement>(null);
 
   useOnClickOutside(modalRef, onClose);
@@ -77,14 +79,14 @@ export default function AlgoliaSearchModal({ isOpen, onClose }: AlgoliaSearchMod
                   </svg>
                 </div>
                 <div>
-                  <h2 className="text-white font-bold text-lg">AI-Powered Tour Search</h2>
-                  <p className="text-white/70 text-xs">Discover Egypt's amazing tours instantly</p>
+                  <h2 className="text-white font-bold text-lg">{t('search.searchTours')}</h2>
+                  <p className="text-white/70 text-xs">{t('search.placeholder')}</p>
                 </div>
               </div>
               <button
                 onClick={onClose}
                 className="p-2 hover:bg-white/20 rounded-xl transition-all hover:scale-105"
-                aria-label="Close search"
+                aria-label={t('common.close')}
               >
                 <X className="w-6 h-6 text-white" />
               </button>

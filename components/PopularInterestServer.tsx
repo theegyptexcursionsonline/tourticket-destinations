@@ -2,9 +2,10 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import Image from 'next/image';
 import { ArrowRight, Star, Sparkles, TrendingUp } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Autoplay, EffectCoverflow } from 'swiper/modules';
 
@@ -86,7 +87,7 @@ const InterestCard = ({
 
       {/* Featured Badge */}
       {interest.featured && (
-        <div className="absolute top-4 right-4 z-20 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-lg flex items-center gap-1">
+        <div className="absolute top-4 end-4 z-20 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-lg flex items-center gap-1">
           <Sparkles className="w-3 h-3" />
           Featured
         </div>
@@ -94,14 +95,14 @@ const InterestCard = ({
 
       {/* Trending Badge */}
       {interest.products > 50 && (
-        <div className="absolute top-4 left-4 z-20 bg-gradient-to-r from-green-400 to-emerald-500 text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-lg flex items-center gap-1">
+        <div className="absolute top-4 start-4 z-20 bg-gradient-to-r from-green-400 to-emerald-500 text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-lg flex items-center gap-1">
           <TrendingUp className="w-3 h-3" />
           Trending
         </div>
       )}
 
       {/* Content */}
-      <div className="absolute bottom-0 left-0 right-0 p-6 z-10">
+      <div className="absolute bottom-0 start-0 end-0 p-6 z-10">
         <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-yellow-300 transition-colors">
           {interest.name}
         </h3>
@@ -118,22 +119,26 @@ const InterestCard = ({
   );
 };
 
-const EmptyState = () => (
-  <div className="text-center py-12">
-    <Star className="w-12 h-12 text-slate-400 mx-auto mb-3" />
-    <h3 className="text-xl font-bold text-white mb-2">No Featured Experiences Yet</h3>
-    <p className="text-slate-300 mb-4">Check back soon for curated experiences!</p>
-    <Link
-      href="/tours"
-      className="inline-flex items-center gap-2 px-6 py-3 bg-white text-slate-900 rounded-lg hover:bg-slate-100 transition-colors font-semibold"
-    >
-      Browse All Tours <ArrowRight className="w-4 h-4" />
-    </Link>
-  </div>
-);
+const EmptyState = () => {
+  const t = useTranslations();
+  return (
+    <div className="text-center py-12">
+      <Star className="w-12 h-12 text-slate-400 mx-auto mb-3" />
+      <h3 className="text-xl font-bold text-white mb-2">{t('tour.noTours')}</h3>
+      <p className="text-slate-300 mb-4">{t('tour.noToursDescription')}</p>
+      <Link
+        href="/tours"
+        className="inline-flex items-center gap-2 px-6 py-3 bg-white text-slate-900 rounded-lg hover:bg-slate-100 transition-colors font-semibold"
+      >
+        {t('homepage.viewAllTours')} <ArrowRight className="w-4 h-4" />
+      </Link>
+    </div>
+  );
+};
 
 // --- MAIN COMPONENT ---
 export default function PopularInterestServer({ interests, categoryPages }: PopularInterestServerProps) {
+  const t = useTranslations();
   const getCategoryPage = (interest: Interest): CategoryPage | undefined => {
     return categoryPages.find(page => {
       if (!page.isPublished || page.pageType !== 'category') return false;
@@ -159,14 +164,14 @@ export default function PopularInterestServer({ interests, categoryPages }: Popu
         <div className="text-center mb-10 sm:mb-12 md:mb-14">
           <div className="inline-flex items-center gap-2 bg-yellow-400/20 text-yellow-300 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full mb-3 sm:mb-4">
             <Sparkles className="w-3 sm:w-4 h-3 sm:h-4" />
-            <span className="text-xs sm:text-sm font-bold">Featured Experiences</span>
+            <span className="text-xs sm:text-sm font-bold">{t('homepage.customerFavorites')}</span>
           </div>
 
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-3 sm:mb-4 px-4">
-          Top Experience Categories.
+          {t('homepage.topActivities')}
           </h2>
           <p className="text-base sm:text-lg md:text-xl text-slate-300 max-w-2xl mx-auto px-4">
-            Discover our most loved experiences curated for unforgettable adventures
+            {t('homepage.discoverExperiences')}
           </p>
         </div>
 
@@ -214,7 +219,7 @@ export default function PopularInterestServer({ interests, categoryPages }: Popu
             href="/interests"
             className="inline-flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-4 bg-white text-slate-900 rounded-xl text-sm sm:text-base font-bold hover:bg-slate-100 transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-105"
           >
-            Explore All
+            {t('destinations.exploreAll')}
             <ArrowRight className="w-4 sm:w-5 h-4 sm:h-5" />
           </Link>
         </div>

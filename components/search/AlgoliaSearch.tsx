@@ -5,6 +5,7 @@ import { InstantSearch, SearchBox, Hits, Configure, useInstantSearch } from 'rea
 import { AlertCircle, MapPin, Clock, DollarSign, Search as SearchIcon, Star, Sparkles } from 'lucide-react';
 import 'instantsearch.css/themes/satellite.css';
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 
 const ALGOLIA_APP_ID = process.env.NEXT_PUBLIC_ALGOLIA_APP_ID || 'WMDNV9WSOI';
 const ALGOLIA_SEARCH_KEY = process.env.NEXT_PUBLIC_ALGOLIA_SEARCH_API_KEY || 'f485b4906072cedbd2f51a46e5ac2637';
@@ -45,6 +46,7 @@ const NoResultsBoundary = ({ children, fallback }: { children: React.ReactNode; 
 };
 
 export default function AlgoliaSearch() {
+  const t = useTranslations();
   const [error, setError] = useState<string | null>(null);
 
   // Log configuration for debugging
@@ -80,14 +82,14 @@ export default function AlgoliaSearch() {
               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
             />
             {hit.isFeatured && (
-              <div className="absolute top-3 left-3 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
+              <div className="absolute top-3 start-3 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
                 <Star className="w-3 h-3 fill-current" />
-                Featured
+                {t('tourCard.featured')}
               </div>
             )}
             {hit.discountPrice && hit.discountPrice < hit.price && (
-              <div className="absolute top-3 right-3 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold">
-                Save {Math.round(((hit.price - hit.discountPrice) / hit.price) * 100)}%
+              <div className="absolute top-3 end-3 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold">
+                {t('price.save')} {Math.round(((hit.price - hit.discountPrice) / hit.price) * 100)}%
               </div>
             )}
           </div>
@@ -142,7 +144,7 @@ export default function AlgoliaSearch() {
               ) : null}
             </div>
             <span className="text-blue-600 text-sm font-semibold group-hover:translate-x-1 transition-transform">
-              View Details →
+              {t('tourCard.viewDetails')} →
             </span>
           </div>
         </div>
@@ -172,13 +174,13 @@ export default function AlgoliaSearch() {
         <div className="p-4 sm:p-6 bg-white border-b border-slate-200 shadow-sm sticky top-0 z-10">
           <div className="max-w-3xl mx-auto">
             <SearchBox
-              placeholder="Search for tours in Egypt... (e.g., Pyramids, Nile cruise, Cairo)"
+              placeholder={t('search.searchTours')}
               classNames={{
                 root: 'w-full',
                 form: 'relative w-full flex items-center gap-2',
-                input: 'w-full px-5 py-4 pr-24 border-2 border-slate-300 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none text-base text-slate-900 placeholder:text-slate-400 shadow-sm transition-all duration-200',
-                submit: 'absolute right-14 top-1/2 -translate-y-1/2 p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg cursor-pointer transition-colors',
-                reset: 'absolute right-2 top-1/2 -translate-y-1/2 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors',
+                input: 'w-full px-5 py-4 pe-24 border-2 border-slate-300 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none text-base text-slate-900 placeholder:text-slate-400 shadow-sm transition-all duration-200',
+                submit: 'absolute end-14 top-1/2 -translate-y-1/2 p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg cursor-pointer transition-colors',
+                reset: 'absolute end-2 top-1/2 -translate-y-1/2 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors',
                 submitIcon: 'w-5 h-5',
                 resetIcon: 'w-4 h-4',
               }}
@@ -186,7 +188,7 @@ export default function AlgoliaSearch() {
             />
             <p className="mt-2 text-xs text-slate-500 flex items-center gap-1">
               <Sparkles className="w-3.5 h-3.5 text-blue-500" />
-              AI-powered search • Find perfect tours instantly
+              {t('search.searching')}
             </p>
           </div>
         </div>
@@ -200,9 +202,9 @@ export default function AlgoliaSearch() {
                   <div className="bg-gradient-to-br from-blue-500 to-indigo-600 p-4 rounded-2xl shadow-lg mb-4">
                     <SearchIcon className="w-12 h-12 text-white" />
                   </div>
-                  <h3 className="text-xl font-bold text-slate-800 mb-2">Start Your Journey</h3>
+                  <h3 className="text-xl font-bold text-slate-800 mb-2">{t('search.searchTours')}</h3>
                   <p className="text-slate-600 mb-6 max-w-md">
-                    Search for amazing tours and experiences in Egypt. Try searching for "Pyramids", "Nile", or "Cairo"
+                    {t('search.tryDifferentSearch')}
                   </p>
                   <div className="flex flex-wrap gap-2 justify-center">
                     {['Pyramids of Giza', 'Nile Cruise', 'Luxor Temple', 'Cairo Tours'].map((tag) => (
@@ -230,9 +232,9 @@ export default function AlgoliaSearch() {
                     <div className="bg-slate-100 p-4 rounded-2xl mb-4">
                       <AlertCircle className="w-12 h-12 text-slate-400" />
                     </div>
-                    <h3 className="text-xl font-bold text-slate-800 mb-2">No Tours Found</h3>
+                    <h3 className="text-xl font-bold text-slate-800 mb-2">{t('search.noToursFound')}</h3>
                     <p className="text-slate-600 mb-4 max-w-md">
-                      We couldn't find any tours matching your search. Try different keywords or browse our popular destinations.
+                      {t('search.tryDifferentSearch')}
                     </p>
                   </div>
                 }

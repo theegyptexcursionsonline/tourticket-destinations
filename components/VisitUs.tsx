@@ -130,7 +130,7 @@ export default function VisitUs() {
                                     </svg>
                                     
                                     {/* Map Legend */}
-                                    <div className="absolute bottom-6 left-6 bg-white p-4 rounded-lg shadow-md">
+                                    <div className="absolute bottom-6 start-6 bg-white p-4 rounded-lg shadow-md">
                                         <h4 className="text-sm font-bold text-slate-800 mb-3">Our Locations</h4>
                                         <div className="space-y-2 text-xs">
                                             <div className="flex items-center gap-2">
@@ -172,7 +172,7 @@ export default function VisitUs() {
                         </div>
 
                         {/* Location Cards */}
-                        <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+                        <div className="space-y-4 max-h-[400px] overflow-y-auto pe-2">
                             {currentLocations.map((location, index) => (
                                 <div key={index} className="bg-white p-5 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200">
                                     <div className="flex items-start gap-4">
@@ -182,7 +182,7 @@ export default function VisitUs() {
                                         <div className="flex-1">
                                             <div className="flex justify-between items-start mb-2">
                                                 <h4 className="font-bold text-slate-800 text-sm leading-tight">{location.name}</h4>
-                                                <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-full whitespace-nowrap ml-2">
+                                                <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-full whitespace-nowrap ms-2">
                                                     {location.type}
                                                 </span>
                                             </div>

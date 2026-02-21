@@ -2,7 +2,8 @@
 'use client';
 
 import React, { FC } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/i18n/navigation';
+import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ShoppingCart, Trash2, Calendar, Clock, Users, Plus } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
@@ -11,6 +12,7 @@ import Image from 'next/image';
 import { parseLocalDate } from '@/utils/date';
 
 const CartSidebar: FC = () => {
+    const t = useTranslations();
     const router = useRouter();
     const { isCartOpen, closeCart, cart, totalItems, removeFromCart } = useCart();
     const { formatPrice } = useSettings();
@@ -62,7 +64,7 @@ const CartSidebar: FC = () => {
 
     const formatDate = (dateString: string) => {
         const date = parseLocalDate(dateString);
-        if (!date) return 'Date not set';
+        if (!date) return t('booking.noDateSelected');
         return date.toLocaleDateString('en-US', {
             month: 'short',
             day: 'numeric',
@@ -98,12 +100,12 @@ const CartSidebar: FC = () => {
                         {/* Header */}
                         <div className="flex items-center justify-between p-5 border-b bg-white">
                             <h2 className="text-xl font-bold text-slate-800">
-                                Your Cart ({totalItems})
+                                {t('cart.title')} ({totalItems})
                             </h2>
                             <button
                                 onClick={closeCart}
                                 className="p-2 rounded-full text-slate-500 hover:bg-slate-100 transition-colors"
-                                aria-label="Close cart"
+                                aria-label={t('common.close')}
                             >
                                 <X size={20} />
                             </button>
@@ -114,13 +116,13 @@ const CartSidebar: FC = () => {
                             {cart.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center text-center h-full text-slate-400">
                                     <ShoppingCart size={64} className="stroke-1 mb-4" />
-                                    <h3 className="text-lg font-semibold text-slate-600">Your cart is empty</h3>
-                                    <p className="mt-1 text-sm">Find a tour to start your next adventure!</p>
+                                    <h3 className="text-lg font-semibold text-slate-600">{t('cart.empty')}</h3>
+                                    <p className="mt-1 text-sm">{t('cart.emptyDescription')}</p>
                                     <button
                                         onClick={handleStartExploring}
                                         className="mt-6 bg-red-600 text-white font-bold py-3 px-6 rounded-full transition-transform transform hover:scale-105"
                                     >
-                                        Start Exploring
+                                        {t('cart.exploreTours')}
                                     </button>
                                 </div>
                             ) : (
@@ -154,15 +156,15 @@ const CartSidebar: FC = () => {
                                                             <div className="flex items-center gap-2 text-xs text-slate-500">
                                                                 <Calendar size={12} />
                                                                 <span>{formatDate(item.selectedDate)}</span>
-                                                                <Clock size={12} className="ml-2" />
+                                                                <Clock size={12} className="ms-2" />
                                                                 <span>{item.selectedTime}</span>
                                                             </div>
                                                             <div className="flex items-center gap-2 text-xs text-slate-500">
                                                                 <Users size={12} />
                                                                 <span>
-                                                                    {item.quantity} Adult{item.quantity > 1 ? 's' : ''}
-                                                                    {item.childQuantity > 0 && 
-                                                                        `, ${item.childQuantity} Child${item.childQuantity > 1 ? 'ren' : ''}`
+                                                                    {item.quantity} {item.quantity > 1 ? t('booking.adults') : t('booking.adult')}
+                                                                    {item.childQuantity > 0 &&
+                                                                        `, ${item.childQuantity} ${item.childQuantity > 1 ? t('booking.children') : t('booking.child')}`
                                                                     }
                                                                 </span>
                                                             </div>
@@ -176,7 +178,7 @@ const CartSidebar: FC = () => {
                                                             <button
                                                                 onClick={() => removeFromCart(item.uniqueId!)}
                                                                 className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
-                                                                aria-label={`Remove ${item.title} from cart`}
+                                                                aria-label={`${t('cart.remove')} ${item.title}`}
                                                             >
                                                                 <Trash2 size={16} />
                                                             </button>
@@ -191,7 +193,7 @@ const CartSidebar: FC = () => {
                                                     <div className="border-t border-slate-100 bg-slate-50 px-4 py-3">
                                                         <h4 className="text-xs font-semibold text-slate-600 mb-2 flex items-center gap-1">
                                                             <Plus size={12} />
-                                                            Add-ons
+                                                            {t('booking.addOns')}
                                                         </h4>
                                                         <div className="space-y-1">
                                                             {Object.entries(item.selectedAddOns).map(([addOnId, quantity]) => {
@@ -204,7 +206,7 @@ const CartSidebar: FC = () => {
 
                                                                 return (
                                                                     <div key={addOnId} className="flex items-center justify-between text-xs">
-                                                                        <span className="text-slate-600 truncate pr-2">
+                                                                        <span className="text-slate-600 truncate pe-2">
                                                                             {addOnDetail.title}
                                                                             {addOnDetail.perGuest && ` (${totalGuests}x)`}
                                                                         </span>
@@ -230,11 +232,11 @@ const CartSidebar: FC = () => {
                                 {/* Summary */}
                                 <div className="p-4 space-y-2">
                                     <div className="flex justify-between text-sm text-slate-600">
-                                        <span>Items ({totalItems})</span>
+                                        <span>{t('cart.itemsInCart', { count: totalItems })}</span>
                                         <span>{formatPrice(cartTotal)}</span>
                                     </div>
                                     <div className="flex justify-between items-baseline text-slate-800">
-                                        <span className="text-lg font-semibold">Total</span>
+                                        <span className="text-lg font-semibold">{t('price.total')}</span>
                                         <span className="text-2xl font-bold text-red-600">{formatPrice(cartTotal)}</span>
                                     </div>
                                 </div>
@@ -245,7 +247,7 @@ const CartSidebar: FC = () => {
                                         onClick={handleCheckout}
                                         className="w-full bg-red-600 text-white font-bold py-4 rounded-xl text-lg flex items-center justify-center gap-2 transition-all transform hover:scale-105 hover:bg-red-700"
                                     >
-                                        Proceed to Checkout
+                                        {t('cart.checkout')}
                                     </button>
                                 </div>
                             </div>

@@ -41,13 +41,13 @@ const _createTourCardHTML = (tour: any): string => {
                alt="${tour.title || 'Tour'}"
                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
           ${tour.isFeatured ? `
-            <div class="absolute top-2 left-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-0.5 shadow-md">
+            <div class="absolute top-2 start-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-0.5 shadow-md">
               <svg class="w-2.5 h-2.5 fill-current" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
               Featured
             </div>
           ` : ''}
           ${discountPercent > 0 ? `
-            <div class="absolute top-2 right-2 bg-gradient-to-r from-red-500 to-red-600 text-white px-2 py-0.5 rounded-full text-[10px] font-bold shadow-md">
+            <div class="absolute top-2 end-2 bg-gradient-to-r from-red-500 to-red-600 text-white px-2 py-0.5 rounded-full text-[10px] font-bold shadow-md">
               -${discountPercent}%
             </div>
           ` : ''}
@@ -151,7 +151,7 @@ function TourHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: 
           <span className="text-[11px] md:text-xs font-semibold text-gray-700 tracking-wide">
             Tours
           </span>
-          <span className="ml-auto text-[10px] md:text-xs font-medium text-gray-400 bg-gray-100/80 backdrop-blur-sm px-2 md:px-2.5 py-0.5 md:py-1 rounded-full">
+          <span className="ms-auto text-[10px] md:text-xs font-medium text-gray-400 bg-gray-100/80 backdrop-blur-sm px-2 md:px-2.5 py-0.5 md:py-1 rounded-full">
             {hits.length}
           </span>
         </div>
@@ -163,13 +163,13 @@ function TourHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: 
             <>
               <button
                 onClick={() => scroll('left')}
-                className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center hover:bg-white transition-all hover:scale-110"
+                className="absolute start-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center hover:bg-white transition-all hover:scale-110"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
               <button
                 onClick={() => scroll('right')}
-                className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center hover:bg-white transition-all hover:scale-110"
+                className="absolute end-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center hover:bg-white transition-all hover:scale-110"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
@@ -196,18 +196,18 @@ function TourHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: 
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                     />
                     {tour.isFeatured && (
-                      <div className="absolute top-2 left-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-0.5 shadow-md">
+                      <div className="absolute top-2 start-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-0.5 shadow-md">
                         <Star className="w-2.5 h-2.5 fill-current" />
                         Featured
                       </div>
                     )}
                     {tour.originalPrice && tour.discountPrice && tour.discountPrice < tour.originalPrice && (
-                      <div className="absolute top-2 right-2 bg-gradient-to-r from-red-500 to-red-600 text-white px-2 py-0.5 rounded-full text-[10px] font-bold shadow-md">
+                      <div className="absolute top-2 end-2 bg-gradient-to-r from-red-500 to-red-600 text-white px-2 py-0.5 rounded-full text-[10px] font-bold shadow-md">
                         -{Math.round(((tour.originalPrice - tour.discountPrice) / tour.originalPrice) * 100)}%
                       </div>
                     )}
                     {tour.duration && (
-                      <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-sm text-white px-2 py-1 rounded-lg text-[10px] font-medium flex items-center gap-1">
+                      <div className="absolute bottom-2 start-2 bg-black/60 backdrop-blur-sm text-white px-2 py-1 rounded-lg text-[10px] font-medium flex items-center gap-1">
                         <Clock className="w-2.5 h-2.5" />
                         {tour.duration}
                       </div>
@@ -273,7 +273,7 @@ function DestinationHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; l
           <span className="text-[11px] md:text-xs font-semibold text-gray-700 tracking-wide">
             Destinations
           </span>
-          <span className="ml-auto text-[10px] md:text-xs font-medium text-gray-400 bg-gray-100/80 backdrop-blur-sm px-2 md:px-2.5 py-0.5 md:py-1 rounded-full">
+          <span className="ms-auto text-[10px] md:text-xs font-medium text-gray-400 bg-gray-100/80 backdrop-blur-sm px-2 md:px-2.5 py-0.5 md:py-1 rounded-full">
             {hits.length}
           </span>
         </div>
@@ -328,7 +328,7 @@ function CategoryHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limi
           <span className="text-[11px] md:text-xs font-semibold text-gray-700 tracking-wide">
             Categories
           </span>
-          <span className="ml-auto text-[10px] md:text-xs font-medium text-gray-400 bg-gray-100/80 backdrop-blur-sm px-2 md:px-2.5 py-0.5 md:py-1 rounded-full">
+          <span className="ms-auto text-[10px] md:text-xs font-medium text-gray-400 bg-gray-100/80 backdrop-blur-sm px-2 md:px-2.5 py-0.5 md:py-1 rounded-full">
             {hits.length}
           </span>
         </div>
@@ -380,7 +380,7 @@ function BlogHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: 
           <span className="text-[11px] md:text-xs font-semibold text-gray-700 tracking-wide">
             Blog Posts
           </span>
-          <span className="ml-auto text-[10px] md:text-xs font-medium text-gray-400 bg-gray-100/80 backdrop-blur-sm px-2 md:px-2.5 py-0.5 md:py-1 rounded-full">
+          <span className="ms-auto text-[10px] md:text-xs font-medium text-gray-400 bg-gray-100/80 backdrop-blur-sm px-2 md:px-2.5 py-0.5 md:py-1 rounded-full">
             {hits.length}
           </span>
         </div>
@@ -435,7 +435,7 @@ const TourCard = ({ tour }: { tour: any }) => (
           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
         />
         {tour.duration && (
-          <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-0.5 rounded-lg text-[10px] font-medium">
+          <div className="absolute top-2 end-2 bg-white/90 backdrop-blur-sm px-2 py-0.5 rounded-lg text-[10px] font-medium">
             {tour.duration}
           </div>
         )}
@@ -487,13 +487,13 @@ const TourSlider = ({ tours }: { tours: any[] }) => {
         <>
           <button
             onClick={() => scroll('left')}
-            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-7 h-7 bg-white/90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center hover:bg-white transition-all"
+            className="absolute start-0 top-1/2 -translate-y-1/2 z-10 w-7 h-7 bg-white/90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center hover:bg-white transition-all"
           >
             <ChevronLeft className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={() => scroll('right')}
-            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-7 h-7 bg-white/90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center hover:bg-white transition-all"
+            className="absolute end-0 top-1/2 -translate-y-1/2 z-10 w-7 h-7 bg-white/90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center hover:bg-white transition-all"
           >
             <ChevronRight className="w-3.5 h-3.5" />
           </button>
@@ -530,13 +530,13 @@ const DestinationSlider = ({ destinations }: { destinations: any[] }) => {
         <>
           <button
             onClick={() => scroll('left')}
-            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-7 h-7 bg-white/90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center hover:bg-white transition-all"
+            className="absolute start-0 top-1/2 -translate-y-1/2 z-10 w-7 h-7 bg-white/90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center hover:bg-white transition-all"
           >
             <ChevronLeft className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={() => scroll('right')}
-            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-7 h-7 bg-white/90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center hover:bg-white transition-all"
+            className="absolute end-0 top-1/2 -translate-y-1/2 z-10 w-7 h-7 bg-white/90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center hover:bg-white transition-all"
           >
             <ChevronRight className="w-3.5 h-3.5" />
           </button>
@@ -562,7 +562,7 @@ const DestinationSlider = ({ destinations }: { destinations: any[] }) => {
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                 />
                 {destination.isFeatured && (
-                  <div className="absolute top-2 left-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-0.5 shadow-md">
+                  <div className="absolute top-2 start-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-0.5 shadow-md">
                     <Star className="w-2.5 h-2.5 fill-current" />
                     Featured
                   </div>
@@ -1264,7 +1264,7 @@ export default function AISearchWidget() {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 100 }}
         transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-        className="flex fixed bottom-4 md:bottom-6 left-0 right-0 z-[15] justify-center px-3 md:px-6 pointer-events-none"
+        className="flex fixed bottom-4 md:bottom-6 start-0 end-0 z-[15] justify-center px-3 md:px-6 pointer-events-none"
       >
         <div className="w-full max-w-2xl pointer-events-auto">
           <div className="ai-search-container relative">
@@ -1277,7 +1277,7 @@ export default function AISearchWidget() {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 30, scale: 0.94 }}
                   transition={{ duration: 0.2, ease: 'easeInOut' }}
-                  className="absolute bottom-full mb-3 left-0 right-0 rounded-2xl md:rounded-3xl overflow-hidden motion-div-results"
+                  className="absolute bottom-full mb-3 start-0 end-0 rounded-2xl md:rounded-3xl overflow-hidden motion-div-results"
                   style={{
                     padding: '2px',
                     background: 'linear-gradient(135deg, #3b82f6, #06b6d4, #10b981, #f59e0b, #ef4444, #ec4899, #8b5cf6)',
@@ -1308,7 +1308,7 @@ export default function AISearchWidget() {
                     >
                       {/* Animated gradient underline - CSS only */}
                       <div
-                        className="absolute bottom-0 left-0 right-0 h-[1px] animated-underline"
+                        className="absolute bottom-0 start-0 end-0 h-[1px] animated-underline"
                         style={{
                           background: 'linear-gradient(90deg, transparent, #3b82f6, #ef4444, #8b5cf6, transparent)',
                           backgroundSize: '200% 100%',
@@ -1321,7 +1321,7 @@ export default function AISearchWidget() {
                           {chatMode && (
                             <button
                               onClick={handleBackToSearch}
-                              className="mr-1 p-1 hover:bg-gray-100 rounded-lg transition-colors"
+                              className="me-1 p-1 hover:bg-gray-100 rounded-lg transition-colors"
                             >
                               <ArrowLeft className="w-3 md:w-3.5 h-3 md:h-3.5 text-gray-600" strokeWidth={2.5} />
                             </button>
@@ -1452,7 +1452,7 @@ export default function AISearchWidget() {
                                       onClick={() => sendMessage({ text: prompt.text })}
                                       whileHover={{ scale: 1.02, y: -2 }}
                                       whileTap={{ scale: 0.98 }}
-                                      className="group relative p-3 rounded-xl text-left transition-all duration-200"
+                                      className="group relative p-3 rounded-xl text-start transition-all duration-200"
                                       style={{
                                         background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(249, 250, 251, 0.8))',
                                         border: '1px solid rgba(229, 231, 235, 0.6)',
@@ -1472,7 +1472,7 @@ export default function AISearchWidget() {
                                       </div>
                                       {/* Hover arrow */}
                                       <motion.div
-                                        className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100"
+                                        className="absolute end-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100"
                                         initial={{ x: -5 }}
                                         whileHover={{ x: 0 }}
                                       >
@@ -1834,10 +1834,10 @@ export default function AISearchWidget() {
                         }
                       }}
                       placeholder={chatMode ? 'Ask anything about Egypt, tours, prices…' : placeholderTexts[placeholderIndex]}
-                      className="ai-search-input w-full pl-14 md:pl-16 pr-24 md:pr-28 py-3.5 md:py-4 text-sm md:text-[15px] font-semibold text-gray-900 placeholder-gray-400 bg-transparent outline-none cursor-text relative z-10 rounded-full tracking-tight"
+                      className="ai-search-input w-full ps-14 md:ps-16 pe-24 md:pe-28 py-3.5 md:py-4 text-sm md:text-[15px] font-semibold text-gray-900 placeholder-gray-400 bg-transparent outline-none cursor-text relative z-10 rounded-full tracking-tight"
                     />
 
-                    <div className="absolute left-3 md:left-4 top-1/2 transform -translate-y-1/2 z-10">
+                    <div className="absolute start-3 md:start-4 top-1/2 transform -translate-y-1/2 z-10">
                       <div
                         className="relative w-8 md:w-9 h-8 md:h-9 rounded-xl flex items-center justify-center transition-all duration-500 shadow-xl"
                         style={{
@@ -1854,7 +1854,7 @@ export default function AISearchWidget() {
                       </div>
                     </div>
 
-                    <div className="absolute right-3 md:right-4 top-1/2 transform -translate-y-1/2 flex items-center gap-1.5 md:gap-2 z-10">
+                    <div className="absolute end-3 md:end-4 top-1/2 transform -translate-y-1/2 flex items-center gap-1.5 md:gap-2 z-10">
                       {chatMode ? (
                         <>
                           <motion.button

@@ -156,7 +156,7 @@ describe('DayTripsSection', () => {
       render(<DayTripsSection />)
 
       await waitFor(() => {
-        expect(screen.getByText(/Couldn't load day trips/i)).toBeInTheDocument()
+        expect(screen.getByText(/somethingWentWrong|Couldn't load/i)).toBeInTheDocument()
       })
 
       expect(screen.getByText(/Show error details/i)).toBeInTheDocument()

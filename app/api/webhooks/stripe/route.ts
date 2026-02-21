@@ -275,7 +275,7 @@ async function processSuccessfulPayment(paymentIntent: Stripe.PaymentIntent) {
             },
             timeUntil: timeUntilTour,
             dateBadge,
-            discountCode: mainBooking.discountCode || undefined,
+            discountCode: (mainBooking as any).discountCode || undefined,
             tenantBranding,
           });
 

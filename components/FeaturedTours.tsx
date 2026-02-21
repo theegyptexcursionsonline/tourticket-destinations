@@ -7,7 +7,7 @@ import { Tour } from '@/types';
 import { useSettings } from '@/hooks/useSettings';
 import { useTenant } from '@/contexts/TenantContext';
 import BookingSidebar from '@/components/BookingSidebar';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 
 /**
  * Enhanced FeaturedTours - Perfect Card Design with Activity Provider
@@ -116,7 +116,7 @@ const TourCard = ({ tour, onAddToCartClick }: { tour: Tour; onAddToCartClick: (t
         <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
 
         {/* Activity Provider Chip - Top Left */}
-        <div className="absolute top-4 left-4 z-20">
+        <div className="absolute top-4 start-4 z-20">
           <span className="px-3 py-1.5 text-xs font-bold text-white bg-slate-900/80 backdrop-blur-sm rounded-full shadow-lg">
             {getSiteName()}
           </span>
@@ -124,7 +124,7 @@ const TourCard = ({ tour, onAddToCartClick }: { tour: Tour; onAddToCartClick: (t
 
         {/* Tags - Below Provider Chip */}
         {tour.tags && tour.tags.length > 0 && (
-          <div className="absolute top-14 left-4 flex flex-wrap gap-2 z-20">
+          <div className="absolute top-14 start-4 flex flex-wrap gap-2 z-20">
             {tour.tags.slice(0, 2).map((tag, i) => (
               <span
                 key={i}
@@ -137,7 +137,7 @@ const TourCard = ({ tour, onAddToCartClick }: { tour: Tour; onAddToCartClick: (t
         )}
 
         {/* Rating badge (top-right) */}
-        <div className="absolute top-4 right-4 z-20">
+        <div className="absolute top-4 end-4 z-20">
           <div className="bg-white/95 backdrop-blur-sm px-3 py-2 rounded-full flex items-center gap-2 shadow-lg border border-white/20">
             <Star size={16} className="text-yellow-500 fill-yellow-500" />
             <span className="text-sm font-bold text-gray-800">
@@ -147,11 +147,11 @@ const TourCard = ({ tour, onAddToCartClick }: { tour: Tour; onAddToCartClick: (t
         </div>
 
         {/* Price pill (overlay bottom-left) */}
-        <div className="absolute left-4 bottom-4 z-20">
+        <div className="absolute start-4 bottom-4 z-20">
           <div className="bg-gradient-to-r from-red-600 to-red-500 text-white px-4 py-3 rounded-full font-black shadow-xl text-lg border-2 border-white/20">
             {formatPrice(tour.discountPrice || tour.originalPrice || 0)}
             {tour.originalPrice && tour.discountPrice && tour.originalPrice > tour.discountPrice && (
-              <span className="ml-3 text-sm font-medium line-through text-red-100">
+              <span className="ms-3 text-sm font-medium line-through text-red-100">
                 {formatPrice(tour.originalPrice)}
               </span>
             )}
@@ -165,7 +165,7 @@ const TourCard = ({ tour, onAddToCartClick }: { tour: Tour; onAddToCartClick: (t
             e.stopPropagation();
             onAddToCartClick(tour);
           }}
-          className="absolute bottom-4 right-4 z-30 bg-white text-red-600 p-4 rounded-full shadow-xl border-2 border-red-100 transition-all duration-300 transform hover:scale-110 hover:bg-red-600 hover:text-white hover:border-red-600 hover:shadow-2xl focus:outline-none focus-visible:ring-4 focus-visible:ring-red-300"
+          className="absolute bottom-4 end-4 z-30 bg-white text-red-600 p-4 rounded-full shadow-xl border-2 border-red-100 transition-all duration-300 transform hover:scale-110 hover:bg-red-600 hover:text-white hover:border-red-600 hover:shadow-2xl focus:outline-none focus-visible:ring-4 focus-visible:ring-red-300"
           aria-label={`Add ${tour.title || 'tour'} to cart`}
           title="Add to cart"
         >
@@ -201,7 +201,7 @@ const TourCard = ({ tour, onAddToCartClick }: { tour: Tour; onAddToCartClick: (t
 
         {/* Price section */}
         <div className="flex items-center justify-between">
-          <div className="text-left">
+          <div className="text-start">
             <div className="text-sm text-gray-500 mb-1">Starting from</div>
             <div className="flex items-baseline gap-2">
               <span className="text-2xl md:text-3xl font-black text-gray-900">
@@ -385,8 +385,8 @@ export default function FeaturedTours() {
           {/* Cards carousel */}
           <div className="relative w-full overflow-hidden group py-4 sm:py-6 md:py-8">
             {/* Enhanced gradient masks */}
-            <div className="absolute top-0 left-0 w-16 sm:w-24 md:w-32 h-full bg-gradient-to-r from-gray-50 via-gray-50/80 to-transparent z-10 pointer-events-none" />
-            <div className="absolute top-0 right-0 w-16 sm:w-24 md:w-32 h-full bg-gradient-to-l from-gray-50 via-gray-50/80 to-transparent z-10 pointer-events-none" />
+            <div className="absolute top-0 start-0 w-16 sm:w-24 md:w-32 h-full bg-gradient-to-r from-gray-50 via-gray-50/80 to-transparent z-10 pointer-events-none" />
+            <div className="absolute top-0 end-0 w-16 sm:w-24 md:w-32 h-full bg-gradient-to-l from-gray-50 via-gray-50/80 to-transparent z-10 pointer-events-none" />
 
             <div className="flex gap-4 sm:gap-6 md:gap-8 animate-marquee group-hover:[animation-play-state:paused]">
               {duplicatedTours.map((tour, idx) => (

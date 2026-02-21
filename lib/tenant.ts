@@ -86,7 +86,7 @@ export interface TenantPublicConfig {
   name: string;
   domain: string;
   branding: TenantConfig['branding'];
-  seo: Pick<TenantConfig['seo'], 'defaultTitle' | 'titleSuffix' | 'defaultDescription' | 'ogImage'>;
+  seo: Pick<TenantConfig['seo'], 'defaultTitle' | 'titleSuffix' | 'defaultDescription' | 'ogImage' | 'googleTagManagerId'>;
   contact: Pick<TenantConfig['contact'], 'email' | 'phone' | 'whatsapp'>;
   socialLinks: TenantConfig['socialLinks'];
   features: TenantConfig['features'];
@@ -298,6 +298,7 @@ export async function getTenantPublicConfig(tenantId: string): Promise<TenantPub
       titleSuffix: tenant.seo.titleSuffix,
       defaultDescription: tenant.seo.defaultDescription,
       ogImage: tenant.seo.ogImage,
+      googleTagManagerId: tenant.seo.googleTagManagerId,
     },
     contact: {
       email: tenant.contact.email,

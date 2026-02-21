@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useTenant } from '@/contexts/TenantContext';
-import Link from "next/link";
+import { Link } from '@/i18n/navigation';
 import {
   ArrowRight,
   Package,
@@ -143,7 +143,7 @@ const InterestCard = ({
   return (
     <Link
       href={linkUrl}
-      className="group relative block text-left bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 border border-slate-200 hover:border-red-300 h-full"
+      className="group relative block text-start bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 border border-slate-200 hover:border-red-300 h-full"
     >
       {/* Animated Background Gradient */}
       <div className="absolute inset-0 bg-gradient-to-br from-red-50/50 via-orange-50/30 to-amber-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -199,7 +199,7 @@ const InterestCard = ({
       </div>
 
       {/* Hover Accent Line */}
-      <div className={`absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r ${gradient} transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left`} />
+      <div className={`absolute bottom-0 start-0 end-0 h-1 bg-gradient-to-r ${gradient} transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left`} />
     </Link>
   );
 };
@@ -374,7 +374,7 @@ export default function InterestGrid() {
         {/* Custom Navigation Buttons */}
         <button
           onClick={() => swiperRef?.slidePrev()}
-          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-11 h-11 sm:w-12 sm:h-12 bg-white hover:bg-gradient-to-br hover:from-red-500 hover:to-orange-500 text-slate-700 hover:text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center group -translate-x-3 sm:-translate-x-4 lg:-translate-x-6 hidden lg:flex border border-slate-200 hover:border-transparent"
+          className="absolute start-0 top-1/2 -translate-y-1/2 z-10 w-11 h-11 sm:w-12 sm:h-12 bg-white hover:bg-gradient-to-br hover:from-red-500 hover:to-orange-500 text-slate-700 hover:text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center group -translate-x-3 sm:-translate-x-4 lg:-translate-x-6 hidden lg:flex border border-slate-200 hover:border-transparent"
           aria-label="Previous slide"
         >
           <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.5} />
@@ -382,7 +382,7 @@ export default function InterestGrid() {
 
         <button
           onClick={() => swiperRef?.slideNext()}
-          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-11 h-11 sm:w-12 sm:h-12 bg-white hover:bg-gradient-to-br hover:from-red-500 hover:to-orange-500 text-slate-700 hover:text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center group translate-x-3 sm:translate-x-4 lg:translate-x-6 hidden lg:flex border border-slate-200 hover:border-transparent"
+          className="absolute end-0 top-1/2 -translate-y-1/2 z-10 w-11 h-11 sm:w-12 sm:h-12 bg-white hover:bg-gradient-to-br hover:from-red-500 hover:to-orange-500 text-slate-700 hover:text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center group translate-x-3 sm:translate-x-4 lg:translate-x-6 hidden lg:flex border border-slate-200 hover:border-transparent"
           aria-label="Next slide"
         >
           <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.5} />
@@ -458,8 +458,8 @@ export default function InterestGrid() {
     <section className="relative bg-gradient-to-b from-white via-slate-50 to-white py-8 sm:py-12 md:py-16 lg:py-20">
       {/* Background Decoration */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-72 h-72 sm:w-96 sm:h-96 bg-red-500/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 right-1/4 w-72 h-72 sm:w-96 sm:h-96 bg-orange-500/5 rounded-full blur-3xl" />
+        <div className="absolute top-0 start-1/4 w-72 h-72 sm:w-96 sm:h-96 bg-red-500/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 end-1/4 w-72 h-72 sm:w-96 sm:h-96 bg-orange-500/5 rounded-full blur-3xl" />
       </div>
 
       <div className="container mx-auto px-3 sm:px-4 max-w-[1400px] relative z-10">
@@ -487,13 +487,13 @@ export default function InterestGrid() {
           <div className="relative group">
             <div className="absolute inset-0 bg-gradient-to-r from-red-500 to-orange-500 rounded-2xl blur-md opacity-0 group-hover:opacity-20 group-focus-within:opacity-20 transition-opacity" />
             <div className="relative flex items-center">
-              <Search className="absolute left-3 sm:left-4 md:left-5 w-4 sm:w-5 h-4 sm:h-5 text-slate-400 group-hover:text-red-500 group-focus-within:text-red-500 transition-colors z-10" />
+              <Search className="absolute start-3 sm:start-4 md:start-5 w-4 sm:w-5 h-4 sm:h-5 text-slate-400 group-hover:text-red-500 group-focus-within:text-red-500 transition-colors z-10" />
               <input
                 type="text"
                 placeholder="Search experiences by name..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 sm:pl-12 md:pl-14 pr-4 sm:pr-5 py-2.5 sm:py-3 md:py-4 bg-white border-2 border-slate-200 rounded-2xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all text-sm sm:text-base text-slate-900 placeholder:text-slate-400 shadow-sm hover:shadow-md font-medium"
+                className="w-full ps-10 sm:ps-12 md:ps-14 pe-4 sm:pe-5 py-2.5 sm:py-3 md:py-4 bg-white border-2 border-slate-200 rounded-2xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all text-sm sm:text-base text-slate-900 placeholder:text-slate-400 shadow-sm hover:shadow-md font-medium"
               />
             </div>
           </div>

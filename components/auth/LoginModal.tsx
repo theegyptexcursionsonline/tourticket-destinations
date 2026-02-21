@@ -6,6 +6,7 @@ import { X, Eye, EyeOff, Mail, Lock } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslations } from 'next-intl';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignup, onSucces
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const t = useTranslations();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,7 +111,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignup, onSucces
             {/* Close Button */}
             <button
               onClick={onClose}
-              className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+              className="absolute top-4 end-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
               aria-label="Close"
             >
               <X size={20} />
@@ -118,10 +120,10 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignup, onSucces
             {/* Header */}
             <div className="mb-6">
               <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
-                Welcome back
+                {t('auth.welcomeBack')}
               </h2>
               <p className="text-gray-600 text-sm">
-                Log in to leave your review
+                {t('auth.loginDescription')}
               </p>
             </div>
 
@@ -130,16 +132,16 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignup, onSucces
               {/* Email */}
               <div>
                 <label htmlFor="modal-email" className="block text-sm font-medium text-gray-700 mb-2">
-                  Email address
+                  {t('auth.email')}
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                  <Mail className="absolute start-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
                   <input
                     type="email"
                     id="modal-email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    className="w-full ps-10 pe-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                     placeholder="Enter your email"
                     disabled={isSubmitting || isGoogleLoading}
                     required
@@ -150,16 +152,16 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignup, onSucces
               {/* Password */}
               <div>
                 <label htmlFor="modal-password" className="block text-sm font-medium text-gray-700 mb-2">
-                  Password
+                  {t('auth.password')}
                 </label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                  <Lock className="absolute start-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
                   <input
                     type={showPassword ? "text" : "password"}
                     id="modal-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-10 pr-12 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    className="w-full ps-10 pe-12 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                     placeholder="Enter your password"
                     disabled={isSubmitting || isGoogleLoading}
                     required
@@ -167,7 +169,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignup, onSucces
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    className="absolute end-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                     disabled={isSubmitting || isGoogleLoading}
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -183,11 +185,11 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignup, onSucces
               >
                 {isSubmitting ? (
                   <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                    Signing in...
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white me-2"></div>
+                    {t('common.loading')}
                   </>
                 ) : (
-                  'Sign in'
+                  t('auth.login')
                 )}
               </button>
             </form>
@@ -199,7 +201,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignup, onSucces
                   <div className="w-full border-t border-gray-300"></div>
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">Or continue with</span>
+                  <span className="px-2 bg-white text-gray-500">{t('auth.orContinueWith')}</span>
                 </div>
               </div>
             </div>
@@ -213,12 +215,12 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignup, onSucces
             >
               {isGoogleLoading ? (
                 <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-700 mr-2"></div>
-                  Signing in with Google...
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-700 me-2"></div>
+                  {t('common.loading')}
                 </>
               ) : (
                 <>
-                  <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 me-2" viewBox="0 0 24 24">
                     <path
                       fill="#4285F4"
                       d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -236,7 +238,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignup, onSucces
                       d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                     />
                   </svg>
-                  Sign in with Google
+                  {t('auth.continueWithGoogle')}
                 </>
               )}
             </button>
@@ -244,18 +246,18 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignup, onSucces
             {/* Footer */}
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-600">
-                Don't have an account?{' '}
+                {t('auth.dontHaveAccount')}{' '}
                 {onSwitchToSignup ? (
                   <button
                     type="button"
                     onClick={handleSwitchToSignup}
                     className="text-blue-600 hover:underline font-medium"
                   >
-                    Sign up
+                    {t('auth.signup')}
                   </button>
                 ) : (
                   <a href="/signup" className="text-blue-600 hover:underline font-medium">
-                    Sign up
+                    {t('auth.signup')}
                   </a>
                 )}
               </p>

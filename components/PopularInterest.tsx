@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import Image from 'next/image';
 import { ArrowRight, AlertCircle, Star, Sparkles, TrendingUp } from 'lucide-react';
 import { Swiper, SwiperSlide } from 'swiper/react';
@@ -80,7 +80,7 @@ const InterestCard = ({
 
       {/* Featured Badge */}
       {interest.featured && (
-        <div className="absolute top-4 right-4 z-20 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-lg flex items-center gap-1">
+        <div className="absolute top-4 end-4 z-20 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-lg flex items-center gap-1">
           <Sparkles className="w-3 h-3" />
           Featured
         </div>
@@ -88,14 +88,14 @@ const InterestCard = ({
 
       {/* Trending Badge */}
       {interest.products > 50 && (
-        <div className="absolute top-4 left-4 z-20 bg-gradient-to-r from-green-400 to-emerald-500 text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-lg flex items-center gap-1">
+        <div className="absolute top-4 start-4 z-20 bg-gradient-to-r from-green-400 to-emerald-500 text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-lg flex items-center gap-1">
           <TrendingUp className="w-3 h-3" />
           Trending
         </div>
       )}
 
       {/* Content */}
-      <div className="absolute bottom-0 left-0 right-0 p-6 z-10">
+      <div className="absolute bottom-0 start-0 end-0 p-6 z-10">
         <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-yellow-300 transition-colors">
           {interest.name}
         </h3>

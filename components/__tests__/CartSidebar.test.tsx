@@ -35,7 +35,8 @@ describe('CartSidebar', () => {
 
   it('should render cart heading when open', () => {
     render(<CartSidebar />)
-    expect(screen.getByText(/cart/i)).toBeInTheDocument()
+    const cartElements = screen.getAllByText(/cart/i)
+    expect(cartElements.length).toBeGreaterThan(0)
   })
 
   it('should display cart item title', () => {
@@ -65,7 +66,8 @@ describe('CartSidebar', () => {
     })
 
     render(<CartSidebar />)
-    expect(screen.getByText(/empty|no items/i)).toBeInTheDocument()
+    const emptyElements = screen.getAllByText(/empty|no items/i)
+    expect(emptyElements.length).toBeGreaterThan(0)
   })
 
   it('should have action buttons', () => {

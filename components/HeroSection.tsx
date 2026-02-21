@@ -8,6 +8,7 @@ import Image from "next/image";
 import { liteClient as algoliasearch } from 'algoliasearch/lite';
 import { InstantSearch, Index, useSearchBox, useHits, Configure } from 'react-instantsearch';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslations } from 'next-intl';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import ReactMarkdown from 'react-markdown';
@@ -105,6 +106,7 @@ function CustomSearchBox({ searchQuery, onSearchChange: _onSearchChange }: { sea
 }
 
 function TourHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: number }) {
+  const t = useTranslations();
   const { hits } = useHits();
   const limitedHits = hits.slice(0, limit);
   const sliderRef = useRef<HTMLDivElement>(null);
@@ -166,14 +168,14 @@ function TourHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: 
           </div>
           <div>
             <span className="text-xs md:text-sm font-bold text-gray-900 tracking-tight block drop-shadow-sm">
-              Tours & Experiences
+              {t('search.toursAndExperiences')}
             </span>
             <span className="text-[10px] text-gray-600 font-medium drop-shadow-sm">
-              Hand-picked for you
+              {t('search.handPickedForYou')}
             </span>
           </div>
-          <span className="ml-auto text-[10px] md:text-xs font-bold text-blue-700 bg-white/50 backdrop-blur-md px-3 md:px-3.5 py-1 md:py-1.5 rounded-full border border-white/40 shadow-sm">
-            {hits.length} found
+          <span className="ms-auto text-[10px] md:text-xs font-bold text-blue-700 bg-white/50 backdrop-blur-md px-3 md:px-3.5 py-1 md:py-1.5 rounded-full border border-white/40 shadow-sm">
+            {hits.length} {t('search.found')}
           </span>
         </div>
       </div>
@@ -189,7 +191,7 @@ function TourHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: 
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 10 }}
                     onClick={() => scroll('left')}
-                    className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-9 h-9 bg-white/95 backdrop-blur-md rounded-xl shadow-xl flex items-center justify-center hover:bg-white transition-all hover:scale-110 active:scale-95 border border-gray-100"
+                    className="absolute start-0 top-1/2 -translate-y-1/2 z-10 w-9 h-9 bg-white/95 backdrop-blur-md rounded-xl shadow-xl flex items-center justify-center hover:bg-white transition-all hover:scale-110 active:scale-95 border border-gray-100"
                   >
                     <ChevronLeft className="w-4 h-4 text-gray-700" strokeWidth={2.5} />
                   </motion.button>
@@ -202,7 +204,7 @@ function TourHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: 
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -10 }}
                     onClick={() => scroll('right')}
-                    className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-9 h-9 bg-white/95 backdrop-blur-md rounded-xl shadow-xl flex items-center justify-center hover:bg-white transition-all hover:scale-110 active:scale-95 border border-gray-100"
+                    className="absolute end-0 top-1/2 -translate-y-1/2 z-10 w-9 h-9 bg-white/95 backdrop-blur-md rounded-xl shadow-xl flex items-center justify-center hover:bg-white transition-all hover:scale-110 active:scale-95 border border-gray-100"
                   >
                     <ChevronRight className="w-4 h-4 text-gray-700" strokeWidth={2.5} />
                   </motion.button>
@@ -236,26 +238,26 @@ function TourHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: 
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                     {tour.isFeatured && (
-                      <motion.div 
+                      <motion.div
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
-                        className="absolute top-3 left-3 bg-gradient-to-r from-yellow-400 via-orange-400 to-orange-500 text-white px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center gap-1 shadow-lg"
+                        className="absolute top-3 start-3 bg-gradient-to-r from-yellow-400 via-orange-400 to-orange-500 text-white px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center gap-1 shadow-lg"
                       >
                         <Star className="w-3 h-3 fill-current" strokeWidth={2} />
-                        Featured
+                        {t('tourCard.featured')}
                       </motion.div>
                     )}
                     {tour.originalPrice && tour.discountPrice && tour.discountPrice < tour.originalPrice && (
                       <motion.div 
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
-                        className="absolute top-3 right-3 bg-gradient-to-r from-red-500 to-red-600 text-white px-2.5 py-1 rounded-full text-[10px] font-bold shadow-lg"
+                        className="absolute top-3 end-3 bg-gradient-to-r from-red-500 to-red-600 text-white px-2.5 py-1 rounded-full text-[10px] font-bold shadow-lg"
                       >
                         -{Math.round(((tour.originalPrice - tour.discountPrice) / tour.originalPrice) * 100)}% OFF
                       </motion.div>
                     )}
                     {tour.duration && (
-                      <div className="absolute bottom-3 left-3 bg-black/70 backdrop-blur-md text-white px-2.5 py-1.5 rounded-xl text-[10px] font-semibold flex items-center gap-1.5 shadow-lg">
+                      <div className="absolute bottom-3 start-3 bg-black/70 backdrop-blur-md text-white px-2.5 py-1.5 rounded-xl text-[10px] font-semibold flex items-center gap-1.5 shadow-lg">
                         <Clock className="w-3 h-3" strokeWidth={2.5} />
                         {tour.duration}
                       </div>
@@ -306,6 +308,7 @@ function TourHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: 
 }
 
 function DestinationHits({ onHitClick, limit = 3 }: { onHitClick?: () => void; limit?: number }) {
+  const t = useTranslations();
   const { hits } = useHits();
   const limitedHits = hits.slice(0, limit);
 
@@ -324,14 +327,14 @@ function DestinationHits({ onHitClick, limit = 3 }: { onHitClick?: () => void; l
           </div>
           <div>
             <span className="text-xs md:text-sm font-bold text-gray-900 tracking-tight block drop-shadow-sm">
-              Destinations
+              {t('search.destinations')}
             </span>
             <span className="text-[10px] text-gray-600 font-medium drop-shadow-sm">
-              Explore new places
+              {t('search.exploreNewPlaces')}
             </span>
           </div>
-          <span className="ml-auto text-[10px] md:text-xs font-bold text-emerald-700 bg-white/50 backdrop-blur-md px-3 md:px-3.5 py-1 md:py-1.5 rounded-full border border-white/40 shadow-sm">
-            {hits.length} found
+          <span className="ms-auto text-[10px] md:text-xs font-bold text-emerald-700 bg-white/50 backdrop-blur-md px-3 md:px-3.5 py-1 md:py-1.5 rounded-full border border-white/40 shadow-sm">
+            {hits.length} {t('search.found')}
           </span>
         </div>
       </div>
@@ -380,6 +383,7 @@ function DestinationHits({ onHitClick, limit = 3 }: { onHitClick?: () => void; l
 }
 
 function CategoryHits({ onHitClick, limit = 3 }: { onHitClick?: () => void; limit?: number }) {
+  const t = useTranslations();
   const { hits } = useHits();
   const limitedHits = hits.slice(0, limit);
 
@@ -398,14 +402,14 @@ function CategoryHits({ onHitClick, limit = 3 }: { onHitClick?: () => void; limi
           </div>
           <div>
             <span className="text-xs md:text-sm font-bold text-gray-900 tracking-tight block drop-shadow-sm">
-              Categories
+              {t('search.categories')}
             </span>
             <span className="text-[10px] text-gray-600 font-medium drop-shadow-sm">
-              Browse by interest
+              {t('search.browseByInterest')}
             </span>
           </div>
-          <span className="ml-auto text-[10px] md:text-xs font-bold text-purple-700 bg-white/50 backdrop-blur-md px-3 md:px-3.5 py-1 md:py-1.5 rounded-full border border-white/40 shadow-sm">
-            {hits.length} found
+          <span className="ms-auto text-[10px] md:text-xs font-bold text-purple-700 bg-white/50 backdrop-blur-md px-3 md:px-3.5 py-1 md:py-1.5 rounded-full border border-white/40 shadow-sm">
+            {hits.length} {t('search.found')}
           </span>
         </div>
       </div>
@@ -515,7 +519,9 @@ const useSlidingText = (texts: string[], interval = 3000) => {
 };
 
 // --- Enhanced AI Chat Components ---
-const TourCard = ({ tour }: { tour: any }) => (
+const TourCard = ({ tour }: { tour: any }) => {
+  const t = useTranslations();
+  return (
   <motion.a
     href={`/${tour.slug}`}
     target="_blank"
@@ -534,14 +540,14 @@ const TourCard = ({ tour }: { tour: any }) => (
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         {tour.duration && (
-          <div className="absolute top-2.5 right-2.5 bg-black/70 backdrop-blur-md text-white px-2.5 py-1 rounded-xl text-[10px] font-bold shadow-lg flex items-center gap-1">
+          <div className="absolute top-2.5 end-2.5 bg-black/70 backdrop-blur-md text-white px-2.5 py-1 rounded-xl text-[10px] font-bold shadow-lg flex items-center gap-1">
             <Clock className="w-3 h-3" strokeWidth={2.5} />
             {tour.duration}
           </div>
         )}
         {tour.isFeatured && (
-          <div className="absolute top-2.5 left-2.5 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-2 py-0.5 rounded-full text-[9px] font-bold shadow-md">
-            ⭐ Featured
+          <div className="absolute top-2.5 start-2.5 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-2 py-0.5 rounded-full text-[9px] font-bold shadow-md">
+            {t('tourCard.featured')}
           </div>
         )}
       </div>
@@ -573,7 +579,8 @@ const TourCard = ({ tour }: { tour: any }) => (
       </div>
     </div>
   </motion.a>
-);
+  );
+};
 
 const TourSlider = ({ tours }: { tours: any[] }) => {
   const sliderRef = useRef<HTMLDivElement>(null);
@@ -618,7 +625,7 @@ const TourSlider = ({ tours }: { tours: any[] }) => {
                 onClick={() => scroll('left')}
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-9 h-9 bg-white/95 backdrop-blur-md rounded-xl shadow-xl flex items-center justify-center hover:bg-white transition-all border border-gray-100"
+                className="absolute start-0 top-1/2 -translate-y-1/2 z-10 w-9 h-9 bg-white/95 backdrop-blur-md rounded-xl shadow-xl flex items-center justify-center hover:bg-white transition-all border border-gray-100"
               >
                 <ChevronLeft className="w-4 h-4 text-gray-700" strokeWidth={2.5} />
               </motion.button>
@@ -633,7 +640,7 @@ const TourSlider = ({ tours }: { tours: any[] }) => {
                 onClick={() => scroll('right')}
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-9 h-9 bg-white/95 backdrop-blur-md rounded-xl shadow-xl flex items-center justify-center hover:bg-white transition-all border border-gray-100"
+                className="absolute end-0 top-1/2 -translate-y-1/2 z-10 w-9 h-9 bg-white/95 backdrop-blur-md rounded-xl shadow-xl flex items-center justify-center hover:bg-white transition-all border border-gray-100"
               >
                 <ChevronRight className="w-4 h-4 text-gray-700" strokeWidth={2.5} />
               </motion.button>
@@ -655,6 +662,7 @@ const TourSlider = ({ tours }: { tours: any[] }) => {
 
 // Destination Slider Component for AI Chat
 const DestinationSlider = ({ destinations }: { destinations: any[] }) => {
+  const t = useTranslations();
   const sliderRef = useRef<HTMLDivElement>(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(true);
@@ -697,7 +705,7 @@ const DestinationSlider = ({ destinations }: { destinations: any[] }) => {
                 onClick={() => scroll('left')}
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-9 h-9 bg-white/95 backdrop-blur-md rounded-xl shadow-xl flex items-center justify-center hover:bg-white transition-all border border-gray-100"
+                className="absolute start-0 top-1/2 -translate-y-1/2 z-10 w-9 h-9 bg-white/95 backdrop-blur-md rounded-xl shadow-xl flex items-center justify-center hover:bg-white transition-all border border-gray-100"
               >
                 <ChevronLeft className="w-4 h-4 text-gray-700" strokeWidth={2.5} />
               </motion.button>
@@ -712,7 +720,7 @@ const DestinationSlider = ({ destinations }: { destinations: any[] }) => {
                 onClick={() => scroll('right')}
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-9 h-9 bg-white/95 backdrop-blur-md rounded-xl shadow-xl flex items-center justify-center hover:bg-white transition-all border border-gray-100"
+                className="absolute end-0 top-1/2 -translate-y-1/2 z-10 w-9 h-9 bg-white/95 backdrop-blur-md rounded-xl shadow-xl flex items-center justify-center hover:bg-white transition-all border border-gray-100"
               >
                 <ChevronRight className="w-4 h-4 text-gray-700" strokeWidth={2.5} />
               </motion.button>
@@ -740,9 +748,9 @@ const DestinationSlider = ({ destinations }: { destinations: any[] }) => {
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                 />
                 {destination.isFeatured && (
-                  <div className="absolute top-3 left-3 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 shadow-md">
+                  <div className="absolute top-3 start-3 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 shadow-md">
                     <Star className="w-3 h-3 fill-current" />
-                    Featured
+                    {t('tourCard.featured')}
                   </div>
                 )}
               </div>
@@ -759,10 +767,10 @@ const DestinationSlider = ({ destinations }: { destinations: any[] }) => {
               <div className="flex items-center justify-between pt-2 border-t border-gray-100">
                 <div className="flex items-center gap-1.5 text-gray-500 text-xs">
                   <MapPin className="w-3.5 h-3.5 text-emerald-500" strokeWidth={2.5} />
-                  <span className="font-medium">{destination.tourCount || 0} tours</span>
+                  <span className="font-medium">{t('destinations.toursAvailable', { count: destination.tourCount || 0 })}</span>
                 </div>
                 <span className="text-emerald-600 text-xs font-semibold group-hover:translate-x-1 transition-transform">
-                  Explore →
+                  {t('destinations.exploreAll')} →
                 </span>
               </div>
             </div>
@@ -776,6 +784,7 @@ const DestinationSlider = ({ destinations }: { destinations: any[] }) => {
 // --- Reusable Components ---
 const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
   const { getSiteName } = useTenant();
+  const t = useTranslations();
   const [query, setQuery] = useState(''); // Unified input for both search and chat
   const [isExpanded, setIsExpanded] = useState(false);
   const [chatMode, setChatMode] = useState(false);
@@ -1203,7 +1212,7 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
           if (foundTourContent && (!introText || introText.length < 20)) {
             return (
               <div key={idx} className="text-gray-800 text-sm sm:text-base leading-relaxed">
-                {hasDetectedTours ? 'Here are some tours I found for you:' : 'Here are some destinations I found for you:'}
+                {hasDetectedTours ? t('search.toursFoundForYou') : t('search.destinationsFoundForYou')}
               </div>
             );
           }
@@ -1220,7 +1229,7 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
 
           return (
             <div key={idx} className="text-gray-800 text-sm sm:text-base leading-relaxed">
-              {hasDetectedTours ? 'Here are some tours I found for you:' : 'Here are some destinations I found for you:'}
+              {hasDetectedTours ? t('search.toursFoundForYou') : t('search.destinationsFoundForYou')}
             </div>
           );
         }
@@ -1265,15 +1274,15 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
                     setIsFocused(true);
                   }}
                   onBlur={() => setIsFocused(false)}
-                  placeholder={chatMode ? `Ask AI anything about tours...` : suggestion}
-                  className="w-full pl-16 md:pl-[70px] pr-14 md:pr-20 py-4 md:py-5 text-sm md:text-base text-gray-900 placeholder:text-gray-400/70 placeholder:font-normal font-medium bg-transparent outline-none rounded-full relative z-10 transition-all duration-300"
+                  placeholder={chatMode ? t('search.askAiAnything') : suggestion}
+                  className="w-full ps-16 md:ps-[70px] pe-14 md:pe-20 py-4 md:py-5 text-sm md:text-base text-gray-900 placeholder:text-gray-400/70 placeholder:font-normal font-medium bg-transparent outline-none rounded-full relative z-10 transition-all duration-300"
                   style={{ cursor: 'text' }}
                   disabled={chatMode && isGenerating}
                   autoComplete="off"
                 />
 
               {/* Left Icon with Enhanced Animation */}
-              <div className="absolute left-4 md:left-5 top-1/2 transform -translate-y-1/2 z-10">
+              <div className="absolute start-4 md:start-5 top-1/2 transform -translate-y-1/2 z-10">
                 <motion.div
                   className="relative"
                   animate={!isExpanded ? { 
@@ -1290,7 +1299,7 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
                     <Search className={`w-4 h-4 md:w-5 md:h-5 transition-all duration-300 text-white ${isExpanded ? 'scale-110' : ''}`} strokeWidth={2.5} />
                   </div>
                   <motion.div
-                    className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full border-2 border-white shadow-md"
+                    className="absolute -bottom-0.5 -end-0.5 w-3 h-3 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full border-2 border-white shadow-md"
                     animate={{
                       scale: [1, 1.25, 1],
                       opacity: [1, 0.8, 1]
@@ -1305,7 +1314,7 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
               </div>
 
               {/* Right Side Elements with Enhanced Animation */}
-              <div className="absolute right-4 md:right-5 top-1/2 transform -translate-y-1/2 flex items-center gap-2 md:gap-2.5 z-10">
+              <div className="absolute end-4 md:end-5 top-1/2 transform -translate-y-1/2 flex items-center gap-2 md:gap-2.5 z-10">
                 {query ? (
                   <motion.button
                     type="button"
@@ -1375,7 +1384,7 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
                 ease: [0.34, 1.56, 0.64, 1],
                 opacity: { duration: 0.25 }
               }}
-              className="absolute top-full mt-4 left-0 right-0 backdrop-blur-[40px] rounded-[28px] shadow-[0_8px_32px_0_rgba(31,38,135,0.37)] border border-white/30 overflow-hidden glass-dropdown"
+              className="absolute top-full mt-4 start-0 end-0 backdrop-blur-[40px] rounded-[28px] shadow-[0_8px_32px_0_rgba(31,38,135,0.37)] border border-white/30 overflow-hidden glass-dropdown"
               style={{ 
                 maxHeight: '70vh',
                 boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37), inset 0 1px 0 0 rgba(255, 255, 255, 0.3)',
@@ -1405,8 +1414,8 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
                   }}
                 />
                 {/* Decorative circles */}
-                <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-400/20 to-transparent rounded-full blur-3xl" />
-                <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-purple-400/20 to-transparent rounded-full blur-3xl" />
+                <div className="absolute top-0 end-0 w-64 h-64 bg-gradient-to-br from-blue-400/20 to-transparent rounded-full blur-3xl" />
+                <div className="absolute bottom-0 start-0 w-64 h-64 bg-gradient-to-tr from-purple-400/20 to-transparent rounded-full blur-3xl" />
               </div>
               
               {/* Content with glass effect */}
@@ -1438,7 +1447,7 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
                         initial={{ x: -10, opacity: 0 }}
                         animate={{ x: 0, opacity: 1 }}
                         onClick={handleBackToSearch}
-                        className="mr-1 p-2 hover:bg-gray-100 rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 group"
+                        className="me-1 p-2 hover:bg-gray-100 rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 group"
                       >
                         <ArrowLeft className="w-4 h-4 text-gray-600 group-hover:text-gray-900 transition-colors" strokeWidth={2.5} />
                       </motion.button>
@@ -1455,7 +1464,7 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
                         </div>
                         <div>
                           <span className="text-sm font-bold text-gray-900 tracking-tight block drop-shadow-sm">
-                            AI Travel Assistant
+                            {t('search.aiTravelAssistant')}
                           </span>
                           <span className="text-[10px] text-gray-600 font-medium drop-shadow-sm">
                             Powered by AI
@@ -1482,10 +1491,10 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
                         />
                         <div>
                           <span className="text-sm font-bold text-gray-900 tracking-tight block drop-shadow-sm">
-                            {query ? 'Search Results' : getSiteName()}
+                            {query ? t('search.searchResults') : getSiteName()}
                           </span>
                           <span className="text-[10px] text-gray-600 font-medium drop-shadow-sm">
-                            {query ? 'Best matches for you' : 'Trending searches'}
+                            {query ? t('search.handPickedForYou') : t('search.popularSearches')}
                           </span>
                         </div>
                       </motion.div>
@@ -1502,7 +1511,7 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 bg-white/80 border-2 border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300 shadow-sm hover:shadow-md"
                       >
                         <Sparkles className="w-3 h-3" strokeWidth={2.5} />
-                        <span>New Chat</span>
+                        <span>{t('search.newChat')}</span>
                       </motion.button>
                     )}
                     <motion.button
@@ -1555,10 +1564,10 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
                           </motion.div>
                           <div>
                             <p className="font-bold text-gray-900 text-sm mb-1.5">
-                              {`Hi! I'm your AI Travel Assistant 👋`}
+                              {t('search.aiGreeting')}
                             </p>
                             <p className="text-gray-600 text-xs leading-relaxed">
-                              Ask me anything — I'll help you find tours, trips, prices, destinations & more.
+                              {t('search.askAiAnything')}
                             </p>
                           </div>
                         </div>
@@ -1644,8 +1653,8 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
                           <Loader2 className="w-5 h-5 text-blue-500" strokeWidth={2.5} />
                         </motion.div>
                         <div>
-                          <span className="text-sm font-semibold text-gray-900">AI is thinking...</span>
-                          <p className="text-[10px] text-gray-500">Finding the best options for you</p>
+                          <span className="text-sm font-semibold text-gray-900">{t('search.aiThinking')}</span>
+                          <p className="text-[10px] text-gray-500">{t('search.handPickedForYou')}</p>
                         </div>
                       </motion.div>
                     )}
@@ -1696,10 +1705,10 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
                       </motion.div>
                       <div>
                         <span className="text-sm font-bold text-gray-900 tracking-tight block">
-                          Trending Tours
+                          {t('homepage.trendingNow')}
                         </span>
                         <span className="text-[10px] text-gray-500 font-medium">
-                          Most searched this week
+                          {t('search.mostPopular')}
                         </span>
                       </div>
                     </div>
@@ -1752,7 +1761,7 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
                           }}
                         />
                         <Sparkles className="w-5 h-5 group-hover:rotate-12 transition-transform relative z-10" strokeWidth={2.5} />
-                        <span className="text-sm font-bold relative z-10">Ask AI Travel Assistant</span>
+                        <span className="text-sm font-bold relative z-10">{t('search.aiTravelAssistant')}</span>
                         <motion.div
                           animate={{ x: [0, 4, 0] }}
                           transition={{ duration: 1.5, repeat: Infinity }}
@@ -1762,7 +1771,7 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
                         </motion.div>
                       </motion.button>
                       <p className="text-center text-[11px] text-gray-500 mt-3 font-medium">
-                        Get personalized tour recommendations instantly
+                        {t('search.handPickedForYou')}
                       </p>
                     </motion.div>
                   </motion.div>
@@ -1892,7 +1901,7 @@ export default function HeroSection({ initialSettings }: HeroSectionProps = {}) 
           }}
         />
 
-        <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center h-full text-center md:items-start md:text-left" style={{ overflow: 'visible' }}>
+        <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center h-full text-center md:items-start md:text-start" style={{ overflow: 'visible' }}>
           <div className="max-w-xl" style={{ overflow: 'visible', position: 'relative' }}>
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold uppercase leading-tight tracking-wide text-shadow-lg">
               {settings.title.main}

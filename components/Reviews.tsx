@@ -4,6 +4,7 @@ import React, { useEffect } from 'react';
 import Script from 'next/script';
 import { Star } from 'lucide-react';
 import { useTenant } from '@/contexts/TenantContext';
+import { useTranslations } from 'next-intl';
 import type { IReviewsContent, IReviewItem } from '@/lib/models/Tenant';
 
 // Props interface for server-side content injection
@@ -99,13 +100,14 @@ export default function Reviews({
   elfsightAppId: propElfsightAppId = '0fea9001-da59-4955-b598-76327377c50c',
 }: ReviewsProps) {
   const { tenant } = useTenant();
+  const t = useTranslations();
   const tenantId = tenant?.tenantId || 'default';
 
   // Use DB content if available, otherwise fall back to hardcoded content
   const fallbackReviews = FALLBACK_REVIEWS[tenantId] || FALLBACK_REVIEWS['default'];
   const reviewsData = dbContent?.reviews?.length ? dbContent.reviews : fallbackReviews;
-  const title = dbContent?.title || 'What Our Guests Say';
-  const subtitle = dbContent?.subtitle || 'Real stories from our valued customers.';
+  const title = dbContent?.title || t('homepage.latestReviews');
+  const subtitle = dbContent?.subtitle || t('reviews.basedOn', { count: reviewsData.length });
   const elfsightAppId = dbContent?.elfsightAppId || propElfsightAppId;
   const showElfsightWidget = dbContent?.showElfsightWidget !== false;
 
@@ -153,7 +155,7 @@ export default function Reviews({
               <article key={i} className="bg-white p-4 sm:p-5 md:p-6 rounded-lg shadow-md">
                 <div className="flex items-center mb-3">
                   <div
-                    className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full mr-3 sm:mr-4 flex items-center justify-center text-white font-semibold text-xs sm:text-sm bg-gradient-to-br ${avatarColor(
+                    className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full me-3 sm:me-4 flex items-center justify-center text-white font-semibold text-xs sm:text-sm bg-gradient-to-br ${avatarColor(
                       r.name,
                     )}`}
                     title={r.name}

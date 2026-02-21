@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/i18n/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { useSettings } from '@/hooks/useSettings';
@@ -160,7 +160,7 @@ const FormLabel = ({ children, icon: Icon, required = false }: {
         {Icon && <Icon className="h-4 w-4 text-indigo-500" />}
         <label className="text-sm font-semibold text-slate-700">
             {children}
-            {required && <span className="text-red-500 text-xs ml-1">*</span>}
+            {required && <span className="text-red-500 text-xs ms-1">*</span>}
         </label>
     </div>
 );
@@ -221,7 +221,7 @@ const AvailabilityManager = ({ availability, setAvailability }: { availability: 
                     >
                         <option value="daily">🔄 Daily (Repeats Weekly)</option>
                     </select>
-                    <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none">
+                    <div className="absolute inset-y-0 end-0 flex items-center px-3 pointer-events-none">
                         <ChevronDown className="h-5 w-5 text-slate-400" />
                     </div>
                 </div>
@@ -264,12 +264,12 @@ const AvailabilityManager = ({ availability, setAvailability }: { availability: 
                             <div className="flex-1">
                                 <label className="block text-xs font-medium text-slate-500 mb-1">Time</label>
                                 <div className="relative">
-                                    <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                    <Clock className="absolute start-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
                                     <input 
                                         type="time" 
                                         value={slot.time || ''} 
                                         onChange={(e) => handleSlotChange(index, 'time', e.target.value)} 
-                                        className={`${inputBase} pl-10`}
+                                        className={`${inputBase} ps-10`}
                                     />
                                 </div>
                             </div>
@@ -278,12 +278,12 @@ const AvailabilityManager = ({ availability, setAvailability }: { availability: 
                             <div className="flex-1">
                                 <label className="block text-xs font-medium text-slate-500 mb-1">Capacity</label>
                                 <div className="relative">
-                                    <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                    <Users className="absolute start-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
                                     <input 
                                         type="number" 
                                         value={slot.capacity || 0} 
                                         onChange={(e) => handleSlotChange(index, 'capacity', Number(e.target.value))} 
-                                        className={`${inputBase} pl-10`}
+                                        className={`${inputBase} ps-10`}
                                         placeholder="Max guests"
                                         min="1"
                                     />
@@ -1055,7 +1055,7 @@ const addItineraryItem = () => {
                         transition={fullPage ? {} : { type: 'spring', stiffness: 300, damping: 30 }}
                         className={fullPage
                             ? 'bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col'
-                            : 'fixed top-0 right-0 h-full w-full max-w-5xl bg-white z-50 shadow-2xl flex flex-col'
+                            : 'fixed top-0 end-0 h-full w-full max-w-5xl bg-white z-50 shadow-2xl flex flex-col'
                         }
                     >
                         {/* Panel Header - hidden in full-page mode (page has its own header) */}
@@ -1115,12 +1115,12 @@ const addItineraryItem = () => {
                                         <div className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl">
                                             <FormLabel icon={Building2} required>Assign to Brand</FormLabel>
                                             <div className="relative">
-                                                <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-indigo-500" />
+                                                <Building2 className="absolute start-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-indigo-500" />
                                                 <select
                                                     name="tenantId"
                                                     value={formData.tenantId || ''}
                                                     onChange={handleChange}
-                                                    className={`${inputBase} pl-10 appearance-none cursor-pointer border-indigo-200 focus:ring-indigo-500`}
+                                                    className={`${inputBase} ps-10 appearance-none cursor-pointer border-indigo-200 focus:ring-indigo-500`}
                                                     required
                                                 >
                                                     <option value="">Select a brand...</option>
@@ -1130,7 +1130,7 @@ const addItineraryItem = () => {
                                                         </option>
                                                     ))}
                                                 </select>
-                                                <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                                                <ChevronDown className="absolute end-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
                                             </div>
                                             <SmallHint className="text-indigo-600">
                                                 This tour will only appear on the selected brand's website.
@@ -1199,18 +1199,18 @@ const addItineraryItem = () => {
                                             <div className="space-y-3">
                                                 <FormLabel icon={MapPin} required>Destination</FormLabel>
                                                 <div className="relative">
-                                                    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                                    <MapPin className="absolute start-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
                                                     <select 
                                                         name="destination" 
                                                         value={formData.destination} 
                                                         onChange={handleChange} 
-                                                        className={`${inputBase} pl-10 appearance-none cursor-pointer`}
+                                                        className={`${inputBase} ps-10 appearance-none cursor-pointer`}
                                                         required
                                                     >
                                                         <option value="">Select a Destination</option>
                                                         {destinations.map(d => <option key={d._id} value={d._id}>{d.name}</option>)}
                                                     </select>
-                                                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+                                                    <ChevronDown className="absolute end-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
                                                 </div>
                                             </div>
                                             <div className="space-y-3">
@@ -1324,14 +1324,14 @@ const addItineraryItem = () => {
                                             <div className="space-y-3">
                                                 <FormLabel icon={CurrencyIcon} required>Discount Price ({selectedCurrency.symbol})</FormLabel>
                                                 <div className="relative">
-                                                    <CurrencyIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                                    <CurrencyIcon className="absolute start-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
                                                     <input 
                                                         name="discountPrice" 
                                                         type="number" 
                                                         step="0.01" 
                                                         value={formData.discountPrice} 
                                                         onChange={handleChange} 
-                                                        className={`${inputBase} pl-10`} 
+                                                        className={`${inputBase} ps-10`} 
                                                         placeholder="15.50" 
                                                         required 
                                                     />
@@ -1340,14 +1340,14 @@ const addItineraryItem = () => {
                                             <div className="space-y-3">
                                                 <FormLabel icon={CurrencyIcon}>Original Price ({selectedCurrency.symbol})</FormLabel>
                                                 <div className="relative">
-                                                    <CurrencyIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                                    <CurrencyIcon className="absolute start-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
                                                     <input 
                                                         name="originalPrice" 
                                                         type="number" 
                                                         step="0.01" 
                                                         value={formData.originalPrice || ''} 
                                                         onChange={handleChange} 
-                                                        className={`${inputBase} pl-10`} 
+                                                        className={`${inputBase} ps-10`} 
                                                         placeholder="20.00" 
                                                     />
                                                 </div>
@@ -1513,7 +1513,7 @@ const addItineraryItem = () => {
                                                             <button 
                                                                 type="button" 
                                                                 onClick={() => removeGalleryImage(img)}
-                                                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600 transition-all shadow-lg opacity-0 group-hover:opacity-100"
+                                                                className="absolute -top-2 -end-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600 transition-all shadow-lg opacity-0 group-hover:opacity-100"
                                                             >
                                                                 <X className="w-3 h-3" />
                                                             </button>
@@ -1641,7 +1641,7 @@ const addItineraryItem = () => {
                                                     <button
                                                         type="button"
                                                         onClick={() => toggleFaqItem(i)}
-                                                        className="bg-slate-50 w-full text-left px-6 py-4 border-b border-slate-200 flex items-center justify-between transition-colors hover:bg-slate-100"
+                                                        className="bg-slate-50 w-full text-start px-6 py-4 border-b border-slate-200 flex items-center justify-between transition-colors hover:bg-slate-100"
                                                     >
                                                         <div className="flex items-center gap-3">
                                                             <div className="flex items-center justify-center w-8 h-8 bg-purple-100 text-purple-600 rounded-lg font-bold text-sm">
@@ -1673,7 +1673,7 @@ const addItineraryItem = () => {
                                                                 />
                                                             </div>
                                                         </div>
-                                                        <div className="mt-4 text-right">
+                                                        <div className="mt-4 text-end">
                                                             <button
                                                                 type="button"
                                                                 disabled={formData.faqs.length <= 1}
@@ -1712,7 +1712,7 @@ const addItineraryItem = () => {
                                                 <button
                                                     type="button"
                                                     onClick={() => toggleItineraryItem(i)}
-                                                    className="bg-slate-50 w-full text-left px-6 py-4 border-b border-slate-200 flex items-center justify-between transition-colors hover:bg-slate-100"
+                                                    className="bg-slate-50 w-full text-start px-6 py-4 border-b border-slate-200 flex items-center justify-between transition-colors hover:bg-slate-100"
                                                 >
                                                     <div className="flex items-center gap-3">
                                                         <div className="flex items-center justify-center w-8 h-8 bg-indigo-100 text-indigo-600 rounded-lg font-bold text-sm">
@@ -1759,7 +1759,7 @@ const addItineraryItem = () => {
     />
   </div>
 </div>
-                                                    <div className="mt-4 text-right">
+                                                    <div className="mt-4 text-end">
                                                         <button
                                                             type="button"
                                                             disabled={formData.itinerary.length <= 1}
@@ -1808,7 +1808,7 @@ const addItineraryItem = () => {
                                                                         <span>{option.type}</span>
                                                                     </div>
                                                                 </div>
-                                                                <div className="text-right">
+                                                                <div className="text-end">
                                                                     <div className="text-lg font-bold text-slate-900">
                                                                         {selectedCurrency.symbol}{option.price?.toFixed(2) || '0.00'}
                                                                     </div>
@@ -1841,7 +1841,7 @@ const addItineraryItem = () => {
                                                     <button 
                                                         type="button" 
                                                         onClick={() => toggleBookingOption(index)} 
-                                                        className="bg-slate-50 w-full text-left px-6 py-4 border-b border-slate-200 flex items-center justify-between transition-colors hover:bg-slate-100"
+                                                        className="bg-slate-50 w-full text-start px-6 py-4 border-b border-slate-200 flex items-center justify-between transition-colors hover:bg-slate-100"
                                                     >
                                                         <div className="flex items-center gap-3">
                                                             <div className="flex items-center justify-center w-8 h-8 bg-indigo-100 text-indigo-600 rounded-lg font-bold text-sm">
@@ -1877,31 +1877,31 @@ const addItineraryItem = () => {
                                                                 <div className="space-y-2">
                                                                     <label className="block text-sm font-medium text-slate-700">Pricing Type *</label>
                                                                     <div className="relative">
-                                                                        <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                                                        <Users className="absolute start-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
                                                                         <select 
                                                                             value={option.type || 'Per Person'} 
                                                                             onChange={(e) => handleBookingOptionChange(index, 'type', e.target.value)}
-                                                                            className={`${inputBase} pl-10 appearance-none cursor-pointer`}
+                                                                            className={`${inputBase} ps-10 appearance-none cursor-pointer`}
                                                                         >
                                                                             <option value="Per Person">Per Person</option>
                                                                             <option value="Per Group">Per Group</option>
                                                                             <option value="Per Couple">Per Couple</option>
                                                                             <option value="Per Family">Per Family (up to 4)</option>
                                                                         </select>
-                                                                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+                                                                        <ChevronDown className="absolute end-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
                                                                     </div>
                                                                 </div>
 
                                                                 <div className="space-y-2">
                                                                     <label className="block text-sm font-medium text-slate-700">Price ({selectedCurrency.symbol}) *</label>
                                                                     <div className="relative">
-                                                                        <CurrencyIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                                                        <CurrencyIcon className="absolute start-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
                                                                         <input 
                                                                             type="number" 
                                                                             step="0.01"
                                                                             value={option.price || ''} 
                                                                             onChange={(e) => handleBookingOptionChange(index, 'price', parseFloat(e.target.value) || 0)}
-                                                                            className={`${inputBase} pl-10`}
+                                                                            className={`${inputBase} ps-10`}
                                                                             placeholder="0.00"
                                                                             min="0"
                                                                             required
@@ -1981,7 +1981,7 @@ const addItineraryItem = () => {
                                                                         {addon.description || 'No description provided'}
                                                                     </p>
                                                                 </div>
-                                                                <div className="text-right">
+                                                                <div className="text-end">
                                                                     <div className="text-lg font-bold text-slate-900">
                                                                         {selectedCurrency.symbol}{addon.price?.toFixed(2) || '0.00'}
                                                                     </div>
@@ -2030,13 +2030,13 @@ const addItineraryItem = () => {
                                                         <div className="space-y-2">
                                                             <label className="block text-sm font-medium text-slate-700">Price ({selectedCurrency.symbol}) *</label>
                                                             <div className="relative">
-                                                                <CurrencyIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                                                <CurrencyIcon className="absolute start-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
                                                                 <input 
                                                                     type="number" 
                                                                     step="0.01"
                                                                     value={addon.price || ''} 
                                                                     onChange={(e) => handleAddOnChange(index, 'price', parseFloat(e.target.value) || 0)}
-                                                                    className={`${inputBase} pl-10`}placeholder="0.00"
+                                                                    className={`${inputBase} ps-10`}placeholder="0.00"
                                                                     min="0"
                                                                     required
                                                                 />

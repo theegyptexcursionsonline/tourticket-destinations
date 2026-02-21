@@ -51,7 +51,7 @@ function TourHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: 
             <MapPin className="w-3 h-3 text-white" strokeWidth={2.5} />
           </div>
           <span className="text-xs font-semibold text-gray-700 tracking-wide">Tours</span>
-          <span className="ml-auto text-xs font-medium text-gray-400 bg-gray-100/80 backdrop-blur-sm px-2 py-0.5 rounded-full">{hits.length}</span>
+          <span className="ms-auto text-xs font-medium text-gray-400 bg-gray-100/80 backdrop-blur-sm px-2 py-0.5 rounded-full">{hits.length}</span>
         </div>
       </div>
 
@@ -110,13 +110,13 @@ function TourHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: 
           <>
             <button
               onClick={() => scroll('left')}
-              className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center hover:bg-white transition-colors z-10"
+              className="absolute start-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center hover:bg-white transition-colors z-10"
             >
               <ChevronLeft className="w-5 h-5 text-gray-700" />
             </button>
             <button
               onClick={() => scroll('right')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center hover:bg-white transition-colors z-10"
+              className="absolute end-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center hover:bg-white transition-colors z-10"
             >
               <ChevronRight className="w-5 h-5 text-gray-700" />
             </button>
@@ -238,7 +238,7 @@ export default function TourPageAIWidget() {
       </AnimatePresence>
 
       {/* Mobile: AI Magic Button - Positioned above Book Now bar */}
-      <div className="md:hidden tour-ai-search-container fixed bottom-20 right-4 z-[99999]">
+      <div className="md:hidden tour-ai-search-container fixed bottom-20 end-4 z-[99999]">
         {/* Expanded Search Panel */}
         <AnimatePresence>
           {isExpanded && (
@@ -246,7 +246,7 @@ export default function TourPageAIWidget() {
               initial={{ opacity: 0, y: 20, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 20, scale: 0.95 }}
-              className="absolute bottom-20 right-0 w-[90vw] max-w-md max-h-[70vh] rounded-2xl overflow-hidden shadow-2xl"
+              className="absolute bottom-20 end-0 w-[90vw] max-w-md max-h-[70vh] rounded-2xl overflow-hidden shadow-2xl"
               style={{
                 background: 'linear-gradient(to bottom, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.95))',
                 backdropFilter: 'blur(40px) saturate(180%)',
@@ -275,9 +275,9 @@ export default function TourPageAIWidget() {
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search tours, destinations..."
                     autoFocus
-                    className="w-full pl-10 pr-4 py-2.5 text-sm font-medium text-gray-900 placeholder-gray-400 bg-white/90 outline-none rounded-xl border border-gray-200 focus:border-blue-400 transition-colors"
+                    className="w-full ps-10 pe-4 py-2.5 text-sm font-medium text-gray-900 placeholder-gray-400 bg-white/90 outline-none rounded-xl border border-gray-200 focus:border-blue-400 transition-colors"
                   />
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 </div>
               </div>
 

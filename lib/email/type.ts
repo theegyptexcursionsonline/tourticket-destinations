@@ -101,6 +101,7 @@ export interface BookingEmailData extends BaseEmailData {
     hours: number;
     minutes: number;
   };
+  discountCode?: string;
 }
 
 export interface PaymentEmailData extends BaseEmailData {

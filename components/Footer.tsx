@@ -3,10 +3,11 @@
 import React, { useState, useEffect } from "react";
 import { Facebook, Instagram, Twitter, Youtube, Phone, Mail, MessageSquare, Loader2 } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
+import { Link } from '@/i18n/navigation';
 import { Destination } from '@/types';
 import toast, { Toaster } from 'react-hot-toast';
 import { useTenant } from '@/contexts/TenantContext';
+import { useTranslations } from 'next-intl';
 
 // Import the single, consolidated switcher component
 import CurrencyLanguageSwitcher from '@/components/shared/CurrencyLanguageSwitcher';
@@ -79,7 +80,8 @@ export default function Footer() {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
-  
+  const t = useTranslations();
+
   // Get tenant branding and contact info
   const { tenant, getLogo, getSiteName, isFeatureEnabled } = useTenant();
   
@@ -173,7 +175,7 @@ export default function Footer() {
   const handleSubscribe = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!email.trim()) {
-      toast.error("Please enter a valid email address.");
+      toast.error(t('footer.enterValidEmail'));
       return;
     }
     setIsLoading(true);
@@ -189,15 +191,15 @@ export default function Footer() {
       const data = await response.json();
 
       if (response.ok) {
-        toast.success(data.message || "Thank you for subscribing!");
+        toast.success(data.message || t('footer.thankYouSubscribing'));
         setEmail('');
         setIsSubscribed(true);
       } else {
-        toast.error(data.message || "Subscription failed. Please try again.");
+        toast.error(data.message || t('footer.subscriptionFailed'));
       }
     } catch (error) {
       console.error("Subscription error:", error);
-      toast.error("An error occurred. Please try again later.");
+      toast.error(t('footer.subscriptionError'));
     } finally {
       setIsLoading(false);
     }
@@ -323,25 +325,24 @@ export default function Footer() {
               />
             </Link>
             <p className="text-sm leading-relaxed max-w-xs text-slate-600">
-              Book your adventure, skip the lines. Unforgettable tours, tickets, and activities for a memorable journey with{' '}
-              {getSiteName()}.
+              {t('footer.tagline', { siteName: getSiteName() })}
             </p>
 
             {/* Trusted by clients */}
             <div className="rounded-2xl border p-5 bg-white border-slate-100">
-              <p className="font-semibold text-slate-900 mb-3 text-base">Trusted by our clients</p>
+              <p className="font-semibold text-slate-900 mb-3 text-base">{t('footer.trustedByClients')}</p>
               <div className="flex items-center gap-3 mb-2">
                 <span className="text-3xl font-bold text-slate-900 leading-none">4.9</span>
                 <div className="flex text-xl leading-none text-yellow-400">
                   <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
                 </div>
               </div>
-              <p className="text-sm text-slate-500">Average rating from Tripadvisor</p>
+              <p className="text-sm text-slate-500">{t('footer.averageRating')}</p>
             </div>
 
             {/* Payment Methods */}
             <div className="rounded-2xl border p-5 bg-white border-slate-100">
-              <h3 className="font-bold text-base mb-4 text-slate-900">Ways you can pay</h3>
+              <h3 className="font-bold text-base mb-4 text-slate-900">{t('footer.waysToPayTitle')}</h3>
               <div className="grid grid-cols-3 gap-2.5">
                 {paymentMethods.map((method, idx) => (
                   <div
@@ -359,7 +360,7 @@ export default function Footer() {
           {/* Column 2: Things To Do */}
           <div className="space-y-4 relative z-10">
             <h3 className="font-semibold text-base lg:text-lg tracking-wide text-slate-900">
-              Things to do
+              {t('footer.thingsToDo')}
             </h3>
             <ul className="space-y-2 text-sm text-slate-500">
               {destinations.slice(0, 5).map((destination) => (
@@ -369,7 +370,7 @@ export default function Footer() {
                       href={`/destinations/${destination.slug}`}
                     >
                       <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: 'var(--primary-color)' }} />
-                      Things to do in {destination.name}
+                      {t('footer.thingsToDoIn', { destination: destination.name })}
                     </Link>
                   </li>
                 ))}
@@ -379,7 +380,7 @@ export default function Footer() {
           {/* Column 3: Destinations & Company Links */}
           <div className="space-y-4 relative z-10">
             <h3 className="font-semibold text-base lg:text-lg tracking-wide text-slate-900">
-              Top destinations
+              {t('footer.topDestinations')}
             </h3>
             <ul className="space-y-2 text-sm text-slate-500">
               {destinations.slice(0, 5).map((destination) => (
@@ -397,7 +398,7 @@ export default function Footer() {
             
             <div className="mt-6">
               <h3 className="font-semibold text-base lg:text-lg tracking-wide text-slate-900">
-                Company
+                {t('footer.company')}
               </h3>
               <ul className="space-y-2 text-sm text-slate-500">
                 <li>
@@ -406,7 +407,7 @@ export default function Footer() {
                     href="/contact"
                   >
                     <span className="h-1.5 w-1.5 rounded-full bg-slate-500" />
-                    Contact
+                    {t('footer.contact')}
                   </Link>
                 </li>
                 <li>
@@ -415,7 +416,7 @@ export default function Footer() {
                     href="/about"
                   >
                     <span className="h-1.5 w-1.5 rounded-full bg-slate-500" />
-                    About us
+                    {t('footer.aboutUs')}
                   </Link>
                 </li>
                 {showBlog && (
@@ -425,7 +426,7 @@ export default function Footer() {
                       href="/blog"
                     >
                       <span className="h-1.5 w-1.5 rounded-full bg-slate-500" />
-                      Blog
+                      {t('footer.blog')}
                     </Link>
                   </li>
                 )}
@@ -435,7 +436,7 @@ export default function Footer() {
                     href="/faqs"
                   >
                     <span className="h-1.5 w-1.5 rounded-full bg-slate-500" />
-                    FAQ
+                    {t('footer.faq')}
                   </Link>
                 </li>
               </ul>
@@ -445,7 +446,7 @@ export default function Footer() {
           {/* Column 4: Contact, Newsletter & Social Media */}
           <div className="space-y-6 lg:col-span-2 relative z-10">
             <div className="rounded-2xl border p-5 bg-white border-slate-100">
-              <h3 className="font-semibold text-base lg:text-lg mb-4 text-slate-900 tracking-wide">Contact information</h3>
+              <h3 className="font-semibold text-base lg:text-lg mb-4 text-slate-900 tracking-wide">{t('footer.contactInfo')}</h3>
               <ul className="space-y-3 text-sm text-slate-600">
                 <li className="flex gap-3">
                   <span className="h-10 w-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--primary-light)', color: 'var(--primary-color)' }}>
@@ -458,7 +459,7 @@ export default function Footer() {
                     >
                       {contactPhone}
                     </a>
-                    <span className="text-xs text-slate-500">(24/7 support)</span>
+                    <span className="text-xs text-slate-500">{t('footer.support247')}</span>
                   </div>
                 </li>
                 <li className="flex gap-3">
@@ -472,7 +473,7 @@ export default function Footer() {
                     >
                       {contactEmail}
                     </a>
-                    <p className="text-xs text-slate-500">Replies within 1 hour</p>
+                    <p className="text-xs text-slate-500">{t('footer.repliesWithinHour')}</p>
                   </div>
                 </li>
                 <li className="flex gap-3">
@@ -482,10 +483,10 @@ export default function Footer() {
                   <button
                     type="button"
                     onClick={openChatbot}
-                    className="text-sm font-semibold text-slate-900 transition-colors cursor-pointer text-left hover:text-[var(--primary-color)]"
+                    className="text-sm font-semibold text-slate-900 transition-colors cursor-pointer text-start hover:text-[var(--primary-color)]"
                     aria-label="Open chat"
                   >
-                    Chat with us
+                    {t('footer.chatWithUs')}
                   </button>
                 </li>
               </ul>
@@ -496,17 +497,17 @@ export default function Footer() {
               {!isSubscribed ? (
                 <>
                   <h4 className="font-semibold text-base mb-2 text-slate-900">
-                    Don&apos;t miss our travel updates
+                    {t('footer.newsletterTitle')}
                   </h4>
                   <p className="text-xs mb-3 text-slate-500">
-                    Get curated tips, exclusive offers, and destination guides straight to your inbox.
+                    {t('footer.newsletterDescription')}
                   </p>
                   <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                     <input 
                       type="email" 
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="Your email address" 
+                      placeholder={t('footer.emailPlaceholder')} 
                       className="w-full sm:flex-1 h-11 rounded-xl border px-4 text-sm focus:outline-none focus:ring-2 shadow-sm bg-white border-slate-200 focus:ring-[var(--primary-color)]"
                       disabled={isLoading}
                     />
@@ -516,22 +517,22 @@ export default function Footer() {
                       style={{ background: 'var(--gradient-primary)' }}
                       disabled={isLoading}
                     >
-                      {isLoading ? <Loader2 className="animate-spin" /> : 'SUBSCRIBE'}
+                      {isLoading ? <Loader2 className="animate-spin" /> : t('footer.subscribe')}
                     </button>
                   </form>
                 </>
               ) : (
                 <div className="text-center py-4">
-                  <h4 className="font-bold text-sm mb-2 text-green-600">Thank you!</h4>
-                  <p className="text-sm text-slate-600">You&apos;ve successfully subscribed to our newsletter.</p>
+                  <h4 className="font-bold text-sm mb-2 text-green-600">{t('footer.thankYou')}</h4>
+                  <p className="text-sm text-slate-600">{t('footer.subscribedSuccess')}</p>
                 </div>
               )}
             </div>
             
             {/* Social Media */}
             <div className="bg-white border-slate-100 rounded-2xl border p-5">
-              <h4 className="font-semibold text-base mb-2 text-slate-900">Follow us on social media</h4>
-              <p className="text-xs mb-3 text-slate-500">Join our community for live updates, reels, and travel inspiration.</p>
+              <h4 className="font-semibold text-base mb-2 text-slate-900">{t('footer.followUs')}</h4>
+              <p className="text-xs mb-3 text-slate-500">{t('footer.socialDescription')}</p>
               <div className="flex gap-3">
                 {finalSocialLinks.map(({ icon: Icon, href }, i) => (
                   <a 
@@ -558,11 +559,11 @@ export default function Footer() {
         {/* Legal Footer */}
         <div className="border-t pt-4 text-xs text-center border-slate-300 text-slate-500">
           <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 mb-3">
-            <Link className="underline transition-colors hover:text-slate-700" href="/privacy">Privacy policy</Link>
+            <Link className="underline transition-colors hover:text-slate-700" href="/privacy">{t('footer.privacyPolicy')}</Link>
             <span className="hidden sm:inline">·</span>
-            <Link className="underline transition-colors hover:text-slate-700" href="/terms">Terms and conditions</Link>
+            <Link className="underline transition-colors hover:text-slate-700" href="/terms">{t('footer.termsAndConditions')}</Link>
           </div>
-          <p>© {new Date().getFullYear()} {getSiteName()}. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} {getSiteName()}. {t('footer.allRightsReserved')}.</p>
         </div>
       </div>
     </footer>

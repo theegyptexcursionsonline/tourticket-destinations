@@ -45,7 +45,7 @@ export default function Login({ onLoginSuccess: _onLoginSuccess }: LoginProps) {
               Work Email
             </label>
             <div className="relative mt-1">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <div className="absolute inset-y-0 start-0 ps-3 flex items-center pointer-events-none">
                     <Mail className="h-5 w-5 text-gray-400" />
                 </div>
                 <input
@@ -56,7 +56,7 @@ export default function Login({ onLoginSuccess: _onLoginSuccess }: LoginProps) {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   autoComplete="email"
-                  className="w-full pl-10 pr-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500"
+                  className="w-full ps-10 pe-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500"
                   placeholder="team@company.com"
                 />
             </div>
@@ -71,7 +71,7 @@ export default function Login({ onLoginSuccess: _onLoginSuccess }: LoginProps) {
               Password
             </label>
             <div className="relative mt-1">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <div className="absolute inset-y-0 start-0 ps-3 flex items-center pointer-events-none">
                     <Lock className="h-5 w-5 text-gray-400" />
                 </div>
                 <input
@@ -82,7 +82,7 @@ export default function Login({ onLoginSuccess: _onLoginSuccess }: LoginProps) {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   autoComplete="current-password"
-                  className="w-full pl-10 pr-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500"
+                  className="w-full ps-10 pe-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500"
                   placeholder="••••••••"
                 />
             </div>

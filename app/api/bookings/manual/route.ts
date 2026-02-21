@@ -406,7 +406,7 @@ export async function POST(request: NextRequest) {
         bookingTime: String(time),
         totalPrice: formatMoney(discountedTotal),
         paymentMethod: normalizedPaymentMethod,
-        paymentStatus: normalizedPaymentMethod === 'pay_later' ? 'Pay on Arrival' : 'Paid',
+        paymentStatus: paymentMethod === 'pay_later' ? 'Pay on Arrival' : 'Paid',
         bookingSource: 'manual',
         specialRequests: specialRequests ? String(specialRequests) : undefined,
         hotelPickupDetails: hotelPickupDetails ? String(hotelPickupDetails) : undefined,

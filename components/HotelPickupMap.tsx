@@ -311,7 +311,7 @@ export default function HotelPickupMap({ onLocationSelect, initialLocation, tour
           <button
             type="button"
             onClick={() => setPickupOption('now')}
-            className="w-full p-4 bg-white border-2 border-slate-200 rounded-xl text-left hover:border-red-400 hover:bg-red-50/50 transition-all group"
+            className="w-full p-4 bg-white border-2 border-slate-200 rounded-xl text-start hover:border-red-400 hover:bg-red-50/50 transition-all group"
           >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center group-hover:bg-red-200 transition-colors">
@@ -327,7 +327,7 @@ export default function HotelPickupMap({ onLocationSelect, initialLocation, tour
           <button
             type="button"
             onClick={handleLaterOption}
-            className="w-full p-4 bg-white border-2 border-slate-200 rounded-xl text-left hover:border-blue-400 hover:bg-blue-50/50 transition-all group"
+            className="w-full p-4 bg-white border-2 border-slate-200 rounded-xl text-start hover:border-blue-400 hover:bg-blue-50/50 transition-all group"
           >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
@@ -372,7 +372,7 @@ export default function HotelPickupMap({ onLocationSelect, initialLocation, tour
           {/* Search Input */}
           <div className="relative">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
               <input
                 ref={searchInputRef}
                 type="text"
@@ -380,13 +380,13 @@ export default function HotelPickupMap({ onLocationSelect, initialLocation, tour
                 onChange={(e) => handleSearchChange(e.target.value)}
                 onFocus={() => predictions.length > 0 && setShowPredictions(true)}
                 placeholder="Search hotel name or address..."
-                className="w-full pl-10 pr-10 py-3.5 bg-white border-2 border-slate-200 rounded-xl focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all text-base"
+                className="w-full ps-10 pe-10 py-3.5 bg-white border-2 border-slate-200 rounded-xl focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all text-base"
               />
               {(searchQuery || selectedLocation) && (
                 <button
                   type="button"
                   onClick={handleClear}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                  className="absolute end-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
                 >
                   <X size={18} />
                 </button>
@@ -401,7 +401,7 @@ export default function HotelPickupMap({ onLocationSelect, initialLocation, tour
                     key={prediction.place_id}
                     type="button"
                     onClick={() => handlePredictionSelect(prediction)}
-                    className={`w-full px-4 py-3 text-left hover:bg-slate-50 flex items-start gap-3 transition-colors ${
+                    className={`w-full px-4 py-3 text-start hover:bg-slate-50 flex items-start gap-3 transition-colors ${
                       index !== predictions.length - 1 ? 'border-b border-slate-100' : ''
                     }`}
                   >
@@ -476,9 +476,9 @@ export default function HotelPickupMap({ onLocationSelect, initialLocation, tour
                 </div>
               )}
               {isMapLoaded && !selectedLocation && (
-                <div className="absolute bottom-3 left-3 right-3 bg-white/95 backdrop-blur-sm rounded-lg px-3 py-2 text-center">
+                <div className="absolute bottom-3 start-3 end-3 bg-white/95 backdrop-blur-sm rounded-lg px-3 py-2 text-center">
                   <p className="text-xs text-slate-600">
-                    <Navigation className="inline-block mr-1" size={12} />
+                    <Navigation className="inline-block me-1" size={12} />
                     Click on the map to select a location
                   </p>
                 </div>

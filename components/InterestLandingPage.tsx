@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import {
@@ -64,18 +64,18 @@ const TourCard = ({ tour, index }: { tour: Tour; index: number }) => {
           />
           
           {tour.isFeatured && (
-            <div className="absolute top-3 left-3 bg-red-500 text-white px-2 py-1 text-xs font-semibold rounded">
+            <div className="absolute top-3 start-3 bg-red-500 text-white px-2 py-1 text-xs font-semibold rounded">
               Bestseller
             </div>
           )}
 
-          <div className="absolute bottom-3 right-3 bg-white px-2 py-1 rounded shadow-lg">
+          <div className="absolute bottom-3 end-3 bg-white px-2 py-1 rounded shadow-lg">
             <div className="text-sm font-bold text-gray-900">
               {formatPrice(tour.discountPrice || tour.price || 0)}
             </div>
           </div>
 
-          <button className="absolute top-3 right-3 bg-white/80 p-1.5 rounded-full text-gray-600 hover:text-red-500 hover:bg-white transition-all duration-200">
+          <button className="absolute top-3 end-3 bg-white/80 p-1.5 rounded-full text-gray-600 hover:text-red-500 hover:bg-white transition-all duration-200">
             <Heart className="w-4 h-4" />
           </button>
         </div>
@@ -160,13 +160,13 @@ const SearchAndFilter = ({
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
       {/* Search Bar */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
         <input
           type="text"
           placeholder="Search experiences..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+          className="w-full ps-10 pe-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
         />
       </div>
 
@@ -416,7 +416,7 @@ const ReviewsSection = ({ reviews }: { reviews: Review[] }) => {
                 <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
                   {review.userName ? review.userName.charAt(0).toUpperCase() : 'A'}
                 </div>
-                <div className="ml-3">
+                <div className="ms-3">
                   <h4 className="font-semibold text-gray-900">{review.userName || 'Anonymous'}</h4>
                   <div className="flex items-center">
                     {[...Array(5)].map((_, i) => (

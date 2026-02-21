@@ -138,6 +138,20 @@ export interface ITour extends Document {
   metaDescription?: string;
   keywords?: string[];
 
+  // Multi-language translations
+  translations?: {
+    [locale: string]: {
+      title?: string;
+      description?: string;
+      longDescription?: string;
+      shortDescription?: string;
+      meetingPoint?: string;
+      cancellationPolicy?: string;
+      metaTitle?: string;
+      metaDescription?: string;
+    };
+  };
+
   // Virtual fields
   reviewDetails?: unknown[];
 }
@@ -723,13 +737,22 @@ const TourSchema: Schema<ITour> = new Schema({
     trim: true,
     maxlength: [160, 'Meta description cannot exceed 160 characters']
   },
-  keywords: [{ 
-    type: String, 
+  keywords: [{
+    type: String,
     trim: true,
     lowercase: true,
     maxlength: [50, 'Keyword cannot exceed 50 characters']
   }],
-}, { 
+
+  // Multi-language translations (optional, backward-compatible)
+  // The original fields (title, description, etc.) serve as the English default.
+  // This field stores translations for other locales.
+  translations: {
+    type: Schema.Types.Mixed,
+    default: {},
+    // Structure: { ar: { title: "...", description: "..." }, ru: { ... }, de: { ... } }
+  },
+}, {
   timestamps: true,
   collection: 'tours',
   toJSON: { virtuals: true },

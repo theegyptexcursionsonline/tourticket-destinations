@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -44,20 +44,20 @@ const TourCard = ({ tour, index }: { tour: Tour; index: number }) => {
           
           {/* Featured Badge */}
           {tour.isFeatured && (
-            <div className="absolute top-3 left-3 bg-gradient-to-r from-yellow-400 to-yellow-500 text-white px-3 py-1 text-xs font-bold rounded-full shadow-lg">
-              <Star className="w-3 h-3 inline mr-1" />
+            <div className="absolute top-3 start-3 bg-gradient-to-r from-yellow-400 to-yellow-500 text-white px-3 py-1 text-xs font-bold rounded-full shadow-lg">
+              <Star className="w-3 h-3 inline me-1" />
               Featured
             </div>
           )}
           
           {/* Rating Badge */}
-          <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm text-slate-900 px-3 py-1 text-sm rounded-full flex items-center gap-1 shadow-lg">
+          <div className="absolute top-3 end-3 bg-white/90 backdrop-blur-sm text-slate-900 px-3 py-1 text-sm rounded-full flex items-center gap-1 shadow-lg">
             <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
             {typeof tour.rating === 'number' ? tour.rating.toFixed(1) : '4.5'}
           </div>
 
           {/* Price Badge */}
-          <div className="absolute bottom-3 right-3 bg-white/95 backdrop-blur-sm px-3 py-2 rounded-xl shadow-lg">
+          <div className="absolute bottom-3 end-3 bg-white/95 backdrop-blur-sm px-3 py-2 rounded-xl shadow-lg">
             <div className="text-lg font-bold text-slate-900">
               {formatPrice(tour.discountPrice || tour.price || 0)}
             </div>
@@ -149,7 +149,7 @@ const TourListItem = ({ tour, index }: { tour: Tour; index: number }) => {
               sizes="128px"
             />
             {tour.isFeatured && (
-              <div className="absolute top-1 left-1 bg-yellow-500 text-white text-xs px-1 py-0.5 rounded">
+              <div className="absolute top-1 start-1 bg-yellow-500 text-white text-xs px-1 py-0.5 rounded">
                 Featured
               </div>
             )}
@@ -184,7 +184,7 @@ const TourListItem = ({ tour, index }: { tour: Tour; index: number }) => {
             </div>
           </div>
           
-          <div className="text-right flex-shrink-0">
+          <div className="text-end flex-shrink-0">
             <div className="text-2xl font-bold text-slate-900">
               {formatPrice(tour.discountPrice || tour.price || 0)}
             </div>
@@ -193,7 +193,7 @@ const TourListItem = ({ tour, index }: { tour: Tour; index: number }) => {
                 {formatPrice(tour.originalPrice)}
               </div>
             )}
-            <ArrowRight className="h-5 w-5 text-slate-400 group-hover:text-red-600 transition-colors mt-2 ml-auto" />
+            <ArrowRight className="h-5 w-5 text-slate-400 group-hover:text-red-600 transition-colors mt-2 ms-auto" />
           </div>
         </div>
       </Link>
@@ -267,13 +267,13 @@ const SearchAndFilter = ({
     <div className="flex flex-col md:flex-row items-center gap-4">
       {/* Search Bar */}
       <div className="relative flex-1">
-        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
+        <Search className="absolute start-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
         <input
           type="text"
           placeholder="Search tours..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-12 pr-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200"
+          className="w-full ps-12 pe-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200"
         />
       </div>
 
@@ -364,7 +364,7 @@ const ReviewsSection = ({ reviews }: { reviews: Review[] }) => {
                 <div className="w-12 h-12 bg-gradient-to-r from-red-500 to-red-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
                   {review.userName ? review.userName.charAt(0).toUpperCase() : 'A'}
                 </div>
-                <div className="ml-4">
+                <div className="ms-4">
                   <h4 className="font-semibold text-slate-900">{review.userName || 'Anonymous'}</h4>
                   <div className="flex items-center">
                     {[...Array(5)].map((_, i) => (
@@ -717,8 +717,8 @@ export default function AttractionPageTemplate({ page, urlType }: AttractionPage
         <section className="py-20 bg-gradient-to-r from-red-600 via-red-700 to-red-800 text-white relative overflow-hidden">
           {/* Background Pattern */}
           <div className="absolute inset-0 opacity-10">
-            <div className="absolute top-0 left-0 w-64 h-64 bg-white rounded-full -translate-x-32 -translate-y-32"></div>
-            <div className="absolute bottom-0 right-0 w-96 h-96 bg-white rounded-full translate-x-48 translate-y-48"></div>
+            <div className="absolute top-0 start-0 w-64 h-64 bg-white rounded-full -translate-x-32 -translate-y-32"></div>
+            <div className="absolute bottom-0 end-0 w-96 h-96 bg-white rounded-full translate-x-48 translate-y-48"></div>
           </div>
           
           <div className="container mx-auto px-6 text-center relative z-10">

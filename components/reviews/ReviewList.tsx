@@ -6,6 +6,7 @@ import { Star, UserCircle, Edit2, Trash2, Save, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Review } from '@/types';
 import toast from 'react-hot-toast';
+import { useTranslations } from 'next-intl';
 
 interface ReviewListProps {
   reviews: Review[];
@@ -15,6 +16,7 @@ interface ReviewListProps {
 
 const ReviewList: React.FC<ReviewListProps> = ({ reviews, onReviewUpdated, onReviewDeleted }) => {
   const { user, token } = useAuth();
+  const t = useTranslations();
   const [editingReview, setEditingReview] = useState<string | null>(null);
   const [editComment, setEditComment] = useState('');
   const [editRating, setEditRating] = useState(0);
@@ -132,14 +134,14 @@ const ReviewList: React.FC<ReviewListProps> = ({ reviews, onReviewUpdated, onRev
   if (!reviews || reviews.length === 0) {
     return (
       <div className="text-center py-8 px-4 text-gray-500">
-        <p>No reviews yet for this tour. Be the first to leave a review!</p>
+        <p>{t('reviews.noReviews')} {t('reviews.beFirst')}</p>
       </div>
     );
   }
 
   return (
     <div className="p-6">
-      <h3 className="text-2xl font-bold text-gray-900 mb-6">What our travelers are saying</h3>
+      <h3 className="text-2xl font-bold text-gray-900 mb-6">{t('reviews.title')}</h3>
 
       <div className="grid gap-4">
         {reviews.map((review) => (
@@ -264,7 +266,7 @@ const ReviewList: React.FC<ReviewListProps> = ({ reviews, onReviewUpdated, onRev
                       onChange={(e) => setEditComment(e.target.value)}
                       className="w-full p-4 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-sm leading-6"
                       rows={4}
-                      placeholder="Share your experience..."
+                      placeholder={t('reviews.reviewPlaceholder')}
                       maxLength={1000}
                       aria-label="Edit review comment"
                     />
@@ -276,14 +278,14 @@ const ReviewList: React.FC<ReviewListProps> = ({ reviews, onReviewUpdated, onRev
                           disabled={isUpdating}
                           className="px-3 py-1 rounded-md text-sm bg-white border border-gray-200 hover:bg-gray-50 transition"
                         >
-                          Cancel
+                          {t('common.cancel')}
                         </button>
                         <button
                           onClick={() => handleUpdate(review._id)}
                           disabled={isUpdating || editRating === 0 || !editComment.trim()}
                           className="px-3 py-1 rounded-md text-sm bg-blue-600 text-white hover:bg-blue-700 transition disabled:opacity-60"
                         >
-                          {isUpdating ? 'Saving...' : 'Save'}
+                          {isUpdating ? t('common.loading') : t('common.save')}
                         </button>
                       </div>
                     </div>

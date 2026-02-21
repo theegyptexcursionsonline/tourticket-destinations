@@ -10,7 +10,7 @@ export default defineConfig({
   timeout: 30_000,
 
   use: {
-    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3002',
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
@@ -25,8 +25,8 @@ export default defineConfig({
   webServer: process.env.CI
     ? undefined
     : {
-        command: 'pnpm dev:original',
-        url: 'http://localhost:3002',
+        command: 'npx pnpm dev:original',
+        url: 'http://localhost:3000',
         reuseExistingServer: true,
         timeout: 120_000,
       },

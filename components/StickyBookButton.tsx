@@ -62,7 +62,7 @@ const StickyBookButton: React.FC<StickyBookButtonProps> = ({ price, currency: _c
           }
         }
       `}</style>
-      <div className="fixed bottom-0 left-0 right-0 bg-white p-4 border-t border-slate-200 shadow-lg z-20 md:hidden">
+      <div className="fixed bottom-0 start-0 end-0 bg-white p-4 border-t border-slate-200 shadow-lg z-20 md:hidden">
         <div className="container mx-auto flex items-center justify-between">
           <div>
             <span className="font-bold text-lg text-slate-800">{formatPrice(price)}</span>

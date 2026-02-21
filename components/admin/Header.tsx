@@ -1,7 +1,7 @@
 "use client";
 import React from 'react';
-import { usePathname, useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { usePathname, useRouter } from '@/i18n/navigation';
+import { Link } from '@/i18n/navigation';
 import { LogOut, Home, ChevronRight, User, Shield, DollarSign, Euro } from 'lucide-react';
 import { useSettings } from '@/hooks/useSettings';
 import { currencies } from '@/utils/localization';
@@ -58,7 +58,7 @@ const AdminHeader = () => {
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     {/* Enhanced Breadcrumbs */}
                     <div className="min-w-0 flex-1">
-                        <nav className="flex items-center space-x-1 text-sm overflow-x-auto whitespace-nowrap pr-2">
+                        <nav className="flex items-center space-x-1 text-sm overflow-x-auto whitespace-nowrap pe-2">
                             {/* Home/Admin Root */}
                             <Link 
                                 href="/admin" 
@@ -116,11 +116,11 @@ const AdminHeader = () => {
                         
                         {/* DYNAMIC CURRENCY SWITCHER */}
                         <div className="relative">
-                           <CurrencyIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                           <CurrencyIcon className="absolute start-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
                            <select
                                 value={selectedCurrency.code}
                                 onChange={handleCurrencyChange}
-                                className="appearance-none w-full bg-white border border-gray-300 rounded-xl py-2 pl-9 pr-8 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent cursor-pointer"
+                                className="appearance-none w-full bg-white border border-gray-300 rounded-xl py-2 ps-9 pe-8 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent cursor-pointer"
                            >
                                {currencies.map((currency) => (
                                    <option key={currency.code} value={currency.code}>
@@ -128,7 +128,7 @@ const AdminHeader = () => {
                                    </option>
                                ))}
                            </select>
-                           <ChevronRight className="h-4 w-4 text-slate-400 absolute right-3 top-1/2 transform -translate-y-1/2 -rotate-90 pointer-events-none" />
+                           <ChevronRight className="h-4 w-4 text-slate-400 absolute end-3 top-1/2 transform -translate-y-1/2 -rotate-90 pointer-events-none" />
                         </div>
 
                         {/* User Info */}
@@ -165,7 +165,7 @@ const AdminHeader = () => {
             </div>
 
             {/* Optional: Subtle bottom gradient */}
-            <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
+            <div className="absolute bottom-0 start-0 end-0 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
         </header>
     );
 };

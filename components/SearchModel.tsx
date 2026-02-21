@@ -12,7 +12,7 @@ const AlgoliaChat = dynamic(() => import('@/components/search/AlgoliaChat'), {
   loading: () => (
     <div className="flex items-center justify-center min-h-[400px]">
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
-      <p className="ml-3 text-slate-600">Loading AI Assistant...</p>
+      <p className="ms-3 text-slate-600">Loading AI Assistant...</p>
     </div>
   ),
 });
@@ -116,9 +116,9 @@ const SearchModal: FC<{ onClose: () => void; onSearch: (term: string) => void; }
         >
             {/* Animated background elements */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-0 left-1/4 w-96 h-96 bg-red-500/10 rounded-full blur-3xl animate-pulse"></div>
-                <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+                <div className="absolute top-0 start-1/4 w-96 h-96 bg-red-500/10 rounded-full blur-3xl animate-pulse"></div>
+                <div className="absolute bottom-0 end-1/4 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+                <div className="absolute top-1/2 start-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
             </div>
 
             <motion.div
@@ -131,7 +131,7 @@ const SearchModal: FC<{ onClose: () => void; onSearch: (term: string) => void; }
             >
                 <button
                     onClick={onClose}
-                    className="absolute top-3 right-3 sm:top-6 sm:right-6 p-2 sm:p-3 rounded-full text-slate-400 hover:text-slate-600 bg-slate-100/80 hover:bg-slate-200 backdrop-blur-sm transition-all duration-300 hover:scale-110 active:scale-95 z-10 group"
+                    className="absolute top-3 end-3 sm:top-6 sm:end-6 p-2 sm:p-3 rounded-full text-slate-400 hover:text-slate-600 bg-slate-100/80 hover:bg-slate-200 backdrop-blur-sm transition-all duration-300 hover:scale-110 active:scale-95 z-10 group"
                     aria-label="Close search"
                 >
                     <X size={20} className="sm:w-6 sm:h-6 group-hover:rotate-90 transition-transform duration-300" />
@@ -189,20 +189,20 @@ const SearchModal: FC<{ onClose: () => void; onSearch: (term: string) => void; }
                             <div className="relative group">
                                 <div className="absolute -inset-1 bg-gradient-to-r from-red-500 to-orange-500 rounded-2xl opacity-0 group-focus-within:opacity-20 blur-lg transition duration-300"></div>
                                 <div className="relative">
-                                    <Search className="absolute left-3 sm:left-5 top-1/2 -translate-y-1/2 h-5 w-5 sm:h-6 sm:w-6 text-slate-400 group-focus-within:text-red-500 transition-colors" />
+                                    <Search className="absolute start-3 sm:start-5 top-1/2 -translate-y-1/2 h-5 w-5 sm:h-6 sm:w-6 text-slate-400 group-focus-within:text-red-500 transition-colors" />
                                     <input
                                         type="text"
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
                                         placeholder="Ask me anything... e.g., 'Find romantic sunset cruises in Cairo'"
                                         autoFocus
-                                        className="w-full text-sm sm:text-base md:text-lg pl-12 sm:pl-16 pr-12 sm:pr-6 py-4 sm:py-5 bg-white/80 backdrop-blur-sm border-2 border-slate-200 rounded-xl sm:rounded-2xl focus:outline-none focus:border-red-500 focus:bg-white focus:shadow-xl transition-all placeholder:text-slate-400"
+                                        className="w-full text-sm sm:text-base md:text-lg ps-12 sm:ps-16 pe-12 sm:pe-6 py-4 sm:py-5 bg-white/80 backdrop-blur-sm border-2 border-slate-200 rounded-xl sm:rounded-2xl focus:outline-none focus:border-red-500 focus:bg-white focus:shadow-xl transition-all placeholder:text-slate-400"
                                     />
                                     {searchQuery && (
                                         <button
                                             type="button"
                                             onClick={() => setSearchQuery('')}
-                                            className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 p-1.5 sm:p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                                            className="absolute end-3 sm:end-4 top-1/2 -translate-y-1/2 p-1.5 sm:p-2 hover:bg-slate-100 rounded-lg transition-colors"
                                         >
                                             <X className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400" />
                                         </button>
@@ -241,7 +241,7 @@ const SearchModal: FC<{ onClose: () => void; onSearch: (term: string) => void; }
                                         transition={{ duration: 0.3, delay: 0.5 + index * 0.05 }}
                                         whileHover={{ scale: 1.03, y: -4 }}
                                         whileTap={{ scale: 0.98 }}
-                                        className="group relative bg-gradient-to-br from-white via-white to-slate-50/50 border-2 border-slate-200/60 rounded-xl sm:rounded-2xl p-4 sm:p-6 text-left transition-all hover:border-red-400 active:border-red-500 hover:shadow-2xl overflow-hidden"
+                                        className="group relative bg-gradient-to-br from-white via-white to-slate-50/50 border-2 border-slate-200/60 rounded-xl sm:rounded-2xl p-4 sm:p-6 text-start transition-all hover:border-red-400 active:border-red-500 hover:shadow-2xl overflow-hidden"
                                     >
                                         {/* Hover Gradient Effect */}
                                         <div className="absolute inset-0 bg-gradient-to-br from-red-50/0 via-red-50/0 to-orange-50/0 group-hover:from-red-50/50 group-hover:via-orange-50/30 group-hover:to-red-50/50 transition-all duration-500"></div>

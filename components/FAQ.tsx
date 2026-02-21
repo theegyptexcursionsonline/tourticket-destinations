@@ -107,7 +107,7 @@ const FaqItem = ({ item }: { item: FAQItem }) => {
         <div className="border-b border-slate-200 py-4 sm:py-5 md:py-6 group">
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="w-full flex justify-between items-start gap-3 sm:gap-4 text-left transition-colors"
+                className="w-full flex justify-between items-start gap-3 sm:gap-4 text-start transition-colors"
                 aria-expanded={isOpen}
             >
                 <h3 className="text-base sm:text-lg font-semibold text-slate-800 group-hover:text-[var(--primary-color)] transition-colors flex-1">{item.question}</h3>

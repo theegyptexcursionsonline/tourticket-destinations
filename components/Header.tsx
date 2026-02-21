@@ -31,7 +31,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTenant } from '@/contexts/TenantContext';
@@ -39,7 +39,7 @@ import CurrencyLanguageSwitcher from '@/components/shared/CurrencyLanguageSwitch
 import AuthModal from '@/components/AuthModal';
 import { Destination, Category } from '@/types';
 import { useWishlist } from '@/contexts/WishlistContext';
-import { useSettings } from '@/hooks/useSettings';
+import { useTranslations } from 'next-intl';
 import { liteClient as algoliasearch } from 'algoliasearch/lite';
 import { InstantSearch, Index, useSearchBox, useHits, Configure } from 'react-instantsearch';
 import { useChat } from '@ai-sdk/react';
@@ -193,7 +193,7 @@ function TourHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: 
           <span className="text-[11px] md:text-xs font-semibold text-gray-700 tracking-wide">
             Tours
           </span>
-          <span className="ml-auto text-[10px] md:text-xs font-medium text-gray-400 bg-gray-100/80 backdrop-blur-sm px-2 md:px-2.5 py-0.5 md:py-1 rounded-full">
+          <span className="ms-auto text-[10px] md:text-xs font-medium text-gray-400 bg-gray-100/80 backdrop-blur-sm px-2 md:px-2.5 py-0.5 md:py-1 rounded-full">
             {hits.length}
           </span>
         </div>
@@ -274,7 +274,7 @@ function DestinationHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; l
           <span className="text-[11px] md:text-xs font-semibold text-gray-700 tracking-wide">
             Destinations
           </span>
-          <span className="ml-auto text-[10px] md:text-xs font-medium text-gray-400 bg-gray-100/80 backdrop-blur-sm px-2 md:px-2.5 py-0.5 md:py-1 rounded-full">
+          <span className="ms-auto text-[10px] md:text-xs font-medium text-gray-400 bg-gray-100/80 backdrop-blur-sm px-2 md:px-2.5 py-0.5 md:py-1 rounded-full">
             {hits.length}
           </span>
         </div>
@@ -336,7 +336,7 @@ function CategoryHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limi
           <span className="text-[11px] md:text-xs font-semibold text-gray-700 tracking-wide">
             Categories
           </span>
-          <span className="ml-auto text-[10px] md:text-xs font-medium text-gray-400 bg-gray-100/80 backdrop-blur-sm px-2 md:px-2.5 py-0.5 md:py-1 rounded-full">
+          <span className="ms-auto text-[10px] md:text-xs font-medium text-gray-400 bg-gray-100/80 backdrop-blur-sm px-2 md:px-2.5 py-0.5 md:py-1 rounded-full">
             {hits.length}
           </span>
         </div>
@@ -391,7 +391,7 @@ function BlogHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: 
           <span className="text-[11px] md:text-xs font-semibold text-gray-700 tracking-wide">
             Blog Posts
           </span>
-          <span className="ml-auto text-[10px] md:text-xs font-medium text-gray-400 bg-gray-100/80 backdrop-blur-sm px-2 md:px-2.5 py-0.5 md:py-1 rounded-full">
+          <span className="ms-auto text-[10px] md:text-xs font-medium text-gray-400 bg-gray-100/80 backdrop-blur-sm px-2 md:px-2.5 py-0.5 md:py-1 rounded-full">
             {hits.length}
           </span>
         </div>
@@ -450,7 +450,7 @@ const TourCard = ({ tour }: { tour: any }) => (
           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
         />
         {tour.duration && (
-          <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-0.5 rounded-lg text-[10px] font-medium">
+          <div className="absolute top-2 end-2 bg-white/90 backdrop-blur-sm px-2 py-0.5 rounded-lg text-[10px] font-medium">
             {tour.duration}
           </div>
         )}
@@ -502,13 +502,13 @@ const TourSlider = ({ tours }: { tours: any[] }) => {
         <>
           <button
             onClick={() => scroll('left')}
-            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-7 h-7 bg-white/90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center hover:bg-white transition-all"
+            className="absolute start-0 top-1/2 -translate-y-1/2 z-10 w-7 h-7 bg-white/90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center hover:bg-white transition-all"
           >
             <ChevronLeft className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={() => scroll('right')}
-            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-7 h-7 bg-white/90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center hover:bg-white transition-all"
+            className="absolute end-0 top-1/2 -translate-y-1/2 z-10 w-7 h-7 bg-white/90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center hover:bg-white transition-all"
           >
             <ChevronRight className="w-3.5 h-3.5" />
           </button>
@@ -694,7 +694,7 @@ const MobileInlineSearch: FC<{ isOpen: boolean; onClose: () => void }> = React.m
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -20 }}
         transition={{ duration: 0.3 }}
-        className="fixed top-16 left-0 right-0 z-50"
+        className="fixed top-16 start-0 end-0 z-50"
         ref={containerRef}
       >
         <div className="max-w-7xl mx-auto px-4 py-4">
@@ -719,13 +719,13 @@ const MobileInlineSearch: FC<{ isOpen: boolean; onClose: () => void }> = React.m
                       }
                     }}
                     placeholder={chatMode ? "Ask AI about tours..." : "Search tours, destinations..."}
-                    className="w-full pl-14 pr-32 py-4 text-base text-gray-900 placeholder:text-gray-400/70 placeholder:font-normal font-medium bg-transparent outline-none rounded-full"
+                    className="w-full ps-14 pe-32 py-4 text-base text-gray-900 placeholder:text-gray-400/70 placeholder:font-normal font-medium bg-transparent outline-none rounded-full"
                     autoFocus
                     disabled={chatMode && isGenerating}
                   />
 
                   {/* Left Icon */}
-                  <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
+                  <div className="absolute start-4 top-1/2 transform -translate-y-1/2">
                     <motion.div
                       animate={{ scale: [1, 1.1, 1] }}
                       transition={{ duration: 2, repeat: Infinity }}
@@ -737,7 +737,7 @@ const MobileInlineSearch: FC<{ isOpen: boolean; onClose: () => void }> = React.m
                   </div>
 
                   {/* Right Side Buttons */}
-                  <div className="absolute right-4 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
+                  <div className="absolute end-4 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
                     {chatMode ? (
                       <motion.button
                         onClick={() => {
@@ -806,7 +806,7 @@ const MobileInlineSearch: FC<{ isOpen: boolean; onClose: () => void }> = React.m
                       {chatMode && (
                         <button
                           onClick={handleBackToSearch}
-                          className="mr-1 p-1.5 hover:bg-white/80 rounded-lg transition-colors"
+                          className="me-1 p-1.5 hover:bg-white/80 rounded-lg transition-colors"
                         >
                           <ArrowLeft className="w-4 h-4 text-gray-600" />
                         </button>
@@ -949,7 +949,7 @@ const SearchSuggestion: FC<{
   <div className="group relative">
     <button
       onClick={() => onSelect(term)}
-      className="flex items-center gap-3 pl-4 pr-5 py-2 bg-slate-100 text-slate-700 rounded-full transition-all hover:bg-slate-200 hover:shadow-md group-hover:pr-10"
+      className="flex items-center gap-3 ps-4 pe-5 py-2 bg-slate-100 text-slate-700 rounded-full transition-all hover:bg-slate-200 hover:shadow-md group-hover:pe-10"
     >
       <Icon className="h-5 w-5 text-slate-500 group-hover:text-[var(--primary-color)] transition-colors" />
       <span className="font-medium">{term}</span>
@@ -960,7 +960,7 @@ const SearchSuggestion: FC<{
           e.stopPropagation();
           onRemove(term);
         }}
-        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full text-slate-500 opacity-0 group-hover:opacity-100 hover:bg-slate-300"
+        className="absolute end-2 top-1/2 -translate-y-1/2 p-1 rounded-full text-slate-500 opacity-0 group-hover:opacity-100 hover:bg-slate-300"
         aria-label={`Remove ${term}`}
       >
         <X size={14} />
@@ -1031,7 +1031,7 @@ const tenantMegaMenuCategories: Record<string, { name: string; slug: string; ico
 // =================================================================
 const MegaMenu: FC<{ isOpen: boolean; onClose: () => void; destinations: Destination[]; categories: Category[]; tenantId?: string }> = React.memo(({ isOpen, onClose, destinations, categories, tenantId }) => {
   const menuRef = useRef<HTMLDivElement>(null);
-  const { t } = useSettings();
+  const t = useTranslations();
   useOnClickOutside(menuRef, onClose);
 
   // Use tenant-specific defaults if available
@@ -1084,7 +1084,7 @@ const MegaMenu: FC<{ isOpen: boolean; onClose: () => void; destinations: Destina
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
           transition={{ duration: 0.3, ease: 'easeInOut' }}
-          className="absolute top-full left-0 right-0 shadow-2xl z-20 border-t bg-white text-black"
+          className="absolute top-full start-0 end-0 shadow-2xl z-20 border-t bg-white text-black"
           onMouseLeave={onClose}
         >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
@@ -1163,7 +1163,7 @@ MegaMenu.displayName = 'MegaMenu';
 const UserMenu: FC<{ user: any; onLogout: () => void }> = ({ user, onLogout }) => {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const { t } = useSettings();
+  const t = useTranslations();
 
   useOnClickOutside(menuRef, () => setIsOpen(false));
 
@@ -1184,7 +1184,7 @@ const UserMenu: FC<{ user: any; onLogout: () => void }> = ({ user, onLogout }) =
 
       <AnimatePresence>
         {isOpen && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute right-0 top-full mt-2 w-64 bg-white rounded-lg shadow-lg border py-2 z-50">
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute end-0 top-full mt-2 w-64 bg-white rounded-lg shadow-lg border py-2 z-50">
             <div className="px-4 py-3 border-b">
               <p className="font-medium text-slate-900">{user.name}</p>
               <p className="text-sm text-slate-500">{user.email}</p>
@@ -1197,7 +1197,7 @@ const UserMenu: FC<{ user: any; onLogout: () => void }> = ({ user, onLogout }) =
             </div>
 
             <div className="border-t py-2">
-              <button onClick={onLogout} className="flex items-center gap-3 px-4 py-2 text-red-600 hover:bg-red-50 transition-colors w-full text-left">
+              <button onClick={onLogout} className="flex items-center gap-3 px-4 py-2 text-red-600 hover:bg-red-50 transition-colors w-full text-start">
                 <LogOut size={16} />
                 <span>{t('header.signOut')}</span>
               </button>
@@ -1223,7 +1223,7 @@ const MobileMenu: FC<{
 }> = React.memo(({ isOpen, onClose, onOpenSearch, onOpenAuth: _onOpenAuth, destinations, categories, tenantId }) => {
   const menuRef = useRef<HTMLDivElement>(null);
   const { user, logout } = useAuth();
-  const { t } = useSettings();
+  const t = useTranslations();
   const { getLogo, getSiteName } = useTenant();
 
   // Use tenant-specific defaults if available
@@ -1276,7 +1276,7 @@ const MobileMenu: FC<{
           <div className="absolute inset-0 bg-black/50" onClick={onClose} />
           <motion.div
             ref={menuRef}
-            className="absolute top-0 left-0 h-full w-full max-w-sm shadow-2xl bg-white"
+            className="absolute top-0 start-0 h-full w-full max-w-sm shadow-2xl bg-white"
             initial={{ x: '-100%' }}
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
@@ -1310,7 +1310,7 @@ const MobileMenu: FC<{
                   <div className="space-y-2">
                     <Link href="/user/profile" className="block py-2 text-slate-700 hover:text-[var(--primary-color)]" onClick={onClose}>{t('header.myProfile')}</Link>
                     <Link href="/user/bookings" className="block py-2 text-slate-700 hover:text-[var(--primary-color)]" onClick={onClose}>{t('header.myBookings')}</Link>
-                    <button onClick={() => { logout(); onClose(); }} className="block py-2 w-full text-left text-red-600 hover:text-red-700">{t('header.signOut')}</button>
+                    <button onClick={() => { logout(); onClose(); }} className="block py-2 w-full text-start text-red-600 hover:text-red-700">{t('header.signOut')}</button>
                   </div>
                 </div>
               ) : (
@@ -1323,7 +1323,7 @@ const MobileMenu: FC<{
               )}
 
               <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                <button onClick={() => { onOpenSearch(); onClose(); }} className="w-full flex items-center gap-3 p-4 rounded-lg text-left bg-slate-100">
+                <button onClick={() => { onOpenSearch(); onClose(); }} className="w-full flex items-center gap-3 p-4 rounded-lg text-start bg-slate-100">
                   <Search size={20} className="text-slate-500" />
                   <span className="text-slate-700">Search tours & tickets</span>
                 </button>
@@ -1375,14 +1375,14 @@ MobileMenu.displayName = 'MobileMenu';
 // --- HEADER SEARCH BAR (desktop) ---
 // =================================================================
 const HeaderSearchBar: FC<{ onFocus: () => void; isTransparent: boolean }> = React.memo(({ onFocus, isTransparent }) => {
-  const { t } = useSettings();
+  const t = useTranslations();
   const _currentSuggestion = useSlidingText(SEARCH_SUGGESTIONS, 2500);
   const borderColor = isTransparent ? 'border-transparent' : 'border-slate-200';
   return (
     <div className="hidden lg:block flex-1 max-w-2xl mx-8 transition-colors duration-500">
       <div className="relative">
-        <Search className={`absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 pointer-events-none transition-colors duration-500 ${isTransparent ? 'text-white' : 'text-slate-400'}`} />
-        <button onClick={onFocus} className={`w-full text-left pl-12 pr-6 py-3 text-sm bg-white border-2 rounded-full shadow-sm hover:border-[var(--primary-color)] transition-colors ${borderColor}`}>
+        <Search className={`absolute start-4 top-1/2 -translate-y-1/2 h-5 w-5 pointer-events-none transition-colors duration-500 ${isTransparent ? 'text-white' : 'text-slate-400'}`} />
+        <button onClick={onFocus} className={`w-full text-start ps-12 pe-6 py-3 text-sm bg-white border-2 rounded-full shadow-sm hover:border-[var(--primary-color)] transition-colors ${borderColor}`}>
           <span className="text-slate-500">{t('search.placeholder')}</span>
         </button>
       </div>
@@ -1413,7 +1413,7 @@ export default function Header({
 
   const [destinations, setDestinations] = useState<Destination[]>(initialDestinations || []);
   const [categories, setCategories] = useState<Category[]>(initialCategories || []);
-  const { t } = useSettings();
+  const t = useTranslations();
   const { tenant, getLogo, getSiteName } = useTenant();
 
   useEffect(() => {
@@ -1470,7 +1470,7 @@ export default function Header({
 
   return (
     <>
-     <header className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ease-in-out ${isVisible ? 'translate-y-0' : '-translate-y-full'} ${headerBg} ${headerText}`}>
+     <header className={`fixed top-0 start-0 end-0 z-40 transition-all duration-300 ease-in-out ${isVisible ? 'translate-y-0' : '-translate-y-full'} ${headerBg} ${headerText}`}>
   {/* Fully transparent backdrop on all screen sizes */}
   {isTransparent && (
     <div className="absolute inset-0 bg-transparent" />
@@ -1509,7 +1509,7 @@ export default function Header({
         >
           <Heart size={24} className={`${headerText} ${linkHoverColor} transition-colors`} />
           {wishlist?.length > 0 && (
-            <span className="absolute -top-1 -right-1 md:-top-2 md:-right-2 text-white text-[10px] rounded-full h-5 w-5 flex items-center justify-center font-bold border-2 border-white shadow-lg" style={{ backgroundColor: 'var(--primary-color)' }}>
+            <span className="absolute -top-1 -end-1 md:-top-2 md:-end-2 text-white text-[10px] rounded-full h-5 w-5 flex items-center justify-center font-bold border-2 border-white shadow-lg" style={{ backgroundColor: 'var(--primary-color)' }}>
               {wishlist.length}
             </span>
           )}
@@ -1522,7 +1522,7 @@ export default function Header({
         >
           <ShoppingCart size={24} className={`${headerText} ${linkHoverColor} transition-colors`} />
           {totalItems > 0 && (
-            <span className="absolute -top-1 -right-1 md:-top-2 md:-right-2 text-white text-[10px] rounded-full h-5 w-5 flex items-center justify-center font-bold border-2 border-white shadow-lg" style={{ backgroundColor: 'var(--primary-color)' }}>
+            <span className="absolute -top-1 -end-1 md:-top-2 md:-end-2 text-white text-[10px] rounded-full h-5 w-5 flex items-center justify-center font-bold border-2 border-white shadow-lg" style={{ backgroundColor: 'var(--primary-color)' }}>
               {totalItems}
             </span>
           )}

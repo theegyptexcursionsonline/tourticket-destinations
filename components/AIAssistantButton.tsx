@@ -23,7 +23,7 @@ export default function AIAssistantButton() {
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 0.5, duration: 0.4, type: "spring" }}
-        className="hidden md:block fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-30"
+        className="hidden md:block fixed bottom-4 start-4 sm:bottom-6 sm:start-6 z-30"
       >
         <motion.button
           onClick={handleOpenSearch}
@@ -38,9 +38,9 @@ export default function AIAssistantButton() {
           </div>
 
           {/* Tooltip - Hidden on mobile, shown on desktop */}
-          <div className="hidden sm:block absolute left-full ml-3 px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-xl shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+          <div className="hidden sm:block absolute start-full ms-3 px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-xl shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
             AI Travel Assistant
-            <div className="absolute right-full top-1/2 -translate-y-1/2 border-8 border-transparent border-r-slate-900"></div>
+            <div className="absolute end-full top-1/2 -translate-y-1/2 border-8 border-transparent border-r-slate-900"></div>
           </div>
 
           {/* Animated Pulse Ring */}
@@ -66,7 +66,7 @@ export default function AIAssistantButton() {
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.7, type: "spring" }}
-          className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 bg-white text-red-600 text-[10px] sm:text-xs font-bold px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full shadow-lg border-2 border-red-100"
+          className="absolute -top-1 -end-1 sm:-top-2 sm:-end-2 bg-white text-red-600 text-[10px] sm:text-xs font-bold px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full shadow-lg border-2 border-red-100"
         >
           AI
         </motion.div>
@@ -76,7 +76,7 @@ export default function AIAssistantButton() {
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.9 }}
-          className="sm:hidden absolute top-full left-1/2 -translate-x-1/2 mt-2 text-[10px] font-semibold text-slate-700 bg-white px-2 py-1 rounded-full shadow-md whitespace-nowrap"
+          className="sm:hidden absolute top-full start-1/2 -translate-x-1/2 mt-2 text-[10px] font-semibold text-slate-700 bg-white px-2 py-1 rounded-full shadow-md whitespace-nowrap"
         >
           AI Assistant
         </motion.div>

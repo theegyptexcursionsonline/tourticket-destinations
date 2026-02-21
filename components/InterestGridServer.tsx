@@ -3,7 +3,8 @@
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useTenant } from '@/contexts/TenantContext';
-import Link from "next/link";
+import { Link } from '@/i18n/navigation';
+import { useTranslations } from 'next-intl';
 import {
   ArrowRight,
   Package,
@@ -128,13 +129,14 @@ const getIconForInterest = (name: string, _slug: string) => {
 
 // Interest Card Component
 const InterestCard = ({ interest }: { interest: Interest }) => {
+  const t = useTranslations();
   const { Icon, gradient } = getIconForInterest(interest.name, interest.slug);
   const linkUrl = `/categories/${interest.slug}`;
 
   return (
     <Link
       href={linkUrl}
-      className="group relative block text-left bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 border border-slate-200 hover:border-red-300 h-full"
+      className="group relative block text-start bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 border border-slate-200 hover:border-red-300 h-full"
     >
       <div className="absolute inset-0 bg-gradient-to-br from-red-50/50 via-orange-50/30 to-amber-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
       <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
@@ -148,7 +150,7 @@ const InterestCard = ({ interest }: { interest: Interest }) => {
           {interest.featured && (
             <span className="px-2.5 py-1 bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-700 text-xs font-bold rounded-full border border-amber-200 flex items-center gap-1">
               <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
-              Featured
+              {t('tourCard.featured')}
             </span>
           )}
         </div>
@@ -178,7 +180,7 @@ const InterestCard = ({ interest }: { interest: Interest }) => {
         </div>
       </div>
 
-      <div className={`absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r ${gradient} transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left`} />
+      <div className={`absolute bottom-0 start-0 end-0 h-1 bg-gradient-to-r ${gradient} transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left`} />
     </Link>
   );
 };
@@ -235,7 +237,7 @@ function TourHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: 
           <span className="text-[11px] md:text-xs font-semibold text-gray-700 tracking-wide">
             Tours
           </span>
-          <span className="ml-auto text-[10px] md:text-xs font-medium text-gray-400 bg-gray-100/80 backdrop-blur-sm px-2 md:px-2.5 py-0.5 md:py-1 rounded-full">
+          <span className="ms-auto text-[10px] md:text-xs font-medium text-gray-400 bg-gray-100/80 backdrop-blur-sm px-2 md:px-2.5 py-0.5 md:py-1 rounded-full">
             {hits.length}
           </span>
         </div>
@@ -247,13 +249,13 @@ function TourHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: 
             <>
               <button
                 onClick={() => scroll('left')}
-                className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center hover:bg-white transition-all hover:scale-110"
+                className="absolute start-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center hover:bg-white transition-all hover:scale-110"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
               <button
                 onClick={() => scroll('right')}
-                className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center hover:bg-white transition-all hover:scale-110"
+                className="absolute end-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center hover:bg-white transition-all hover:scale-110"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
@@ -280,18 +282,18 @@ function TourHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: 
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                     />
                     {tour.isFeatured && (
-                      <div className="absolute top-2 left-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-0.5 shadow-md">
+                      <div className="absolute top-2 start-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-0.5 shadow-md">
                         <Star className="w-2.5 h-2.5 fill-current" />
                         Featured
                       </div>
                     )}
                     {tour.originalPrice && tour.discountPrice && tour.discountPrice < tour.originalPrice && (
-                      <div className="absolute top-2 right-2 bg-gradient-to-r from-red-500 to-red-600 text-white px-2 py-0.5 rounded-full text-[10px] font-bold shadow-md">
+                      <div className="absolute top-2 end-2 bg-gradient-to-r from-red-500 to-red-600 text-white px-2 py-0.5 rounded-full text-[10px] font-bold shadow-md">
                         -{Math.round(((tour.originalPrice - tour.discountPrice) / tour.originalPrice) * 100)}%
                       </div>
                     )}
                     {tour.duration && (
-                      <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-sm text-white px-2 py-1 rounded-lg text-[10px] font-medium flex items-center gap-1">
+                      <div className="absolute bottom-2 start-2 bg-black/60 backdrop-blur-sm text-white px-2 py-1 rounded-lg text-[10px] font-medium flex items-center gap-1">
                         <Clock className="w-2.5 h-2.5" />
                         {tour.duration}
                       </div>
@@ -357,7 +359,7 @@ function DestinationHits({ onHitClick, limit = 3 }: { onHitClick?: () => void; l
           <span className="text-[11px] md:text-xs font-semibold text-gray-700 tracking-wide">
             Destinations
           </span>
-          <span className="ml-auto text-[10px] md:text-xs font-medium text-gray-400 bg-gray-100/80 backdrop-blur-sm px-2 md:px-2.5 py-0.5 md:py-1 rounded-full">
+          <span className="ms-auto text-[10px] md:text-xs font-medium text-gray-400 bg-gray-100/80 backdrop-blur-sm px-2 md:px-2.5 py-0.5 md:py-1 rounded-full">
             {hits.length}
           </span>
         </div>
@@ -412,7 +414,7 @@ function CategoryHits({ onHitClick, limit = 3 }: { onHitClick?: () => void; limi
           <span className="text-[11px] md:text-xs font-semibold text-gray-700 tracking-wide">
             Categories
           </span>
-          <span className="ml-auto text-[10px] md:text-xs font-medium text-gray-400 bg-gray-100/80 backdrop-blur-sm px-2 md:px-2.5 py-0.5 md:py-1 rounded-full">
+          <span className="ms-auto text-[10px] md:text-xs font-medium text-gray-400 bg-gray-100/80 backdrop-blur-sm px-2 md:px-2.5 py-0.5 md:py-1 rounded-full">
             {hits.length}
           </span>
         </div>
@@ -450,6 +452,7 @@ function CategoryHits({ onHitClick, limit = 3 }: { onHitClick?: () => void; limi
 
 export default function InterestGridServer({ categories }: InterestGridServerProps) {
   const { getSiteName } = useTenant();
+  const t = useTranslations();
   const [searchTerm, setSearchTerm] = useState('');
   const [swiperRef, setSwiperRef] = useState<SwiperType | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -753,18 +756,18 @@ export default function InterestGridServer({ categories }: InterestGridServerPro
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                       />
                       {tour.isFeatured && (
-                        <div className="absolute top-2 left-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-0.5 shadow-md">
+                        <div className="absolute top-2 start-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-0.5 shadow-md">
                           <Star className="w-2.5 h-2.5 fill-current" />
                           Featured
                         </div>
                       )}
                       {tour.originalPrice && tour.discountPrice && tour.discountPrice < tour.originalPrice && (
-                        <div className="absolute top-2 right-2 bg-gradient-to-r from-red-500 to-red-600 text-white px-2 py-0.5 rounded-full text-[10px] font-bold shadow-md">
+                        <div className="absolute top-2 end-2 bg-gradient-to-r from-red-500 to-red-600 text-white px-2 py-0.5 rounded-full text-[10px] font-bold shadow-md">
                           -{Math.round(((tour.originalPrice - tour.discountPrice) / tour.originalPrice) * 100)}%
                         </div>
                       )}
                       {tour.duration && (
-                        <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-sm text-white px-2 py-1 rounded-lg text-[10px] font-medium flex items-center gap-1">
+                        <div className="absolute bottom-2 start-2 bg-black/60 backdrop-blur-sm text-white px-2 py-1 rounded-lg text-[10px] font-medium flex items-center gap-1">
                           <Clock className="w-2.5 h-2.5" />
                           {tour.duration}
                         </div>
@@ -841,8 +844,8 @@ export default function InterestGridServer({ categories }: InterestGridServerPro
             <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-slate-300 to-slate-400 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
               <Search className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
             </div>
-            <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-2">No Results Found</h3>
-            <p className="text-slate-600 text-sm">Try adjusting your search terms</p>
+            <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-2">{t('search.noToursFound')}</h3>
+            <p className="text-slate-600 text-sm">{t('search.tryDifferentSearch')}</p>
           </div>
         </div>
       </section>
@@ -852,8 +855,8 @@ export default function InterestGridServer({ categories }: InterestGridServerPro
   return (
     <section className="relative bg-gradient-to-b from-white via-slate-50 to-white py-8 sm:py-12 md:py-16 lg:py-20">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-72 h-72 sm:w-96 sm:h-96 bg-red-500/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 right-1/4 w-72 h-72 sm:w-96 sm:h-96 bg-orange-500/5 rounded-full blur-3xl" />
+        <div className="absolute top-0 start-1/4 w-72 h-72 sm:w-96 sm:h-96 bg-red-500/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 end-1/4 w-72 h-72 sm:w-96 sm:h-96 bg-orange-500/5 rounded-full blur-3xl" />
       </div>
 
       <div className="container mx-auto px-3 sm:px-4 max-w-[1400px] relative z-10">
@@ -864,14 +867,11 @@ export default function InterestGridServer({ categories }: InterestGridServerPro
           </div>
 
           <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-slate-900 mb-2 sm:mb-3 md:mb-4 leading-tight px-2 sm:px-4">
-            Browse All{' '}
-            <span className="bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent">
-              Experiences
-            </span>
+            {t('homepage.topActivities')}
           </h2>
 
           <p className="text-sm sm:text-base md:text-lg lg:text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed px-4">
-            Explore our complete collection of unforgettable tours and experiences
+            {t('homepage.discoverExperiences')}
           </p>
         </div>
 
@@ -880,17 +880,17 @@ export default function InterestGridServer({ categories }: InterestGridServerPro
             <div className="relative group">
               <div className="absolute inset-0 bg-gradient-to-r from-red-500 to-orange-500 rounded-2xl blur-md opacity-0 group-hover:opacity-20 group-focus-within:opacity-20 transition-opacity" />
               <div className="relative flex items-center">
-                <Search className="absolute left-3 sm:left-4 md:left-5 w-4 sm:w-5 h-4 sm:h-5 text-slate-400 group-hover:text-red-500 group-focus-within:text-red-500 transition-colors z-10" />
+                <Search className="absolute start-3 sm:start-4 md:start-5 w-4 sm:w-5 h-4 sm:h-5 text-slate-400 group-hover:text-red-500 group-focus-within:text-red-500 transition-colors z-10" />
                 <input
                   type="text"
                   placeholder={chatMode ? "Ask AI anything about Egypt tours..." : "Search experiences by name..."}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   onFocus={() => setIsExpanded(true)}
-                  className="w-full pl-10 sm:pl-12 md:pl-14 pr-12 sm:pr-14 md:pr-16 py-2.5 sm:py-3 md:py-4 bg-white border-2 border-slate-200 rounded-2xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all text-sm sm:text-base text-slate-900 placeholder:text-slate-400 shadow-sm hover:shadow-md font-medium"
+                  className="w-full ps-10 sm:ps-12 md:ps-14 pe-12 sm:pe-14 md:pe-16 py-2.5 sm:py-3 md:py-4 bg-white border-2 border-slate-200 rounded-2xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all text-sm sm:text-base text-slate-900 placeholder:text-slate-400 shadow-sm hover:shadow-md font-medium"
                   disabled={chatMode && isGenerating}
                 />
-                <div className="absolute right-3 sm:right-4 md:right-5 flex items-center gap-2 z-10">
+                <div className="absolute end-3 sm:end-4 md:end-5 flex items-center gap-2 z-10">
                   {searchTerm && (
                     <button
                       type="button"
@@ -939,7 +939,7 @@ export default function InterestGridServer({ categories }: InterestGridServerPro
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -10, scale: 0.96 }}
                 transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-                className="absolute top-full mt-3 left-0 right-0 bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-gray-200/50 overflow-hidden z-[9999]"
+                className="absolute top-full mt-3 start-0 end-0 bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-gray-200/50 overflow-hidden z-[9999]"
                 style={{ maxHeight: '65vh' }}
               >
                 {/* Header */}
@@ -949,7 +949,7 @@ export default function InterestGridServer({ categories }: InterestGridServerPro
                       {chatMode && (
                         <button
                           onClick={handleBackToSearch}
-                          className="mr-1 p-1.5 hover:bg-white/80 rounded-lg transition-colors"
+                          className="me-1 p-1.5 hover:bg-white/80 rounded-lg transition-colors"
                         >
                           <ArrowLeft className="w-4 h-4 text-gray-600" />
                         </button>
@@ -1112,7 +1112,7 @@ export default function InterestGridServer({ categories }: InterestGridServerPro
         <div className="relative px-2 sm:px-4 lg:px-8">
           <button
             onClick={() => swiperRef?.slidePrev()}
-            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-11 h-11 sm:w-12 sm:h-12 bg-white hover:bg-gradient-to-br hover:from-red-500 hover:to-orange-500 text-slate-700 hover:text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center group -translate-x-3 sm:-translate-x-4 lg:-translate-x-6 hidden lg:flex border border-slate-200 hover:border-transparent"
+            className="absolute start-0 top-1/2 -translate-y-1/2 z-10 w-11 h-11 sm:w-12 sm:h-12 bg-white hover:bg-gradient-to-br hover:from-red-500 hover:to-orange-500 text-slate-700 hover:text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center group -translate-x-3 sm:-translate-x-4 lg:-translate-x-6 hidden lg:flex border border-slate-200 hover:border-transparent"
             aria-label="Previous slide"
           >
             <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.5} />
@@ -1120,7 +1120,7 @@ export default function InterestGridServer({ categories }: InterestGridServerPro
 
           <button
             onClick={() => swiperRef?.slideNext()}
-            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-11 h-11 sm:w-12 sm:h-12 bg-white hover:bg-gradient-to-br hover:from-red-500 hover:to-orange-500 text-slate-700 hover:text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center group translate-x-3 sm:translate-x-4 lg:translate-x-6 hidden lg:flex border border-slate-200 hover:border-transparent"
+            className="absolute end-0 top-1/2 -translate-y-1/2 z-10 w-11 h-11 sm:w-12 sm:h-12 bg-white hover:bg-gradient-to-br hover:from-red-500 hover:to-orange-500 text-slate-700 hover:text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center group translate-x-3 sm:translate-x-4 lg:translate-x-6 hidden lg:flex border border-slate-200 hover:border-transparent"
             aria-label="Next slide"
           >
             <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.5} />

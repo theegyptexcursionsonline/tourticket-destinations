@@ -228,7 +228,7 @@ const TourOfferSection: React.FC<TourOfferSectionProps> = ({
             </div>
           </div>
           
-          <div className="text-right">
+          <div className="text-end">
             <div className="flex items-baseline gap-2">
               <span className="text-2xl font-bold text-emerald-600">
                 {formatPrice(discountResult.discountedPrice)}

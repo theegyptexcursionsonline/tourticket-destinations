@@ -24,7 +24,7 @@ export default function AIFloatingButton() {
       transition={{ delay: 1, duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
       whileHover={{ scale: 1.1 }}
       whileTap={{ scale: 0.95 }}
-      className="fixed bottom-6 right-6 z-[9998] w-14 h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300"
+      className="fixed bottom-6 end-6 z-[9998] w-14 h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300"
       style={{
         background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
         boxShadow: '0 8px 24px -4px rgba(59, 130, 246, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.2) inset',

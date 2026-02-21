@@ -1,7 +1,7 @@
 'use client';
 import React, { useEffect, useRef, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { useTenant } from '@/contexts/TenantContext';
 import type { IPromoContent } from '@/lib/models/Tenant';
 

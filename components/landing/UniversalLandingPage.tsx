@@ -4,7 +4,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { 
   MapPin, Star, Clock, Users, ArrowRight, 
   Grid, List, LayoutGrid, Filter, Search, 
@@ -113,7 +113,7 @@ export default function UniversalLandingPage({
           </div>
 
           {/* Scroll Indicator */}
-          <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2">
+          <div className="absolute bottom-8 start-1/2 transform -translate-x-1/2">
             <motion.div
               animate={{ y: [0, 10, 0] }}
               transition={{ repeat: Infinity, duration: 2 }}
@@ -174,7 +174,7 @@ export default function UniversalLandingPage({
                       <Icon className="h-4 w-4" />
                       {tab.label}
                       {tab.count > 0 && (
-                        <span className="ml-1 px-2 py-1 bg-slate-200 text-slate-600 rounded-full text-xs font-semibold">
+                        <span className="ms-1 px-2 py-1 bg-slate-200 text-slate-600 rounded-full text-xs font-semibold">
                           {tab.count}
                         </span>
                       )}
@@ -187,13 +187,13 @@ export default function UniversalLandingPage({
               <div className="flex items-center gap-4">
                 {/* Search Bar */}
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <input
                     type="text"
                     placeholder="Search..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className="ps-10 pe-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   />
                 </div>
 
@@ -460,7 +460,7 @@ const TourCard = ({ tour, index }: { tour: any, index: number }) => (
             fill
             className="object-cover transition-transform duration-300 group-hover:scale-110"
           />
-          <div className="absolute top-4 right-4">
+          <div className="absolute top-4 end-4">
             <div className="bg-white/90 backdrop-blur-sm px-3 py-2 rounded-full">
               <span className="text-sm font-bold text-slate-900">
                 €{tour.discountPrice || tour.price}
@@ -468,9 +468,9 @@ const TourCard = ({ tour, index }: { tour: any, index: number }) => (
             </div>
           </div>
           {tour.isFeatured && (
-            <div className="absolute top-4 left-4">
+            <div className="absolute top-4 start-4">
               <div className="bg-yellow-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
-                <Star className="h-3 w-3 inline mr-1" />
+                <Star className="h-3 w-3 inline me-1" />
                 Featured
               </div>
             </div>
@@ -546,11 +546,11 @@ const TourListItem = ({ tour, index }: { tour: any, index: number }) => (
             )}
           </div>
         </div>
-        <div className="text-right">
+        <div className="text-end">
           <div className="text-xl font-bold text-slate-900">
             €{tour.discountPrice || tour.price}
           </div>
-          <ArrowRight className="h-5 w-5 text-slate-400 group-hover:text-indigo-600 transition-colors mt-2 ml-auto" />
+          <ArrowRight className="h-5 w-5 text-slate-400 group-hover:text-indigo-600 transition-colors mt-2 ms-auto" />
         </div>
       </div>
     </Link>
@@ -573,7 +573,7 @@ const TourLargeCard = ({ tour, index }: { tour: any, index: number }) => (
             className="object-cover transition-transform duration-300 group-hover:scale-105"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-          <div className="absolute bottom-4 left-4 right-4">
+          <div className="absolute bottom-4 start-4 end-4">
             <div className="text-white">
               <h3 className="text-xl font-bold mb-2 group-hover:text-yellow-300 transition-colors">
                 {tour.title}
@@ -629,7 +629,7 @@ const DestinationCard = ({ destination, index }: { destination: any, index: numb
             className="object-cover transition-transform duration-300 group-hover:scale-110"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-          <div className="absolute bottom-4 left-4">
+          <div className="absolute bottom-4 start-4">
             <h3 className="text-xl font-bold text-white group-hover:text-yellow-300 transition-colors">
               {destination.name}
             </h3>
@@ -677,11 +677,11 @@ const DestinationListItem = ({ destination, index }: { destination: any, index: 
           )}
           <p className="text-slate-600 text-sm mt-1 line-clamp-1">{destination.description}</p>
         </div>
-        <div className="text-right">
+        <div className="text-end">
           <div className="text-sm text-slate-500">
             {destination.tourCount || 0} tours
           </div>
-          <ArrowRight className="h-5 w-5 text-slate-400 group-hover:text-indigo-600 transition-colors mt-2 ml-auto" />
+          <ArrowRight className="h-5 w-5 text-slate-400 group-hover:text-indigo-600 transition-colors mt-2 ms-auto" />
         </div>
       </div>
     </Link>
@@ -704,7 +704,7 @@ const DestinationLargeCard = ({ destination, index }: { destination: any, index:
             className="object-cover transition-transform duration-300 group-hover:scale-105"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-          <div className="absolute bottom-4 left-4 right-4">
+          <div className="absolute bottom-4 start-4 end-4">
             <div className="text-white">
               <h3 className="text-xl font-bold mb-1 group-hover:text-yellow-300 transition-colors">
                 {destination.name}

@@ -183,7 +183,7 @@ export default function AIAgentModal() {
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
           />
           {tour.duration && (
-            <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg text-xs font-medium">
+            <div className="absolute top-2 end-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg text-xs font-medium">
               {tour.duration}
             </div>
           )}
@@ -243,13 +243,13 @@ export default function AIAgentModal() {
           <>
             <button
               onClick={() => scroll('left')}
-              className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center hover:bg-white transition-all"
+              className="absolute start-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center hover:bg-white transition-all"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
               onClick={() => scroll('right')}
-              className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center hover:bg-white transition-all"
+              className="absolute end-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center hover:bg-white transition-all"
             >
               <ChevronRight className="w-4 h-4" />
             </button>

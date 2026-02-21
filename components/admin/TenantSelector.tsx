@@ -30,7 +30,7 @@ export default function TenantSelector({ variant = 'header', className = '' }: T
           value={selectedTenantId}
           onChange={(e) => setSelectedTenantId(e.target.value)}
           disabled={isLoading}
-          className="appearance-none bg-white border border-gray-300 rounded-lg px-3 py-2 pr-8 text-sm font-medium text-gray-700 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          className="appearance-none bg-white border border-gray-300 rounded-lg px-3 py-2 pe-8 text-sm font-medium text-gray-700 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <option value={ALL_TENANTS_VALUE}>All Brands</option>
           {tenants.map((tenant) => (
@@ -39,7 +39,7 @@ export default function TenantSelector({ variant = 'header', className = '' }: T
             </option>
           ))}
         </select>
-        <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+        <ChevronDown className="absolute end-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
       </div>
     );
   }
@@ -55,7 +55,7 @@ export default function TenantSelector({ variant = 'header', className = '' }: T
             value={selectedTenantId}
             onChange={(e) => setSelectedTenantId(e.target.value)}
             disabled={isLoading}
-            className="w-full appearance-none bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 pr-10 text-sm font-medium text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer disabled:opacity-50"
+            className="w-full appearance-none bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 pe-10 text-sm font-medium text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer disabled:opacity-50"
           >
             <option value={ALL_TENANTS_VALUE}>🌐 All Brands</option>
             {tenants.map((tenant) => (
@@ -64,7 +64,7 @@ export default function TenantSelector({ variant = 'header', className = '' }: T
               </option>
             ))}
           </select>
-          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+          <ChevronDown className="absolute end-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
         </div>
         {selectedTenant && (
           <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
@@ -87,7 +87,7 @@ export default function TenantSelector({ variant = 'header', className = '' }: T
           value={selectedTenantId}
           onChange={(e) => setSelectedTenantId(e.target.value)}
           disabled={isLoading}
-          className="appearance-none bg-white border border-slate-200 rounded-2xl px-4 py-2.5 pr-10 text-sm font-semibold text-slate-800 hover:border-slate-300 focus:outline-none focus:ring-4 focus:ring-indigo-500/15 focus:border-indigo-500 cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed w-[240px] max-w-[60vw]"
+          className="appearance-none bg-white border border-slate-200 rounded-2xl px-4 py-2.5 pe-10 text-sm font-semibold text-slate-800 hover:border-slate-300 focus:outline-none focus:ring-4 focus:ring-indigo-500/15 focus:border-indigo-500 cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed w-[240px] max-w-[60vw]"
         >
           <option value={ALL_TENANTS_VALUE}>All Brands</option>
           {tenants.map((tenant) => (
@@ -96,7 +96,7 @@ export default function TenantSelector({ variant = 'header', className = '' }: T
             </option>
           ))}
         </select>
-        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+        <ChevronDown className="absolute end-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
       </div>
 
       {selectedTenant && (
@@ -142,13 +142,13 @@ export function TenantSelectorInline({
 
   return (
     <div className={`relative ${className}`}>
-      <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+      <Globe className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
         required={required}
         disabled={disabled || isLoading}
-        className="w-full appearance-none bg-white border border-gray-300 rounded-lg pl-10 pr-10 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer disabled:bg-gray-100 disabled:cursor-not-allowed"
+        className="w-full appearance-none bg-white border border-gray-300 rounded-lg ps-10 pe-10 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer disabled:bg-gray-100 disabled:cursor-not-allowed"
       >
         <option value="">Select a brand...</option>
         {tenants.map((tenant) => (
@@ -157,7 +157,7 @@ export function TenantSelectorInline({
           </option>
         ))}
       </select>
-      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+      <ChevronDown className="absolute end-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
     </div>
   );
 }

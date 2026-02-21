@@ -6,6 +6,7 @@ import Category from "@/lib/models/Category";
 import mongoose from "mongoose";
 import { syncTourToAlgolia, deleteTourFromAlgolia } from "@/lib/algolia";
 import { requireAdminAuth } from "@/lib/auth/adminAuth";
+import { translateTourInBackground } from '@/lib/translation/translateService';
 
 function generateOptionId() {
     return globalThis.crypto?.randomUUID?.() || `opt-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -295,8 +296,15 @@ export async function PUT(
             }
         }
 
+        // Auto-translate in background (non-blocking)
+        if (process.env.OPENAI_API_KEY) {
+            translateTourInBackground(id).catch(err =>
+                console.warn('[Translation] Background translation failed:', err)
+            );
+        }
+
         return NextResponse.json({ success: true, data: updatedTour });
-        
+
     } catch (error: any) {
         console.error('Tour update error:', error);
         

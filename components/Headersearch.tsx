@@ -90,7 +90,7 @@ const MegaMenu: FC<{ isOpen: boolean; onClose: () => void; destinations: Destina
     return (
         <AnimatePresence>
             {isOpen && (
-                <motion.div ref={menuRef} initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3, ease: 'easeInOut' }} className="absolute top-full left-0 right-0 bg-white shadow-2xl z-20 text-black border-t">
+                <motion.div ref={menuRef} initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3, ease: 'easeInOut' }} className="absolute top-full start-0 end-0 bg-white shadow-2xl z-20 text-black border-t">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-8">
                             <div className="md:col-span-2">
@@ -167,7 +167,7 @@ const UserMenu: FC<{ user: any; onLogout: () => void; }> = ({ user, onLogout }) 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="absolute right-0 top-full mt-2 w-64 bg-white rounded-lg shadow-lg border py-2 z-50"
+            className="absolute end-0 top-full mt-2 w-64 bg-white rounded-lg shadow-lg border py-2 z-50"
           >
             <div className="px-4 py-3 border-b">
               <p className="font-medium text-slate-900">{user.name}</p>
@@ -201,7 +201,7 @@ const UserMenu: FC<{ user: any; onLogout: () => void; }> = ({ user, onLogout }) 
             <div className="border-t py-2">
               <button
                 onClick={onLogout}
-                className="flex items-center gap-3 px-4 py-2 text-red-600 hover:bg-red-50 transition-colors w-full text-left"
+                className="flex items-center gap-3 px-4 py-2 text-red-600 hover:bg-red-50 transition-colors w-full text-start"
               >
                 <LogOut size={16} />
                 <span>Sign Out</span>
@@ -246,7 +246,7 @@ const MobileMenu: FC<{ isOpen: boolean; onClose: () => void; onOpenSearch: () =>
           <div className="absolute inset-0 bg-black/50" onClick={onClose} />
           <motion.div
             ref={menuRef}
-            className="absolute top-0 left-0 h-full w-full max-w-sm bg-white shadow-2xl"
+            className="absolute top-0 start-0 h-full w-full max-w-sm bg-white shadow-2xl"
             initial={{ x: '-100%' }}
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
@@ -298,7 +298,7 @@ const MobileMenu: FC<{ isOpen: boolean; onClose: () => void; onOpenSearch: () =>
                     </a>
                     <button
                       onClick={() => { logout(); onClose(); }}
-                      className="block py-2 text-red-600 hover:text-red-700 w-full text-left"
+                      className="block py-2 text-red-600 hover:text-red-700 w-full text-start"
                     >
                       Sign Out
                     </button>
@@ -327,7 +327,7 @@ const MobileMenu: FC<{ isOpen: boolean; onClose: () => void; onOpenSearch: () =>
               <div className="flex-1 overflow-y-auto p-6 space-y-6">
                 <button
                   onClick={() => { onOpenSearch(); onClose(); }}
-                  className="w-full flex items-center gap-3 p-4 bg-slate-100 rounded-lg text-left"
+                  className="w-full flex items-center gap-3 p-4 bg-slate-100 rounded-lg text-start"
                 >
                   <Search size={20} className="text-slate-500" />
                   <span className="text-slate-700">Search tours & tickets</span>
@@ -491,7 +491,7 @@ const MobileInlineSearch: FC<{ isOpen: boolean; onClose: () => void }> = React.m
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -20 }}
         transition={{ duration: 0.2 }}
-        className="fixed top-16 left-0 right-0 z-50 bg-white shadow-2xl border-b border-gray-200"
+        className="fixed top-16 start-0 end-0 z-50 bg-white shadow-2xl border-b border-gray-200"
         ref={containerRef}
       >
         <div className="max-w-7xl mx-auto px-4 py-4">
@@ -509,12 +509,12 @@ const MobileInlineSearch: FC<{ isOpen: boolean; onClose: () => void }> = React.m
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search tours in Egypt..."
-                    className="w-full pl-14 pr-16 py-4 text-base text-gray-900 placeholder-gray-400 font-medium bg-transparent outline-none rounded-full"
+                    className="w-full ps-14 pe-16 py-4 text-base text-gray-900 placeholder-gray-400 font-medium bg-transparent outline-none rounded-full"
                     autoFocus
                   />
 
                   {/* Left Icon */}
-                  <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
+                  <div className="absolute start-4 top-1/2 transform -translate-y-1/2">
                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-md">
                       <Search className="w-4 h-4 text-white" />
                     </div>
@@ -523,7 +523,7 @@ const MobileInlineSearch: FC<{ isOpen: boolean; onClose: () => void }> = React.m
                   {/* Right Close Button */}
                   <button
                     onClick={onClose}
-                    className="absolute right-4 top-1/2 transform -translate-y-1/2 p-2 hover:bg-gray-100 rounded-full transition-colors"
+                    className="absolute end-4 top-1/2 transform -translate-y-1/2 p-2 hover:bg-gray-100 rounded-full transition-colors"
                     aria-label="Close search"
                   >
                     <X className="w-5 h-5 text-gray-400" />
@@ -540,7 +540,7 @@ const MobileInlineSearch: FC<{ isOpen: boolean; onClose: () => void }> = React.m
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.2 }}
-                  className="absolute top-full mt-3 left-0 right-0 bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden max-h-[70vh] overflow-y-auto"
+                  className="absolute top-full mt-3 start-0 end-0 bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden max-h-[70vh] overflow-y-auto"
                 >
                   <InstantSearch searchClient={searchClient} indexName={INDEX_TOURS}>
                     <CustomSearchBox searchQuery={searchQuery} onSearchChange={setSearchQuery} />
@@ -593,8 +593,8 @@ const HeaderSearchBar: FC<{ onFocus: () => void; isTransparent: boolean; }> = Re
     return (
         <div className="hidden lg:block flex-1 max-w-2xl mx-8 transition-colors duration-500">
             <div className="relative">
-                <Search className={`absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 pointer-events-none transition-colors duration-500 ${isTransparent ? 'text-white' : 'text-slate-400'}`} />
-                <button onClick={onFocus} className={`w-full text-left pl-12 pr-6 py-3 text-sm bg-white border-2 rounded-full shadow-sm hover:border-red-300 transition-colors ${borderColor}`}>
+                <Search className={`absolute start-4 top-1/2 -translate-y-1/2 h-5 w-5 pointer-events-none transition-colors duration-500 ${isTransparent ? 'text-white' : 'text-slate-400'}`} />
+                <button onClick={onFocus} className={`w-full text-start ps-12 pe-6 py-3 text-sm bg-white border-2 rounded-full shadow-sm hover:border-red-300 transition-colors ${borderColor}`}>
                     <span className="text-slate-500">{currentSuggestion}</span>
                 </button>
             </div>
@@ -678,7 +678,7 @@ const linkHoverColor = 'hover:text-red-500';
   return (
     <>
       {/* Fixed header (keeps hide-on-scroll behavior) */}
-      <header className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ease-in-out ${isVisible ? 'translate-y-0' : '-translate-y-full'} ${headerBg} ${headerText}`}>
+      <header className={`fixed top-0 start-0 end-0 z-40 transition-all duration-300 ease-in-out ${isVisible ? 'translate-y-0' : '-translate-y-full'} ${headerBg} ${headerText}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-16 md:h-20">
                 <div className="flex items-center gap-4 lg:gap-8">
@@ -704,14 +704,14 @@ const linkHoverColor = 'hover:text-red-500';
                     <button onClick={openWishlistSidebar} className="relative group p-2" aria-label="View your wishlist">
                         <Star size={24} className={`${headerText} ${linkHoverColor}`} />
                         {wishlist.length > 0 && (
-                            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] rounded-full h-5 w-5 flex items-center justify-center font-bold border-2 border-white">
+                            <span className="absolute -top-2 -end-2 bg-red-500 text-white text-[10px] rounded-full h-5 w-5 flex items-center justify-center font-bold border-2 border-white">
                                 {wishlist.length}
                             </span>
                         )}
                     </button>
                     <button onClick={openCart} className="relative group p-2">
                         <ShoppingCart size={24} className={`${headerText} ${linkHoverColor}`} />
-                        {totalItems > 0 && <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] rounded-full h-5 w-5 flex items-center justify-center font-bold border-2 border-white">{totalItems}</span>}
+                        {totalItems > 0 && <span className="absolute -top-2 -end-2 bg-red-500 text-white text-[10px] rounded-full h-5 w-5 flex items-center justify-center font-bold border-2 border-white">{totalItems}</span>}
                     </button>
 
                     <button onClick={handleMobileSearchOpen} className={`${headerText} ${linkHoverColor} lg:hidden group p-2`} aria-label="Open search">

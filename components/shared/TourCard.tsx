@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import {
@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { Tour } from '@/types';
 import { useSettings } from '@/hooks/useSettings';
+import { useTranslations } from 'next-intl';
 import { useWishlist } from '@/contexts/WishlistContext';
 import { useCart } from '@/hooks/useCart';
 import { useTenant } from '@/contexts/TenantContext';
@@ -53,7 +54,8 @@ const TourCard: React.FC<TourCardProps> = ({
   offerBadge,
   hasOffer = false
 }) => {
-  const { formatPrice, t } = useSettings();
+  const { formatPrice } = useSettings();
+  const t = useTranslations();
   const { addToWishlist, removeFromWishlist, isWishlisted } = useWishlist();
   const { addToCart } = useCart();
   const { tenant: _tenant } = useTenant();
@@ -170,7 +172,7 @@ const TourCard: React.FC<TourCardProps> = ({
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
             
             {/* Top Badges */}
-            <div className="absolute top-4 left-4 flex flex-col gap-2">
+            <div className="absolute top-4 start-4 flex flex-col gap-2">
               {/* Special Offer Badge - Priority Display */}
               {showOfferBadge && offerBadge && (
                 <motion.div 
@@ -222,7 +224,7 @@ const TourCard: React.FC<TourCardProps> = ({
             </div>
 
             {/* Top Right Actions */}
-            <div className="absolute top-4 right-4 flex flex-col gap-2">
+            <div className="absolute top-4 end-4 flex flex-col gap-2">
               <button
                 onClick={handleWishlistToggle}
                 className={`p-2 rounded-full backdrop-blur-sm transition-all duration-200 ${
@@ -255,13 +257,13 @@ const TourCard: React.FC<TourCardProps> = ({
             </div>
 
             {/* Bottom Right Rating & Price */}
-            <div className="absolute bottom-4 right-4 flex flex-col items-end gap-2">
+            <div className="absolute bottom-4 end-4 flex flex-col items-end gap-2">
               <div className="bg-white/95 backdrop-blur-sm text-slate-900 px-3 py-1 text-sm rounded-full flex items-center gap-1 shadow-lg">
                 <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
                 {tour.rating?.toFixed(1) || '4.5'}
               </div>
 
-              <div className="bg-white/95 backdrop-blur-sm px-3 py-2 rounded-xl shadow-lg text-right">
+              <div className="bg-white/95 backdrop-blur-sm px-3 py-2 rounded-xl shadow-lg text-end">
                 <div className="text-lg font-bold text-slate-900">
                   {formatPrice(tour.discountPrice)}
                 </div>
@@ -274,9 +276,9 @@ const TourCard: React.FC<TourCardProps> = ({
             </div>
 
             {/* Bottom Left Quick Info */}
-            <div className="absolute bottom-4 left-4">
+            <div className="absolute bottom-4 start-4">
               <div className="bg-black/50 backdrop-blur-sm text-white px-3 py-1 text-sm rounded-full">
-                <Clock className="w-3 h-3 inline mr-1" />
+                <Clock className="w-3 h-3 inline me-1" />
                 {tour.duration}
               </div>
             </div>

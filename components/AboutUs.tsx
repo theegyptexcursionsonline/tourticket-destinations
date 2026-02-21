@@ -99,7 +99,7 @@ export default function WhyBookWithUs({ content: dbContent }: AboutUsProps) {
                 const IconComponent = ICON_MAP[feature.icon] || Award;
                 return (
                   <li key={index} className="flex items-start">
-                    <IconComponent className="w-5 h-5 sm:w-6 sm:h-6 mr-3 sm:mr-4 flex-shrink-0 mt-0.5" style={{ color: 'var(--primary-color)' }} />
+                    <IconComponent className="w-5 h-5 sm:w-6 sm:h-6 me-3 sm:me-4 flex-shrink-0 mt-0.5" style={{ color: 'var(--primary-color)' }} />
                     <span className="text-base sm:text-lg font-medium text-slate-800 leading-tight">
                       {feature.text}
                     </span>

@@ -7,9 +7,10 @@ import BookingSidebar from '@/components/BookingSidebar';
 import { Tour } from '@/types';
 import { useSettings } from '@/hooks/useSettings';
 import { useWishlist } from '@/contexts/WishlistContext';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
+import { useTranslations } from 'next-intl';
 
 // --- Safe Image Component ---
 const SafeImage = ({ 
@@ -85,13 +86,13 @@ const DayTripCard = ({
         />
         
         {trip.tags?.find((tag: any) => typeof tag === 'string' && tag.includes('%')) && (
-          <div className="absolute top-3 left-3 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md z-10">
+          <div className="absolute top-3 start-3 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md z-10">
             {trip.tags.find((tag: any) => typeof tag === 'string' && tag.includes('%'))}
           </div>
         )}
         
         <button
-          className={`absolute top-3 right-3 bg-white/90 p-2 rounded-full backdrop-blur-sm transition-all duration-300 shadow-md ${
+          className={`absolute top-3 end-3 bg-white/90 p-2 rounded-full backdrop-blur-sm transition-all duration-300 shadow-md ${
             tourIsWishlisted ? 'opacity-100' : 'opacity-100 md:opacity-0 md:group-hover:opacity-100'
           } hover:bg-white z-10 ${
             tourIsWishlisted ? 'text-red-500' : 'text-slate-600 hover:text-red-500'
@@ -118,7 +119,7 @@ const DayTripCard = ({
             e.preventDefault();
             onAddToCartClick(trip);
           }}
-          className="absolute bottom-3 right-3 bg-red-600 text-white p-2.5 rounded-full shadow-lg transform opacity-100 md:translate-y-3 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100 transition-all duration-300 ease-in-out hover:bg-red-700 active:scale-95 hover:scale-110 z-10"
+          className="absolute bottom-3 end-3 bg-red-600 text-white p-2.5 rounded-full shadow-lg transform opacity-100 md:translate-y-3 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100 transition-all duration-300 ease-in-out hover:bg-red-700 active:scale-95 hover:scale-110 z-10"
           aria-label="Add to cart"
         >
           <ShoppingCart size={20} />
@@ -137,18 +138,18 @@ const DayTripCard = ({
         <div className="flex items-center mt-2 text-xs sm:text-sm">
           <div className="flex items-center text-yellow-500">
             <Star size={16} fill="currentColor" />
-            <span className="font-bold text-slate-800 ml-1">
+            <span className="font-bold text-slate-800 ms-1">
               {typeof trip.rating === 'number' ? trip.rating.toFixed(1) : trip.rating || '0.0'}
             </span>
           </div>
-          <span className="text-slate-500 ml-2">
+          <span className="text-slate-500 ms-2">
             ({(trip.bookings || 0).toLocaleString()})
           </span>
         </div>
         
         <div className="flex items-baseline justify-end mt-auto pt-2">
           {trip.originalPrice && (
-            <span className="text-xs sm:text-sm text-slate-500 line-through mr-1 sm:mr-2">
+            <span className="text-xs sm:text-sm text-slate-500 line-through me-1 sm:me-2">
               {formatPrice(trip.originalPrice)}
             </span>
           )}
@@ -173,6 +174,7 @@ export default function DayTripsSection({ initialTours }: DayTripsSectionProps =
   const [isBookingSidebarOpen, setBookingSidebarOpen] = useState(false);
   const [selectedTour, setSelectedTour] = useState<Tour | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const t = useTranslations();
 
   useEffect(() => {
     // Skip fetching if initialTours are provided (SSR case)
@@ -383,26 +385,26 @@ export default function DayTripsSection({ initialTours }: DayTripsSectionProps =
         <div className="container mx-auto text-center px-2 sm:px-4">
           <div className="max-w-2xl mx-auto px-2 sm:px-4">
             <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold text-slate-800 tracking-tight leading-tight">
-              Best Deals on Tours from Egypt
+              {t('homepage.bestSellers')}
             </h2>
             <p className="mt-2 text-sm sm:text-base md:text-lg text-slate-600">
-              Explore beyond the city with these top-rated day trips.
+              {t('homepage.discoverExperiences')}
             </p>
           </div>
 
           <div className="mt-6 sm:mt-8">
             <div className="inline-block bg-white p-4 sm:p-6 rounded-xl shadow max-w-4xl mx-2">
               <h3 className="text-lg sm:text-xl font-semibold text-slate-800">
-                Couldn't load day trips
+                {t('common.somethingWentWrong')}
               </h3>
               <p className="mt-2 text-sm sm:text-base text-slate-600">
-                We had trouble loading tours. Please try again later.
+                {t('common.tryAgain')}
               </p>
               <details className="mt-4">
                 <summary className="cursor-pointer text-xs sm:text-sm text-slate-500 hover:text-slate-700">
                   Show error details
                 </summary>
-                <pre className="mt-2 text-xs text-left p-3 bg-slate-100 rounded max-w-full overflow-auto break-words whitespace-pre-wrap">
+                <pre className="mt-2 text-xs text-start p-3 bg-slate-100 rounded max-w-full overflow-auto break-words whitespace-pre-wrap">
                   {fetchError}
                 </pre>
               </details>
@@ -412,7 +414,7 @@ export default function DayTripsSection({ initialTours }: DayTripsSectionProps =
                   disabled={isLoading}
                   className="bg-red-600 text-white font-bold py-2 sm:py-2.5 px-5 sm:px-6 rounded-full hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
                 >
-                  {isLoading ? 'Retrying...' : 'Retry'}
+                  {isLoading ? `${t('common.loading')}` : t('common.retry')}
                 </button>
               </div>
             </div>
@@ -434,10 +436,10 @@ export default function DayTripsSection({ initialTours }: DayTripsSectionProps =
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 sm:mb-6 md:mb-8 px-2 sm:px-4 gap-3 sm:gap-4">
             <div className="max-w-2xl">
               <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold text-slate-800 tracking-tight leading-tight">
-                Best Deals on Tours from Egypt
+                {t('homepage.bestSellers')}
               </h2>
               <p className="mt-2 text-sm sm:text-base md:text-lg text-slate-600">
-                Explore beyond the city with these top-rated day trips, all with exclusive online discounts.
+                {t('homepage.discoverExperiences')}
               </p>
             </div>
             <div className="hidden md:flex gap-3 flex-shrink-0">
@@ -482,7 +484,7 @@ export default function DayTripsSection({ initialTours }: DayTripsSectionProps =
               href="/search"
               className="inline-block bg-red-600 text-white font-bold py-2.5 sm:py-3 md:py-3.5 px-5 sm:px-6 md:px-8 lg:px-10 rounded-full text-xs sm:text-sm md:text-base hover:bg-red-700 transform hover:scale-105 transition-all duration-300 ease-in-out shadow-lg hover:shadow-xl active:scale-95"
             >
-              SEE ALL DAY TRIPS FROM EGYPT
+              {t('homepage.viewAllTours')}
             </Link>
           </div>
         </div>

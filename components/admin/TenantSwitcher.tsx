@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ChevronDown, Globe, Check, Search, Plus, ExternalLink } from 'lucide-react';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 
 interface Tenant {
   tenantId: string;
@@ -140,7 +140,7 @@ export default function TenantSwitcher({
         )}
         
         {/* Label */}
-        <span className="flex-1 text-left text-sm font-medium text-gray-700 truncate">
+        <span className="flex-1 text-start text-sm font-medium text-gray-700 truncate">
           {selectedTenantId === 'all' ? 'All Brands' : selectedTenant?.name || 'Select Brand'}
         </span>
         
@@ -150,17 +150,17 @@ export default function TenantSwitcher({
       
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
+        <div className="absolute top-full start-0 end-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
           {/* Search */}
           <div className="p-3 border-b border-gray-100">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
                 placeholder="Search brands..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full ps-9 pe-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 autoFocus
               />
             </div>
@@ -185,7 +185,7 @@ export default function TenantSwitcher({
                     <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
                       <Globe className="w-4 h-4 text-white" />
                     </div>
-                    <div className="flex-1 text-left">
+                    <div className="flex-1 text-start">
                       <div className="text-sm font-medium text-gray-900">All Brands</div>
                       <div className="text-xs text-gray-500">View data from all brands</div>
                     </div>
@@ -233,7 +233,7 @@ export default function TenantSwitcher({
                       )}
                       
                       {/* Info */}
-                      <div className="flex-1 text-left min-w-0">
+                      <div className="flex-1 text-start min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-medium text-gray-900 truncate">
                             {tenant.name}

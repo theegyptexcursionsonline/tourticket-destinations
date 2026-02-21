@@ -90,7 +90,7 @@ export default function Chatbot() {
   };
 
   return (
-    <div className="fixed bottom-5 right-5 z-50">
+    <div className="fixed bottom-5 end-5 z-50">
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -121,7 +121,7 @@ export default function Chatbot() {
               {messages.map((message) => (
                 <div key={message.id} className={`flex items-end gap-2 ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
                   {message.sender === 'bot' && <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center flex-shrink-0"><User size={16} className="text-slate-600"/></div>}
-                  <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 shadow-sm ${message.sender === 'user' ? 'bg-blue-600 text-white rounded-br-none' : 'bg-slate-100 text-slate-800 rounded-bl-none'}`}>
+                  <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 shadow-sm ${message.sender === 'user' ? 'bg-blue-600 text-white rounded-be-none' : 'bg-slate-100 text-slate-800 rounded-bs-none'}`}>
                     <p className="text-sm">{message.text}</p>
                   </div>
                 </div>
@@ -129,7 +129,7 @@ export default function Chatbot() {
               {isTyping && (
                 <div className="flex items-end gap-2 justify-start">
                   <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center flex-shrink-0"><User size={16} className="text-slate-600"/></div>
-                  <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-slate-100 shadow-sm rounded-bl-none">
+                  <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-slate-100 shadow-sm rounded-bs-none">
                     <div className="flex items-center gap-1.5">
                       <span className="h-2 w-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></span>
                       <span className="h-2 w-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>

@@ -102,7 +102,7 @@ const SettingsModal = <T extends Item>({
           >
             <button 
               onClick={onClose} 
-              className="absolute top-4 right-4 p-2 text-slate-500 hover:bg-slate-100 rounded-full z-10" 
+              className="absolute top-4 end-4 p-2 text-slate-500 hover:bg-slate-100 rounded-full z-10" 
               aria-label="Close"
             >
               <X size={24} />
@@ -110,13 +110,13 @@ const SettingsModal = <T extends Item>({
             
             <div className="flex items-center p-6 border-b">
               <div className="relative flex-1">
-                <Search className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-6 text-slate-400" />
+                <Search className="absolute start-0 top-1/2 -translate-y-1/2 h-6 w-6 text-slate-400" />
                 <input 
                   type="text" 
                   placeholder={`Search ${title}...`} 
                   value={searchTerm} 
                   onChange={e => setSearchTerm(e.target.value)} 
-                  className="w-full text-xl pl-10 bg-transparent focus:outline-none" 
+                  className="w-full text-xl ps-10 bg-transparent focus:outline-none" 
                 />
               </div>
             </div>
@@ -131,7 +131,7 @@ const SettingsModal = <T extends Item>({
                       onSelectItem(item); 
                       onClose(); 
                     }} 
-                    className={`p-4 rounded-lg text-left transition-colors duration-200 ${
+                    className={`p-4 rounded-lg text-start transition-colors duration-200 ${
                       selectedItem.code === item.code
                         ? 'bg-red-500 text-white shadow'
                         : 'bg-slate-100 hover:bg-slate-200 text-slate-800'

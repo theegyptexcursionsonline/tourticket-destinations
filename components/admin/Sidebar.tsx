@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Link from "next/link";
+import { Link } from '@/i18n/navigation';
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname } from '@/i18n/navigation';
 import {
   LayoutDashboard,
   Map,
@@ -141,7 +141,7 @@ const AdminSidebar = () => {
 
   const sidebarWidth = isMobile ? "w-72" : isOpen ? "w-72" : "w-20";
   const mobileClass = isMobile
-    ? `fixed inset-y-0 left-0 z-50 transform transition-transform duration-300 ease-in-out ${
+    ? `fixed inset-y-0 start-0 z-50 transform transition-transform duration-300 ease-in-out ${
         isMobileOpen ? "translate-x-0" : "-translate-x-full"
       }`
     : "lg:sticky lg:top-0";
@@ -160,7 +160,7 @@ const AdminSidebar = () => {
       {isMobile && (
         <button
           onClick={toggleSidebar}
-          className="fixed top-4 left-4 z-50 flex items-center justify-center h-12 w-12 rounded-xl bg-white shadow-lg border border-slate-200 text-slate-600 hover:text-slate-900 transition-all duration-200 lg:hidden"
+          className="fixed top-4 start-4 z-50 flex items-center justify-center h-12 w-12 rounded-xl bg-white shadow-lg border border-slate-200 text-slate-600 hover:text-slate-900 transition-all duration-200 lg:hidden"
         >
           {isMobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
@@ -168,7 +168,7 @@ const AdminSidebar = () => {
 
       {/* Sidebar */}
       <aside
-        className={`relative bg-white border-r border-slate-200/60 backdrop-blur-sm flex flex-col transition-all duration-300 ease-out shadow-lg overflow-hidden flex-shrink-0 min-h-screen ${sidebarWidth} ${mobileClass}`}
+        className={`relative bg-white border-e border-slate-200/60 backdrop-blur-sm flex flex-col transition-all duration-300 ease-out shadow-lg overflow-hidden flex-shrink-0 min-h-screen ${sidebarWidth} ${mobileClass}`}
         aria-label="Admin navigation"
         aria-expanded={isMobile ? isMobileOpen : isOpen}
       >
@@ -260,7 +260,7 @@ const AdminSidebar = () => {
                   >
                     {/* Active indicator */}
                     {active && (
-                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-gradient-to-b from-blue-500 to-purple-500 rounded-full"></div>
+                      <div className="absolute start-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-gradient-to-b from-blue-500 to-purple-500 rounded-full"></div>
                     )}
 
                     {/* Icon */}
@@ -294,9 +294,9 @@ const AdminSidebar = () => {
 
                     {/* Tooltip */}
                     {!showLabel && (
-                      <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 bg-slate-900 text-white text-sm px-3 py-2 rounded-xl opacity-0 group-hover:opacity-100 pointer-events-none shadow-2xl transition-all duration-200 z-50 whitespace-nowrap">
+                      <div className="absolute start-full ms-2 top-1/2 -translate-y-1/2 bg-slate-900 text-white text-sm px-3 py-2 rounded-xl opacity-0 group-hover:opacity-100 pointer-events-none shadow-2xl transition-all duration-200 z-50 whitespace-nowrap">
                         {label}
-                        <div className="absolute right-full top-1/2 -translate-y-1/2 w-2 h-2 bg-slate-900 rotate-45"></div>
+                        <div className="absolute end-full top-1/2 -translate-y-1/2 w-2 h-2 bg-slate-900 rotate-45"></div>
                       </div>
                     )}
                   </Link>
@@ -382,7 +382,7 @@ const AdminSidebar = () => {
         <button
           onClick={toggleSidebar}
           aria-label="Expand sidebar"
-          className="hidden lg:flex items-center justify-center h-10 w-10 rounded-full bg-white border border-slate-200 shadow-lg absolute top-6 left-16 z-30 hover:bg-slate-50 transition-all duration-200"
+          className="hidden lg:flex items-center justify-center h-10 w-10 rounded-full bg-white border border-slate-200 shadow-lg absolute top-6 start-16 z-30 hover:bg-slate-50 transition-all duration-200"
         >
           <ChevronRight className="h-4 w-4 text-slate-600" />
         </button>

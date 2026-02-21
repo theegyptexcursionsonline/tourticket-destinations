@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -186,13 +186,13 @@ const SearchAndFilter = ({
   <div className="bg-white rounded-xl border border-slate-200 p-4 mb-6">
     <div className="flex flex-col md:flex-row items-center gap-3">
       <div className="relative flex-1 w-full">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
+        <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
         <input
           type="text"
           placeholder="Search activities..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm"
+          className="w-full ps-10 pe-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm"
         />
       </div>
 

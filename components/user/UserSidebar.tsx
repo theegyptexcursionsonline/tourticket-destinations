@@ -2,20 +2,22 @@
 "use client";
 
 import React from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { Link } from '@/i18n/navigation';
+import { usePathname } from '@/i18n/navigation';
 import { LayoutDashboard, Calendar, User, Heart, LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslations } from 'next-intl';
 
 const UserSidebar = () => {
   const pathname = usePathname();
   const { logout } = useAuth();
+  const t = useTranslations();
 
   const navItems = [
-    { href: '/user/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/user/bookings', label: 'My Bookings', icon: Calendar },
-    { href: '/user/profile', label: 'My Profile', icon: User },
-    { href: '/user/favorites', label: 'My Favorites', icon: Heart },
+    { href: '/user/dashboard', label: t('user.dashboard'), icon: LayoutDashboard },
+    { href: '/user/bookings', label: t('user.myBookings'), icon: Calendar },
+    { href: '/user/profile', label: t('user.profile'), icon: User },
+    { href: '/user/favorites', label: t('user.myWishlist'), icon: Heart },
   ];
 
   return (
@@ -60,7 +62,7 @@ const UserSidebar = () => {
                 className="flex items-center gap-3 w-full p-3 rounded-lg text-slate-600 hover:bg-red-50 hover:text-red-600 transition-all duration-200"
               >
                 <LogOut size={20} />
-                <span>Sign Out</span>
+                <span>{t('auth.logout')}</span>
               </button>
             </li>
         </ul>

@@ -12,7 +12,8 @@ import {
 } from 'react-instantsearch';
 import { Sparkles, MapPin, Clock, Star } from 'lucide-react';
 import 'instantsearch.css/themes/satellite.css';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
+import { useTranslations } from 'next-intl';
 
 const ALGOLIA_APP_ID = process.env.NEXT_PUBLIC_ALGOLIA_APP_ID || '1F31U1NOMS';
 const ALGOLIA_SEARCH_KEY = process.env.NEXT_PUBLIC_ALGOLIA_SEARCH_API_KEY || '90dc77f33842e5ca1ad27ba3e42bbc50';
@@ -26,6 +27,7 @@ interface FallbackSearchProps {
 
 // Custom Hit Component for displaying tour results
 function TourHit({ hit }: { hit: any }) {
+  const t = useTranslations();
   return (
     <Link href={`/${hit.slug}`} className="block">
       <div className="bg-white rounded-xl border-2 border-slate-200 hover:border-blue-400 transition-all hover:shadow-lg p-4 group">
@@ -38,8 +40,8 @@ function TourHit({ hit }: { hit: any }) {
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             />
             {hit.isFeatured && (
-              <div className="absolute top-3 right-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-3 py-1 rounded-full text-xs font-bold">
-                Featured
+              <div className="absolute top-3 end-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-3 py-1 rounded-full text-xs font-bold">
+                {t('tourCard.featured')}
               </div>
             )}
           </div>
@@ -66,7 +68,7 @@ function TourHit({ hit }: { hit: any }) {
             {hit.duration && (
               <div className="flex items-center gap-1">
                 <Clock className="w-3.5 h-3.5" />
-                <span>{hit.duration} {hit.duration === 1 ? 'day' : 'days'}</span>
+                <span>{hit.duration} {hit.duration === 1 ? t('tour.day') : t('tour.days')}</span>
               </div>
             )}
             {hit.rating > 0 && (
@@ -96,7 +98,7 @@ function TourHit({ hit }: { hit: any }) {
               )}
             </div>
             <button className="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-lg text-sm font-semibold hover:shadow-lg transition-all">
-              View Tour
+              {t('tourCard.viewDetails')}
             </button>
           </div>
 
@@ -120,6 +122,7 @@ function TourHit({ hit }: { hit: any }) {
 }
 
 export default function FallbackSearch({ initialQuery }: FallbackSearchProps) {
+  const t = useTranslations();
   return (
     <div className="w-full">
       <InstantSearch
@@ -145,8 +148,8 @@ export default function FallbackSearch({ initialQuery }: FallbackSearchProps) {
                 <Sparkles className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold">Search Tours</h2>
-                <p className="text-blue-100 text-sm">Standard search powered by Algolia</p>
+                <h2 className="text-2xl font-bold">{t('search.searchTours')}</h2>
+                <p className="text-blue-100 text-sm">{t('search.searching')}</p>
               </div>
             </div>
           </div>
@@ -154,13 +157,13 @@ export default function FallbackSearch({ initialQuery }: FallbackSearchProps) {
           {/* Search Box */}
           <div className="p-6 bg-white border-b border-slate-200">
             <SearchBox
-              placeholder="Search for tours, destinations, activities..."
+              placeholder={t('search.searchTours')}
               classNames={{
                 root: 'w-full',
                 form: 'relative',
                 input: 'w-full px-4 py-3 border-2 border-slate-300 rounded-xl focus:border-blue-500 focus:outline-none text-base',
-                submit: 'absolute right-3 top-1/2 -translate-y-1/2 p-2',
-                reset: 'absolute right-12 top-1/2 -translate-y-1/2 p-2',
+                submit: 'absolute end-3 top-1/2 -translate-y-1/2 p-2',
+                reset: 'absolute end-12 top-1/2 -translate-y-1/2 p-2',
               }}
             />
             <div className="mt-3">
@@ -177,7 +180,7 @@ export default function FallbackSearch({ initialQuery }: FallbackSearchProps) {
             {/* Sidebar Filters */}
             <div className="lg:col-span-1 space-y-6">
               <div className="bg-white rounded-xl border border-slate-200 p-4">
-                <h3 className="font-bold text-slate-900 mb-3">Categories</h3>
+                <h3 className="font-bold text-slate-900 mb-3">{t('search.category')}</h3>
                 <RefinementList
                   attribute="category.name"
                   limit={10}
@@ -188,13 +191,13 @@ export default function FallbackSearch({ initialQuery }: FallbackSearchProps) {
                     item: 'flex items-center gap-2 text-sm',
                     checkbox: 'w-4 h-4 text-blue-600 rounded',
                     label: 'flex items-center gap-2 cursor-pointer',
-                    count: 'ml-auto text-xs bg-slate-100 px-2 py-0.5 rounded-full',
+                    count: 'ms-auto text-xs bg-slate-100 px-2 py-0.5 rounded-full',
                   }}
                 />
               </div>
 
               <div className="bg-white rounded-xl border border-slate-200 p-4">
-                <h3 className="font-bold text-slate-900 mb-3">Destinations</h3>
+                <h3 className="font-bold text-slate-900 mb-3">{t('destinations.title')}</h3>
                 <RefinementList
                   attribute="destination.name"
                   limit={10}
@@ -205,7 +208,7 @@ export default function FallbackSearch({ initialQuery }: FallbackSearchProps) {
                     item: 'flex items-center gap-2 text-sm',
                     checkbox: 'w-4 h-4 text-blue-600 rounded',
                     label: 'flex items-center gap-2 cursor-pointer',
-                    count: 'ml-auto text-xs bg-slate-100 px-2 py-0.5 rounded-full',
+                    count: 'ms-auto text-xs bg-slate-100 px-2 py-0.5 rounded-full',
                   }}
                 />
               </div>

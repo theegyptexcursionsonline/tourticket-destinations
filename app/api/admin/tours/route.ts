@@ -4,6 +4,7 @@ import Tour from '@/lib/models/Tour';
 import { NextRequest, NextResponse } from 'next/server';
 import { syncTourToAlgolia } from '@/lib/algolia';
 import { requireAdminAuth } from '@/lib/auth/adminAuth';
+import { translateTourInBackground } from '@/lib/translation/translateService';
 
 function generateOptionId() {
   return globalThis.crypto?.randomUUID?.() || `opt-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -202,6 +203,13 @@ export async function POST(request: NextRequest) {
         console.warn('Failed to sync tour to Algolia:', algoliaErr);
         // Don't fail the request if Algolia sync fails
       }
+    }
+
+    // Auto-translate in background (non-blocking)
+    if (process.env.OPENAI_API_KEY) {
+      translateTourInBackground((tour as any)._id.toString()).catch(err =>
+        console.warn('[Translation] Background translation failed:', err)
+      );
     }
 
     return NextResponse.json({ success: true, data: populated ?? tour }, { status: 201 });

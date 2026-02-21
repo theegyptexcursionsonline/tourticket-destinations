@@ -3,7 +3,7 @@
 import { useWishlist } from '@/contexts/WishlistContext';
 import toast from 'react-hot-toast';
 import { useState, useRef, useEffect } from 'react';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import Image from 'next/image';
 import { AnimatePresence, motion, useInView } from 'framer-motion';
 import {
@@ -174,7 +174,7 @@ const Lightbox = ({ images, selectedIndex, onClose }: { images: string[], select
     >
       <button
         onClick={onClose}
-        className="absolute top-4 right-4 text-white hover:text-red-500 transition-colors z-50"
+        className="absolute top-4 end-4 text-white hover:text-red-500 transition-colors z-50"
         aria-label="Close lightbox"
       >
         <X size={32} />
@@ -198,7 +198,7 @@ const Lightbox = ({ images, selectedIndex, onClose }: { images: string[], select
 
       <button
         onClick={prevImage}
-        className="absolute left-4 top-1/2 -translate-y-1/2 p-2 bg-white/20 rounded-full text-white hover:bg-white/40 transition-colors"
+        className="absolute start-4 top-1/2 -translate-y-1/2 p-2 bg-white/20 rounded-full text-white hover:bg-white/40 transition-colors"
         aria-label="Previous image"
       >
         <ChevronLeft size={28} />
@@ -206,14 +206,14 @@ const Lightbox = ({ images, selectedIndex, onClose }: { images: string[], select
 
       <button
         onClick={nextImage}
-        className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-white/20 rounded-full text-white hover:bg-white/40 transition-colors"
+        className="absolute end-4 top-1/2 -translate-y-1/2 p-2 bg-white/20 rounded-full text-white hover:bg-white/40 transition-colors"
         aria-label="Next image"
       >
         <ChevronRight size={28} />
       </button>
        
        <div 
-        className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white text-sm px-3 py-1 rounded-full"
+        className="absolute bottom-4 start-1/2 -translate-x-1/2 bg-black/50 text-white text-sm px-3 py-1 rounded-full"
         onClick={(e) => e.stopPropagation()}
        >
         {currentIndex + 1} / {images.length}
@@ -316,7 +316,7 @@ const TabNavigation = ({ activeTab, tabs, scrollToSection, isHeaderVisible }: an
             aria-hidden={!canScrollLeft}
             aria-label="Scroll tabs left"
             onClick={() => scrollBy(-160)}
-            className={`absolute left-0 top-1/2 -translate-y-1/2 z-20 p-1 rounded-full bg-white shadow-sm transition-opacity ${canScrollLeft ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+            className={`absolute start-0 top-1/2 -translate-y-1/2 z-20 p-1 rounded-full bg-white shadow-sm transition-opacity ${canScrollLeft ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
             type="button"
           >
             <ChevronLeft size={18} />
@@ -355,7 +355,7 @@ const TabNavigation = ({ activeTab, tabs, scrollToSection, isHeaderVisible }: an
             aria-hidden={!canScrollRight}
             aria-label="Scroll tabs right"
             onClick={() => scrollBy(160)}
-            className={`absolute right-0 top-1/2 -translate-y-1/2 z-20 p-1 rounded-full bg-white shadow-sm transition-opacity ${canScrollRight ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+            className={`absolute end-0 top-1/2 -translate-y-1/2 z-20 p-1 rounded-full bg-white shadow-sm transition-opacity ${canScrollRight ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
             type="button"
           >
             <ChevronRight size={18} />
@@ -392,7 +392,7 @@ const ItinerarySection = ({ itinerary, sectionRef }: { itinerary: ItineraryItem[
       Detailed Itinerary
     </h3>
     <div className="relative">
-      <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-slate-200"></div>
+      <div className="absolute start-6 top-0 bottom-0 w-0.5 bg-slate-200"></div>
       {itinerary.map((item, index) => (
         <div key={index} className="relative flex items-start gap-4 pb-8">
           <div className="flex-shrink-0 w-12 h-12 bg-red-600 text-white rounded-full flex items-center justify-center font-bold text-sm relative z-10">
@@ -697,9 +697,9 @@ const EnhancedFAQ = ({ faqs, sectionRef }: { faqs: any[], sectionRef: React.RefO
         <div key={index} className="border border-slate-200 rounded-lg">
           <button
             onClick={() => setOpenFaq(openFaq === index ? null : index)}
-            className="w-full p-4 text-left flex items-center justify-between hover:bg-slate-50 transition-colors"
+            className="w-full p-4 text-start flex items-center justify-between hover:bg-slate-50 transition-colors"
           >
-            <span className="font-semibold text-slate-800 pr-4">{faq.question}</span>
+            <span className="font-semibold text-slate-800 pe-4">{faq.question}</span>
             {openFaq === index ? (
               <ChevronUp size={20} className="text-slate-500 flex-shrink-0" />
             ) : (
@@ -1097,7 +1097,7 @@ export default function TourPageClient({ tour, relatedTours, initialReviews }: T
                   <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <ZoomIn className="text-white w-16 h-16" />
                   </div>
-                  <div className="absolute top-4 right-4 flex gap-2">
+                  <div className="absolute top-4 end-4 flex gap-2">
                     <button
                       onClick={handleWishlistToggle}
                       className={`p-3 rounded-full backdrop-blur-sm transition-colors shadow-sm ${
@@ -1146,7 +1146,7 @@ export default function TourPageClient({ tour, relatedTours, initialReviews }: T
                 )}
 
                 <div className="flex items-start justify-between mb-6">
-                  <div className="flex-1 pr-6">
+                  <div className="flex-1 pe-6">
                     <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-slate-900 leading-tight mb-3">
                       {tour.title}
                     </h1>
@@ -1168,7 +1168,7 @@ export default function TourPageClient({ tour, relatedTours, initialReviews }: T
                     </div>
                   </div>
 
-                  <div className="text-right flex-shrink-0">
+                  <div className="text-end flex-shrink-0">
                     {tour.originalPrice && (
                       <p className="text-slate-500 line-through text-lg mb-1">{formatPrice(tour.originalPrice)}</p>
                     )}
@@ -1239,7 +1239,7 @@ export default function TourPageClient({ tour, relatedTours, initialReviews }: T
                             {relatedTour.tags?.map((tag, index) => (
                               <span
                                 key={index}
-                                className={`absolute top-2 left-2 px-2 py-1 text-xs font-bold rounded ${tag.includes('%') ? 'bg-red-600 text-white' : 'bg-blue-600 text-white'
+                                className={`absolute top-2 start-2 px-2 py-1 text-xs font-bold rounded ${tag.includes('%') ? 'bg-red-600 text-white' : 'bg-blue-600 text-white'
                                   }`}
                               >
                                 {tag}
@@ -1326,7 +1326,7 @@ export default function TourPageClient({ tour, relatedTours, initialReviews }: T
                       <span className="shimmer-line"></span>
                       {isAdding && (
                         <svg
-                          className="animate-spin -ml-1 mr-2 h-5 w-5 text-current"
+                          className="animate-spin -ms-1 me-2 h-5 w-5 text-current"
                           xmlns="http://www.w3.org/2000/svg"
                           fill="none"
                           viewBox="0 0 24 24"
@@ -1405,7 +1405,7 @@ export default function TourPageClient({ tour, relatedTours, initialReviews }: T
                           }
                         }
                       }}
-                      className="flex items-center gap-3 text-slate-600 hover:text-red-600 transition-colors w-full text-left"
+                      className="flex items-center gap-3 text-slate-600 hover:text-red-600 transition-colors w-full text-start"
                     >
                       <MessageCircle size={18} />
                       <span>Chat with us</span>

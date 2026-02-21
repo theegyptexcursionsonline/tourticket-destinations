@@ -28,13 +28,13 @@ const createTourCardHTML = (tour: any): string => {
                alt="${tour.title || 'Tour'}"
                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
           ${tour.isFeatured ? `
-            <div class="absolute top-2 left-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-0.5 shadow-md">
+            <div class="absolute top-2 start-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-0.5 shadow-md">
               <svg class="w-2.5 h-2.5 fill-current" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
               Featured
             </div>
           ` : ''}
           ${discountPercent > 0 ? `
-            <div class="absolute top-2 right-2 bg-gradient-to-r from-red-500 to-red-600 text-white px-2 py-0.5 rounded-full text-[10px] font-bold shadow-md">
+            <div class="absolute top-2 end-2 bg-gradient-to-r from-red-500 to-red-600 text-white px-2 py-0.5 rounded-full text-[10px] font-bold shadow-md">
               -${discountPercent}%
             </div>
           ` : ''}
@@ -349,7 +349,7 @@ export default function AIAgentWidget() {
          // Build the final HTML without showing JSON or "Results" text
             let finalHTML = `
               <div class="tour-results-wrapper relative" data-message-id="${messageId}">
-                <button class="close-tour-cards absolute -top-1 -right-1 bg-slate-800 text-white rounded-full w-5 h-5 flex items-center justify-center hover:bg-slate-900 transition-colors z-10 text-xs font-bold" aria-label="Close">×</button>
+                <button class="close-tour-cards absolute -top-1 -end-1 bg-slate-800 text-white rounded-full w-5 h-5 flex items-center justify-center hover:bg-slate-900 transition-colors z-10 text-xs font-bold" aria-label="Close">×</button>
             `;
             if (introText) {
               finalHTML += `<p class="text-xs text-slate-600 mb-2 px-2">${introText}</p>`;
@@ -531,7 +531,7 @@ export default function AIAgentWidget() {
 
   return (
     // **FIXED:** Simplified root container classes
-    <div ref={containerRef} className="fixed right-0 bottom-0 z-[99999]">
+    <div ref={containerRef} className="fixed end-0 bottom-0 z-[99999]">
       <InstantSearch searchClient={searchClient} indexName={INDEX_NAME}>
         <Chat
           agentId={AGENT_ID}

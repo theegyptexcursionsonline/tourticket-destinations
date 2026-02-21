@@ -219,7 +219,7 @@ export default function StopSaleHistoryTable({
               <select
                 value={tourFilter}
                 onChange={(e) => setTourFilter(e.target.value)}
-                className="w-full h-9 pl-3 pr-8 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent appearance-none bg-white cursor-pointer"
+                className="w-full h-9 ps-3 pe-8 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent appearance-none bg-white cursor-pointer"
               >
                 <option value="all">All Tours</option>
                 {tours.map((tour) => (
@@ -228,7 +228,7 @@ export default function StopSaleHistoryTable({
                   </option>
                 ))}
               </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
+              <div className="pointer-events-none absolute inset-y-0 end-0 flex items-center px-2">
                 <svg className="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
@@ -243,13 +243,13 @@ export default function StopSaleHistoryTable({
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'removed')}
-                className="w-full h-9 pl-3 pr-8 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent appearance-none bg-white cursor-pointer"
+                className="w-full h-9 ps-3 pe-8 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent appearance-none bg-white cursor-pointer"
               >
                 <option value="all">All Statuses</option>
                 <option value="active">Active</option>
                 <option value="removed">Removed</option>
               </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
+              <div className="pointer-events-none absolute inset-y-0 end-0 flex items-center px-2">
                 <svg className="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
@@ -319,25 +319,25 @@ export default function StopSaleHistoryTable({
           <table className="w-full">
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                <th className="px-4 py-3 text-start text-xs font-semibold text-slate-600 uppercase tracking-wide">
                   Tour
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                <th className="px-4 py-3 text-start text-xs font-semibold text-slate-600 uppercase tracking-wide">
                   Option
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                <th className="px-4 py-3 text-start text-xs font-semibold text-slate-600 uppercase tracking-wide">
                   Date Range
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                <th className="px-4 py-3 text-start text-xs font-semibold text-slate-600 uppercase tracking-wide">
                   Reason
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                <th className="px-4 py-3 text-start text-xs font-semibold text-slate-600 uppercase tracking-wide">
                   Applied By
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                <th className="px-4 py-3 text-start text-xs font-semibold text-slate-600 uppercase tracking-wide">
                   Applied At
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                <th className="px-4 py-3 text-start text-xs font-semibold text-slate-600 uppercase tracking-wide">
                   Status
                 </th>
               </tr>

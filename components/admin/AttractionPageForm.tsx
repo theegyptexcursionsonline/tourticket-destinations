@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/i18n/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
@@ -54,7 +54,7 @@ const FormLabel = ({ children, icon: Icon, required = false }: {
     {Icon && <Icon className="h-4 w-4 text-indigo-500" />}
     <label className="text-sm font-semibold text-slate-700">
       {children}
-      {required && <span className="text-red-500 text-xs ml-1">*</span>}
+      {required && <span className="text-red-500 text-xs ms-1">*</span>}
     </label>
   </div>
 );
@@ -524,7 +524,7 @@ export default function AttractionPageForm({ pageId }: AttractionPageFormProps) 
                                 <option value="attraction">Attraction</option>
                                 <option value="category">Category</option>
                               </select>
-                              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+                              <ChevronDown className="absolute end-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
                             </div>
                           </div>
                           {formData.pageType === 'category' && (
@@ -544,7 +544,7 @@ export default function AttractionPageForm({ pageId }: AttractionPageFormProps) 
                                     </option>
                                   ))}
                                 </select>
-                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+                                <ChevronDown className="absolute end-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
                               </div>
                             </div>
                           )}
@@ -672,7 +672,7 @@ export default function AttractionPageForm({ pageId }: AttractionPageFormProps) 
                                   <button 
                                     type="button" 
                                     onClick={() => removeFromArray('images', i)}
-                                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600 transition-all shadow-lg opacity-0 group-hover:opacity-100"
+                                    className="absolute -top-2 -end-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600 transition-all shadow-lg opacity-0 group-hover:opacity-100"
                                   >
                                     <X className="w-3 h-3" />
                                   </button>
@@ -1052,7 +1052,7 @@ export default function AttractionPageForm({ pageId }: AttractionPageFormProps) 
         </div>
 
         {error && (
-          <div className="fixed bottom-4 right-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg shadow-lg z-50">
+          <div className="fixed bottom-4 end-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg shadow-lg z-50">
             {error}
           </div>
         )}

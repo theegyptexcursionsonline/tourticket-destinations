@@ -5,9 +5,10 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Star, Loader2, User, Edit2 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import LoginModal from '@/components/auth/LoginModal';
 import SignupModal from '@/components/auth/SignupModal';
+import { useTranslations } from 'next-intl';
 
 interface ReviewFormProps {
   tourId: string;
@@ -16,6 +17,7 @@ interface ReviewFormProps {
 
 const ReviewForm: React.FC<ReviewFormProps> = ({ tourId, onReviewSubmitted }) => {
   const { user, isAuthenticated, token, isLoading } = useAuth();
+  const t = useTranslations();
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState('');
@@ -184,7 +186,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ tourId, onReviewSubmitted }) =>
           <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Edit2 className="w-8 h-8 text-blue-600" />
           </div>
-          <h3 className="text-xl font-semibold text-gray-800 mb-2">You've Already Reviewed This Tour</h3>
+          <h3 className="text-xl font-semibold text-gray-800 mb-2">{t('reviews.reviewSubmitted')}</h3>
           <p className="text-gray-600 mb-4">
             You submitted a review on {new Date(hasExistingReview.createdAt).toLocaleDateString()}.
           </p>
@@ -198,7 +200,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ tourId, onReviewSubmitted }) =>
                   }`}
                 />
               ))}
-              <span className="ml-2 font-semibold text-gray-700">{hasExistingReview.rating}/5</span>
+              <span className="ms-2 font-semibold text-gray-700">{hasExistingReview.rating}/5</span>
             </div>
             {hasExistingReview.title && (
               <h4 className="font-semibold text-gray-800 mb-1">{hasExistingReview.title}</h4>
@@ -225,22 +227,22 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ tourId, onReviewSubmitted }) =>
             <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <User className="w-8 h-8 text-blue-600" />
             </div>
-            <h3 className="text-xl font-semibold text-gray-800 mb-2">Share Your Experience</h3>
+            <h3 className="text-xl font-semibold text-gray-800 mb-2">{t('reviews.writeReview')}</h3>
             <p className="text-gray-600 mb-4">
-              Please log in to leave a review and help other travelers.
+              {t('reviews.beFirst')}
             </p>
             <div className="flex gap-3 justify-center">
               <button
                 onClick={() => setLoginModalOpen(true)}
                 className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
               >
-                Log In
+                {t('auth.login')}
               </button>
               <button
                 onClick={() => setSignupModalOpen(true)}
                 className="inline-flex items-center px-4 py-2 bg-white text-blue-600 text-sm font-medium rounded-lg border border-blue-600 hover:bg-blue-50 transition-colors"
               >
-                Sign Up
+                {t('auth.signup')}
               </button>
             </div>
           </div>
@@ -291,7 +293,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ tourId, onReviewSubmitted }) =>
           )}
         </div>
         <div>
-          <h3 className="text-xl font-bold text-gray-800">Share Your Experience</h3>
+          <h3 className="text-xl font-bold text-gray-800">{t('reviews.writeReview')}</h3>
           <p className="text-sm text-gray-500">
             Writing as {user?.name || `${user?.firstName} ${user?.lastName}`}
           </p>
@@ -302,7 +304,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ tourId, onReviewSubmitted }) =>
         {/* Rating Section */}
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-3">
-            Your Rating *
+            {t('reviews.yourRating')} *
           </label>
           <div className="flex items-center gap-1">
             {[1, 2, 3, 4, 5].map((star) => (
@@ -327,12 +329,12 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ tourId, onReviewSubmitted }) =>
               </button>
             ))}
             {rating > 0 && (
-              <span className="ml-3 text-sm font-medium text-gray-600">
-                {rating === 1 && "Poor"}
-                {rating === 2 && "Fair"}
-                {rating === 3 && "Good"}
-                {rating === 4 && "Very Good"}
-                {rating === 5 && "Excellent"}
+              <span className="ms-3 text-sm font-medium text-gray-600">
+                {rating === 1 && t('reviews.terrible')}
+                {rating === 2 && t('reviews.poor')}
+                {rating === 3 && t('reviews.average')}
+                {rating === 4 && t('reviews.veryGood')}
+                {rating === 5 && t('reviews.excellent')}
               </span>
             )}
           </div>
@@ -362,7 +364,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ tourId, onReviewSubmitted }) =>
         {/* Comment Section */}
         <div>
           <label htmlFor="comment" className="block text-sm font-semibold text-gray-700 mb-2">
-            Your Review (Optional)
+            {t('reviews.yourReview')} ({t('common.optional')})
           </label>
           <textarea
             id="comment"
@@ -371,7 +373,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ tourId, onReviewSubmitted }) =>
             value={comment}
             onChange={(e) => setComment(e.target.value)}
             className="block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
-            placeholder="Tell us about your experience with this tour. What did you enjoy most? Any tips for future travelers? (Optional - you can submit just a star rating)"
+            placeholder={t('reviews.reviewPlaceholder')}
             maxLength={1000}
             disabled={isSubmitting}
           />
@@ -390,11 +392,11 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ tourId, onReviewSubmitted }) =>
           >
             {isSubmitting ? (
               <>
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                Submitting Review...
+                <Loader2 className="me-2 h-5 w-5 animate-spin" />
+                {t('common.loading')}
               </>
             ) : (
-              'Submit Review'
+              t('reviews.submitReview')
             )}
           </button>
         </div>

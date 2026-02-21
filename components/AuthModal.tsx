@@ -180,14 +180,14 @@ const AuthModal: React.FC<AuthModalProps> = ({
                     First Name
                   </label>
                   <div className="relative">
-                    <User size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    <User size={18} className="absolute start-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                     <input
                       id="firstName"
                       name="firstName"
                       type="text"
                       value={formData.firstName}
                       onChange={handleChange}
-                      className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent ${
+                      className={`w-full ps-10 pe-4 py-3 border rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent ${
                         errors.firstName ? 'border-red-500' : 'border-gray-300'
                       }`}
                       placeholder="John"
@@ -203,14 +203,14 @@ const AuthModal: React.FC<AuthModalProps> = ({
                     Last Name
                   </label>
                   <div className="relative">
-                    <User size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    <User size={18} className="absolute start-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                     <input
                       id="lastName"
                       name="lastName"
                       type="text"
                       value={formData.lastName}
                       onChange={handleChange}
-                      className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent ${
+                      className={`w-full ps-10 pe-4 py-3 border rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent ${
                         errors.lastName ? 'border-red-500' : 'border-gray-300'
                       }`}
                       placeholder="Doe"
@@ -228,14 +228,14 @@ const AuthModal: React.FC<AuthModalProps> = ({
                 Email Address
               </label>
               <div className="relative">
-                <Mail size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <Mail size={18} className="absolute start-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <input
                   id="email"
                   name="email"
                   type="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent ${
+                  className={`w-full ps-10 pe-4 py-3 border rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent ${
                     errors.email ? 'border-red-500' : 'border-gray-300'
                   }`}
                   placeholder="john@example.com"
@@ -251,14 +251,14 @@ const AuthModal: React.FC<AuthModalProps> = ({
                 Password
               </label>
               <div className="relative">
-                <Lock size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <Lock size={18} className="absolute start-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <input
                   id="password"
                   name="password"
                   type={showPassword ? 'text' : 'password'}
                   value={formData.password}
                   onChange={handleChange}
-                  className={`w-full pl-10 pr-12 py-3 border rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent ${
+                  className={`w-full ps-10 pe-12 py-3 border rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent ${
                     errors.password ? 'border-red-500' : 'border-gray-300'
                   }`}
                   placeholder="••••••••"
@@ -266,7 +266,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute end-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -282,14 +282,14 @@ const AuthModal: React.FC<AuthModalProps> = ({
                   Confirm Password
                 </label>
                 <div className="relative">
-                  <Lock size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <Lock size={18} className="absolute start-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                   <input
                     id="confirmPassword"
                     name="confirmPassword"
                     type={showPassword ? 'text' : 'password'}
                     value={formData.confirmPassword}
                     onChange={handleChange}
-                    className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent ${
+                    className={`w-full ps-10 pe-4 py-3 border rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent ${
                       errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
                     }`}
                     placeholder="••••••••"
@@ -308,7 +308,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="animate-spin mr-2" size={20} />
+                  <Loader2 className="animate-spin me-2" size={20} />
                   {mode === 'login' ? 'Signing In...' : 'Creating Account...'}
                 </>
               ) : (
@@ -333,7 +333,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
               disabled={isLoading}
               className="w-full bg-white text-gray-700 border-2 border-gray-300 font-semibold py-3 px-4 rounded-xl hover:bg-gray-50 focus:ring-2 focus:ring-gray-200 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
             >
-              <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 me-2" viewBox="0 0 24 24">
                 <path
                   fill="#4285F4"
                   d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -361,7 +361,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
               {mode === 'login' ? "Don't have an account?" : 'Already have an account?'}
               <button
                 onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
-                className="ml-1 text-red-600 hover:text-red-800 font-semibold"
+                className="ms-1 text-red-600 hover:text-red-800 font-semibold"
               >
                 {mode === 'login' ? 'Sign Up' : 'Sign In'}
               </button>

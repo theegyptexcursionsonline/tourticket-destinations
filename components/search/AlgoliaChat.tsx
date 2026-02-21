@@ -83,7 +83,7 @@ const CompactHit = ({ hit }: any) => {
 
         {/* Price */}
         {(hit.discountPrice || hit.price) && (
-          <div className="flex-shrink-0 text-right">
+          <div className="flex-shrink-0 text-end">
             <div className="text-sm font-bold text-blue-600">
               ${hit.discountPrice || hit.price}
             </div>
@@ -158,9 +158,9 @@ export default function AlgoliaChat({ initialQuery, minimal = false }: AlgoliaCh
                 classNames={{
                   root: 'w-full',
                   form: 'relative flex items-center',
-                  input: 'w-full px-3 py-2 pr-20 border border-slate-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-100 focus:outline-none text-sm',
-                  submit: 'absolute right-10 top-1/2 -translate-y-1/2 p-1.5 text-blue-600 hover:text-blue-700',
-                  reset: 'absolute right-1 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-slate-600',
+                  input: 'w-full px-3 py-2 pe-20 border border-slate-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-100 focus:outline-none text-sm',
+                  submit: 'absolute end-10 top-1/2 -translate-y-1/2 p-1.5 text-blue-600 hover:text-blue-700',
+                  reset: 'absolute end-1 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-slate-600',
                   submitIcon: 'w-4 h-4',
                   resetIcon: 'w-4 h-4',
                 }}
@@ -315,8 +315,8 @@ export default function AlgoliaChat({ initialQuery, minimal = false }: AlgoliaCh
           <div className="relative bg-gradient-to-br from-blue-600 via-blue-500 to-indigo-600 p-8 text-white overflow-hidden">
             {/* Animated Background Pattern */}
             <div className="absolute inset-0 opacity-10">
-              <div className="absolute top-0 left-0 w-72 h-72 bg-white rounded-full mix-blend-overlay filter blur-3xl animate-pulse"></div>
-              <div className="absolute bottom-0 right-0 w-96 h-96 bg-white rounded-full mix-blend-overlay filter blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+              <div className="absolute top-0 start-0 w-72 h-72 bg-white rounded-full mix-blend-overlay filter blur-3xl animate-pulse"></div>
+              <div className="absolute bottom-0 end-0 w-96 h-96 bg-white rounded-full mix-blend-overlay filter blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
             </div>
 
             {/* Content */}
@@ -367,7 +367,7 @@ export default function AlgoliaChat({ initialQuery, minimal = false }: AlgoliaCh
           {/* Chat Interface with Enhanced Styling */}
           <div className="p-6 bg-gradient-to-b from-white to-slate-50/50">
             {initialQuery && (
-              <div className="mb-5 p-5 bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 rounded-xl shadow-sm">
+              <div className="mb-5 p-5 bg-gradient-to-r from-blue-50 to-indigo-50 border-s-4 border-blue-500 rounded-xl shadow-sm">
                 <p className="text-sm text-blue-900 font-medium mb-1">
                   <span className="font-bold">Your query:</span> {initialQuery}
                 </p>

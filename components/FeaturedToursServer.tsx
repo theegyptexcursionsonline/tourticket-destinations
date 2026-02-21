@@ -8,7 +8,8 @@ import { Tour } from '@/types';
 import { useSettings } from '@/hooks/useSettings';
 import { useTenant } from '@/contexts/TenantContext';
 import BookingSidebar from '@/components/BookingSidebar';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
+import { useTranslations } from 'next-intl';
 
 interface FeaturedToursServerProps {
   tours: Tour[];
@@ -92,6 +93,7 @@ const getTagColor = (tag: string) => {
 const TourCard = ({ tour, onAddToCartClick }: { tour: Tour; onAddToCartClick: (tour: Tour) => void }) => {
   const { formatPrice } = useSettings();
   const { getSiteName } = useTenant();
+  const t = useTranslations();
 
   return (
     <Link
@@ -112,7 +114,7 @@ const TourCard = ({ tour, onAddToCartClick }: { tour: Tour; onAddToCartClick: (t
         <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
 
         {/* Provider Badge */}
-        <div className="absolute top-4 left-4 z-20">
+        <div className="absolute top-4 start-4 z-20">
           <span className="px-3 py-1.5 text-xs font-bold text-white bg-slate-900/80 backdrop-blur-sm rounded-full" style={{ boxShadow: 'none' }}>
             {getSiteName()}
           </span>
@@ -120,7 +122,7 @@ const TourCard = ({ tour, onAddToCartClick }: { tour: Tour; onAddToCartClick: (t
 
         {/* Tags */}
         {tour.tags && tour.tags.length > 0 && (
-          <div className="absolute top-14 left-4 flex flex-wrap gap-2 z-20">
+          <div className="absolute top-14 start-4 flex flex-wrap gap-2 z-20">
             {tour.tags.slice(0, 2).map((tag, i) => (
               <span
                 key={i}
@@ -134,7 +136,7 @@ const TourCard = ({ tour, onAddToCartClick }: { tour: Tour; onAddToCartClick: (t
         )}
 
         {/* Rating Badge */}
-        <div className="absolute top-4 right-4 z-20">
+        <div className="absolute top-4 end-4 z-20">
           <div className="bg-white/95 backdrop-blur-sm px-3 py-2 rounded-full flex items-center gap-2 border border-white/20" style={{ boxShadow: 'none' }}>
             <Star size={16} className="text-yellow-500 fill-yellow-500" />
             <span className="text-sm font-bold text-gray-800">
@@ -144,11 +146,11 @@ const TourCard = ({ tour, onAddToCartClick }: { tour: Tour; onAddToCartClick: (t
         </div>
 
         {/* Price Badge */}
-        <div className="absolute left-4 bottom-4 z-20">
+        <div className="absolute start-4 bottom-4 z-20">
           <div className="bg-gradient-to-r from-red-600 to-red-500 text-white px-3 py-2 rounded-full font-black text-sm sm:text-base border-2 border-white/20" style={{ boxShadow: 'none' }}>
             {formatPrice(tour.discountPrice || tour.originalPrice || 0)}
             {tour.originalPrice && tour.discountPrice && tour.originalPrice > tour.discountPrice && (
-              <span className="ml-2 text-xs font-medium line-through text-red-100">
+              <span className="ms-2 text-xs font-medium line-through text-red-100">
                 {formatPrice(tour.originalPrice)}
               </span>
             )}
@@ -162,7 +164,7 @@ const TourCard = ({ tour, onAddToCartClick }: { tour: Tour; onAddToCartClick: (t
             e.stopPropagation();
             onAddToCartClick(tour);
           }}
-          className="absolute bottom-4 right-4 z-30 bg-white text-red-600 p-3 rounded-full border-2 border-red-100 transition-all duration-300 transform hover:scale-110 hover:bg-red-600 hover:text-white hover:border-red-600 focus:outline-none"
+          className="absolute bottom-4 end-4 z-30 bg-white text-red-600 p-3 rounded-full border-2 border-red-100 transition-all duration-300 transform hover:scale-110 hover:bg-red-600 hover:text-white hover:border-red-600 focus:outline-none"
           style={{ boxShadow: 'none' }}
           aria-label={`Add ${tour.title || 'tour'} to cart`}
           title="Add to cart"
@@ -195,8 +197,8 @@ const TourCard = ({ tour, onAddToCartClick }: { tour: Tour; onAddToCartClick: (t
         </div>
 
         <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-          <div className="text-left">
-            <div className="text-xs text-gray-500 mb-0.5">Starting from</div>
+          <div className="text-start">
+            <div className="text-xs text-gray-500 mb-0.5">{t('tourCard.startingFrom')}</div>
             <div className="flex items-baseline gap-2">
               <span className="text-lg sm:text-xl md:text-2xl font-black text-gray-900">
                 {formatPrice(tour.discountPrice || tour.originalPrice || 0)}
@@ -210,7 +212,7 @@ const TourCard = ({ tour, onAddToCartClick }: { tour: Tour; onAddToCartClick: (t
           </div>
 
           <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <span className="text-xs text-gray-500 hidden sm:inline">View</span>
+            <span className="text-xs text-gray-500 hidden sm:inline">{t('tourCard.viewDetails')}</span>
             <ArrowRight size={14} className="text-red-600 transition-transform duration-300 group-hover:translate-x-1" />
           </div>
         </div>
@@ -223,6 +225,7 @@ export default function FeaturedToursServer({ tours }: FeaturedToursServerProps)
   const [isBookingSidebarOpen, setBookingSidebarOpen] = useState(false);
   const [selectedTour, setSelectedTour] = useState<Tour | null>(null);
   const { getSiteName } = useTenant();
+  const t = useTranslations();
 
   const handleAddToCartClick = (tour: Tour) => {
     setSelectedTour(tour);
@@ -263,7 +266,7 @@ export default function FeaturedToursServer({ tours }: FeaturedToursServerProps)
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sm:gap-6">
             <div className="max-w-2xl">
               <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 tracking-tight leading-tight">
-                Featured Tours & Experiences
+                {t('homepage.featuredTours')}
               </h2>
               <p className="mt-2 sm:mt-3 text-sm sm:text-base md:text-lg text-gray-600 leading-relaxed">
                 Discover top-rated experiences from {getSiteName()} — handpicked by local experts for unforgettable memories.
@@ -277,7 +280,7 @@ export default function FeaturedToursServer({ tours }: FeaturedToursServerProps)
                 style={{ boxShadow: 'none' }}
                 aria-label="See all tours"
               >
-                <span>See all tours</span>
+                <span>{t('homepage.viewAllTours')}</span>
                 <ArrowRight size={18} className="transition-transform duration-300 group-hover:translate-x-1 flex-shrink-0" />
               </Link>
             </div>
@@ -289,8 +292,8 @@ export default function FeaturedToursServer({ tours }: FeaturedToursServerProps)
           {/* Auto-scrolling carousel with 1 row - Manual scroll enabled */}
           <div className="relative w-full overflow-x-auto group py-4 sm:py-6 scrollbar-hide">
             {/* Very subtle gradient masks - minimal on mobile */}
-            <div className="absolute top-0 left-0 w-4 sm:w-8 md:w-12 lg:w-16 h-full bg-gradient-to-r from-gray-50 via-gray-50/20 sm:via-gray-50/30 md:via-gray-50/40 to-transparent z-10 pointer-events-none" />
-            <div className="absolute top-0 right-0 w-4 sm:w-8 md:w-12 lg:w-16 h-full bg-gradient-to-l from-gray-50 via-gray-50/20 sm:via-gray-50/30 md:via-gray-50/40 to-transparent z-10 pointer-events-none" />
+            <div className="absolute top-0 start-0 w-4 sm:w-8 md:w-12 lg:w-16 h-full bg-gradient-to-r from-gray-50 via-gray-50/20 sm:via-gray-50/30 md:via-gray-50/40 to-transparent z-10 pointer-events-none" />
+            <div className="absolute top-0 end-0 w-4 sm:w-8 md:w-12 lg:w-16 h-full bg-gradient-to-l from-gray-50 via-gray-50/20 sm:via-gray-50/30 md:via-gray-50/40 to-transparent z-10 pointer-events-none" />
 
             {/* Single row - scrolls left */}
             <div className="flex gap-3 sm:gap-4 md:gap-6 animate-marquee group-hover:[animation-play-state:paused]" style={{ width: 'max-content' }}>

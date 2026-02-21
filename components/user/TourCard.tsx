@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import Image from 'next/image';
 import { Tour } from '@/types';
 import { useSettings } from '@/hooks/useSettings';
@@ -40,7 +40,7 @@ const TourCard: React.FC<{ tour: Tour }> = ({ tour }) => {
           />
            <button 
             onClick={handleWishlistToggle}
-            className="absolute top-3 right-3 p-2 bg-white/80 backdrop-blur-sm rounded-full text-slate-600 hover:text-red-600 hover:bg-white transition-all"
+            className="absolute top-3 end-3 p-2 bg-white/80 backdrop-blur-sm rounded-full text-slate-600 hover:text-red-600 hover:bg-white transition-all"
             aria-label="Add to wishlist"
             >
             <Heart size={20} className={isInWishlist ? "text-red-500 fill-current" : ""} />
@@ -108,7 +108,7 @@ export const UserTourCard: React.FC<TourCardProps> = ({ tour, onRemove }) => {
             <div className="flex items-center gap-1.5"><Star size={14} className="text-yellow-500 fill-current" /><span>{tour.rating}</span></div>
           </div>
           <div className="mt-auto flex items-end justify-between">
-            <div className="text-right">
+            <div className="text-end">
                 <span className="text-xl font-bold text-red-600">{formatPrice(tour.discountPrice)}</span>
             </div>
             <button

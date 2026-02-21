@@ -157,6 +157,72 @@ jest.mock('@/contexts/AuthContext', () => ({
   AuthProvider: ({ children }) => children,
 }))
 
+// Mock next-intl (ESM-only, doesn't work with Jest/jsdom)
+jest.mock('next-intl', () => ({
+  useTranslations: () => (key) => key,
+  useLocale: () => 'en',
+  useMessages: () => ({}),
+  useNow: () => new Date(),
+  useTimeZone: () => 'UTC',
+  useFormatter: () => ({
+    number: (n) => String(n),
+    dateTime: (d) => String(d),
+    relativeTime: (d) => String(d),
+  }),
+  NextIntlClientProvider: ({ children }) => children,
+}))
+
+jest.mock('next-intl/navigation', () => ({
+  createNavigation: () => ({
+    Link: ({ children, href, ...props }) => <a href={href} {...props}>{children}</a>,
+    redirect: jest.fn(),
+    usePathname: () => '/',
+    useRouter: () => ({
+      push: jest.fn(),
+      replace: jest.fn(),
+      prefetch: jest.fn(),
+      back: jest.fn(),
+    }),
+    getPathname: jest.fn(),
+  }),
+}))
+
+jest.mock('next-intl/routing', () => ({
+  defineRouting: (config) => config,
+}))
+
+jest.mock('next-intl/server', () => ({
+  getRequestConfig: (fn) => fn,
+  getTranslations: () => (key) => key,
+  getLocale: () => Promise.resolve('en'),
+  getMessages: () => Promise.resolve({}),
+}))
+
+// Mock i18n/navigation (uses next-intl/navigation internally)
+jest.mock('@/i18n/navigation', () => ({
+  Link: ({ children, href, ...props }) => <a href={href} {...props}>{children}</a>,
+  redirect: jest.fn(),
+  usePathname: () => '/',
+  useRouter: () => ({
+    push: jest.fn(),
+    replace: jest.fn(),
+    prefetch: jest.fn(),
+    back: jest.fn(),
+  }),
+  getPathname: jest.fn(),
+}))
+
+// Mock i18n/routing
+jest.mock('@/i18n/routing', () => ({
+  routing: {
+    locales: ['en', 'ar', 'ru', 'de'],
+    defaultLocale: 'en',
+    localePrefix: 'as-needed',
+  },
+  RTL_LOCALES: ['ar'],
+  isRtlLocale: (locale) => locale === 'ar',
+}))
+
 // Mock Next.js router
 jest.mock('next/navigation', () => ({
   useRouter() {

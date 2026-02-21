@@ -43,7 +43,7 @@ function TourHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: 
             <MapPin className="w-3 md:w-3.5 h-3 md:h-3.5 text-white" strokeWidth={2.5} />
           </div>
           <span className="text-[11px] md:text-xs font-semibold text-gray-700 tracking-wide">Tours</span>
-          <span className="ml-auto text-[10px] md:text-xs font-medium text-gray-400 bg-gray-100/80 backdrop-blur-sm px-2 md:px-2.5 py-0.5 md:py-1 rounded-full">{hits.length}</span>
+          <span className="ms-auto text-[10px] md:text-xs font-medium text-gray-400 bg-gray-100/80 backdrop-blur-sm px-2 md:px-2.5 py-0.5 md:py-1 rounded-full">{hits.length}</span>
         </div>
       </div>
       {limitedHits.map((hit: any, index) => (
@@ -90,7 +90,7 @@ function DestinationHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; l
         <div className="flex items-center gap-2 md:gap-2.5">
           <div className="w-5 md:w-6 h-5 md:h-6 rounded-lg md:rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/25"><Compass className="w-3 md:w-3.5 h-3 md:h-3.5 text-white" strokeWidth={2.5} /></div>
           <span className="text-[11px] md:text-xs font-semibold text-gray-700 tracking-wide">Destinations</span>
-          <span className="ml-auto text-[10px] md:text-xs font-medium text-gray-400 bg-gray-100/80 backdrop-blur-sm px-2 md:px-2.5 py-0.5 md:py-1 rounded-full">{hits.length}</span>
+          <span className="ms-auto text-[10px] md:text-xs font-medium text-gray-400 bg-gray-100/80 backdrop-blur-sm px-2 md:px-2.5 py-0.5 md:py-1 rounded-full">{hits.length}</span>
         </div>
       </div>
       {limitedHits.map((hit: any, index) => (
@@ -122,7 +122,7 @@ function CategoryHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limi
         <div className="flex items-center gap-2 md:gap-2.5">
           <div className="w-5 md:w-6 h-5 md:h-6 rounded-lg md:rounded-xl bg-gradient-to-br from-purple-500 to-fuchsia-600 flex items-center justify-center shadow-lg shadow-purple-500/25"><Tag className="w-3 md:w-3.5 h-3 md:h-3.5 text-white" strokeWidth={2.5} /></div>
           <span className="text-[11px] md:text-xs font-semibold text-gray-700 tracking-wide">Categories</span>
-          <span className="ml-auto text-[10px] md:text-xs font-medium text-gray-400 bg-gray-100/80 backdrop-blur-sm px-2 md:px-2.5 py-0.5 md:py-1 rounded-full">{hits.length}</span>
+          <span className="ms-auto text-[10px] md:text-xs font-medium text-gray-400 bg-gray-100/80 backdrop-blur-sm px-2 md:px-2.5 py-0.5 md:py-1 rounded-full">{hits.length}</span>
         </div>
       </div>
       {limitedHits.map((hit: any, index) => (
@@ -153,7 +153,7 @@ function BlogHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: 
         <div className="flex items-center gap-2 md:gap-2.5">
           <div className="w-5 md:w-6 h-5 md:h-6 rounded-lg md:rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-500/25"><FileText className="w-3 md:w-3.5 h-3 md:h-3.5 text-white" strokeWidth={2.5} /></div>
           <span className="text-[11px] md:text-xs font-semibold text-gray-700 tracking-wide">Blog Posts</span>
-          <span className="ml-auto text-[10px] md:text-xs font-medium text-gray-400 bg-gray-100/80 backdrop-blur-sm px-2 md:px-2.5 py-0.5 md:py-1 rounded-full">{hits.length}</span>
+          <span className="ms-auto text-[10px] md:text-xs font-medium text-gray-400 bg-gray-100/80 backdrop-blur-sm px-2 md:px-2.5 py-0.5 md:py-1 rounded-full">{hits.length}</span>
         </div>
       </div>
       {limitedHits.map((hit: any, index) => (
@@ -257,13 +257,13 @@ export default function AISearchIconWidget() {
       </AnimatePresence>
 
       {/* DESKTOP: Full search bar at bottom (like homepage) - leaves space for AI Agent on right */}
-      <motion.div initial={{ opacity: 0, y: 100 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 100 }} transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }} className="hidden md:flex fixed bottom-4 md:bottom-8 left-0 right-0 z-[99998] justify-center px-3 md:px-6 md:pr-32 pointer-events-auto">
+      <motion.div initial={{ opacity: 0, y: 100 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 100 }} transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }} className="hidden md:flex fixed bottom-4 md:bottom-8 start-0 end-0 z-[99998] justify-center px-3 md:px-6 md:pe-32 pointer-events-auto">
         <div className="w-full max-w-2xl">
           <div className="ai-search-container relative">
             {/* Expanded Results Panel */}
             <AnimatePresence>
               {isExpanded && (
-                <motion.div initial={{ opacity: 0, y: 30, scale: 0.94 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 30, scale: 0.94 }} transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }} className="absolute bottom-full mb-2 md:mb-4 left-0 right-0 rounded-2xl md:rounded-[28px] overflow-hidden shadow-2xl z-[99999]" style={{ maxHeight: '60vh', background: 'linear-gradient(to bottom, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.92))', backdropFilter: 'blur(40px) saturate(180%)', border: '1px solid rgba(255, 255, 255, 0.18)', boxShadow: '0 20px 60px -15px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.3) inset' }}>
+                <motion.div initial={{ opacity: 0, y: 30, scale: 0.94 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 30, scale: 0.94 }} transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }} className="absolute bottom-full mb-2 md:mb-4 start-0 end-0 rounded-2xl md:rounded-[28px] overflow-hidden shadow-2xl z-[99999]" style={{ maxHeight: '60vh', background: 'linear-gradient(to bottom, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.92))', backdropFilter: 'blur(40px) saturate(180%)', border: '1px solid rgba(255, 255, 255, 0.18)', boxShadow: '0 20px 60px -15px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.3) inset' }}>
                   <div className="flex flex-col h-full">
                     {/* Header */}
                     <div className="px-4 md:px-7 py-3 md:py-5 border-b border-white/20 backdrop-blur-xl bg-gradient-to-r from-blue-500/5 via-indigo-500/5 to-purple-500/5">
@@ -306,11 +306,11 @@ export default function AISearchIconWidget() {
             <motion.div whileHover={{ y: -4, scale: 1.01 }} whileTap={{ scale: 0.98 }} className="relative group">
               <div className="relative rounded-full transition-all duration-500 shadow-xl hover:shadow-2xl" style={{ background: isExpanded ? 'linear-gradient(to bottom, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.95))' : 'linear-gradient(to bottom, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.92))', backdropFilter: 'blur(40px) saturate(180%)', border: isExpanded ? '2px solid rgba(59, 130, 246, 0.3)' : '1.5px solid rgba(255, 255, 255, 0.3)', boxShadow: isExpanded ? '0 20px 60px -15px rgba(59, 130, 246, 0.35)' : '0 10px 40px -10px rgba(0, 0, 0, 0.2)' }}>
                 <div className="relative">
-                  <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onFocus={() => setIsExpanded(true)} placeholder="AI Search - Find tours, destinations & more..." className="w-full pl-12 md:pl-16 pr-14 md:pr-36 py-3.5 md:py-5 text-sm md:text-[15px] font-medium text-gray-900 placeholder-gray-400 bg-transparent outline-none rounded-full" />
-                  <div className="absolute left-3 md:left-5 top-1/2 transform -translate-y-1/2 z-10">
+                  <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onFocus={() => setIsExpanded(true)} placeholder="AI Search - Find tours, destinations & more..." className="w-full ps-12 md:ps-16 pe-14 md:pe-36 py-3.5 md:py-5 text-sm md:text-[15px] font-medium text-gray-900 placeholder-gray-400 bg-transparent outline-none rounded-full" />
+                  <div className="absolute start-3 md:start-5 top-1/2 transform -translate-y-1/2 z-10">
                     <div className="w-8 md:w-10 h-8 md:h-10 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg"><Search className="w-4 md:w-5 h-4 md:h-5 text-white" strokeWidth={2.5} /></div>
                   </div>
-                  <div className="absolute right-3 md:right-5 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
+                  <div className="absolute end-3 md:end-5 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
                     {isExpanded && <span className="hidden sm:inline-block text-xs font-semibold text-blue-600 bg-blue-50 px-3 py-1 rounded-full">AI Powered</span>}
                     <Sparkles className="w-5 h-5 text-blue-500" strokeWidth={2.5} />
                   </div>
@@ -322,16 +322,16 @@ export default function AISearchIconWidget() {
       </motion.div>
 
       {/* MOBILE: Icon only (left-aligned) - AI Agent icon is on the right */}
-      <div className="md:hidden ai-search-container fixed bottom-24 left-4 pointer-events-none" style={{ zIndex: 999999 }}>
+      <div className="md:hidden ai-search-container fixed bottom-24 start-4 pointer-events-none" style={{ zIndex: 999999 }}>
         <AnimatePresence>
           {isExpanded && (
-            <motion.div initial={{ opacity: 0, y: 20, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 20, scale: 0.9 }} className="absolute bottom-20 left-0 w-[90vw] max-h-[70vh] rounded-2xl overflow-hidden shadow-2xl pointer-events-auto" style={{ background: 'linear-gradient(to bottom, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.92))', backdropFilter: 'blur(40px) saturate(180%)', border: '1px solid rgba(255, 255, 255, 0.18)', boxShadow: '0 20px 60px -15px rgba(0, 0, 0, 0.3)', zIndex: 999999 }}>
+            <motion.div initial={{ opacity: 0, y: 20, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 20, scale: 0.9 }} className="absolute bottom-20 start-0 w-[90vw] max-h-[70vh] rounded-2xl overflow-hidden shadow-2xl pointer-events-auto" style={{ background: 'linear-gradient(to bottom, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.92))', backdropFilter: 'blur(40px) saturate(180%)', border: '1px solid rgba(255, 255, 255, 0.18)', boxShadow: '0 20px 60px -15px rgba(0, 0, 0, 0.3)', zIndex: 999999 }}>
               <div className="px-4 py-3 border-b border-white/20 bg-gradient-to-r from-blue-500/5 via-indigo-500/5 to-purple-500/5">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2"><Sparkles className="w-4 h-4 text-blue-500" /><span className="text-sm font-semibold text-gray-800">AI Search</span></div>
                   <button onClick={() => setIsExpanded(false)} className="text-gray-400 hover:text-gray-700 p-2 rounded-xl"><X className="w-4 h-4" /></button>
                 </div>
-                <div className="relative"><input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search tours, destinations..." autoFocus className="w-full pl-10 pr-4 py-2.5 text-sm font-medium text-gray-900 placeholder-gray-400 bg-white/90 outline-none rounded-xl border border-gray-200 focus:border-blue-400" /><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" /></div>
+                <div className="relative"><input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search tours, destinations..." autoFocus className="w-full ps-10 pe-4 py-2.5 text-sm font-medium text-gray-900 placeholder-gray-400 bg-white/90 outline-none rounded-xl border border-gray-200 focus:border-blue-400" /><Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" /></div>
               </div>
               <div className="max-h-[50vh] overflow-y-auto apple-scrollbar">
                 {searchQuery ? (

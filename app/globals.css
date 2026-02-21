@@ -289,3 +289,72 @@
 .accent-cta:hover {
   opacity: 0.9;
 }
+
+/* ============================================
+   RTL (Right-to-Left) SUPPORT
+   ============================================ */
+
+/* Arabic font for RTL locales */
+[dir="rtl"] body {
+  font-family: var(--font-almarai), system-ui, sans-serif;
+}
+
+/* Force LTR direction for specific input types */
+[dir="rtl"] input[type="email"],
+[dir="rtl"] input[type="tel"],
+[dir="rtl"] input[type="url"],
+[dir="rtl"] input[type="number"],
+[dir="rtl"] input[type="password"] {
+  direction: ltr;
+  text-align: end;
+}
+
+/* Gradient direction flipping for RTL */
+[dir="rtl"] .bg-gradient-to-r {
+  background-image: linear-gradient(to left, var(--tw-gradient-stops));
+}
+
+[dir="rtl"] .bg-gradient-to-l {
+  background-image: linear-gradient(to right, var(--tw-gradient-stops));
+}
+
+[dir="rtl"] .bg-gradient-to-br {
+  background-image: linear-gradient(to bottom left, var(--tw-gradient-stops));
+}
+
+[dir="rtl"] .bg-gradient-to-bl {
+  background-image: linear-gradient(to bottom right, var(--tw-gradient-stops));
+}
+
+[dir="rtl"] .bg-gradient-to-tr {
+  background-image: linear-gradient(to top left, var(--tw-gradient-stops));
+}
+
+[dir="rtl"] .bg-gradient-to-tl {
+  background-image: linear-gradient(to top right, var(--tw-gradient-stops));
+}
+
+/* Scroll animations flip for RTL */
+[dir="rtl"] .animate-scroll-left {
+  animation-name: scroll-right;
+}
+
+[dir="rtl"] .animate-scroll-right {
+  animation-name: scroll-left;
+}
+
+/* Sticky book button adjusts for RTL */
+[dir="rtl"] .sticky-book-button-container {
+  left: auto;
+  right: 0;
+}
+
+/* Swiper pagination RTL adjustment */
+[dir="rtl"] .swiper-pagination {
+  direction: ltr;
+}
+
+/* Custom scrollbar for RTL */
+[dir="rtl"] .custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}

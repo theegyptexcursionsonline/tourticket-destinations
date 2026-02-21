@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import Image from 'next/image';
 import { Destination } from '@/types';
 import { useTenant } from '@/contexts/TenantContext';
@@ -136,7 +136,7 @@ export default function Destinations() {
   return (
     <section className="bg-white py-12 sm:py-16">
       <div className="container mx-auto px-4">
-        <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-800 mb-6 sm:mb-8 text-center sm:text-left">
+        <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-800 mb-6 sm:mb-8 text-center sm:text-start">
           Where are you going?
         </h2>
         <div className="flex gap-x-4 sm:gap-x-6 gap-y-6 overflow-x-auto pb-2 sm:flex-wrap sm:overflow-visible">
