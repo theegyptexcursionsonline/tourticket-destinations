@@ -7,6 +7,8 @@ import CategoryPageClient from './CategoryPageClient';
 import { getTenantFromRequest, getTenantConfig, buildTenantQuery } from '@/lib/tenant';
 import { getLocale } from 'next-intl/server';
 import { localizeTour } from '@/lib/translation/getLocalizedField';
+import { localizeEntityFields } from '@/lib/i18n/contentLocalization';
+import { categoryTranslationFields } from '@/lib/i18n/translationFields';
 
 // Force dynamic rendering to fix ISR caching issues on Netlify
 export const dynamic = 'force-dynamic';
@@ -105,10 +107,12 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
 
   // Apply translations for the current locale
   const localizedTours = categoryTours.map((t: any) => localizeTour(t, locale));
+  const catFields = categoryTranslationFields.map(f => f.key);
+  const localizedCategory = localizeEntityFields(category, locale, catFields);
 
   return (
     <CategoryPageClient
-      category={category}
+      category={localizedCategory}
       categoryTours={localizedTours}
     />
   );

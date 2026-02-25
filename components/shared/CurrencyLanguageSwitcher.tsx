@@ -15,6 +15,8 @@ import { routing } from '@/i18n/routing';
 const LOCALE_DATA: Record<string, { name: string; nativeName: string; flag: string }> = {
   en: { name: 'English', nativeName: 'English', flag: '🇬🇧' },
   ar: { name: 'Arabic', nativeName: 'العربية', flag: '🇪🇬' },
+  es: { name: 'Spanish', nativeName: 'Español', flag: '🇪🇸' },
+  fr: { name: 'French', nativeName: 'Français', flag: '🇫🇷' },
   ru: { name: 'Russian', nativeName: 'Русский', flag: '🇷🇺' },
   de: { name: 'German', nativeName: 'Deutsch', flag: '🇩🇪' },
 };

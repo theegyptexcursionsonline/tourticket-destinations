@@ -3,6 +3,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminAuth } from '@/lib/auth/adminAuth';
 import { translateAllTours } from '@/lib/translation/translateService';
+// Note: For individual entity translation (tour/destination/category),
+// use the new /api/admin/translate endpoint which leverages lib/i18n/autoTranslate.ts
 
 export async function POST(request: NextRequest) {
   const auth = await requireAdminAuth(request, { permissions: ['manageTours'] });

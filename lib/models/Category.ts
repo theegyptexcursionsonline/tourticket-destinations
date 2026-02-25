@@ -35,7 +35,10 @@ export interface ICategory extends Document {
   
   // Stats
   tourCount?: number;
-  
+
+  // Multi-language translations
+  translations?: Record<string, Record<string, unknown>>;
+
   // Timestamps
   createdAt?: Date;
   updatedAt?: Date;
@@ -164,6 +167,12 @@ const CategorySchema: Schema<ICategory> = new Schema({
     type: Number,
     default: 0,
     min: [0, 'Tour count cannot be negative'],
+  },
+
+  // Multi-language translations
+  translations: {
+    type: Schema.Types.Mixed,
+    default: {},
   },
 }, {
   timestamps: true,

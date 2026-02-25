@@ -9,6 +9,8 @@ import DestinationPageClient from './DestinationPageClient';
 import { getTenantFromRequest, getTenantPublicConfig } from '@/lib/tenant';
 import { getLocale } from 'next-intl/server';
 import { localizeTour } from '@/lib/translation/getLocalizedField';
+import { localizeEntityFields } from '@/lib/i18n/contentLocalization';
+import { destinationTranslationFields, categoryTranslationFields } from '@/lib/i18n/translationFields';
 
 // Force dynamic rendering to fix 500 errors
 export const dynamic = 'force-dynamic';
@@ -157,14 +159,19 @@ export default async function DestinationPage({ params }: { params: Promise<{ sl
 
     // Apply translations for the current locale
     const localizedTours = destinationTours.map((t: any) => localizeTour(t, locale));
+    const destFields = destinationTranslationFields.map(f => f.key);
+    const catFields = categoryTranslationFields.map(f => f.key);
+    const localizedDestination = localizeEntityFields(destination, locale, destFields);
+    const localizedCategories = allCategories.map((c: any) => localizeEntityFields(c, locale, catFields));
+    const localizedRelated = relatedDestinations.map((d: any) => localizeEntityFields(d, locale, destFields));
 
     return (
       <DestinationPageClient
-        destination={destination}
+        destination={localizedDestination}
         destinationTours={localizedTours}
-        allCategories={allCategories}
+        allCategories={localizedCategories}
         reviews={reviews}
-        relatedDestinations={relatedDestinations}
+        relatedDestinations={localizedRelated}
       />
     );
   } catch (error) {

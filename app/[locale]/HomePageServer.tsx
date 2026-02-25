@@ -29,6 +29,8 @@ import { getTenantFromRequest, getTenantConfig, buildTenantQuery } from '@/lib/t
 import { unstable_cache } from 'next/cache';
 import { getLocale } from 'next-intl/server';
 import { localizeTour } from '@/lib/translation/getLocalizedField';
+import { localizeEntityFields } from '@/lib/i18n/contentLocalization';
+import { destinationTranslationFields, categoryTranslationFields } from '@/lib/i18n/translationFields';
 
 // Enable ISR with 60-second revalidation (removed force-dynamic for better caching)
 export const revalidate = 60;
@@ -494,6 +496,14 @@ export default async function HomePageServer() {
   // Apply translations for the current locale
   const localizedTours = tours.map((t: any) => localizeTour(t, locale));
   const localizedDayTrips = dayTrips.map((t: any) => localizeTour(t, locale));
+
+  // Localize destinations and categories
+  const destFields = destinationTranslationFields.map(f => f.key);
+  const catFields = categoryTranslationFields.map(f => f.key);
+  const localizedDestinations = destinations.map((d: any) => localizeEntityFields(d, locale, destFields));
+  const localizedCategories = categories.map((c: any) => localizeEntityFields(c, locale, catFields));
+  const localizedHeaderDests = headerDestinations.map((d: any) => localizeEntityFields(d, locale, destFields));
+  const localizedHeaderCats = headerCategories.map((c: any) => localizeEntityFields(c, locale, catFields));
   
   // Check if destinations are tenant-specific or from 'default' fallback
   const hasTenantSpecificDestinations = destinations.some(
@@ -503,7 +513,7 @@ export default async function HomePageServer() {
   // Use tenant-specific default destinations if no tenant-specific ones in DB
   const tenantDestDefaults = tenantDestinationDefaults[tenantId];
   const effectiveDestinations = (hasTenantSpecificDestinations || !tenantDestDefaults)
-    ? destinations
+    ? localizedDestinations
     : tenantDestDefaults.map((dest, index) => ({
         ...dest,
         _id: `tenant-dest-${index}`,
@@ -671,8 +681,8 @@ export default async function HomePageServer() {
     <main data-tenant={tenantId}>
       <ReviewsStructuredData />
       <Header
-        initialDestinations={headerDestinations}
-        initialCategories={headerCategories}
+        initialDestinations={localizedHeaderDests}
+        initialCategories={localizedHeaderCats}
       />
       <HeroSection initialSettings={effectiveHeroSettings} />
 
@@ -686,7 +696,7 @@ export default async function HomePageServer() {
 
       <FeaturedToursServer tours={localizedTours} />
       <PopularInterestServer interests={featuredInterests} categoryPages={categoryPages} />
-      <InterestGridServer categories={categories} />
+      <InterestGridServer categories={localizedCategories} />
       <DayTripsServer tours={localizedDayTrips} />
 
       {/* Show AboutUs only if enabled for this tenant */}

@@ -56,7 +56,10 @@ export interface IDestination extends Document {
   metaDescription?: string;
   keywords?: string[];
   tags?: string[];
-  
+
+  // Multi-language translations
+  translations?: Record<string, Record<string, unknown>>;
+
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
@@ -295,6 +298,13 @@ metaDescription: {
       },
       message: 'Each tag must be non-empty and not exceed 50 characters'
     }
+  },
+
+  // Multi-language translations (backward-compatible)
+  // Structure: { ar: { name: "...", description: "..." }, es: { ... }, fr: { ... }, ru: { ... }, de: { ... } }
+  translations: {
+    type: Schema.Types.Mixed,
+    default: {},
   },
 }, {
   timestamps: true,

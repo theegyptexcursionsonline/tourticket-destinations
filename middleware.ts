@@ -250,6 +250,8 @@ const reservedPaths = [
   '/public',
   // Locale prefixes (prevent them from being treated as tour slugs)
   '/ar',
+  '/es',
+  '/fr',
   '/de',
   '/ru',
 ];

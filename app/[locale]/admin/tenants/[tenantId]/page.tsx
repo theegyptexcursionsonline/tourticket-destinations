@@ -49,6 +49,8 @@ interface TenantData {
     twitterHandle: string;
     googleSiteVerification: string;
     bingSiteVerification: string;
+    googleTagManagerId: string;
+    googleAnalyticsId: string;
   };
   contact: {
     email: string;
@@ -151,6 +153,8 @@ const defaultTenant: Partial<TenantData> = {
     twitterHandle: '',
     googleSiteVerification: '',
     bingSiteVerification: '',
+    googleTagManagerId: '',
+    googleAnalyticsId: '',
   },
   contact: {
     email: '',

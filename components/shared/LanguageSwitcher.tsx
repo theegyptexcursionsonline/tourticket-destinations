@@ -15,6 +15,8 @@ interface LanguageOption {
 const LANGUAGES: LanguageOption[] = [
   { code: 'en', name: 'English', nativeName: 'English', flag: '🇬🇧' },
   { code: 'ar', name: 'Arabic', nativeName: 'العربية', flag: '🇪🇬' },
+  { code: 'es', name: 'Spanish', nativeName: 'Español', flag: '🇪🇸' },
+  { code: 'fr', name: 'French', nativeName: 'Français', flag: '🇫🇷' },
   { code: 'ru', name: 'Russian', nativeName: 'Русский', flag: '🇷🇺' },
   { code: 'de', name: 'German', nativeName: 'Deutsch', flag: '🇩🇪' },
 ];
