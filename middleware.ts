@@ -121,6 +121,8 @@ function getTenantDomains(): TenantDomainMapping {
     'egypt-excursionsonline.com': 'default',
     'www.egypt-excursionsonline.com': 'default',
     'dashboard.egypt-excursionsonline.com': 'default',
+    'dashboard2.egypt-excursionsonline.com': 'default',
+    'admin.egypt-excursionsonline.com': 'default',
 
     // ============================================
     // NEW TENANTS - PRIORITY (Jan 2026)
@@ -466,11 +468,40 @@ export function middleware(request: NextRequest) {
   // ADMIN DASHBOARD SUBDOMAIN
   // ============================================
   const cleanHost = hostname.replace(/:\d+$/, '').replace(/^www\./, '');
-  if (cleanHost === 'dashboard.egypt-excursionsonline.com') {
+  const isDashboardSubdomain =
+    cleanHost.startsWith('dashboard.') ||
+    cleanHost.startsWith('dashboard2.') ||
+    cleanHost.startsWith('admin.');
+
+  if (isDashboardSubdomain) {
     if (!pathname.startsWith('/admin') && !pathname.startsWith('/api') && !pathname.startsWith('/_next') && !isStaticFile(pathname)) {
       const url = request.nextUrl.clone();
       url.pathname = pathname === '/' ? '/admin' : `/admin${pathname}`;
-      return NextResponse.rewrite(url);
+
+      const requestHeaders = new Headers(request.headers);
+      requestHeaders.set('x-tenant-id', tenantId);
+      requestHeaders.set('x-tenant-domain', hostname);
+      if (isPreviewMode) {
+        requestHeaders.set('x-tenant-preview', 'true');
+      }
+
+      const response = NextResponse.rewrite(url, {
+        request: { headers: requestHeaders },
+      });
+      return applyTenantToResponse(response, tenantId, hostname, isPreviewMode);
+    }
+  }
+
+  // ============================================
+  // REDIRECT MAIN DOMAIN /admin TO DASHBOARD SUBDOMAIN
+  // ============================================
+  if (!isDashboardSubdomain && isAdminPath(pathname)) {
+    const ADMIN_ALLOWED_TENANTS = ['default'];
+    if (ADMIN_ALLOWED_TENANTS.includes(tenantId)) {
+      const adminPath = pathname.replace(/^\/admin/, '') || '/';
+      const dashboardUrl = new URL(`https://dashboard.egypt-excursionsonline.com${adminPath}`);
+      dashboardUrl.search = request.nextUrl.search;
+      return NextResponse.redirect(dashboardUrl);
     }
   }
 
