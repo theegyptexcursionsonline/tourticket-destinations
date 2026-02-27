@@ -350,7 +350,7 @@ const ReportsPage = () => {
             <h1 className="text-2xl font-bold text-slate-800">Reports & Analytics</h1>
             <p className="text-sm text-slate-500">
               {isAllTenantsSelected() ? (
-                <>Showing data from <span className="font-medium text-slate-700">all brands</span></>
+                <>Showing data from <span className="font-medium text-slate-700">Egypt Excursions Online</span></>
               ) : (
                 <>Data for <span className="font-medium text-indigo-600">{selectedTenant?.name}</span></>
               )}

@@ -404,7 +404,7 @@ const AdminDashboard = () => {
           </div>
           <p className="text-slate-600 text-lg">
             {isAllTenantsSelected() ? (
-              <>Welcome back! Showing data from <span className="font-semibold text-slate-700">all brands</span>.</>
+              <>Welcome back! Showing data from <span className="font-semibold text-slate-700">Egypt Excursions Online</span>.</>
             ) : (
               <>Showing data for <span className="font-semibold text-indigo-600">{selectedTenant?.name || selectedTenantId}</span>.</>
             )}
