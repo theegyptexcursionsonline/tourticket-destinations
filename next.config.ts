@@ -7,14 +7,14 @@ const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
 const nextConfig = {
   reactStrictMode: true,
 
-  // Ignore ESLint errors during build
-  eslint: {
-    ignoreDuringBuilds: true,
+  // TypeScript type checking during build (catches type errors before deploy)
+  typescript: {
+    ignoreBuildErrors: false,
   },
 
-  // Ignore TypeScript errors during build
-  typescript: {
-    ignoreBuildErrors: true,
+  // ESLint checking during build (catches lint errors before deploy)
+  eslint: {
+    ignoreDuringBuilds: false,
   },
 
   // Server external packages configuration - externalize heavy packages to reduce bundle size
