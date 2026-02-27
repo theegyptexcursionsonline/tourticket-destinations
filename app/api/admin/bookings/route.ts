@@ -42,6 +42,9 @@ export async function GET(request: NextRequest) {
     // Early tenant filter — narrows working set BEFORE expensive $lookups
     if (effectiveTenantId) {
       baseMatch.tenantId = effectiveTenantId;
+    } else {
+      // "All brands" — exclude default (egypt-excursionsonline.com) bookings
+      baseMatch.tenantId = { $nin: ['default', null, undefined] };
     }
 
     // Status filter
@@ -110,7 +113,7 @@ export async function GET(request: NextRequest) {
       },
       { $unwind: { path: '$tour', preserveNullAndEmptyArrays: true } },
       // Tenant filter: strict match when a specific brand is selected;
-      // when "all" is selected, show all bookings (no filter).
+      // when "all" is selected, exclude default tenant bookings.
       ...(effectiveTenantId
         ? [
             {
@@ -119,7 +122,13 @@ export async function GET(request: NextRequest) {
               },
             },
           ]
-        : []),
+        : [
+            {
+              $match: {
+                tenantId: { $nin: ['default', null, undefined] },
+              },
+            },
+          ]),
       // Join Destination (optional)
       {
         $lookup: {
