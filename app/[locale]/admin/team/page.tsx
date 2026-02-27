@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import withAuth from '@/components/admin/withAuth';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
+import { useAdminTenant } from '@/contexts/AdminTenantContext';
 import { ADMIN_PERMISSIONS } from '@/lib/constants/adminPermissions';
 
 interface TeamMember {
@@ -44,6 +45,7 @@ const permissionLabels: Record<string, string> = {
 
 const TeamPage = () => {
   const { token, user } = useAdminAuth();
+  const { selectedTenantId } = useAdminTenant();
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isInviting, setIsInviting] = useState(false);
@@ -84,7 +86,12 @@ const TeamPage = () => {
     if (!token) return;
     setIsLoading(true);
     try {
-      const response = await authorizedFetch('/api/admin/team');
+      const params = new URLSearchParams();
+      if (selectedTenantId && selectedTenantId !== 'all') {
+        params.set('tenantId', selectedTenantId);
+      }
+      const queryString = params.toString();
+      const response = await authorizedFetch(`/api/admin/team${queryString ? `?${queryString}` : ''}`);
       if (!response.ok) {
         throw new Error('Failed to load team members');
       }
@@ -102,7 +109,7 @@ const TeamPage = () => {
       fetchMembers();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
+  }, [token, selectedTenantId]);
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,7 +118,10 @@ const TeamPage = () => {
     try {
       const response = await authorizedFetch('/api/admin/team', {
         method: 'POST',
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          tenantId: selectedTenantId && selectedTenantId !== 'all' ? selectedTenantId : undefined,
+        }),
       });
 
       const data = await response.json();
