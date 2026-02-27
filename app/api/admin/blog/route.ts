@@ -15,6 +15,9 @@ export async function GET(request: NextRequest) {
     const filter: Record<string, unknown> = {};
     if (tenantId && tenantId !== 'all') {
       filter.tenantId = tenantId;
+    } else {
+      // "All brands" — exclude default (eeo) blog posts
+      filter.tenantId = { $nin: ['default', null, undefined] };
     }
 
     const posts = await Blog.find(filter).sort({ createdAt: -1 }).lean();
