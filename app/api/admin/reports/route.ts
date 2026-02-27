@@ -15,6 +15,9 @@ async function fetchReportData(effectiveTenantId: string | undefined) {
   const tenantFilter: Record<string, unknown> = {};
   if (effectiveTenantId) {
     tenantFilter.tenantId = effectiveTenantId;
+  } else {
+    // "All brands" — exclude default (eeo / egypt-excursionsonline.com) data
+    tenantFilter.tenantId = { $nin: ['default', null, undefined] };
   }
 
   const today = new Date();
