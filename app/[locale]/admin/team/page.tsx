@@ -30,6 +30,7 @@ interface TeamMember {
   isActive: boolean;
   lastLoginAt?: string;
   createdAt?: string;
+  tenantIds?: string[];
 }
 
 const permissionLabels: Record<string, string> = {
@@ -45,10 +46,11 @@ const permissionLabels: Record<string, string> = {
 
 const TeamPage = () => {
   const { token, user } = useAdminAuth();
-  const { selectedTenantId } = useAdminTenant();
+  const { selectedTenantId, tenants } = useAdminTenant();
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isInviting, setIsInviting] = useState(false);
+  const [selectedBrandIds, setSelectedBrandIds] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -56,6 +58,12 @@ const TeamPage = () => {
     role: 'operations',
     permissions: ['manageBookings'],
   });
+
+  // Filter out default tenant from selectable brands
+  const selectableBrands = useMemo(
+    () => tenants.filter((t) => t.tenantId !== 'default' && t.isActive),
+    [tenants],
+  );
 
   // Password reset modal state
   const [passwordResetModal, setPasswordResetModal] = useState<{
@@ -116,11 +124,19 @@ const TeamPage = () => {
     if (!token) return;
     setIsInviting(true);
     try {
+      // Use explicitly selected brands, or fall back to the currently selected tenant
+      const tenantIds =
+        selectedBrandIds.length > 0
+          ? selectedBrandIds
+          : selectedTenantId && selectedTenantId !== 'all'
+            ? [selectedTenantId]
+            : [];
+
       const response = await authorizedFetch('/api/admin/team', {
         method: 'POST',
         body: JSON.stringify({
           ...formData,
-          tenantId: selectedTenantId && selectedTenantId !== 'all' ? selectedTenantId : undefined,
+          tenantIds,
         }),
       });
 
@@ -138,6 +154,7 @@ const TeamPage = () => {
         role: 'operations',
         permissions: ['manageBookings'],
       });
+      setSelectedBrandIds([]);
     } catch (error: any) {
       toast.error(error.message || 'Unable to add member');
     } finally {
@@ -401,6 +418,41 @@ const TeamPage = () => {
             </div>
           </div>
 
+          {/* Brand assignment */}
+          {selectableBrands.length > 0 && (
+            <div>
+              <label className="text-xs text-slate-500 font-medium">Assign to brands</label>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {selectableBrands.map((brand) => {
+                  const selected = selectedBrandIds.includes(brand.tenantId);
+                  return (
+                    <button
+                      type="button"
+                      key={brand.tenantId}
+                      onClick={() =>
+                        setSelectedBrandIds((prev) =>
+                          selected
+                            ? prev.filter((id) => id !== brand.tenantId)
+                            : [...prev, brand.tenantId],
+                        )
+                      }
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${
+                        selected
+                          ? 'bg-violet-600 border-violet-600 text-white'
+                          : 'border-slate-200 text-slate-600 hover:border-violet-200 hover:text-violet-600'
+                      }`}
+                    >
+                      {brand.name}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-slate-400 mt-1">
+                Select one or more brands this member can access
+              </p>
+            </div>
+          )}
+
           <button
             type="submit"
             disabled={isInviting}
@@ -480,6 +532,28 @@ const TeamPage = () => {
                       })}
                     </div>
                   </div>
+
+                  {/* Assigned Brands */}
+                  {member.tenantIds && member.tenantIds.length > 0 && (
+                    <div>
+                      <p className="text-xs font-medium uppercase text-slate-400 mb-2">
+                        Brands
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {member.tenantIds.map((tid) => {
+                          const brand = tenants.find((t) => t.tenantId === tid);
+                          return (
+                            <span
+                              key={tid}
+                              className="px-2.5 py-1 rounded-full text-xs font-medium bg-violet-50 border border-violet-200 text-violet-700"
+                            >
+                              {brand?.name || tid}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Actions */}
                   <div className="flex flex-col sm:flex-row flex-wrap gap-2">

@@ -26,7 +26,7 @@ const sanitize = (user: any) => ({
   isActive: user.isActive,
   lastLoginAt: user.lastLoginAt,
   createdAt: user.createdAt,
-  tenantId: user.tenantId || null,
+  tenantIds: user.tenantIds || [],
 });
 
 function normalizePermissions(
@@ -75,10 +75,15 @@ export async function GET(request: NextRequest) {
 
   const filter: Record<string, unknown> = { role: { $ne: 'customer' } };
   if (tenantId && tenantId !== 'all') {
-    filter.tenantId = tenantId;
+    // Show team members who have this tenant in their tenantIds array
+    filter.tenantIds = tenantId;
   } else {
-    // "All brands" — exclude default (eeo) team members
-    filter.tenantId = { $nin: ['default', null, undefined] };
+    // "All brands" — only show members with at least one non-default tenant
+    filter.$and = [
+      { tenantIds: { $exists: true } },
+      { tenantIds: { $not: { $size: 0 } } },
+      { tenantIds: { $nin: ['default'] } },
+    ];
   }
 
   const teamMembers = await User.find(filter)
@@ -130,8 +135,14 @@ export async function POST(request: NextRequest) {
   const temporaryPassword = crypto.randomBytes(16).toString('hex');
   const hashedPassword = await bcrypt.hash(temporaryPassword, 10);
 
-  // Assign team member to the selected tenant
-  const assignedTenantId = body.tenantId && body.tenantId !== 'all' ? body.tenantId : undefined;
+  // Assign team member to selected brand(s)
+  // Accepts tenantIds (array) or tenantId (single string) for backward compatibility
+  let assignedTenantIds: string[] = [];
+  if (Array.isArray(body.tenantIds) && body.tenantIds.length > 0) {
+    assignedTenantIds = body.tenantIds.filter((id: string) => id && id !== 'all');
+  } else if (body.tenantId && body.tenantId !== 'all') {
+    assignedTenantIds = [body.tenantId];
+  }
 
   const user = await User.create({
     firstName,
@@ -144,7 +155,7 @@ export async function POST(request: NextRequest) {
     invitationToken,
     invitationExpires,
     requirePasswordChange: true,
-    ...(assignedTenantId && { tenantId: assignedTenantId }),
+    tenantIds: assignedTenantIds,
   });
 
   const inviteeName = `${firstName} ${lastName}`.trim();

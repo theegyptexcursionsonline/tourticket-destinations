@@ -49,8 +49,8 @@ export interface IUser extends Document {
   requirePasswordChange?: boolean;
   wishlist?: mongoose.Types.ObjectId[]; // Array of Tour IDs
   cart?: ICartItem[]; // Array of cart items
-  // Multi-tenant support — which brand this team member belongs to
-  tenantId?: string;
+  // Multi-tenant support — which brands this team member can access
+  tenantIds?: string[];
 }
 
 const UserSchema: Schema<IUser> = new Schema({
@@ -127,9 +127,10 @@ const UserSchema: Schema<IUser> = new Schema({
     type: Boolean,
     default: false,
   },
-  // Multi-tenant support
-  tenantId: {
-    type: String,
+  // Multi-tenant support — array of brand IDs this team member can access
+  tenantIds: {
+    type: [String],
+    default: [],
     index: true,
   },
   createdAt: {
