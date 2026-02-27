@@ -12,17 +12,38 @@ export async function GET(request: NextRequest) {
 
   await dbConnect();
   try {
-    const users = await User.find({}).select('name firstName lastName email createdAt firebaseUid').sort({ createdAt: -1 }).lean();
+    const { searchParams } = new URL(request.url);
+    const tenantId =
+      searchParams.get('tenantId') ||
+      searchParams.get('brandId') ||
+      searchParams.get('brand_id');
+
+    // Build booking tenant filter
+    const bookingTenantFilter: Record<string, unknown> = {};
+    if (tenantId && tenantId !== 'all') {
+      bookingTenantFilter.tenantId = tenantId;
+    } else {
+      // "All brands" — exclude default (eeo) bookings
+      bookingTenantFilter.tenantId = { $nin: ['default', null, undefined] };
+    }
+
+    // Find user IDs that have at least one booking matching the tenant filter
+    const userIdsWithBookings = await Booking.distinct('user', bookingTenantFilter);
+
+    // Fetch only users who have bookings in the filtered tenants
+    const users = await User.find({ _id: { $in: userIdsWithBookings } })
+      .select('name firstName lastName email createdAt firebaseUid')
+      .sort({ createdAt: -1 })
+      .lean();
 
     const usersWithBookingCounts = await Promise.all(
       users.map(async (user) => {
-        // Query by both ObjectId and string ID to handle any data inconsistencies
-        // Also check by email as a fallback for guest bookings that might have mismatched user refs
         const bookingCount = await Booking.countDocuments({
           $or: [
             { user: user._id },
             { user: user._id.toString() },
-          ]
+          ],
+          ...bookingTenantFilter,
         });
         return {
           ...user,

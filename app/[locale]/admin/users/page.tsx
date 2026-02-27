@@ -5,6 +5,7 @@ import withAuth from '@/components/admin/withAuth';
 import { Users, Mail, Calendar, BookOpen, TrendingUp, Activity, Trash2, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
+import { useAdminTenant } from '@/contexts/AdminTenantContext';
 
 interface User {
   _id: string;
@@ -35,18 +36,24 @@ const UsersPage = () => {
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { token } = useAdminAuth();
+  const { selectedTenantId } = useAdminTenant();
 
   useEffect(() => {
     if (token) {
       fetchUsers();
     }
-  }, [token]);
+  }, [token, selectedTenantId]);
 
   const fetchUsers = async () => {
     if (!token) return;
     setIsLoading(true);
     try {
-      const response = await fetch('/api/admin/users', {
+      const params = new URLSearchParams();
+      if (selectedTenantId && selectedTenantId !== 'all') {
+        params.set('tenantId', selectedTenantId);
+      }
+      const queryString = params.toString();
+      const response = await fetch(`/api/admin/users${queryString ? `?${queryString}` : ''}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
