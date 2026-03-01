@@ -620,7 +620,7 @@ export default function Header({ startSolid = false }: { startSolid?: boolean; }
     const fetchNavData = async () => {
         try {
             const [destRes, catRes] = await Promise.all([
-                fetch('/api/admin/tours/destinations'),
+                fetch('/api/destinations'),
                 fetch('/api/categories'),
             ]);
             const destData = await destRes.json();

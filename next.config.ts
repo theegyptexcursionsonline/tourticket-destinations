@@ -7,16 +7,6 @@ const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
 const nextConfig = {
   reactStrictMode: true,
 
-  // TypeScript type checking during build (catches type errors before deploy)
-  typescript: {
-    ignoreBuildErrors: false,
-  },
-
-  // ESLint checking during build (catches lint errors before deploy)
-  eslint: {
-    ignoreDuringBuilds: false,
-  },
-
   // Server external packages configuration - externalize heavy packages to reduce bundle size
   serverExternalPackages: [
     'mongoose',

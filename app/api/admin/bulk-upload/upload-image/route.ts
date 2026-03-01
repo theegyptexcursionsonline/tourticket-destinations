@@ -106,9 +106,3 @@ export async function POST(req: NextRequest) {
     }
 }
 
-// Configure for file uploads
-export const config = {
-    api: {
-        bodyParser: false,
-    },
-};

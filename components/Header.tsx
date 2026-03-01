@@ -1430,7 +1430,7 @@ export default function Header({
       try {
         // API routes now automatically detect tenant from request headers/cookies
         const [destRes, catRes] = await Promise.all([
-          fetch('/api/admin/tours/destinations?featured=true'),
+          fetch('/api/destinations'),
           fetch('/api/categories?featured=true')
         ]);
         const destData = await destRes.json();

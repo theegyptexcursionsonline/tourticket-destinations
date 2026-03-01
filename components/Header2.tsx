@@ -862,7 +862,7 @@ export default function Header2({ startSolid = false }: { startSolid?: boolean }
       try {
         // NOTE: using ?featured=true - adjust server-side or remove param if not supported
         const [destRes, catRes] = await Promise.all([
-          fetch('/api/admin/tours/destinations?featured=true'),
+          fetch('/api/destinations'),
           fetch('/api/categories?featured=true')
         ]);
         const destData = await destRes.json();
