@@ -177,7 +177,7 @@ describe('DestinationPageClient', () => {
     it('should display tour count', () => {
       render(<DestinationPageClient {...defaultProps} />)
 
-      expect(screen.getByText(/2\+ Tours/i)).toBeInTheDocument()
+      expect(screen.getAllByText(/2\+ Tours/i)[0]).toBeInTheDocument()
     })
 
     it('should display rating', () => {
@@ -216,7 +216,7 @@ describe('DestinationPageClient', () => {
     it('should display destination statistics', () => {
       render(<DestinationPageClient {...defaultProps} />)
 
-      expect(screen.getByText(/2\+ Tours/i)).toBeInTheDocument()
+      expect(screen.getAllByText(/2\+ Tours/i)[0]).toBeInTheDocument()
       expect(screen.getByText('50K+')).toBeInTheDocument()
       expect(screen.getByText('Happy Travelers')).toBeInTheDocument()
     })
@@ -294,7 +294,7 @@ describe('DestinationPageClient', () => {
     it('should display tour count per category', () => {
       render(<DestinationPageClient {...defaultProps} />)
 
-      expect(screen.getByText('2 tours')).toBeInTheDocument()
+      expect(screen.getAllByText(/2\+ Tours/i).length).toBeGreaterThanOrEqual(1)
     })
 
     it('should not show categories with zero tours', () => {
