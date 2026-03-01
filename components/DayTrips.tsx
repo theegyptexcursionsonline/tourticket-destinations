@@ -195,14 +195,11 @@ export default function DayTripsSection({ initialTours }: DayTripsSectionProps =
       setFetchError(null);
 
       try {
-        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
         const headers: Record<string, string> = {
           'Accept': 'application/json',
-          'Content-Type': 'application/json',
         };
-        if (token) headers['Authorization'] = `Bearer ${token}`;
 
-        const url = '/api/admin/tours';
+        const url = '/api/tours/public';
         console.info('[DayTrips] fetching', url);
         const response = await fetch(url, { headers, signal: controller.signal });
 
@@ -322,7 +319,7 @@ export default function DayTripsSection({ initialTours }: DayTripsSectionProps =
     setIsLoading(true);
     setFetchError(null);
     try {
-      const response = await fetch('/api/admin/tours');
+      const response = await fetch('/api/tours/public');
       const text = await response.text();
       if (!response.ok) {
         let parsed = text;

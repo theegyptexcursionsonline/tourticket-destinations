@@ -16,18 +16,13 @@ export async function GET(request: NextRequest) {
       query.tenantId = tenantId;
     }
     
-    // Only return public tour data
-    const tours = await Tour.find(
-      query,
-      { 
-        destination: 1, 
-        title: 1, 
-        price: 1, 
-        duration: 1,
-        tenantId: 1,
-        _id: 1 
-      }
-    ).populate('destination', 'name slug');
+    // Return public tour data with fields needed by DayTrips component
+    const tours = await Tour.find(query)
+      .select('title slug image description discountPrice originalPrice price duration rating reviewCount bookings tags specialOffer tenantId isFeatured destination translations')
+      .populate('destination', 'name slug')
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean();
     
     const response = NextResponse.json({
       success: true,
