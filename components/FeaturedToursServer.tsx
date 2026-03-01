@@ -2,14 +2,15 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ArrowRight, Star, ShoppingCart, Clock, Users, ImageIcon } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Star, ShoppingCart, Clock, Users, ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 import { Tour } from '@/types';
 import { useSettings } from '@/hooks/useSettings';
 import { useTenant } from '@/contexts/TenantContext';
 import BookingSidebar from '@/components/BookingSidebar';
 import { Link } from '@/i18n/navigation';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { isRTL } from '@/i18n/config';
 
 interface FeaturedToursServerProps {
   tours: Tour[];
@@ -94,6 +95,9 @@ const TourCard = ({ tour, onAddToCartClick }: { tour: Tour; onAddToCartClick: (t
   const { formatPrice } = useSettings();
   const { getSiteName } = useTenant();
   const t = useTranslations();
+  const locale = useLocale();
+  const rtl = isRTL(locale);
+  const ViewArrow = rtl ? ArrowLeft : ArrowRight;
 
   return (
     <Link
@@ -213,7 +217,7 @@ const TourCard = ({ tour, onAddToCartClick }: { tour: Tour; onAddToCartClick: (t
 
           <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
             <span className="text-xs text-gray-500 hidden sm:inline">{t('tourCard.viewDetails')}</span>
-            <ArrowRight size={14} className="text-red-600 transition-transform duration-300 group-hover:translate-x-1" />
+            <ViewArrow size={14} className={`text-red-600 transition-transform duration-300 ${rtl ? 'group-hover:-translate-x-1' : 'group-hover:translate-x-1'}`} />
           </div>
         </div>
       </div>
@@ -226,6 +230,9 @@ export default function FeaturedToursServer({ tours }: FeaturedToursServerProps)
   const [selectedTour, setSelectedTour] = useState<Tour | null>(null);
   const { getSiteName } = useTenant();
   const t = useTranslations();
+  const locale = useLocale();
+  const rtl = isRTL(locale);
+  const SeeAllArrow = rtl ? ArrowLeft : ArrowRight;
 
   const handleAddToCartClick = (tour: Tour) => {
     setSelectedTour(tour);
@@ -281,7 +288,7 @@ export default function FeaturedToursServer({ tours }: FeaturedToursServerProps)
                 aria-label="See all tours"
               >
                 <span>{t('homepage.viewAllTours')}</span>
-                <ArrowRight size={18} className="transition-transform duration-300 group-hover:translate-x-1 flex-shrink-0" />
+                <SeeAllArrow size={18} className={`transition-transform duration-300 flex-shrink-0 ${rtl ? 'group-hover:-translate-x-1' : 'group-hover:translate-x-1'}`} />
               </Link>
             </div>
           </div>
@@ -296,7 +303,7 @@ export default function FeaturedToursServer({ tours }: FeaturedToursServerProps)
             <div className="absolute top-0 end-0 w-4 sm:w-8 md:w-12 lg:w-16 h-full bg-gradient-to-l from-gray-50 via-gray-50/20 sm:via-gray-50/30 md:via-gray-50/40 to-transparent z-10 pointer-events-none" />
 
             {/* Single row - scrolls left */}
-            <div className="flex gap-3 sm:gap-4 md:gap-6 animate-marquee group-hover:[animation-play-state:paused]" style={{ width: 'max-content' }}>
+            <div className="flex gap-3 sm:gap-4 md:gap-6 animate-marquee group-hover:[animation-play-state:paused]" style={{ width: 'max-content', animationName: rtl ? 'marquee-rtl' : 'marquee-ltr' }}>
               {duplicatedTours.map((tour, idx) => (
                 <div key={`${(tour as any)._id || tour.slug}-${idx}`} className="flex-shrink-0 px-1 sm:px-2">
                   <TourCard tour={tour} onAddToCartClick={handleAddToCartClick} />
@@ -325,13 +332,20 @@ export default function FeaturedToursServer({ tours }: FeaturedToursServerProps)
           overflow: hidden;
         }
 
-        @keyframes marquee {
+        @keyframes marquee-ltr {
           from { transform: translateX(0); }
           to { transform: translateX(-50%); }
         }
 
+        @keyframes marquee-rtl {
+          from { transform: translateX(-50%); }
+          to { transform: translateX(0); }
+        }
+
         .animate-marquee {
-          animation: marquee 40s linear infinite;
+          animation-duration: 40s;
+          animation-timing-function: linear;
+          animation-iteration-count: infinite;
           will-change: transform;
           backface-visibility: hidden;
           perspective: 1000px;

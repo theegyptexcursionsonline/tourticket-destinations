@@ -10,9 +10,13 @@ import { useCart } from '@/hooks/useCart';
 import { useSettings } from '@/hooks/useSettings';
 import Image from 'next/image';
 import { parseLocalDate } from '@/utils/date';
+import { useLocale } from 'next-intl';
+import { isRTL } from '@/i18n/config';
 
 const CartSidebar: FC = () => {
     const t = useTranslations();
+    const locale = useLocale();
+    const rtl = isRTL(locale);
     const router = useRouter();
     const { isCartOpen, closeCart, cart, totalItems, removeFromCart } = useCart();
     const { formatPrice } = useSettings();
@@ -65,7 +69,7 @@ const CartSidebar: FC = () => {
     const formatDate = (dateString: string) => {
         const date = parseLocalDate(dateString);
         if (!date) return t('booking.noDateSelected');
-        return date.toLocaleDateString('en-US', {
+        return date.toLocaleDateString(locale, {
             month: 'short',
             day: 'numeric',
             year: 'numeric'
@@ -76,7 +80,7 @@ const CartSidebar: FC = () => {
         <AnimatePresence>
             {isCartOpen && (
                 <motion.div
-                    className="fixed inset-0 z-50 flex justify-end"
+                    className={`fixed inset-0 z-50 flex ${rtl ? 'justify-start' : 'justify-end'}`}
                     initial="hidden"
                     animate="visible"
                     exit="hidden"
@@ -92,9 +96,10 @@ const CartSidebar: FC = () => {
                     />
                     <motion.div
                         className="relative bg-slate-50 h-full w-full max-w-md shadow-2xl flex flex-col"
-                        initial={{ x: '100%' }}
+                        dir={rtl ? 'rtl' : 'ltr'}
+                        initial={{ x: rtl ? '-100%' : '100%' }}
                         animate={{ x: 0 }}
-                        exit={{ x: '100%' }}
+                        exit={{ x: rtl ? '-100%' : '100%' }}
                         transition={{ type: 'spring', stiffness: 350, damping: 35 }}
                     >
                         {/* Header */}

@@ -4,10 +4,11 @@
 import React from 'react';
 import { Link } from '@/i18n/navigation';
 import Image from 'next/image';
-import { ArrowRight, Star, Sparkles, TrendingUp } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { ArrowLeft, ArrowRight, Star, Sparkles, TrendingUp } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Autoplay, EffectCoverflow } from 'swiper/modules';
+import { isRTL } from '@/i18n/config';
 
 import 'swiper/css';
 import 'swiper/css/navigation';
@@ -47,10 +48,12 @@ const DEFAULT_CATEGORY_IMAGE = '/placeholder-category.jpg';
 // --- COMPONENTS ---
 const InterestCard = ({
   interest,
-  categoryPage
+  categoryPage,
+  rtl
 }: {
   interest: Interest;
   categoryPage?: CategoryPage;
+  rtl: boolean;
 }) => {
   const linkUrl = categoryPage?.isPublished
     ? `/category/${categoryPage.slug}`
@@ -60,6 +63,8 @@ const InterestCard = ({
 
   // Only use actual database images - no mock images
   const imageUrl = categoryPage?.heroImage || interest.image || DEFAULT_CATEGORY_IMAGE;
+
+  const Arrow = rtl ? ArrowLeft : ArrowRight;
 
   return (
     <Link
@@ -87,7 +92,7 @@ const InterestCard = ({
 
       {/* Featured Badge */}
       {interest.featured && (
-        <div className="absolute top-4 end-4 z-20 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-lg flex items-center gap-1">
+        <div className={`absolute top-4 ${rtl ? 'right-4' : 'left-4'} z-20 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-lg flex items-center gap-1`}>
           <Sparkles className="w-3 h-3" />
           Featured
         </div>
@@ -95,7 +100,7 @@ const InterestCard = ({
 
       {/* Trending Badge */}
       {interest.products > 50 && (
-        <div className="absolute top-4 start-4 z-20 bg-gradient-to-r from-green-400 to-emerald-500 text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-lg flex items-center gap-1">
+        <div className={`absolute top-4 ${rtl ? 'left-4' : 'right-4'} z-20 bg-gradient-to-r from-green-400 to-emerald-500 text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-lg flex items-center gap-1`}>
           <TrendingUp className="w-3 h-3" />
           Trending
         </div>
@@ -111,7 +116,7 @@ const InterestCard = ({
             {interest.products} experiences
           </p>
           <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center group-hover:bg-white/30 transition-all">
-            <ArrowRight className="w-5 h-5 text-white transform group-hover:translate-x-1 transition-transform" />
+            <Arrow className={`w-5 h-5 text-white transition-transform ${rtl ? 'group-hover:-translate-x-1' : 'group-hover:translate-x-1'}`} />
           </div>
         </div>
       </div>
@@ -139,6 +144,9 @@ const EmptyState = () => {
 // --- MAIN COMPONENT ---
 export default function PopularInterestServer({ interests, categoryPages }: PopularInterestServerProps) {
   const t = useTranslations();
+  const locale = useLocale();
+  const rtl = isRTL(locale);
+  const CtaArrow = rtl ? ArrowLeft : ArrowRight;
   const getCategoryPage = (interest: Interest): CategoryPage | undefined => {
     return categoryPages.find(page => {
       if (!page.isPublished || page.pageType !== 'category') return false;
@@ -201,13 +209,14 @@ export default function PopularInterestServer({ interests, categoryPages }: Popu
             1024: { slidesPerView: 2.5, spaceBetween: 28 },
             1280: { slidesPerView: 3, spaceBetween: 32 },
           }}
-          className="!pb-12"
+          dir={rtl ? 'rtl' : 'ltr'}
+          className="popular-interests-swiper !pb-12"
         >
           {interests.map((interest) => {
             const categoryPage = getCategoryPage(interest);
             return (
               <SwiperSlide key={interest._id}>
-                <InterestCard interest={interest} categoryPage={categoryPage} />
+                <InterestCard interest={interest} categoryPage={categoryPage} rtl={rtl} />
               </SwiperSlide>
             );
           })}
@@ -220,7 +229,7 @@ export default function PopularInterestServer({ interests, categoryPages }: Popu
             className="inline-flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-4 bg-white text-slate-900 rounded-xl text-sm sm:text-base font-bold hover:bg-slate-100 transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-105"
           >
             {t('destinations.exploreAll')}
-            <ArrowRight className="w-4 sm:w-5 h-4 sm:h-5" />
+            <CtaArrow className="w-4 sm:w-5 h-4 sm:h-5" />
           </Link>
         </div>
       </div>
@@ -254,6 +263,11 @@ export default function PopularInterestServer({ interests, categoryPages }: Popu
         .swiper-button-next::after,
         .swiper-button-prev::after {
           font-size: 20px;
+        }
+
+        [dir="rtl"] .popular-interests-swiper .swiper-button-next,
+        [dir="rtl"] .popular-interests-swiper .swiper-button-prev {
+          transform: none !important;
         }
       `}</style>
     </section>

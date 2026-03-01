@@ -3,17 +3,18 @@
 
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useTenant } from '@/contexts/TenantContext';
-import { Search, MapPin, Clock, Compass, Tag, X, Sparkles, ChevronUp, Bot, Loader2, ArrowLeft, ChevronLeft, ChevronRight, DollarSign, Star } from "lucide-react";
+import { Search, MapPin, Clock, Compass, Tag, X, Sparkles, ChevronUp, Bot, Loader2, ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, DollarSign, Star } from "lucide-react";
 import Image from "next/image";
 import { liteClient as algoliasearch } from 'algoliasearch/lite';
 import { InstantSearch, Index, useSearchBox, useHits, Configure } from 'react-instantsearch';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
+import { isRTL } from '@/i18n/config';
 import 'instantsearch.css/themes/satellite.css';
 
 // --- Types and Constants ---
@@ -784,6 +785,9 @@ const DestinationSlider = ({ destinations }: { destinations: any[] }) => {
 // --- Reusable Components ---
 const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
   const { getSiteName } = useTenant();
+  const locale = useLocale();
+  const rtl = isRTL(locale);
+  const BackToSearchIcon = rtl ? ArrowRight : ArrowLeft;
   const t = useTranslations();
   const [query, setQuery] = useState(''); // Unified input for both search and chat
   const [isExpanded, setIsExpanded] = useState(false);
@@ -1275,14 +1279,16 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
                   }}
                   onBlur={() => setIsFocused(false)}
                   placeholder={chatMode ? t('search.askAiAnything') : suggestion}
-                  className="w-full ps-16 md:ps-[70px] pe-14 md:pe-20 py-4 md:py-5 text-sm md:text-base text-gray-900 placeholder:text-gray-400/70 placeholder:font-normal font-medium bg-transparent outline-none rounded-full relative z-10 transition-all duration-300"
+                  className={`w-full py-4 md:py-5 text-sm md:text-base text-gray-900 placeholder:text-gray-400/70 placeholder:font-normal font-medium bg-transparent outline-none rounded-full relative z-10 transition-all duration-300 ${
+                    rtl ? 'pe-16 md:pe-[70px] ps-14 md:ps-20 text-right' : 'ps-16 md:ps-[70px] pe-14 md:pe-20 text-left'
+                  }`}
                   style={{ cursor: 'text' }}
                   disabled={chatMode && isGenerating}
                   autoComplete="off"
                 />
 
               {/* Left Icon with Enhanced Animation */}
-              <div className="absolute start-4 md:start-5 top-1/2 transform -translate-y-1/2 z-10">
+              <div className={`absolute top-1/2 transform -translate-y-1/2 z-10 ${rtl ? 'end-4 md:end-5' : 'start-4 md:start-5'}`}>
                 <motion.div
                   className="relative"
                   animate={!isExpanded ? { 
@@ -1314,7 +1320,7 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
               </div>
 
               {/* Right Side Elements with Enhanced Animation */}
-              <div className="absolute end-4 md:end-5 top-1/2 transform -translate-y-1/2 flex items-center gap-2 md:gap-2.5 z-10">
+              <div className={`absolute top-1/2 transform -translate-y-1/2 flex items-center gap-2 md:gap-2.5 z-10 ${rtl ? 'start-4 md:start-5' : 'end-4 md:end-5'}`}>
                 {query ? (
                   <motion.button
                     type="button"
@@ -1327,7 +1333,7 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
                       setIsExpanded(false);
                     }}
                     className="p-2 hover:bg-gray-100 rounded-xl transition-all duration-200 hover:scale-110 active:scale-95 group"
-                    aria-label="Clear search"
+                    aria-label={t('search.clearSearch')}
                   >
                     <X className="w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-colors" strokeWidth={2.5} />
                   </motion.button>
@@ -1360,7 +1366,7 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
                     whileHover={{ scale: 1.2, rotate: 15 }}
                     whileTap={{ scale: 0.9 }}
                     className="w-8 h-8 md:w-9 md:h-9 rounded-xl bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 flex items-center justify-center shadow-lg shadow-purple-400/40 cursor-pointer hover:shadow-2xl hover:from-purple-600 hover:via-pink-600 hover:to-orange-600 transition-all duration-300"
-                    aria-label="Open AI Assistant"
+                    aria-label={t('search.openAiAssistant')}
                   >
                     <Sparkles className="w-4 h-4 md:w-5 md:h-5 text-white" strokeWidth={2.5} />
                   </motion.button>
@@ -1447,9 +1453,9 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
                         initial={{ x: -10, opacity: 0 }}
                         animate={{ x: 0, opacity: 1 }}
                         onClick={handleBackToSearch}
-                        className="me-1 p-2 hover:bg-gray-100 rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 group"
+                        className={`${rtl ? 'ms-1' : 'me-1'} p-2 hover:bg-gray-100 rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 group`}
                       >
-                        <ArrowLeft className="w-4 h-4 text-gray-600 group-hover:text-gray-900 transition-colors" strokeWidth={2.5} />
+                        <BackToSearchIcon className="w-4 h-4 text-gray-600 group-hover:text-gray-900 transition-colors" strokeWidth={2.5} />
                       </motion.button>
                     )}
                     {chatMode ? (
@@ -1867,6 +1873,8 @@ interface HeroSectionProps {
 
 export default function HeroSection({ initialSettings }: HeroSectionProps = {}) {
   const { settings } = useHeroSettings(initialSettings);
+  const locale = useLocale();
+  const rtl = isRTL(locale);
 
   // Create slides from settings
   const slides = settings.backgroundImages.map(img => ({
@@ -1881,7 +1889,7 @@ export default function HeroSection({ initialSettings }: HeroSectionProps = {}) 
   // NOTE: no early return with spinner — UI renders immediately
   return (
     <>
-      <section className="relative h-screen min-h-[600px] max-h-[900px] w-full flex items-center justify-center text-white font-sans" style={{ overflow: 'visible' }}>
+      <section className="relative h-screen min-h-[600px] max-h-[900px] w-full flex items-center justify-center text-white font-sans" style={{ overflow: 'visible' }} dir={rtl ? 'rtl' : 'ltr'}>
         <BackgroundSlideshow
           slides={slides}
           delay={settings.animationSettings.slideshowSpeed * 1000}

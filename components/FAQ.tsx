@@ -3,6 +3,9 @@
 import { useState } from 'react';
 import { Plus, Minus } from 'lucide-react';
 import { useTenant } from '@/contexts/TenantContext';
+import { useLocale, useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
+import { isRTL } from '@/i18n/config';
 import type { IFAQContent, IFAQItem } from '@/lib/models/Tenant';
 
 // Props interface for server-side content injection
@@ -100,14 +103,101 @@ const FALLBACK_FAQS: Record<string, FAQItem[]> = {
     ]
 };
 
-const FaqItem = ({ item }: { item: FAQItem }) => {
+const FALLBACK_FAQS_AR: Record<string, FAQItem[]> = {
+    'hurghada-speedboat': [
+        {
+            question: 'ماذا يجب أن أحضر معي في رحلة القارب السريع؟',
+            answer: 'ننصح بإحضار واقي الشمس، النظارات الشمسية، قبعة، ملابس سباحة، منشفة، وحقيبة مقاومة للماء للهاتف. معدات السنوركل متوفرة في جميع الرحلات.'
+        },
+        {
+            question: 'هل الرحلة مناسبة لغير السباحين؟',
+            answer: 'نعم. نوفر سترات نجاة وفريقنا مدرّب لمساعدة غير السباحين. كما توجد مناطق هادئة وضحلة مناسبة للمبتدئين ويمكنك الاستمتاع بالشاطئ دون النزول للماء.'
+        },
+        {
+            question: 'هل سنرى الدلافين بالتأكيد في رحلة Dolphin House؟',
+            answer: 'احتمال رؤية الدلافين مرتفع جدًا، لكن لا يمكن ضمان ذلك بنسبة 100% لأنها كائنات برية. في حال عدم الرؤية نوفر تعويضًا مناسبًا بحسب سياسة المشغل.'
+        },
+        {
+            question: 'متى يبدأ اصطحاب الفنادق؟',
+            answer: 'تختلف مواعيد الاصطحاب حسب موقع الفندق، وغالبًا بين 7:30 و8:30 صباحًا للرحلات اليومية. ستصلك التفاصيل الدقيقة عبر البريد أو واتساب قبل الرحلة.'
+        },
+        {
+            question: 'هل يمكن للأطفال الانضمام لرحلات القارب السريع؟',
+            answer: 'نعم، معظم الرحلات مناسبة للأطفال مع توفر سترات نجاة ومعدات مناسبة للأعمار الصغيرة. بعض الأنشطة المائية قد تتطلب عمرًا أدنى.'
+        },
+        {
+            question: 'ماذا يشمل الغداء؟',
+            answer: 'تشمل الرحلات عادة غداءً طازجًا مع خيارات متنوعة ومشروبات خفيفة ومياه خلال اليوم. تتوفر خيارات نباتية عند الطلب.'
+        },
+        {
+            question: 'هل يمكن حجز قارب خاص لمجموعتي؟',
+            answer: 'نعم، نوفر حجوزات خاصة للمجموعات مع إمكانية تخصيص الوجهات والتوقيت والأنشطة حسب رغبتكم.'
+        },
+        {
+            question: 'ماذا يحدث في حال سوء الأحوال الجوية؟',
+            answer: 'السلامة أولويتنا. إذا كانت الظروف غير مناسبة، سنساعدك في إعادة الجدولة أو استرداد المبلغ وفق سياسة الحجز.'
+        },
+        {
+            question: 'كيف يمكنني الإلغاء أو إعادة الجدولة؟',
+            answer: 'يتوفر الإلغاء المجاني غالبًا حتى 24 ساعة قبل الرحلة. يمكن الإلغاء أو التعديل عبر واتساب أو البريد أو رابط تأكيد الحجز.'
+        },
+        {
+            question: 'هل معدات السنوركل مشمولة؟',
+            answer: 'نعم، معدات السنوركل (ماسك، أنبوب، زعانف) مشمولة في جميع الرحلات ويمكنك إحضار معداتك الخاصة إذا رغبت.'
+        }
+    ],
+    'default': [
+        {
+            question: 'هل يمكنني تعديل أو إلغاء التذاكر؟',
+            answer: 'نعم، في أغلب الحالات يمكنك التعديل أو الإلغاء حتى 24 ساعة قبل الموعد. راجع شروط المنتج المحدد لأن بعض الفعاليات لها سياسات مختلفة.'
+        },
+        {
+            question: 'كم مدة صلاحية التذاكر المفتوحة؟',
+            answer: 'عادةً تكون التذاكر المفتوحة صالحة لمدة تصل إلى سنة من تاريخ الشراء، ويجب التأكد من التفاصيل في صفحة المنتج.'
+        },
+        {
+            question: 'ما اللغات المتوفرة للمرشدين؟',
+            answer: 'غالبًا تتوفر الجولات بالإنجليزية واللغة المحلية، كما قد تتوفر أدلة صوتية بلغات إضافية حسب الجولة.'
+        },
+        {
+            question: 'هل يتم تأكيد الحجز فورًا؟',
+            answer: 'نعم، معظم الحجوزات تؤكد فور نجاح الدفع، وستصلك رسالة تأكيد تتضمن تفاصيل الحجز مباشرة.'
+        },
+        {
+            question: 'هل يجب طباعة التذكرة؟',
+            answer: 'لا، التذاكر إلكترونية ويمكن عرضها من الهاتف عند نقطة الدخول أو الالتقاء.'
+        },
+        {
+            question: 'ماذا لو أُلغي النشاط من طرف المشغل؟',
+            answer: 'في الحالات النادرة سنقوم بإبلاغك فورًا وتوفير استرداد كامل أو مساعدتك في اختيار بديل مناسب.'
+        },
+        {
+            question: 'هل هناك رسوم مخفية؟',
+            answer: 'لا، السعر الظاهر هو النهائي ما لم يُذكر خلاف ذلك بوضوح في صفحة المنتج.'
+        },
+        {
+            question: 'هل يمكن الدفع بعملة مختلفة؟',
+            answer: 'نعم، يدعم الموقع عدة عملات ويمكنك اختيار العملة المفضلة قبل الدفع.'
+        },
+        {
+            question: 'هل الجولات مناسبة لذوي الاحتياجات الخاصة؟',
+            answer: 'تختلف إمكانية الوصول حسب الجولة. راجع تفاصيل المنتج أو تواصل مع الدعم قبل الحجز.'
+        },
+        {
+            question: 'ماذا يجب أن أحضر معي في الجولة؟',
+            answer: 'ننصح بأحذية مريحة، زجاجة ماء، وملابس مناسبة للطقس. وستجد التفاصيل الإضافية في صفحة كل جولة.'
+        }
+    ]
+};
+
+const FaqItem = ({ item, rtl }: { item: FAQItem; rtl: boolean }) => {
     const [isOpen, setIsOpen] = useState(false);
 
     return (
         <div className="border-b border-slate-200 py-4 sm:py-5 md:py-6 group">
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="w-full flex justify-between items-start gap-3 sm:gap-4 text-start transition-colors"
+                className={`w-full flex justify-between items-start gap-3 sm:gap-4 transition-colors ${rtl ? 'text-right' : 'text-start'}`}
                 aria-expanded={isOpen}
             >
                 <h3 className="text-base sm:text-lg font-semibold text-slate-800 group-hover:text-[var(--primary-color)] transition-colors flex-1">{item.question}</h3>
@@ -133,18 +223,22 @@ const FaqItem = ({ item }: { item: FAQItem }) => {
 };
 
 export default function FAQ({ content: dbContent }: FAQProps) {
+    const t = useTranslations('destinations');
+    const locale = useLocale();
+    const rtl = isRTL(locale);
     const { tenant } = useTenant();
     const tenantId = tenant?.tenantId || 'default';
 
     // Use DB content if available, otherwise fall back to hardcoded content
-    const fallbackFaqs = FALLBACK_FAQS[tenantId] || FALLBACK_FAQS['default'];
+    const localeFallback = rtl ? FALLBACK_FAQS_AR : FALLBACK_FAQS;
+    const fallbackFaqs = localeFallback[tenantId] || localeFallback['default'];
     const faqData = dbContent?.faqs?.length ? dbContent.faqs : fallbackFaqs;
-    const title = dbContent?.title || 'FREQUENTLY ASKED QUESTIONS';
-    const ctaText = dbContent?.ctaText || 'VIEW ALL';
+    const title = dbContent?.title || t('faqTitle');
+    const ctaText = dbContent?.ctaText || t('viewAllFaqs');
     const ctaLink = dbContent?.ctaLink || '/faqs';
 
     return (
-        <section className="bg-white py-12 sm:py-16 md:py-20 font-sans">
+        <section className="bg-white py-12 sm:py-16 md:py-20 font-sans" dir={rtl ? 'rtl' : 'ltr'}>
             <div className="container mx-auto px-4 max-w-4xl">
                 <div className="text-center mb-8 sm:mb-10">
                     <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-slate-900 tracking-tight px-4">
@@ -153,11 +247,11 @@ export default function FAQ({ content: dbContent }: FAQProps) {
                 </div>
                 <div className="space-y-3 sm:space-y-4">
                     {faqData.map((item, index) => (
-                        <FaqItem key={index} item={item} />
+                        <FaqItem key={index} item={item} rtl={rtl} />
                     ))}
                 </div>
                 <div className="text-center mt-8 sm:mt-10 md:mt-12">
-                    <a
+                    <Link
                       href={ctaLink}
                       className="inline-flex justify-center items-center h-12 sm:h-14 px-6 sm:px-8 text-sm sm:text-base font-bold border-2 transition-all duration-300 ease-in-out rounded-full hover:text-white"
                       style={{
@@ -167,10 +261,10 @@ export default function FAQ({ content: dbContent }: FAQProps) {
                       onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--primary-color)'; e.currentTarget.style.color = 'white'; }}
                       onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = ''; e.currentTarget.style.color = 'var(--primary-color)'; }}
                       role="button"
-                      aria-label="View all FAQs"
+                      aria-label={t('viewAllFaqs')}
                     >
                         {ctaText}
-                    </a>
+                    </Link>
                 </div>
             </div>
         </section>

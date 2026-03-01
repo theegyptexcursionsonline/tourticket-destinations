@@ -35,6 +35,8 @@ export default function IntercomClient() {
   useEffect(() => {
     let mounted = true;
     let messengerInstance: any = null;
+    const isRtl = typeof document !== 'undefined' && document.documentElement.dir === 'rtl';
+    const intercomAlignment = isRtl ? 'left' : 'right';
 
     // Initialize Intercom using the official SDK
     try {
@@ -44,6 +46,7 @@ export default function IntercomClient() {
       messengerInstance = Intercom({
         app_id: INTERCOM_APP_ID,
         hide_default_launcher: true, // Hide the default chat bubble
+        alignment: intercomAlignment,
       });
 
       console.log('✅ IntercomClient: Intercom initialized, messengerInstance:', messengerInstance);
@@ -63,7 +66,8 @@ export default function IntercomClient() {
           try {
             win.Intercom("boot", {
               app_id: INTERCOM_APP_ID,
-              hide_default_launcher: true
+              hide_default_launcher: true,
+              alignment: intercomAlignment,
             });
             console.log('✅ IntercomClient: Intercom booted');
           } catch (_bootErr) {
@@ -129,7 +133,8 @@ export default function IntercomClient() {
                 try {
                   win.Intercom("boot", {
                     app_id: INTERCOM_APP_ID,
-                    hide_default_launcher: true
+                    hide_default_launcher: true,
+                    alignment: intercomAlignment,
                   });
                   console.log('✅ IntercomClient: Intercom booted before show');
                 } catch (_bootErr) {

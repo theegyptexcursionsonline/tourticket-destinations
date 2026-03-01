@@ -20,6 +20,7 @@ import {
   Bot,
   Loader2,
   ArrowLeft,
+  ArrowRight,
   Send,
   MapPin,
   Compass,
@@ -40,6 +41,7 @@ import AuthModal from '@/components/AuthModal';
 import { Destination, Category } from '@/types';
 import { useWishlist } from '@/contexts/WishlistContext';
 import { useTranslations } from 'next-intl';
+import { useLocale } from 'next-intl';
 import { liteClient as algoliasearch } from 'algoliasearch/lite';
 import { InstantSearch, Index, useSearchBox, useHits, Configure } from 'react-instantsearch';
 import { useChat } from '@ai-sdk/react';
@@ -48,6 +50,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import 'instantsearch.css/themes/satellite.css';
+import { isRTL } from '@/i18n/config';
 
 // =================================================================
 // --- ALGOLIA CONFIGURATION ---
@@ -529,6 +532,9 @@ const TourSlider = ({ tours }: { tours: any[] }) => {
 // Mobile Inline Search Component with AI
 const MobileInlineSearch: FC<{ isOpen: boolean; onClose: () => void }> = React.memo(({ isOpen, onClose }) => {
   const { getSiteName: _getSiteName } = useTenant();
+  const locale = useLocale();
+  const rtl = isRTL(locale);
+  const BackToSearchIcon = rtl ? ArrowRight : ArrowLeft;
   const [inputValue, setInputValue] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [chatMode, setChatMode] = useState(false);
@@ -719,7 +725,7 @@ const MobileInlineSearch: FC<{ isOpen: boolean; onClose: () => void }> = React.m
                       }
                     }}
                     placeholder={chatMode ? "Ask AI about tours..." : "Search tours, destinations..."}
-                    className="w-full ps-14 pe-32 py-4 text-base text-gray-900 placeholder:text-gray-400/70 placeholder:font-normal font-medium bg-transparent outline-none rounded-full"
+                    className={`w-full ps-14 pe-32 py-4 text-base text-gray-900 placeholder:text-gray-400/70 placeholder:font-normal font-medium bg-transparent outline-none rounded-full ${rtl ? 'text-right' : 'text-left'}`}
                     autoFocus
                     disabled={chatMode && isGenerating}
                   />
@@ -808,7 +814,7 @@ const MobileInlineSearch: FC<{ isOpen: boolean; onClose: () => void }> = React.m
                           onClick={handleBackToSearch}
                           className="me-1 p-1.5 hover:bg-white/80 rounded-lg transition-colors"
                         >
-                          <ArrowLeft className="w-4 h-4 text-gray-600" />
+                          <BackToSearchIcon className="w-4 h-4 text-gray-600" />
                         </button>
                       )}
                       {chatMode ? (

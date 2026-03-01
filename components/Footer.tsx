@@ -7,7 +7,8 @@ import { Link } from '@/i18n/navigation';
 import { Destination } from '@/types';
 import toast, { Toaster } from 'react-hot-toast';
 import { useTenant } from '@/contexts/TenantContext';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { isRTL } from '@/i18n/config';
 
 // Import the single, consolidated switcher component
 import CurrencyLanguageSwitcher from '@/components/shared/CurrencyLanguageSwitcher';
@@ -81,6 +82,8 @@ export default function Footer() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const t = useTranslations();
+  const locale = useLocale();
+  const rtl = isRTL(locale);
 
   // Get tenant branding and contact info
   const { tenant, getLogo, getSiteName, isFeatureEnabled } = useTenant();
@@ -452,12 +455,12 @@ export default function Footer() {
                   <span className="h-10 w-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--primary-light)', color: 'var(--primary-color)' }}>
                     <Phone size={18} />
                   </span>
-                  <div className="flex flex-col">
+                  <div className={`flex flex-col ${rtl ? 'text-right' : 'text-left'}`}>
                     <a
                       href={`tel:${contactPhone.replace(/\s/g, '')}`}
                       className="font-semibold text-slate-900 transition-colors hover:text-[var(--primary-color)]"
                     >
-                      {contactPhone}
+                      <bdi dir="ltr">{contactPhone}</bdi>
                     </a>
                     <span className="text-xs text-slate-500">{t('footer.support247')}</span>
                   </div>
@@ -557,13 +560,23 @@ export default function Footer() {
         </div>
 
         {/* Legal Footer */}
-        <div className="border-t pt-4 text-xs text-center border-slate-300 text-slate-500">
+        <div className="border-t pt-4 text-xs text-center border-slate-300 text-slate-500" dir={rtl ? 'rtl' : 'ltr'}>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 mb-3">
             <Link className="underline transition-colors hover:text-slate-700" href="/privacy">{t('footer.privacyPolicy')}</Link>
             <span className="hidden sm:inline">·</span>
             <Link className="underline transition-colors hover:text-slate-700" href="/terms">{t('footer.termsAndConditions')}</Link>
           </div>
-          <p>© {new Date().getFullYear()} {getSiteName()}. {t('footer.allRightsReserved')}.</p>
+          <p>
+            {rtl ? (
+              <>
+                {t('footer.allRightsReserved')}. <bdi dir="ltr">{getSiteName()}</bdi> © {new Date().getFullYear()}
+              </>
+            ) : (
+              <>
+                © {new Date().getFullYear()} <bdi dir="ltr">{getSiteName()}</bdi>. {t('footer.allRightsReserved')}.
+              </>
+            )}
+          </p>
         </div>
       </div>
     </footer>

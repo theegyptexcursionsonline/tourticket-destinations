@@ -1,9 +1,11 @@
 'use client';
 
-import { ArrowRight, Award, DollarSign, Smartphone, CalendarCheck, Anchor, Shield, Users, Clock } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Award, DollarSign, Smartphone, CalendarCheck, Anchor, Shield, Users, Clock } from 'lucide-react';
 import Image from 'next/image';
 import { useTenant } from '@/contexts/TenantContext';
 import type { IAboutUsContent } from '@/lib/models/Tenant';
+import { useLocale } from 'next-intl';
+import { isRTL } from '@/i18n/config';
 
 // Props interface for server-side content injection
 export interface AboutUsProps {
@@ -66,6 +68,9 @@ const ICON_MAP: Record<string, React.ElementType> = {
 
 export default function WhyBookWithUs({ content: dbContent }: AboutUsProps) {
   const { tenant } = useTenant();
+  const locale = useLocale();
+  const rtl = isRTL(locale);
+  const CtaArrow = rtl ? ArrowLeft : ArrowRight;
   const tenantId = tenant?.tenantId || 'default';
 
   // Use DB content if available, otherwise fall back to hardcoded content
@@ -115,7 +120,7 @@ export default function WhyBookWithUs({ content: dbContent }: AboutUsProps) {
               style={{ background: 'var(--gradient-primary)' }}
             >
               <span>{content.ctaText}</span>
-              <ArrowRight className="w-4 sm:w-5 h-4 sm:h-5 transition-transform duration-300 group-hover:translate-x-1 flex-shrink-0" />
+              <CtaArrow className={`w-4 sm:w-5 h-4 sm:h-5 transition-transform duration-300 flex-shrink-0 ${rtl ? 'group-hover:-translate-x-1' : 'group-hover:translate-x-1'}`} />
             </a>
           </div>
 

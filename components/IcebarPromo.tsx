@@ -1,9 +1,11 @@
 'use client';
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 import { useTenant } from '@/contexts/TenantContext';
 import type { IPromoContent } from '@/lib/models/Tenant';
+import { useLocale } from 'next-intl';
+import { isRTL } from '@/i18n/config';
 
 /**
  * EgyptPromo - Ultra Premium (parallax removed)
@@ -104,6 +106,9 @@ const FALLBACK_PROMO: Record<string, {
 
 export default function EgyptPromo({ content: dbContent }: IcebarPromoProps) {
   const { tenant } = useTenant();
+  const locale = useLocale();
+  const rtl = isRTL(locale);
+  const CtaArrow = rtl ? ArrowLeft : ArrowRight;
   const tenantId = tenant?.tenantId || 'default';
 
   // Use DB content if available, otherwise fall back to hardcoded content
@@ -199,7 +204,7 @@ export default function EgyptPromo({ content: dbContent }: IcebarPromoProps) {
                 aria-label={primaryText}
               >
                 <span>{primaryText}</span>
-                <ArrowRight size={18} className="flex-shrink-0" />
+                <CtaArrow size={18} className="flex-shrink-0" />
               </Link>
             </div>
           </div>

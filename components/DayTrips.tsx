@@ -10,7 +10,8 @@ import { useWishlist } from '@/contexts/WishlistContext';
 import { Link } from '@/i18n/navigation';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { isRTL } from '@/i18n/config';
 
 // --- Safe Image Component ---
 const SafeImage = ({ 
@@ -175,6 +176,10 @@ export default function DayTripsSection({ initialTours }: DayTripsSectionProps =
   const [selectedTour, setSelectedTour] = useState<Tour | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const t = useTranslations();
+  const locale = useLocale();
+  const rtl = isRTL(locale);
+  const PrevArrowIcon = rtl ? ChevronRight : ChevronLeft;
+  const NextArrowIcon = rtl ? ChevronLeft : ChevronRight;
 
   useEffect(() => {
     // Skip fetching if initialTours are provided (SSR case)
@@ -307,8 +312,9 @@ export default function DayTripsSection({ initialTours }: DayTripsSectionProps =
 
   const scroll = (direction: 'left' | 'right') => {
     if (scrollContainer.current) {
-      const scrollAmount = direction === 'left' ? -294 : 294;
-      scrollContainer.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+      const baseScrollAmount = direction === 'left' ? -294 : 294;
+      const rtlAwareScroll = rtl ? -baseScrollAmount : baseScrollAmount;
+      scrollContainer.current.scrollBy({ left: rtlAwareScroll, behavior: 'smooth' });
     }
   };
 
@@ -448,14 +454,14 @@ export default function DayTripsSection({ initialTours }: DayTripsSectionProps =
                 className="bg-white p-3 rounded-full shadow-md hover:bg-slate-100 transition-colors border border-slate-200 text-slate-600 hover:shadow-lg"
                 aria-label="Scroll left"
               >
-                <ChevronLeft size={20} />
+                <PrevArrowIcon size={20} />
               </button>
               <button
                 onClick={() => scroll('right')}
                 className="bg-white p-3 rounded-full shadow-md hover:bg-slate-100 transition-colors border border-slate-200 text-slate-600 hover:shadow-lg"
                 aria-label="Scroll right"
               >
-                <ChevronRight size={20} />
+                <NextArrowIcon size={20} />
               </button>
             </div>
           </div>
