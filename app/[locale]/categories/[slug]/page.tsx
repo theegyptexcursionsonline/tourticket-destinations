@@ -11,7 +11,7 @@ import { localizeEntityFields } from '@/lib/i18n/contentLocalization';
 import { categoryTranslationFields } from '@/lib/i18n/translationFields';
 
 // Force dynamic rendering to fix ISR caching issues on Netlify
-export const dynamic = 'force-dynamic';
+export const revalidate = 60;
 export const dynamicParams = true;
 
 // Skip static generation at build time to avoid MongoDB connection issues on Netlify

@@ -38,8 +38,8 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-// ISR: 5 minute cache for fast initial loads with background revalidation
-export const dynamic = 'force-dynamic';
+// ISR: revalidate every 60s so pages are served from CDN cache on most requests
+export const revalidate = 60;
 
 export default function HomePage() {
   if (COMING_SOON_MODE) {

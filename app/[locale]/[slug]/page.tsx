@@ -177,6 +177,6 @@ export default async function TourDetailPage({ params }: PageProps) {
   }
 }
 
-// Force dynamic rendering to fix ISR caching issues on Netlify
-export const dynamic = 'force-dynamic';
+// ISR: cache tour pages for 60s, revalidate in background
+export const revalidate = 60;
 export const dynamicParams = true;

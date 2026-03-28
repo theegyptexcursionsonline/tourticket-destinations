@@ -9,7 +9,7 @@ import { IBlog } from '@/lib/models/Blog';
 import { getTenantFromRequest, getTenantPublicConfig } from '@/lib/tenant';
 
 // Enable ISR with 60 second revalidation for instant page loads
-export const dynamic = 'force-dynamic';
+export const revalidate = 60;
 
 // Generate dynamic metadata based on tenant
 export async function generateMetadata(): Promise<Metadata> {
