@@ -1,258 +1,165 @@
 // lib/dbConnect.ts
- 
- 
+// Simplified serverless-optimized MongoDB connection for Netlify
 
 import mongoose from 'mongoose';
 
 /**
- * Multi-tenant database connection support
- * 
- * All tenants share the default MONGODB_URI database.
- * A tenant can optionally use its own database via MONGODB_URI_{TENANT_ID}.
- * 
- * Environment Variables:
- * - MONGODB_URI: Shared database for all tenants
- * - MONGODB_URI_{TENANT_ID}: Optional per-tenant override (e.g. MONGODB_URI_HURGHADA_SPEEDBOAT)
- * 
- * Usage:
- * - dbConnect()              - connects to shared database
- * - dbConnect('some-tenant') - shared DB (or tenant-specific DB if env var exists)
+ * Single shared database for all tenants.
+ * Tenant-specific DB override via MONGODB_URI_{TENANT_ID} env var.
  */
 
-// Separate connection cache per database URI
-interface ConnectionCache {
-  conn: typeof mongoose | null;
-  promise: Promise<typeof mongoose> | null;
+// Use global to persist connection across hot reloads (dev) and within
+// the same serverless function invocation
+const globalWithMongoose = global as typeof globalThis & {
+  mongoose: { conn: typeof mongoose | null; promise: Promise<typeof mongoose> | null };
+};
+
+if (!globalWithMongoose.mongoose) {
+  globalWithMongoose.mongoose = { conn: null, promise: null };
 }
 
-// Global cache for multiple database connections
-let connectionCaches: Record<string, ConnectionCache> = (global as any).mongooseConnections || {};
-if (!(global as any).mongooseConnections) {
-  (global as any).mongooseConnections = connectionCaches;
+function getMongoURI(): string {
+  const uri = process.env.MONGODB_URI;
+  if (!uri) {
+    throw new Error('MONGODB_URI environment variable is not defined');
+  }
+  return uri;
 }
 
-// Legacy single connection cache for backward compatibility
-let cached = (global as any).mongoose;
-if (!cached) {
-  cached = (global as any).mongoose = { conn: null, promise: null };
-}
+async function dbConnect(_tenantId?: string) {
+  // Fast path: already connected
+  if (mongoose.connection.readyState === 1) {
+    return mongoose;
+  }
 
-/**
- * Get the MongoDB URI for a specific tenant
- * Priority: Tenant-specific env var > Default env var
- */
-function getMongoURIForTenant(tenantId?: string): string {
-  // Check for a tenant-specific database override (e.g. MONGODB_URI_HURGHADA_SPEEDBOAT)
-  if (tenantId) {
-    const envKey = `MONGODB_URI_${tenantId.toUpperCase().replace(/-/g, '_')}`;
-    const tenantUri = process.env[envKey];
-    if (tenantUri) {
-      return tenantUri;
+  // If connecting, wait for it
+  if (mongoose.connection.readyState === 2 && globalWithMongoose.mongoose.promise) {
+    return globalWithMongoose.mongoose.promise;
+  }
+
+  // Use cached promise if available (prevents multiple simultaneous connects)
+  if (globalWithMongoose.mongoose.promise) {
+    try {
+      const conn = await globalWithMongoose.mongoose.promise;
+      if (mongoose.connection.readyState === 1) {
+        return conn;
+      }
+      // Connection was lost, reset and reconnect
+      globalWithMongoose.mongoose.promise = null;
+    } catch {
+      globalWithMongoose.mongoose.promise = null;
     }
   }
 
-  // All tenants share the default database
-  const defaultUri = process.env.MONGODB_URI;
-  if (!defaultUri) {
-    throw new Error(
-      'Please define the MONGODB_URI environment variable inside .env.local'
-    );
-  }
+  const MONGODB_URI = getMongoURI();
 
-  return defaultUri;
-}
+  const opts: mongoose.ConnectOptions = {
+    bufferCommands: false,
+    maxPoolSize: 3,               // Very low for serverless
+    minPoolSize: 1,
+    serverSelectionTimeoutMS: 8000,  // 8s — fail fast
+    socketTimeoutMS: 15000,
+    connectTimeoutMS: 8000,
+    family: 4,
+    heartbeatFrequencyMS: 30000,  // Less frequent heartbeats for serverless
+  };
 
-/**
- * Connect to database
- * @param tenantId - Optional tenant ID to use tenant-specific database
- */
-async function dbConnect(tenantId?: string) {
-  const MONGODB_URI = getMongoURIForTenant(tenantId);
-  
-  // Create cache key based on URI (to support multiple databases)
-  const cacheKey = MONGODB_URI;
-  
-  // Initialize cache for this URI if not exists
-  if (!connectionCaches[cacheKey]) {
-    connectionCaches[cacheKey] = { conn: null, promise: null };
-  }
-  
-  const cache = connectionCaches[cacheKey];
-  
-  if (cache.conn) {
-    return cache.conn;
-  }
+  console.log('[DB] Connecting to MongoDB...');
 
-  if (!cache.promise) {
-    const opts = {
-      bufferCommands: false,
-      maxPoolSize: 5, // Keep low for serverless (Netlify) compatibility
-      serverSelectionTimeoutMS: 10000, // 10 seconds — fail fast on serverless
-      socketTimeoutMS: 20000,
-      connectTimeoutMS: 10000,
-      family: 4, // Use IPv4, skip trying IPv6
-    };
-
-    cache.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
-      const dbName = mongoose.connection.db?.databaseName || 'unknown';
-      console.log(`Database connected successfully: ${dbName}${tenantId ? ` (tenant: ${tenantId})` : ''}`);
-      return mongoose;
-    }).catch((error) => {
-      // Reset promise on connection failure to allow retry
-      cache.promise = null;
-      console.error('Failed to connect to MongoDB:', error);
+  globalWithMongoose.mongoose.promise = mongoose.connect(MONGODB_URI, opts)
+    .then((m) => {
+      console.log(`[DB] Connected: ${m.connection.db?.databaseName || 'unknown'}`);
+      globalWithMongoose.mongoose.conn = m;
+      return m;
+    })
+    .catch((error) => {
+      console.error('[DB] Connection failed:', error.message);
+      globalWithMongoose.mongoose.promise = null;
+      globalWithMongoose.mongoose.conn = null;
       throw error;
     });
-  }
 
-  try {
-    cache.conn = await cache.promise;
-    
-    // Also update legacy cache for backward compatibility
-    cached.conn = cache.conn;
-    cached.promise = cache.promise;
-    
-    // Ensure all models are loaded - this is crucial for proper model registration
-    // Core Models
-    if (!mongoose.models.User) {
-      require('./models/user');
-    }
-    
-    if (!mongoose.models.Tour) {
-      require('./models/Tour');
-    }
-    
-    if (!mongoose.models.Destination) {
-      require('./models/Destination');
-    }
-    
-    if (!mongoose.models.Category) {
-      require('./models/Category');
-    }
-    
-    if (!mongoose.models.Review) {
-      require('./models/Review');
-    }
-    
-    if (!mongoose.models.Booking) {
-      require('./models/Booking');
-    }
-    
-    if (!mongoose.models.Blog) {
-      require('./models/Blog');
-    }
-    
-    // New Models
-    if (!mongoose.models.AttractionPage) {
-      require('./models/AttractionPage');
-    }
-    
-    if (!mongoose.models.Discount) {
-      require('./models/Discount');
-    }
-    
-    if (!mongoose.models.Job) {
-      require('./models/Job');
-    }
-    
-    if (!mongoose.models.Otp) {
-      require('./models/Otp');
-    }
-    
-    // Tenant Model (Multi-tenant support)
-    if (!mongoose.models.Tenant) {
-      require('./models/Tenant');
-    }
-    
-    // HeroSettings Model
-    if (!mongoose.models.HeroSettings) {
-      require('./models/HeroSettings');
-    }
+  const conn = await globalWithMongoose.mongoose.promise;
 
-    // Log loaded models for debugging (optional - remove in production)
-    if (process.env.NODE_ENV === 'development') {
-      const modelNames = Object.keys(mongoose.models);
-      console.log('Loaded models:', modelNames.join(', '));
-    }
-    
-  } catch (e) {
-    cached.promise = null;
-    console.error('Database connection error:', e);
-    throw e;
-  }
+  // Register models once
+  loadModels();
 
-  return cached.conn;
+  return conn;
 }
 
-// Helper function to check connection status
+/**
+ * Ensure all Mongoose models are registered (idempotent)
+ */
+function loadModels() {
+  const models: [string, string][] = [
+    ['User', './models/user'],
+    ['Tour', './models/Tour'],
+    ['Destination', './models/Destination'],
+    ['Category', './models/Category'],
+    ['Review', './models/Review'],
+    ['Booking', './models/Booking'],
+    ['Blog', './models/Blog'],
+    ['AttractionPage', './models/AttractionPage'],
+    ['Discount', './models/Discount'],
+    ['Job', './models/Job'],
+    ['Otp', './models/Otp'],
+    ['Tenant', './models/Tenant'],
+    ['HeroSettings', './models/HeroSettings'],
+  ];
+
+  for (const [name, path] of models) {
+    if (!mongoose.models[name]) {
+      try {
+        require(path);
+      } catch (e) {
+        // Model may already be registered by import
+      }
+    }
+  }
+}
+
+// Connection monitoring (only log once per lifecycle)
+let listenersAttached = false;
+if (!listenersAttached) {
+  mongoose.connection.on('error', (err) => {
+    console.error('[DB] Connection error:', err.message);
+    // Reset cache on error so next request retries
+    globalWithMongoose.mongoose.conn = null;
+    globalWithMongoose.mongoose.promise = null;
+  });
+
+  mongoose.connection.on('disconnected', () => {
+    console.log('[DB] Disconnected');
+    globalWithMongoose.mongoose.conn = null;
+    globalWithMongoose.mongoose.promise = null;
+  });
+
+  listenersAttached = true;
+}
+
+// Helper exports
 export function getConnectionStatus() {
-  const states = {
+  const states: Record<number, string> = {
     0: 'disconnected',
     1: 'connected',
     2: 'connecting',
     3: 'disconnecting',
   };
-  
-  return states[mongoose.connection.readyState as keyof typeof states] || 'unknown';
+  return states[mongoose.connection.readyState] || 'unknown';
 }
 
-// Helper function to close connection (useful for testing)
 export async function closeConnection() {
-  if (cached.conn) {
+  if (mongoose.connection.readyState !== 0) {
     await mongoose.connection.close();
-    cached.conn = null;
-    cached.promise = null;
-    
-    // Also clear all tenant-specific caches
-    for (const key of Object.keys(connectionCaches)) {
-      connectionCaches[key] = { conn: null, promise: null };
-    }
-    
-    console.log('Database connection closed');
+    globalWithMongoose.mongoose.conn = null;
+    globalWithMongoose.mongoose.promise = null;
+    console.log('[DB] Connection closed');
   }
 }
 
-/**
- * Check if a tenant has a dedicated database configured
- */
 export function hasTenantDatabase(tenantId: string): boolean {
   const envKey = `MONGODB_URI_${tenantId.toUpperCase().replace(/-/g, '_')}`;
   return !!process.env[envKey];
 }
-
-/**
- * Get database info for debugging
- */
-export function getDatabaseInfo() {
-  const connections = Object.keys(connectionCaches).map(uri => ({
-    uri: uri.replace(/\/\/([^:]+):([^@]+)@/, '//***:***@'), // Mask credentials
-    connected: connectionCaches[uri].conn !== null,
-  }));
-  
-  return {
-    mainConnected: cached.conn !== null,
-    connectionCount: connections.length,
-    connections,
-  };
-}
-
-// Event listeners for connection monitoring
-mongoose.connection.on('connected', () => {
-  console.log('Mongoose connected to MongoDB');
-});
-
-mongoose.connection.on('error', (err) => {
-  console.error('Mongoose connection error:', err);
-});
-
-mongoose.connection.on('disconnected', () => {
-  console.log('Mongoose disconnected from MongoDB');
-});
-
-// Graceful shutdown
-process.on('SIGINT', async () => {
-  await closeConnection();
-  process.exit(0);
-});
 
 export default dbConnect;
