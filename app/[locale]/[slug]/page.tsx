@@ -56,7 +56,7 @@ async function getTourBySlug(slug: string, tenantId: string): Promise<{ tour: To
     };
   } catch (error) {
     console.error('[Tour] Error fetching tour:', error);
-    return null;
+    throw error; // Propagate to error.tsx boundary instead of showing 404
   }
 }
 

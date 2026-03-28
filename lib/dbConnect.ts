@@ -87,7 +87,7 @@ async function dbConnect(tenantId?: string) {
     const opts = {
       bufferCommands: false,
       // Increased timeouts for build process (handles 300+ concurrent static pages)
-      maxPoolSize: 50, // Increased for build-time concurrent connections
+      maxPoolSize: 5, // Keep low for serverless (Netlify) compatibility
       serverSelectionTimeoutMS: 30000, // 30 seconds (was 5s - too short for builds)
       socketTimeoutMS: 45000,
       connectTimeoutMS: 30000, // Add explicit connect timeout
