@@ -2,99 +2,51 @@ import React from 'react';
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
-import dbConnect from '@/lib/dbConnect';
-import Tour from '@/lib/models/Tour';
-import Review from '@/lib/models/Review';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import TourDetailClientPage from './TourDetailClientPage';
 import type { Review as ReviewType, Tour as TourType } from '@/types';
 import { getTenantFromRequest, getTenantPublicConfig } from '@/lib/tenant';
 import { localizeTour } from '@/lib/translation/getLocalizedField';
+import { getCachedTour, getCachedReviews } from '@/lib/cache';
+import dbConnect from '@/lib/dbConnect';
+import Tour from '@/lib/models/Tour';
+import { unstable_cache } from 'next/cache';
 
 interface PageProps {
   params: Promise<{ slug: string; locale: string }>;
 }
 
 /**
- * Get tour by slug with multi-tenant support
+ * Cached related tours fetcher
  */
-async function getTourBySlug(slug: string, tenantId: string): Promise<{ tour: TourType; reviews: ReviewType[] } | null> {
-  try {
-    await dbConnect();
-    
-    // OPTIMIZED: Single query with $or for tenant fallback, sort to prefer tenant-specific
-    const tenantFilter = tenantId !== 'default' 
-      ? { $or: [{ tenantId }, { tenantId: 'default' }] }
-      : {};
-    
-    console.log(`[Tour] Fetching: slug=${slug}, tenantId=${tenantId}`);
-    
-    const tour = await Tour.findOne({ slug, ...tenantFilter })
-      .populate('destination', 'name slug description')
-      .populate('category', 'name slug')
-      .sort({ tenantId: tenantId !== 'default' ? -1 : 1 })
-      .lean();
-    
-    if (!tour) {
-      console.log(`[Tour] Not found: slug=${slug}`);
-      return null;
+const getCachedRelatedTours = (categoryIds: string[], currentTourId: string, tenantId: string) => {
+  return unstable_cache(
+    async () => {
+      await dbConnect();
+
+      if (categoryIds.length === 0) return [];
+
+      const relatedTours = await Tour.find({
+        category: { $in: categoryIds },
+        _id: { $ne: currentTourId },
+        isPublished: true,
+        tenantId
+      })
+        .select('title slug image discountPrice originalPrice duration destination category rating reviewCount translations')
+        .populate('destination', 'name')
+        .limit(3)
+        .lean();
+
+      return JSON.parse(JSON.stringify(relatedTours)) as TourType[];
+    },
+    [`related-tours-${currentTourId}-${tenantId}`],
+    {
+      revalidate: 300, // 5 minutes
+      tags: ['tours'],
     }
-    
-    console.log(`[Tour] Found: ${tour.title}, tenantId=${(tour as any).tenantId}`);
-    
-    // Fetch reviews in parallel (limit for performance)
-    const reviews = await Review.find({ tourId: tour._id })
-      .populate('userId', 'firstName lastName')
-      .sort({ createdAt: -1 })
-      .limit(20)
-      .lean();
-    
-    return {
-      tour: JSON.parse(JSON.stringify(tour)) as TourType,
-      reviews: JSON.parse(JSON.stringify(reviews)) as ReviewType[],
-    };
-  } catch (error) {
-    console.error('[Tour] Error fetching tour:', error);
-    throw error; // Propagate to error.tsx boundary instead of showing 404
-  }
-}
-
-/**
- * Get related tours
- */
-async function getRelatedTours(categoryIds: string | string[] | any, currentTourId: string, tenantId: string): Promise<TourType[]> {
-  try {
-    await dbConnect();
-    
-    // Extract category IDs
-    let categoryIdArray: string[] = [];
-    if (Array.isArray(categoryIds)) {
-      categoryIdArray = categoryIds.map(cat => typeof cat === 'object' ? cat._id?.toString() : cat?.toString()).filter(Boolean);
-    } else if (categoryIds) {
-      const catId = typeof categoryIds === 'object' ? categoryIds._id?.toString() : categoryIds?.toString();
-      if (catId) categoryIdArray = [catId];
-    }
-
-    if (categoryIdArray.length === 0) return [];
-
-    const relatedTours = await Tour.find({
-      category: { $in: categoryIdArray },
-      _id: { $ne: currentTourId },
-      isPublished: true,
-      tenantId
-    })
-      .select('title slug image discountPrice originalPrice duration destination category rating reviewCount translations')
-      .populate('destination', 'name')
-      .limit(3)
-      .lean();
-
-    return JSON.parse(JSON.stringify(relatedTours)) as TourType[];
-  } catch (error) {
-    console.error('[Tour] Error fetching related tours:', error);
-    return [];
-  }
-}
+  )();
+};
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const t = await getTranslations('metadata');
@@ -104,18 +56,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const tenant = await getTenantPublicConfig(tenantId);
     const siteName = tenant?.name || 'Tours';
 
-    await dbConnect();
-
-    // OPTIMIZED: Lightweight query just for metadata
-    const tenantFilter = tenantId !== 'default'
-      ? { $or: [{ tenantId }, { tenantId: 'default' }] }
-      : {};
-
-    const tour = await Tour.findOne({ slug, ...tenantFilter })
-      .select('title description metaTitle metaDescription keywords image destination')
-      .populate('destination', 'name')
-      .sort({ tenantId: tenantId !== 'default' ? -1 : 1 })
-      .lean();
+    const tour = await getCachedTour(slug, tenantId);
 
     if (!tour) {
       return { title: t('tourNotFound') };
@@ -147,14 +88,35 @@ export default async function TourDetailPage({ params }: PageProps) {
   try {
     const { slug, locale } = await params;
     const tenantId = await getTenantFromRequest();
-    const result = await getTourBySlug(slug, tenantId);
 
-    if (!result) {
+    // Use cached queries — dramatically faster on repeat visits
+    const tour = await getCachedTour(slug, tenantId);
+
+    if (!tour) {
       notFound();
     }
 
-    const { tour, reviews } = result;
-    const relatedTours = await getRelatedTours(tour.category, (tour._id as any)?.toString(), tenantId);
+    const tourId = (tour._id as any)?.toString();
+
+    // Fetch reviews and related tours in parallel using cached queries
+    const [reviews, relatedTours] = await Promise.all([
+      getCachedReviews(tourId),
+      (() => {
+        // Extract category IDs
+        const categoryIds: string[] = [];
+        const cats = tour.category;
+        if (Array.isArray(cats)) {
+          cats.forEach((cat: any) => {
+            const id = typeof cat === 'object' ? cat._id?.toString() : cat?.toString();
+            if (id) categoryIds.push(id);
+          });
+        } else if (cats) {
+          const id = typeof cats === 'object' ? (cats as any)._id?.toString() : cats?.toString();
+          if (id) categoryIds.push(id);
+        }
+        return getCachedRelatedTours(categoryIds, tourId, tenantId);
+      })(),
+    ]);
 
     // Apply translations for the current locale
     const localizedTour = localizeTour(tour as any, locale) as any;
@@ -166,7 +128,7 @@ export default async function TourDetailPage({ params }: PageProps) {
         <TourDetailClientPage
           tour={localizedTour}
           relatedTours={localizedRelated}
-          initialReviews={reviews}
+          initialReviews={reviews as ReviewType[]}
         />
         <Footer />
       </>
@@ -177,6 +139,6 @@ export default async function TourDetailPage({ params }: PageProps) {
   }
 }
 
-// ISR: cache tour pages for 60s, revalidate in background
-export const dynamic = 'force-dynamic';
+// ISR: revalidate cached data in background, page stays dynamic for tenant detection
+export const revalidate = 60;
 export const dynamicParams = true;

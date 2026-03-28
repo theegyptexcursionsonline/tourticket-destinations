@@ -12,8 +12,8 @@ import { getTenantFromRequest, getTenantConfig, buildTenantQuery } from '@/lib/t
 import { getLocale } from 'next-intl/server';
 import { localizeTour } from '@/lib/translation/getLocalizedField';
 
-// Enable ISR with 60 second revalidation for instant page loads
-export const dynamic = 'force-dynamic';
+// ISR: revalidate every 60s — cached pages served instantly, refreshed in background
+export const revalidate = 60;
 
 // Generate dynamic metadata for SEO based on tenant
 export async function generateMetadata(): Promise<Metadata> {
