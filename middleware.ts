@@ -49,19 +49,9 @@ function getTenantStatusMapping(): Record<string, WebsiteStatus> {
   return {};
 }
 
-// Future/prepared tenants that don't have database records yet —
-// default them to 'coming_soon' so they don't crash with 500.
-const FUTURE_TENANTS = new Set([
-  'marsa-alam-excursions',
-  'dahab-excursions',
-]);
-
 function getTenantWebsiteStatus(tenantId: string): WebsiteStatus {
   const statusMapping = getTenantStatusMapping();
-  if (statusMapping[tenantId]) return statusMapping[tenantId];
-  // Future tenants without DB records should show coming soon, not crash
-  if (FUTURE_TENANTS.has(tenantId)) return 'coming_soon';
-  return 'active';
+  return statusMapping[tenantId] || 'active';
 }
 
 const COMING_SOON_ALLOWED_PATHS = [
