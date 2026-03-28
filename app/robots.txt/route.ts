@@ -56,7 +56,6 @@ Disallow: /accept-invitation/*
 Disallow: /payment
 Disallow: /payment/*
 Disallow: /redirecting
-Disallow: /monitoring
 Disallow: /sentry-example-page
 Disallow: /_next
 Disallow: /_next/*
@@ -86,7 +85,6 @@ Disallow: /booking/verify
 Disallow: /accept-invitation
 Disallow: /payment
 Disallow: /redirecting
-Disallow: /monitoring
 Disallow: /sentry-example-page
 Disallow: /_next
 Disallow: /coming-soon
@@ -125,7 +123,6 @@ Disallow: /booking/verify
 Disallow: /accept-invitation
 Disallow: /payment
 Disallow: /redirecting
-Disallow: /monitoring
 Disallow: /_next
 Disallow: /coming-soon
 Disallow: /maintenance

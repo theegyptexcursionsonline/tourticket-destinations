@@ -1,5 +1,4 @@
 // next.config.js
-const { withSentryConfig } = require('@sentry/nextjs');
 const createNextIntlPlugin = require('next-intl/plugin');
 const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
 
@@ -16,7 +15,6 @@ const nextConfig = {
     'mailgun.js',
     'cloudinary',
     'stripe',
-    '@sentry/nextjs',
   ],
 
   // Image optimization configuration - Fixed for Netlify
@@ -206,16 +204,4 @@ const nextConfig = {
   },
 };
 
-// Export with next-intl and Sentry configuration
-module.exports = withSentryConfig(withNextIntl(nextConfig), {
-  org: 'egyptexcursionsonline',
-  project: 'javascript-nextjs',
-  silent: !process.env.CI,
-  widenClientFileUpload: true,
-  tunnelRoute: '/monitoring',
-  disableLogger: true,
-  automaticVercelMonitors: true,
-  hideSourceMaps: true,
-  disableServerWebpackPlugin: process.env.NODE_ENV === 'development',
-  disableClientWebpackPlugin: process.env.NODE_ENV === 'development',
-});
+module.exports = withNextIntl(nextConfig);

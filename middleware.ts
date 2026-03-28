@@ -65,7 +65,6 @@ const COMING_SOON_ALLOWED_PATHS = [
   '/static',
   '/robots.txt',
   '/sitemap.xml',
-  '/monitoring',
 ];
 
 // ============================================
@@ -247,7 +246,6 @@ const reservedPaths = [
   '/robots.txt',
   '/sitemap.xml',
   '/manifest.json',
-  '/monitoring',
   '/payment',
   '/public',
   // Locale prefixes (prevent them from being treated as tour slugs)
@@ -329,10 +327,6 @@ function isAdminPath(pathname: string): boolean {
     pathname.startsWith('/admin/') ||
     pathname.startsWith('/api/admin')
   );
-}
-
-function isMonitoringPath(pathname: string): boolean {
-  return pathname === '/monitoring' || pathname.startsWith('/monitoring/');
 }
 
 function isAllowedInComingSoonMode(pathname: string): boolean {
@@ -553,11 +547,6 @@ export function middleware(request: NextRequest) {
   // ============================================
   // PAGE ROUTES — compose tenant + locale
   // ============================================
-
-  // Sentry tunnel requests should bypass locale rewrites.
-  if (isMonitoringPath(pathname)) {
-    return createTenantResponse(request, tenantId, hostname, isPreviewMode);
-  }
 
   // 1. Run next-intl middleware (handles locale detection and URL rewriting)
   const intlResponse = intlMiddleware(request);
