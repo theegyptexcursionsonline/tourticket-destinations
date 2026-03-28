@@ -80,8 +80,17 @@ function patchFiles(baseDir, utils) {
   const allFiles = walk(path.join(baseDir, '.netlify'));
   const patchedRunConfigs = [];
   const patchedStorageFiles = [];
+  const runConfigFiles = [];
+  const storageFiles = [];
 
   for (const file of allFiles) {
+    if (file.endsWith('run-config.json')) {
+      runConfigFiles.push(file);
+    }
+    if (file.endsWith(path.join('run', 'storage', 'storage.cjs'))) {
+      storageFiles.push(file);
+    }
+
     if (patchRunConfig(file)) {
       patchedRunConfigs.push(file);
     }
@@ -107,6 +116,25 @@ function patchFiles(baseDir, utils) {
     title: 'Patched Netlify runtime output',
     summary,
   });
+
+  const invalidRunConfigs = runConfigFiles.filter((file) => {
+    const content = fs.readFileSync(file, 'utf8');
+    return content.includes('"enableUseCacheHandler":true');
+  });
+
+  const invalidStorageFiles = storageFiles.filter((file) => {
+    const content = fs.readFileSync(file, 'utf8');
+    return !content.includes('__NETLIFY_BLOBS_FALLBACK_STORE__');
+  });
+
+  if (invalidRunConfigs.length > 0 || invalidStorageFiles.length > 0) {
+    const failures = [
+      ...invalidRunConfigs.map((file) => `use-cache handler still enabled in ${file}`),
+      ...invalidStorageFiles.map((file) => `Blobs fallback missing in ${file}`),
+    ].join('\n');
+
+    throw new Error(`Netlify runtime patch verification failed:\n${failures}`);
+  }
 }
 
 module.exports = {
