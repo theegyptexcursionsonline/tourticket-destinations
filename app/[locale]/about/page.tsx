@@ -13,8 +13,7 @@ import Footer from "@/components/Footer";
 import { getTenantFromRequest, getTenantPublicConfig } from "@/lib/tenant";
 import { getTranslations } from 'next-intl/server';
 
-// Enable ISR with 60 second revalidation for instant page loads
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 
 // Generate dynamic metadata based on tenant
 export async function generateMetadata(): Promise<Metadata> {

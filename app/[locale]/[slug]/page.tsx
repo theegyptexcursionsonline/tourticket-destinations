@@ -134,10 +134,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 }
 
-export async function generateStaticParams() {
-  return [];
-}
-
 export default async function TourDetailPage({ params }: PageProps) {
   try {
     const { slug, locale } = await params;

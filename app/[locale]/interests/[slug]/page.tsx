@@ -76,15 +76,8 @@ async function getInterestData(slug: string): Promise<InterestData | null> {
   }
 }
 
-// Enable ISR with 60 second revalidation for instant page loads
 export const dynamic = 'force-dynamic';
 export const dynamicParams = true;
-
-// Skip static generation at build time to avoid MongoDB connection issues on Netlify
-// Pages will be generated on-demand with ISR caching
-export async function generateStaticParams() {
-  return [];
-}
 
 // Generate metadata
 export async function generateMetadata(

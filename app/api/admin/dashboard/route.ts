@@ -8,7 +8,6 @@ import User from '@/lib/models/user';
 import { requireAdminAuth } from '@/lib/auth/adminAuth';
 
 export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
 async function fetchDashboardStats(effectiveTenantId: string | undefined) {
   const tourTenantFilter: Record<string, unknown> = {};

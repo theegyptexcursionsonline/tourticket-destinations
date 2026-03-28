@@ -14,12 +14,6 @@ import { categoryTranslationFields } from '@/lib/i18n/translationFields';
 export const dynamic = 'force-dynamic';
 export const dynamicParams = true;
 
-// Skip static generation at build time to avoid MongoDB connection issues on Netlify
-// Pages will be generated on-demand with ISR caching
-export async function generateStaticParams() {
-  return [];
-}
-
 // Generate metadata for SEO (tenant-aware)
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   try {

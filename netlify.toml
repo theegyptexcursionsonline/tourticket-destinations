@@ -41,6 +41,9 @@
       "STRIPE_RESTRICTED_KEY"
     ]
 
+[[plugins]]
+  package = "./plugins/netlify-disable-incremental-cache"
+
 # Function timeout for cold starts (MongoDB connection + SSR)
 [functions]
   included_files = []

@@ -1,7 +1,11 @@
 // lib/cache.ts
-// Server-side caching utilities for ISR and data fetching optimization
+// Server-side caching utilities.
+//
+// Netlify's runtime cache handler is currently causing live page crashes when it
+// is enabled for this app, so these helpers intentionally fall back to direct
+// execution. Keeping the wrapper API lets the rest of the code stay unchanged
+// while avoiding Next/Netlify cache initialization at runtime.
 
-import { unstable_cache } from 'next/cache';
 import dbConnect from './dbConnect';
 
 // Cache tags for revalidation
@@ -21,42 +25,13 @@ export const CACHE_DURATIONS = {
   STATIC: 86400,    // 24 hours - for static content
 } as const;
 
-function isRuntimeCacheAvailable(): boolean {
-  if (process.env.DISABLE_RUNTIME_CACHE === 'true') {
-    return false;
-  }
-
-  if (process.env.NODE_ENV === 'development') {
-    return false;
-  }
-
-  const runningOnNetlify =
-    process.env.NETLIFY === 'true' ||
-    process.env.NETLIFY_LOCAL === 'true' ||
-    typeof process.env.CONTEXT === 'string';
-
-  if (runningOnNetlify && !process.env.DEPLOY_ID) {
-    return false;
-  }
-
-  return true;
-}
-
 export function cacheIfAvailable<TArgs extends unknown[], TResult>(
   fn: (...args: TArgs) => Promise<TResult>,
-  keyParts: string[],
+  _keyParts: string[],
   options: { revalidate?: number; tags?: string[] } = {}
 ) {
-  if (!isRuntimeCacheAvailable()) {
-    return (...args: TArgs) => fn(...args);
-  }
-
-  const cachedFn = unstable_cache(fn, keyParts, {
-    revalidate: options.revalidate ?? CACHE_DURATIONS.MEDIUM,
-    tags: options.tags ?? keyParts,
-  });
-
-  return (...args: TArgs) => cachedFn(...args);
+  void options;
+  return (...args: TArgs) => fn(...args);
 }
 
 /**

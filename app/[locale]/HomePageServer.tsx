@@ -32,9 +32,6 @@ import { localizeTour } from '@/lib/translation/getLocalizedField';
 import { localizeEntityFields } from '@/lib/i18n/contentLocalization';
 import { destinationTranslationFields, categoryTranslationFields } from '@/lib/i18n/translationFields';
 
-// Enable ISR with 60-second revalidation (removed force-dynamic for better caching)
-export const revalidate = 60;
-
 /**
  * Get homepage data (internal function)
  * Wrapped with cache below
@@ -294,8 +291,8 @@ async function getHomePageDataInternal(tenantId: string) {
 }
 
 /**
- * Cached version of getHomePageData
- * Caches per tenant for 60 seconds
+ * Homepage data wrapper.
+ * Runtime caching is currently disabled to avoid Netlify Blobs handler errors.
  */
 const getHomePageData = (tenantId: string) =>
   cacheIfAvailable(

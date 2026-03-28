@@ -16,11 +16,6 @@ import { destinationTranslationFields, categoryTranslationFields } from '@/lib/i
 export const dynamic = 'force-dynamic';
 export const dynamicParams = true;
 
-// Skip static generation at build time
-export async function generateStaticParams() {
-  return [];
-}
-
 // Generate metadata for SEO (tenant-aware) - OPTIMIZED
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   try {
@@ -70,7 +65,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 /**
  * Get destination page data
- * Uses ISR via page-level revalidate export
+ * Uses direct dynamic rendering on Netlify.
  */
 async function getPageData(slug: string, tenantId: string) {
   try {

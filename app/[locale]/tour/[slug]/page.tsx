@@ -15,12 +15,6 @@ import { getTenantFromRequest, getTenantPublicConfig } from '@/lib/tenant';
 export const dynamic = 'force-dynamic';
 export const dynamicParams = true;
 
-// Skip static generation at build time to avoid MongoDB connection issues on Netlify
-// Pages will be generated on-demand with ISR caching
-export async function generateStaticParams() {
-  return [];
-}
-
 // Fetch tour data and reviews from database
 async function getTourData(slug: string): Promise<{ tour: Tour | null; relatedTours: Tour[]; reviews: Review[] }> {
   try {

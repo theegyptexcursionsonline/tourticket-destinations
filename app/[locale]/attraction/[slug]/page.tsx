@@ -84,15 +84,8 @@ export async function generateMetadata({ params }: AttractionPageProps): Promise
   };
 }
 
-// Enable ISR with 60 second revalidation for instant page loads
 export const dynamic = 'force-dynamic';
 export const dynamicParams = true;
-
-// Skip static generation at build time to avoid MongoDB connection issues on Netlify
-// Pages will be generated on-demand with ISR caching
-export async function generateStaticParams() {
-  return [];
-}
 
 export default async function AttractionPage({ params }: AttractionPageProps) {
   const { slug } = await params;

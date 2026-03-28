@@ -12,8 +12,7 @@ import CategoryModel from '@/lib/models/Category';
 import EgyptHeroClient from './EgyptHeroClient';
 import EgyptToursClient from './EgyptToursClient';
 
-// Enable ISR with 60 second revalidation for instant page loads
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 
 /* ---------- Page Data ---------- */
 const FEATURES = [
