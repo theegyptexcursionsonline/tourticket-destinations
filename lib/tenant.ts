@@ -284,7 +284,10 @@ export async function getTenantPublicConfig(tenantId: string): Promise<TenantPub
     const tenant = await getTenantConfig(tenantId);
     
     if (!tenant) {
-      console.warn(`[Tenant] No active tenant found for "${tenantId}" — DB record may be missing or isActive=false`);
+      // Only warn for non-default tenants (default tenant is not used in this deployment)
+      if (tenantId !== 'default') {
+        console.warn(`[Tenant] No active tenant found for "${tenantId}" — DB record may be missing or isActive=false`);
+      }
       return null;
     }
 

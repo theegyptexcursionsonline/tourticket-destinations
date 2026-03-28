@@ -1178,18 +1178,15 @@ const TenantSchema: Schema<ITenant> = new Schema({
   isActive: {
     type: Boolean,
     default: true,
-    index: true,
   },
   isDefault: {
     type: Boolean,
     default: false,
-    index: true,
   },
   websiteStatus: {
     type: String,
     enum: ['active', 'coming_soon', 'maintenance', 'offline'],
     default: 'active',
-    index: true,
   },
 }, {
   timestamps: true,
@@ -1197,7 +1194,7 @@ const TenantSchema: Schema<ITenant> = new Schema({
   toObject: { virtuals: true },
 });
 
-// Compound index for performance (simple indexes already defined via schema field options)
+// Indexes for performance
 TenantSchema.index({ domains: 1 });
 TenantSchema.index({ isActive: 1, isDefault: 1 });
 
