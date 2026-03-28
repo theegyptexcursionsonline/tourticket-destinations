@@ -8,7 +8,7 @@ type JobType = any;
 import { getTenantFromRequest, getTenantPublicConfig } from "@/lib/tenant";
 
 // Force dynamic rendering to avoid build-time DB connection issues
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 
 // Generate dynamic metadata based on tenant
 export async function generateMetadata(): Promise<Metadata> {

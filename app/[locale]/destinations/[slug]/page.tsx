@@ -13,7 +13,7 @@ import { localizeEntityFields } from '@/lib/i18n/contentLocalization';
 import { destinationTranslationFields, categoryTranslationFields } from '@/lib/i18n/translationFields';
 
 // Force dynamic rendering to fix 500 errors
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 export const dynamicParams = true;
 
 // Skip static generation at build time

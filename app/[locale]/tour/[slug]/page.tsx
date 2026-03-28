@@ -12,7 +12,7 @@ import TourPageClient from './TourPageClient';
 import { getTenantFromRequest, getTenantPublicConfig } from '@/lib/tenant';
 
 // Enable ISR with 60 second revalidation for instant page loads
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 export const dynamicParams = true;
 
 // Skip static generation at build time to avoid MongoDB connection issues on Netlify

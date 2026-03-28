@@ -11,7 +11,7 @@ import { IDestination } from '@/lib/models/Destination';
 import { getTenantFromRequest, getTenantConfig, buildTenantQuery } from '@/lib/tenant';
 
 // ISR: revalidate every 60s — cached pages served instantly, refreshed in background
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 
 // Generate dynamic metadata for SEO based on tenant
 export async function generateMetadata(): Promise<Metadata> {

@@ -140,5 +140,5 @@ export default async function TourDetailPage({ params }: PageProps) {
 }
 
 // ISR: revalidate cached data in background, page stays dynamic for tenant detection
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 export const dynamicParams = true;

@@ -39,7 +39,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 // ISR: revalidate every 60s — cached pages served instantly, refreshed in background
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 
 export default function HomePage() {
   if (COMING_SOON_MODE) {

@@ -32,6 +32,7 @@
     "duration": "Duration",
     "category": "Category",
     "clearFilters": "Clear filters",
+    "openAiAssistant": "Ask our AI assistant",
     "applyFilters": "Apply filters",
     "noToursFound": "No tours found",
     "tryDifferentSearch": "Try a different search or browse our categories",
