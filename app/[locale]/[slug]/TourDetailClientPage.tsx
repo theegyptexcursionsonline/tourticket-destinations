@@ -22,7 +22,6 @@ import TourPageAIWidget from '@/components/TourPageAIWidget';
 import ReviewList from '@/components/reviews/ReviewList';
 import ReviewForm from '@/components/reviews/ReviewForm';
 import ReviewsStructuredData from '@/components/ReviewsStructuredData';
-import ElfsightWidget from '@/components/ElfsightWidget';
 
 // Hooks and contexts
 import { useSettings } from '@/hooks/useSettings';
@@ -876,7 +875,6 @@ const ReviewsSection = ({ tour, reviews, onReviewSubmitted, sectionRef }: {
         </div>
         
         <div className="container mx-auto px-4 my-8">
-          <ElfsightWidget />
         </div>
       </div>
     </div>

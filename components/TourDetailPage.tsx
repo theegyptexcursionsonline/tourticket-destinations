@@ -26,7 +26,6 @@ import ReviewList from '@/components/reviews/ReviewList';
 import ReviewForm from '@/components/reviews/ReviewForm';
 // Add these new imports for reviews
 import ReviewsStructuredData from '@/components/ReviewsStructuredData';
-import ElfsightWidget from '@/components/ElfsightWidget';
 
 // Hooks and Types
 import { useSettings } from '@/hooks/useSettings';
@@ -780,7 +779,6 @@ const ReviewsSection = ({ tour, reviews, onReviewSubmitted, sectionRef }: {
 
       {/* Elfsight third-party reviews widget - show on all tours */}
       <div className="mt-8">
-        <ElfsightWidget minHeight="200px" />
       </div>
     </div>
   );

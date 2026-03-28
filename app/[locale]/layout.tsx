@@ -13,7 +13,6 @@ import { WishlistProvider } from "@/contexts/WishlistContext";
 import CartSidebar from "@/components/CartSidebar";
 import WishlistSidebar from "@/components/WishlistSidebar";
 import { Toaster } from 'react-hot-toast';
-import IntercomClient from "@/components/IntercomClient";
 import ConditionalAIWidgets from "@/components/ConditionalAIWidgets";
 import { getTenantFromRequest, getTenantPublicConfig, TenantPublicConfig } from "@/lib/tenant";
 import ComingSoonPage from "@/components/ComingSoonPage";
@@ -244,27 +243,15 @@ export default async function LocaleLayout({
     ? `${inter.variable} ${almarai.variable} font-arabic`
     : `${inter.variable} ${almarai.variable} font-sans`;
 
-  // Tenant-specific GTM ID (fallback to shared container)
-  const gtmId = tenantConfig?.seo?.googleTagManagerId || 'GTM-W9WCZFKM';
-
   return (
     <html lang={locale} dir={dir} suppressHydrationWarning>
       <head>
-        {/* Google Tag Manager - tenant-specific */}
-        <script dangerouslySetInnerHTML={{ __html: `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-})(window,document,'script','dataLayer','${gtmId}');` }} />
         {/* Inject tenant branding styles */}
         {brandingStyles && (
           <style dangerouslySetInnerHTML={{ __html: brandingStyles }} />
         )}
       </head>
       <body className={fontClass} suppressHydrationWarning>
-        {/* Google Tag Manager (noscript) */}
-        <noscript><iframe src={`https://www.googletagmanager.com/ns.html?id=${gtmId}`} height="0" width="0" style={{display:'none',visibility:'hidden'}}></iframe></noscript>
-        <IntercomClient />
         <NextIntlClientProvider messages={messages}>
           {/* TenantProvider wraps all other providers */}
           <TenantProvider

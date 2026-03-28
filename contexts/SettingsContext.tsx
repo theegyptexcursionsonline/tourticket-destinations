@@ -4,6 +4,42 @@ import { createContext, useState, useEffect, ReactNode, useCallback } from 'reac
 import { Currency, Language } from '@/types';
 import { currencies, languages } from '@/utils/localization';
 
+const FALLBACK_EXCHANGE_RATES: { [key: string]: number } = {
+  EUR: 1,
+  USD: 1.08,
+  GBP: 0.85,
+  JPY: 169.5,
+  INR: 90.5,
+  AUD: 1.63,
+  CAD: 1.48,
+  CHF: 0.97,
+  CNY: 7.82,
+  SEK: 11.23,
+  NZD: 1.76,
+  MXN: 18.15,
+  SGD: 1.46,
+  HKD: 8.45,
+  NOK: 11.33,
+  KRW: 1485.25,
+  TRY: 35.15,
+  RUB: 99.5,
+  BRL: 5.58,
+  ZAR: 20.25,
+  DKK: 7.46,
+  PLN: 4.32,
+  CZK: 24.15,
+  HUF: 389.25,
+  RON: 4.98,
+  BGN: 1.96,
+  HRK: 7.53,
+  ISK: 145.35,
+  THB: 38.25,
+  MYR: 4.85,
+  PHP: 61.25,
+  IDR: 16850.5,
+  VND: 26450.75,
+};
+
 // --- Interface Definitions ---
 interface SettingsContextType {
   selectedCurrency: Currency;
@@ -114,11 +150,16 @@ const fetchExchangeRates = async (): Promise<{ [key: string]: number }> => {
 
     for (const apiUrl of apiSources) {
       try {
+        const controller = new AbortController();
+        const timeoutId = window.setTimeout(() => controller.abort(), 4000);
+
         const response = await fetch(apiUrl, {
           headers: {
             'Accept': 'application/json',
           },
+          signal: controller.signal,
         });
+        clearTimeout(timeoutId);
         
         if (response.ok) {
           const data = await response.json();
@@ -149,41 +190,7 @@ const fetchExchangeRates = async (): Promise<{ [key: string]: number }> => {
   }
   
   // Enhanced fallback rates (more comprehensive and recent)
-  return {
-    EUR: 1,
-    USD: 1.08,
-    GBP: 0.85,
-    JPY: 169.5,
-    INR: 90.5,
-    AUD: 1.63,
-    CAD: 1.48,
-    CHF: 0.97,
-    CNY: 7.82,
-    SEK: 11.23,
-    NZD: 1.76,
-    MXN: 18.15,
-    SGD: 1.46,
-    HKD: 8.45,
-    NOK: 11.33,
-    KRW: 1485.25,
-    TRY: 35.15,
-    RUB: 99.5,
-    BRL: 5.58,
-    ZAR: 20.25,
-    DKK: 7.46,
-    PLN: 4.32,
-    CZK: 24.15,
-    HUF: 389.25,
-    RON: 4.98,
-    BGN: 1.96,
-    HRK: 7.53,
-    ISK: 145.35,
-    THB: 38.25,
-    MYR: 4.85,
-    PHP: 61.25,
-    IDR: 16850.5,
-    VND: 26450.75,
-  };
+  return FALLBACK_EXCHANGE_RATES;
 };
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
@@ -203,16 +210,14 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   const [selectedCurrency, setSelectedCurrency] = usePersistentState<Currency>('selectedCurrency', currencies[1]); // Default to USD
   const [selectedLanguage, setSelectedLanguage] = usePersistentState<Language>('selectedLanguage', getPreferredLanguage()); // Use browser language
-  const [exchangeRates, setExchangeRates] = useState<{ [key: string]: number }>({});
-  const [isLoading, setIsLoading] = useState(true);
+  const [exchangeRates, setExchangeRates] = useState<{ [key: string]: number }>(FALLBACK_EXCHANGE_RATES);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Fetch exchange rates on mount and every hour
   useEffect(() => {
     const loadExchangeRates = async () => {
-      setIsLoading(true);
       const rates = await fetchExchangeRates();
       setExchangeRates(rates);
-      setIsLoading(false);
     };
 
     loadExchangeRates();
