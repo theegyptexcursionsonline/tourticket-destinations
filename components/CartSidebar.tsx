@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, ShoppingCart, Trash2, Calendar, Clock, Users, Plus } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
 import { useSettings } from '@/hooks/useSettings';
-import Image from 'next/image';
+import SafeImage from '@/components/shared/SafeImage';
 import { parseLocalDate } from '@/utils/date';
 import { useLocale } from 'next-intl';
 import { isRTL } from '@/i18n/config';
@@ -144,7 +144,7 @@ const CartSidebar: FC = () => {
                                             >
                                                 {/* Main Item Info */}
                                                 <div className="flex items-start gap-3 p-4">
-                                                    <Image
+                                                    <SafeImage
                                                         src={item.image || '/bg.png'}
                                                         alt={item.title}
                                                         width={80}

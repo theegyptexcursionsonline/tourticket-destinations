@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import Image from 'next/image';
+import SafeImage from '@/components/shared/SafeImage';
 import { Link } from '@/i18n/navigation';
 import { AnimatePresence, motion, useInView } from 'framer-motion';
 import {
@@ -1181,7 +1181,7 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
                   className="relative rounded-xl overflow-hidden shadow-lg mb-6 group cursor-pointer"
                   onClick={() => openLightbox(selectedImageIndex)}
                 >
-                  <Image
+                  <SafeImage
                     src={tourImages[selectedImageIndex]}
                     alt={tour.title}
                     width={1200}
@@ -1227,7 +1227,7 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
                         }`}
                         aria-label={`View image ${index + 1}`}
                       >
-                        <Image
+                        <SafeImage
                           src={image}
                           alt={`${tour.title} image ${index + 1}`}
                           width={80}
@@ -1344,7 +1344,7 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
                       <Link key={relatedTour._id} href={`/tour/${relatedTour.slug}`} className="group">
                         <div className="border border-slate-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
                           <div className="relative">
-                            <Image
+                            <SafeImage
                               src={relatedTour.image}
                               alt={relatedTour.title}
                               width={300}

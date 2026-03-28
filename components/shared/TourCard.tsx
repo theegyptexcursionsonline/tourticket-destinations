@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Link } from '@/i18n/navigation';
-import Image from 'next/image';
+import SafeImage from '@/components/shared/SafeImage';
 import { motion } from 'framer-motion';
 import {
   Star, Clock, Users, MapPin, Heart, ShoppingCart, ArrowRight,
@@ -159,7 +159,7 @@ const TourCard: React.FC<TourCardProps> = ({
               transition={{ duration: 0.5 }}
               className="w-full h-full"
             >
-              <Image
+              <SafeImage
                 src={tour.image}
                 alt={tour.title}
                 fill
