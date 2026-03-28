@@ -292,7 +292,8 @@ async function getHomePageDataInternal(tenantId: string) {
 
 /**
  * Homepage data wrapper.
- * Runtime caching is currently disabled to avoid Netlify Blobs handler errors.
+ * Uses the app's in-memory stale-while-revalidate cache to avoid hitting
+ * MongoDB on every warm request without relying on Netlify Blobs.
  */
 const getHomePageData = (tenantId: string) =>
   cacheIfAvailable(

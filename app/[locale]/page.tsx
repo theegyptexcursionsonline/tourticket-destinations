@@ -38,8 +38,8 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-// ISR: revalidate every 60s — cached pages served instantly, refreshed in background
-export const dynamic = 'force-dynamic';
+// Refresh shared homepage data every 60 seconds.
+export const revalidate = 60;
 
 export default function HomePage() {
   if (COMING_SOON_MODE) {

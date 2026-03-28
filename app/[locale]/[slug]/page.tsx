@@ -11,6 +11,7 @@ import TourDetailClientPage from './TourDetailClientPage';
 import type { Review as ReviewType, Tour as TourType } from '@/types';
 import { getTenantFromRequest, getTenantPublicConfig } from '@/lib/tenant';
 import { localizeTour } from '@/lib/translation/getLocalizedField';
+import { cacheIfAvailable } from '@/lib/cache';
 
 interface PageProps {
   params: Promise<{ slug: string; locale: string }>;
@@ -19,7 +20,8 @@ interface PageProps {
 /**
  * Get tour by slug with multi-tenant support
  */
-async function getTourBySlug(slug: string, tenantId: string): Promise<{ tour: TourType; reviews: ReviewType[] } | null> {
+const getTourBySlug = cacheIfAvailable(
+  async (slug: string, tenantId: string): Promise<{ tour: TourType; reviews: ReviewType[] } | null> => {
   try {
     await dbConnect();
 
@@ -56,12 +58,16 @@ async function getTourBySlug(slug: string, tenantId: string): Promise<{ tour: To
     console.error('[Tour] Error fetching tour:', error);
     throw error;
   }
-}
+  },
+  ['tour-page-by-slug'],
+  { revalidate: 60, tags: ['tours'] }
+);
 
 /**
  * Get related tours
  */
-async function getRelatedTours(categoryIds: string | string[] | any, currentTourId: string, tenantId: string): Promise<TourType[]> {
+const getRelatedTours = cacheIfAvailable(
+  async (categoryIds: string | string[] | any, currentTourId: string, tenantId: string): Promise<TourType[]> => {
   try {
     await dbConnect();
 
@@ -91,7 +97,28 @@ async function getRelatedTours(categoryIds: string | string[] | any, currentTour
     console.error('[Tour] Error fetching related tours:', error);
     return [];
   }
-}
+  },
+  ['tour-related-tours'],
+  { revalidate: 120, tags: ['tours'] }
+);
+
+const getTourMetadataData = cacheIfAvailable(
+  async (slug: string, tenantId: string) => {
+    await dbConnect();
+
+    const tenantFilter = tenantId !== 'default'
+      ? { $or: [{ tenantId }, { tenantId: 'default' }] }
+      : {};
+
+    return Tour.findOne({ slug, ...tenantFilter })
+      .select('title description metaTitle metaDescription keywords image destination')
+      .populate('destination', 'name')
+      .sort({ tenantId: tenantId !== 'default' ? -1 : 1 })
+      .lean();
+  },
+  ['tour-page-metadata'],
+  { revalidate: 60, tags: ['tours'] }
+);
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const t = await getTranslations('metadata');
@@ -101,17 +128,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const tenant = await getTenantPublicConfig(tenantId);
     const siteName = tenant?.name || 'Tours';
 
-    await dbConnect();
-
-    const tenantFilter = tenantId !== 'default'
-      ? { $or: [{ tenantId }, { tenantId: 'default' }] }
-      : {};
-
-    const tour = await Tour.findOne({ slug, ...tenantFilter })
-      .select('title description metaTitle metaDescription keywords image destination')
-      .populate('destination', 'name')
-      .sort({ tenantId: tenantId !== 'default' ? -1 : 1 })
-      .lean();
+    const tour = await getTourMetadataData(slug, tenantId);
 
     if (!tour) {
       return { title: t('tourNotFound') };
@@ -148,7 +165,7 @@ export default async function TourDetailPage({ params }: PageProps) {
     const relatedTours = await getRelatedTours(tour.category, (tour._id as any)?.toString(), tenantId);
 
     const localizedTour = localizeTour(tour as any, locale) as any;
-    const localizedRelated = relatedTours.map(t => localizeTour(t as any, locale) as any);
+    const localizedRelated = relatedTours.map((t: TourType) => localizeTour(t as any, locale) as any);
 
     return (
       <>
@@ -167,5 +184,5 @@ export default async function TourDetailPage({ params }: PageProps) {
   }
 }
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 60;
 export const dynamicParams = true;

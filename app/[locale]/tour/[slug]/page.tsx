@@ -10,13 +10,15 @@ import UserModel from '@/lib/models/user';
 import { Tour, Review } from '@/types';
 import TourPageClient from './TourPageClient';
 import { getTenantFromRequest, getTenantPublicConfig } from '@/lib/tenant';
+import { cacheIfAvailable } from '@/lib/cache';
 
-// Enable ISR with 60 second revalidation for instant page loads
-export const dynamic = 'force-dynamic';
+// Revalidate warm server data every 60 seconds.
+export const revalidate = 60;
 export const dynamicParams = true;
 
 // Fetch tour data and reviews from database
-async function getTourData(slug: string): Promise<{ tour: Tour | null; relatedTours: Tour[]; reviews: Review[] }> {
+const getTourData = cacheIfAvailable(
+  async (slug: string): Promise<{ tour: Tour | null; relatedTours: Tour[]; reviews: Review[] }> => {
   try {
     await dbConnect();
 
@@ -73,7 +75,22 @@ async function getTourData(slug: string): Promise<{ tour: Tour | null; relatedTo
     console.error('Error fetching tour data:', error);
     return { tour: null, relatedTours: [], reviews: [] };
   }
-}
+  },
+  ['legacy-tour-page-data'],
+  { revalidate: 60, tags: ['tours'] }
+);
+
+const getTourMetadataData = cacheIfAvailable(
+  async (slug: string) => {
+    await dbConnect();
+
+    return TourModel.findOne({ slug })
+      .select('title description image discountPrice originalPrice')
+      .lean();
+  },
+  ['legacy-tour-page-metadata'],
+  { revalidate: 60, tags: ['tours'] }
+);
 
 // Generate metadata for SEO and social sharing
 export async function generateMetadata({ params }: { params: { slug: string } }) {
@@ -82,10 +99,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
     const tenant = await getTenantPublicConfig(tenantId);
     const siteName = tenant?.name || 'Tours';
     
-    await dbConnect();
-    const tour = await TourModel.findOne({ slug: params.slug })
-      .select('title description image discountPrice originalPrice')
-      .lean();
+    const tour = await getTourMetadataData(params.slug);
 
     if (!tour) {
       return {

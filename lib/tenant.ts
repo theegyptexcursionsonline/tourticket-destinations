@@ -281,7 +281,7 @@ export async function getTenantByDomain(domain: string): Promise<ITenant | null>
  */
 export async function getTenantPublicConfig(tenantId: string): Promise<TenantPublicConfig | null> {
   try {
-    const tenant = await getTenantConfig(tenantId);
+    const tenant = await getTenantConfigCached(tenantId);
     
     if (!tenant) {
       // Only warn for non-default tenants (default tenant is not used in this deployment)

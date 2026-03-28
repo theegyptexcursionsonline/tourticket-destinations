@@ -2,11 +2,30 @@
 // Server-side caching utilities.
 //
 // Netlify's runtime cache handler is currently causing live page crashes when it
-// is enabled for this app, so these helpers intentionally fall back to direct
-// execution. Keeping the wrapper API lets the rest of the code stay unchanged
-// while avoiding Next/Netlify cache initialization at runtime.
+// is enabled for this app, so these helpers use a lightweight in-memory
+// stale-while-revalidate cache instead of Next/Netlify's persistent cache.
+// This gives us ISR-like behavior for warm server instances without touching
+// the Blobs-backed runtime path that was crashing production.
 
 import dbConnect from './dbConnect';
+
+type CacheEntry<TResult> = {
+  expiresAt: number;
+  hasValue: boolean;
+  promise?: Promise<TResult>;
+  value?: TResult;
+};
+
+type GlobalWithAppCache = typeof globalThis & {
+  __tourTicketCache?: Map<string, CacheEntry<unknown>>;
+};
+
+const globalWithAppCache = globalThis as GlobalWithAppCache;
+const memoryCache = globalWithAppCache.__tourTicketCache ?? new Map<string, CacheEntry<unknown>>();
+
+if (!globalWithAppCache.__tourTicketCache) {
+  globalWithAppCache.__tourTicketCache = memoryCache;
+}
 
 // Cache tags for revalidation
 export const CACHE_TAGS = {
@@ -25,13 +44,82 @@ export const CACHE_DURATIONS = {
   STATIC: 86400,    // 24 hours - for static content
 } as const;
 
+function buildCacheKey(keyParts: string[], args: unknown[]): string {
+  return JSON.stringify([keyParts, args]);
+}
+
+function isFresh<TResult>(entry: CacheEntry<TResult>): boolean {
+  return entry.hasValue && entry.expiresAt > Date.now();
+}
+
 export function cacheIfAvailable<TArgs extends unknown[], TResult>(
   fn: (...args: TArgs) => Promise<TResult>,
-  _keyParts: string[],
+  keyParts: string[],
   options: { revalidate?: number; tags?: string[] } = {}
 ) {
-  void options;
-  return (...args: TArgs) => fn(...args);
+  void options.tags;
+
+  const ttlMs = Math.max(0, (options.revalidate ?? CACHE_DURATIONS.MEDIUM) * 1000);
+
+  if (ttlMs === 0) {
+    return (...args: TArgs) => fn(...args);
+  }
+
+  const loadEntry = (cacheKey: string, args: TArgs, staleEntry?: CacheEntry<TResult>) => {
+    const promise = fn(...args)
+      .then((value) => {
+        memoryCache.set(cacheKey, {
+          expiresAt: Date.now() + ttlMs,
+          hasValue: true,
+          value,
+        } satisfies CacheEntry<TResult>);
+
+        return value;
+      })
+      .catch((error) => {
+        if (staleEntry?.hasValue) {
+          memoryCache.set(cacheKey, staleEntry);
+        } else {
+          memoryCache.delete(cacheKey);
+        }
+
+        throw error;
+      });
+
+    const pendingEntry: CacheEntry<TResult> = staleEntry?.hasValue
+      ? { ...staleEntry, promise }
+      : {
+          expiresAt: Date.now() + ttlMs,
+          hasValue: false,
+          promise,
+        };
+
+    memoryCache.set(cacheKey, pendingEntry as CacheEntry<unknown>);
+    return promise;
+  };
+
+  return async (...args: TArgs) => {
+    const cacheKey = buildCacheKey(keyParts, args);
+    const entry = memoryCache.get(cacheKey) as CacheEntry<TResult> | undefined;
+
+    if (entry && isFresh(entry)) {
+      return entry.value as TResult;
+    }
+
+    if (entry && entry.hasValue) {
+      if (!entry.promise) {
+        void loadEntry(cacheKey, args, entry);
+      }
+
+      return entry.value as TResult;
+    }
+
+    if (entry && entry.promise) {
+      return entry.promise;
+    }
+
+    return loadEntry(cacheKey, args);
+  };
 }
 
 /**
