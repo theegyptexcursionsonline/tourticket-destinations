@@ -157,6 +157,7 @@ export default function UserDashboardPage() {
 const DashboardContent = () => {
   const { user, token } = useAuth();
   const t = useTranslations();
+  const userImage = user?.picture || user?.photoURL;
   const [bookings, setBookings] = useState<PopulatedBooking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -229,9 +230,9 @@ const DashboardContent = () => {
           {/* User Info */}
           <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1 mb-5 lg:mb-0">
             <div className="relative w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full overflow-hidden bg-slate-100 flex-shrink-0 ring-2 ring-slate-100">
-              {user?.picture || user?.photoURL ? (
+              {userImage ? (
                 <Image
-                  src={user.picture || user.photoURL || ''}
+                  src={userImage}
                   alt={userName || 'User avatar'}
                   fill
                   className="object-cover"

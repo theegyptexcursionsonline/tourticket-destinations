@@ -331,6 +331,7 @@ export default function ProfilePage() {
   const { user } = useAuth();
   const t = useTranslations();
   const [activeTab, setActiveTab] = useState<'profile' | 'password'>('profile');
+  const userImage = user?.picture || user?.photoURL;
 
   return (
     <div className="space-y-8">
@@ -338,9 +339,9 @@ export default function ProfilePage() {
       <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row items-center sm:items-center gap-4 sm:gap-6 text-center sm:text-start">
           <div className="relative w-20 h-20 flex-shrink-0">
-            {user?.picture || user?.photoURL ? (
+            {userImage ? (
               <Image
-                src={user.picture || user.photoURL || ''}
+                src={userImage}
                 alt={user.name || 'User'}
                 fill
                 className="object-cover rounded-full border-2 border-slate-100"

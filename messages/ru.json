@@ -82,7 +82,8 @@
     "highlights": "Основные моменты",
     "features": "Особенности",
     "essentialInfo": "Важная информация",
-    "discover": "ОТКРОЙТЕ"
+    "discover": "ОТКРОЙТЕ",
+    "openAiAssistant": "Открыть ИИ-помощника"
   },
   "currency": {
     "title": "Выберите валюту",

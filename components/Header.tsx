@@ -1170,14 +1170,15 @@ const UserMenu: FC<{ user: any; onLogout: () => void }> = ({ user, onLogout }) =
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const t = useTranslations();
+  const userImage = user.picture || user.photoURL;
 
   useOnClickOutside(menuRef, () => setIsOpen(false));
 
   return (
     <div className="relative" ref={menuRef}>
       <button onClick={() => setIsOpen(!isOpen)} className="flex items-center gap-2 p-2 rounded-full hover:bg-slate-100 transition-colors">
-        {user.picture || user.photoURL ? (
-          <Image src={user.picture || user.photoURL || ''} alt={user.name} width={32} height={32} className="rounded-full" />
+        {userImage ? (
+          <Image src={userImage} alt={user.name} width={32} height={32} className="rounded-full" />
         ) : (
           <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'var(--gradient-primary)' }}>
             <span className="text-white text-sm font-bold uppercase">
@@ -1231,6 +1232,7 @@ const MobileMenu: FC<{
   const { user, logout } = useAuth();
   const t = useTranslations();
   const { getLogo, getSiteName } = useTenant();
+  const userImage = user?.picture || user?.photoURL;
 
   // Use tenant-specific defaults if available
   const tenantDestinations = tenantId ? tenantMegaMenuDestinations[tenantId] : null;
@@ -1299,8 +1301,8 @@ const MobileMenu: FC<{
               {user ? (
                 <div className="p-6 border-b">
                   <div className="flex items-center gap-3 mb-4">
-                    {user.picture || user.photoURL ? (
-                      <Image src={user.picture || user.photoURL || ''} alt={user.name} width={40} height={40} className="rounded-full" />
+                    {userImage ? (
+                      <Image src={userImage} alt={user.name} width={40} height={40} className="rounded-full" />
                     ) : (
                       <div className="w-10 h-10 rounded-full flex items-center justify-center text-white" style={{ background: 'var(--gradient-primary)' }}>
                         <span className="text-lg font-bold uppercase">

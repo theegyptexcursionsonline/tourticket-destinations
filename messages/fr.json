@@ -82,7 +82,8 @@
     "highlights": "Points Forts",
     "features": "Caractéristiques",
     "essentialInfo": "Informations Essentielles",
-    "discover": "DÉCOUVRIR"
+    "discover": "DÉCOUVRIR",
+    "openAiAssistant": "Ouvrir l'assistant IA"
   },
   "currency": {
     "title": "Sélectionnez une Devise",
