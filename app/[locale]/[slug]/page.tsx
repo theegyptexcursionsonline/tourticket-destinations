@@ -178,5 +178,5 @@ export default async function TourDetailPage({ params }: PageProps) {
 }
 
 // ISR: cache tour pages for 60s, revalidate in background
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 export const dynamicParams = true;
