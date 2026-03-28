@@ -44,10 +44,13 @@
       "STRIPE_RESTRICTED_KEY"
     ]
 
-# Increase function timeout and memory for large builds
+# Increase function timeout for cold starts (MongoDB connection + SSR)
 [functions]
   node_bundler = "esbuild"
   included_files = []
+
+[functions."*"]
+  timeout = 26
 
 # Headers for caching
 [[headers]]
