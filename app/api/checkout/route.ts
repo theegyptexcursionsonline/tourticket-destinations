@@ -270,8 +270,15 @@ export async function POST(request: Request) {
       );
     }
 
-    // pay_later is always allowed regardless of tenant config
-    if (paymentMethod !== 'pay_later' && supportedPaymentMethods?.length && !supportedPaymentMethods.includes(paymentMethod)) {
+    // Reject pay_later — no longer supported on tenant websites
+    if (paymentMethod === 'pay_later') {
+      return NextResponse.json(
+        { success: false, message: 'Pay Later is not available. Please select another payment method.' },
+        { status: 400 }
+      );
+    }
+
+    if (supportedPaymentMethods?.length && !supportedPaymentMethods.includes(paymentMethod)) {
       return NextResponse.json(
         { success: false, message: 'Selected payment method is not available for this tenant.' },
         { status: 400 }

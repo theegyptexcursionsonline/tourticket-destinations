@@ -395,6 +395,72 @@ describe('Admin Bookings API — filter logic', () => {
   });
 
   // ============================
+  // EEO network filter (default/legacy exclusion)
+  // ============================
+  describe('EEO network tenant filter', () => {
+    /**
+     * Simulates the baseMatch.tenantId filter used in the route when
+     * no specific tenant is selected ("all brands").
+     */
+    function buildAllBrandsTenantFilter() {
+      return { $exists: true, $nin: ['default', null, undefined, ''] };
+    }
+
+    /** Checks if a document would pass the "all brands" tenantId filter. */
+    function matchesAllBrandsFilter(doc: Record<string, unknown>): boolean {
+      const hasTenantId = 'tenantId' in doc;
+      if (!hasTenantId) return false;
+      const t = doc.tenantId;
+      if (t === null || t === undefined || t === '' || t === 'default') return false;
+      return true;
+    }
+
+    it('filter shape includes $exists and $nin', () => {
+      const filter = buildAllBrandsTenantFilter();
+      expect(filter.$exists).toBe(true);
+      expect(filter.$nin).toContain('default');
+      expect(filter.$nin).toContain(null);
+      expect(filter.$nin).toContain(undefined);
+      expect(filter.$nin).toContain('');
+    });
+
+    it('excludes bookings with no tenantId field', () => {
+      expect(matchesAllBrandsFilter({ _id: '1' })).toBe(false);
+    });
+
+    it('excludes bookings with tenantId = null', () => {
+      expect(matchesAllBrandsFilter({ _id: '2', tenantId: null })).toBe(false);
+    });
+
+    it('excludes bookings with tenantId = undefined', () => {
+      expect(matchesAllBrandsFilter({ _id: '3', tenantId: undefined })).toBe(false);
+    });
+
+    it('excludes bookings with tenantId = empty string', () => {
+      expect(matchesAllBrandsFilter({ _id: '4', tenantId: '' })).toBe(false);
+    });
+
+    it('excludes bookings with tenantId = "default"', () => {
+      expect(matchesAllBrandsFilter({ _id: '5', tenantId: 'default' })).toBe(false);
+    });
+
+    it('includes bookings from branded tenants', () => {
+      const tenants = [
+        'hurghada-excursions-online',
+        'cairo-excursions-online',
+        'makadi-bay',
+        'el-gouna',
+        'luxor-excursions',
+        'sharm-excursions-online',
+        'hurghada-speedboat',
+      ];
+      for (const t of tenants) {
+        expect(matchesAllBrandsFilter({ _id: t, tenantId: t })).toBe(true);
+      }
+    });
+  });
+
+  // ============================
   // End-to-end pipeline shape
   // ============================
   describe('full pipeline shape', () => {

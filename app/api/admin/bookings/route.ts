@@ -40,11 +40,13 @@ export async function GET(request: NextRequest) {
     const baseMatch: Record<string, unknown> = {};
 
     // Early tenant filter — narrows working set BEFORE expensive $lookups
+    // Only show bookings from the EEO network (branded tenants), never from the
+    // default/legacy tourticket site.
     if (effectiveTenantId) {
       baseMatch.tenantId = effectiveTenantId;
     } else {
-      // "All brands" — exclude default (egypt-excursionsonline.com) bookings
-      baseMatch.tenantId = { $nin: ['default', null, undefined] };
+      // "All brands" — exclude default, null, undefined, empty, and missing tenantId
+      baseMatch.tenantId = { $exists: true, $nin: ['default', null, undefined, ''] };
     }
 
     // Status filter
