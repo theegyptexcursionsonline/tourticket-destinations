@@ -5,12 +5,6 @@
 [build.environment]
   NODE_VERSION = "20"
   NPM_FLAGS = "--legacy-peer-deps"
-  # Required for Next.js cache handler on Netlify
-  NEXT_PRIVATE_STANDALONE = "true"
-
-# Next.js plugin for Netlify (v5.15.9 via package.json)
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
 
 # Ensure environment variables are available in functions
 [[plugins]]
