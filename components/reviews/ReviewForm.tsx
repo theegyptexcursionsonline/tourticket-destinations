@@ -24,39 +24,71 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ tourId, onReviewSubmitted }) =>
   const [title, setTitle] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasExistingReview, setHasExistingReview] = useState<any>(null);
-  const [isCheckingExisting, setIsCheckingExisting] = useState(true);
+  const [isCheckingExisting, setIsCheckingExisting] = useState(false);
   const [isLoginModalOpen, setLoginModalOpen] = useState(false);
   const [isSignupModalOpen, setSignupModalOpen] = useState(false);
 
   // Check if user has already reviewed this tour
   useEffect(() => {
+    let isMounted = true;
+    const controller = new AbortController();
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
     const checkExistingReview = async () => {
       if (!isAuthenticated || !user || !token) {
-        setIsCheckingExisting(false);
+        if (isMounted) {
+          setHasExistingReview(null);
+          setIsCheckingExisting(false);
+        }
         return;
       }
+
+      if (isMounted) {
+        setIsCheckingExisting(true);
+      }
+
+      timeoutId = setTimeout(() => {
+        controller.abort();
+      }, 8000);
 
       try {
         const response = await fetch(`/api/tours/${tourId}/reviews/check`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
+          signal: controller.signal,
         });
 
         if (response.ok) {
           const data = await response.json();
-          if (data.hasReview) {
+          if (isMounted && data.hasReview) {
             setHasExistingReview(data.review);
           }
         }
       } catch (error) {
-        console.error('Error checking existing review:', error);
+        if ((error as Error)?.name !== 'AbortError') {
+          console.error('Error checking existing review:', error);
+        }
       } finally {
-        setIsCheckingExisting(false);
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+
+        if (isMounted) {
+          setIsCheckingExisting(false);
+        }
       }
     };
 
     checkExistingReview();
+
+    return () => {
+      isMounted = false;
+      controller.abort();
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
   }, [isAuthenticated, user, token, tourId]);
 
   const handleSubmit = async (e: React.FormEvent) => {

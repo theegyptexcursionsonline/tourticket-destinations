@@ -36,6 +36,11 @@ let app: FirebaseApp | undefined;
 let auth: Auth | undefined;
 let analytics: Analytics | null = null;
 let googleProvider: GoogleAuthProvider | undefined;
+let resolveFirebaseReady: () => void = () => {};
+
+export const firebaseReady = new Promise<void>((resolve) => {
+  resolveFirebaseReady = resolve;
+});
 
 // Only initialize if we're in browser and config is valid
 if (typeof window !== 'undefined') {
@@ -83,6 +88,8 @@ if (typeof window !== 'undefined') {
         app = undefined;
         auth = undefined;
         googleProvider = undefined;
+      } finally {
+        resolveFirebaseReady();
       }
     }, 0);
   } else {
@@ -94,7 +101,11 @@ if (typeof window !== 'undefined') {
     } else {
       console.info('Firebase: Missing required configuration - authentication disabled');
     }
+
+    resolveFirebaseReady();
   }
+} else {
+  resolveFirebaseReady();
 }
 
 // Async getters for code that needs to ensure Firebase is ready
@@ -109,9 +120,6 @@ export async function getGoogleProvider(): Promise<GoogleAuthProvider | undefine
 export async function getFirebaseApp(): Promise<FirebaseApp | undefined> {
   return app;
 }
-
-// Export a promise that resolves immediately (Firebase is sync now, but keeping for API compatibility)
-export const firebaseReady = Promise.resolve();
 
 export { auth, googleProvider, analytics };
 export default app;
