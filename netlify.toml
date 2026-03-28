@@ -5,13 +5,14 @@
 [build.environment]
   NODE_VERSION = "20"
   NPM_FLAGS = "--legacy-peer-deps"
-  # Disable Netlify Blobs cache handler to prevent MissingBlobsEnvironmentError
-  DISABLE_NEXTJS_CACHE = "true"
+  # Required for Next.js cache handler on Netlify
+  NEXT_PRIVATE_STANDALONE = "true"
 
-# Next.js plugin for Netlify
+# Next.js plugin for Netlify (v5.15.9 via package.json)
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
+# Ensure environment variables are available in functions
 [[plugins]]
   package = "netlify-plugin-inline-functions-env"
   [plugins.inputs]
@@ -46,9 +47,8 @@
       "STRIPE_RESTRICTED_KEY"
     ]
 
-# Increase function timeout for cold starts (MongoDB connection + SSR)
+# Function timeout for cold starts (MongoDB connection + SSR)
 [functions]
-  node_bundler = "esbuild"
   included_files = []
 
 [functions."*"]
@@ -71,4 +71,3 @@
   to = "https://egyptexcursionsonline.com/:splat"
   status = 301
   force = true
-
