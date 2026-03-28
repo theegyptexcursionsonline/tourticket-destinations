@@ -194,9 +194,6 @@ const nextConfig = {
     return config;
   },
 
-  // Disable in-memory cache to prevent Netlify Blobs MissingBlobsEnvironmentError
-  cacheMaxMemorySize: 0,
-
   compress: true,
   poweredByHeader: false,
   generateEtags: true,
