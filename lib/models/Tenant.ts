@@ -1197,12 +1197,9 @@ const TenantSchema: Schema<ITenant> = new Schema({
   toObject: { virtuals: true },
 });
 
-// Indexes for performance
-TenantSchema.index({ tenantId: 1 }, { unique: true });
-TenantSchema.index({ domain: 1 }, { unique: true });
+// Compound index for performance (simple indexes already defined via schema field options)
 TenantSchema.index({ domains: 1 });
 TenantSchema.index({ isActive: 1, isDefault: 1 });
-TenantSchema.index({ slug: 1 }, { unique: true });
 
 // Pre-save middleware
 TenantSchema.pre('save', async function(this: ITenant, next: () => void) {

@@ -86,11 +86,10 @@ async function dbConnect(tenantId?: string) {
   if (!cache.promise) {
     const opts = {
       bufferCommands: false,
-      // Increased timeouts for build process (handles 300+ concurrent static pages)
       maxPoolSize: 5, // Keep low for serverless (Netlify) compatibility
-      serverSelectionTimeoutMS: 30000, // 30 seconds (was 5s - too short for builds)
-      socketTimeoutMS: 45000,
-      connectTimeoutMS: 30000, // Add explicit connect timeout
+      serverSelectionTimeoutMS: 10000, // 10 seconds — fail fast on serverless
+      socketTimeoutMS: 20000,
+      connectTimeoutMS: 10000,
       family: 4, // Use IPv4, skip trying IPv6
     };
 
