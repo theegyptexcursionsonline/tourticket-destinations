@@ -11,7 +11,22 @@ const almarai = Almarai({
   variable: '--font-almarai'
 });
 
+const defaultMetadataBase = (() => {
+  const configuredBaseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_APP_URL;
+
+  if (configuredBaseUrl) {
+    try {
+      return new URL(configuredBaseUrl);
+    } catch (error) {
+      console.warn('Invalid metadata base URL configuration:', error);
+    }
+  }
+
+  return new URL('http://localhost:3000');
+})();
+
 export const metadata: Metadata = {
+  metadataBase: defaultMetadataBase,
   title: "Egypt Excursions Online",
   description: "Discover and book unforgettable tours and experiences.",
 };

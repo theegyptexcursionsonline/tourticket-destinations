@@ -1,7 +1,7 @@
 // app/api/admin/reports/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { unstable_cache } from 'next/cache';
 import dbConnect from '@/lib/dbConnect';
+import { cacheIfAvailable } from '@/lib/cache';
 import Booking from '@/lib/models/Booking';
 import Tour from '@/lib/models/Tour';
 import { subMonths, format, startOfMonth } from 'date-fns';
@@ -140,7 +140,7 @@ async function fetchReportData(effectiveTenantId: string | undefined) {
 }
 
 function getCachedReportData(tenantKey: string) {
-  return unstable_cache(
+  return cacheIfAvailable(
     () => fetchReportData(tenantKey === 'all' ? undefined : tenantKey),
     [`report-data-${tenantKey}`],
     { revalidate: 120, tags: ['reports', `reports-${tenantKey}`] }

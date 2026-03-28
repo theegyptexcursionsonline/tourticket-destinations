@@ -331,6 +331,10 @@ function isAdminPath(pathname: string): boolean {
   );
 }
 
+function isMonitoringPath(pathname: string): boolean {
+  return pathname === '/monitoring' || pathname.startsWith('/monitoring/');
+}
+
 function isAllowedInComingSoonMode(pathname: string): boolean {
   return COMING_SOON_ALLOWED_PATHS.some(path =>
     pathname === path || pathname.startsWith(path + '/') || pathname.startsWith(path)
@@ -549,6 +553,11 @@ export function middleware(request: NextRequest) {
   // ============================================
   // PAGE ROUTES — compose tenant + locale
   // ============================================
+
+  // Sentry tunnel requests should bypass locale rewrites.
+  if (isMonitoringPath(pathname)) {
+    return createTenantResponse(request, tenantId, hostname, isPreviewMode);
+  }
 
   // 1. Run next-intl middleware (handles locale detection and URL rewriting)
   const intlResponse = intlMiddleware(request);

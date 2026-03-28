@@ -300,8 +300,6 @@ HeroSettingsSchema.pre('save', async function(next) {
   next();
 });
 
-// Multi-tenant indexes
-HeroSettingsSchema.index({ tenantId: 1, isActive: 1 });
 // Ensure only one active hero settings per tenant
 HeroSettingsSchema.index(
   { tenantId: 1, isActive: 1 },

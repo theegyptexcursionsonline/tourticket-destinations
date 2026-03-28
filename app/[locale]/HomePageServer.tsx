@@ -7,6 +7,7 @@ import Tour from '@/lib/models/Tour';
 import Category from '@/lib/models/Category';
 import AttractionPage from '@/lib/models/AttractionPage';
 import HeroSettings from '@/lib/models/HeroSettings';
+import { cacheIfAvailable } from '@/lib/cache';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import HeroSection from '@/components/HeroSection';
@@ -26,7 +27,6 @@ import DayTripsServer from '@/components/DayTripsServer';
 
 // Import tenant utilities
 import { getTenantFromRequest, getTenantConfig, buildTenantQuery } from '@/lib/tenant';
-import { unstable_cache } from 'next/cache';
 import { getLocale } from 'next-intl/server';
 import { localizeTour } from '@/lib/translation/getLocalizedField';
 import { localizeEntityFields } from '@/lib/i18n/contentLocalization';
@@ -298,7 +298,7 @@ async function getHomePageDataInternal(tenantId: string) {
  * Caches per tenant for 60 seconds
  */
 const getHomePageData = (tenantId: string) =>
-  unstable_cache(
+  cacheIfAvailable(
     () => getHomePageDataInternal(tenantId),
     [`homepage-data-${tenantId}`],
     {

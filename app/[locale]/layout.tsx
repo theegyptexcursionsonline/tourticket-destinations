@@ -29,6 +29,35 @@ const almarai = Almarai({
   variable: '--font-almarai'
 });
 
+const fallbackMetadataBase = (() => {
+  const configuredBaseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_APP_URL;
+
+  if (configuredBaseUrl) {
+    try {
+      return new URL(configuredBaseUrl);
+    } catch (error) {
+      console.warn('Invalid fallback metadata base URL configuration:', error);
+    }
+  }
+
+  return new URL('http://localhost:3000');
+})();
+
+function resolveMetadataBase(hostname?: string | null, protocol?: string | null): URL {
+  if (!hostname) {
+    return fallbackMetadataBase;
+  }
+
+  const normalizedProtocol = protocol || (hostname.includes('localhost') ? 'http' : 'https');
+
+  try {
+    return new URL(`${normalizedProtocol}://${hostname}`);
+  } catch (error) {
+    console.warn('Unable to build metadataBase from request headers:', error);
+    return fallbackMetadataBase;
+  }
+}
+
 // Dynamic metadata generation based on tenant
 export async function generateMetadata({
   params,
@@ -37,10 +66,15 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   let comingSoonBypassed = false;
+  let metadataBase = fallbackMetadataBase;
 
   try {
     const headersList = await headers();
     comingSoonBypassed = headersList.get('x-coming-soon-exempt') === 'true';
+    metadataBase = resolveMetadataBase(
+      headersList.get('x-forwarded-host') || headersList.get('host'),
+      headersList.get('x-forwarded-proto')
+    );
   } catch (error) {
     console.warn('Unable to read headers in generateMetadata:', error);
   }
@@ -52,6 +86,7 @@ export async function generateMetadata({
 
       if (tenantConfig) {
         return {
+          metadataBase,
           title: `Coming Soon - ${tenantConfig.name}`,
           description: `Something extraordinary is coming to ${tenantConfig.name}. Sign up for early access!`,
         };
@@ -61,6 +96,7 @@ export async function generateMetadata({
     }
 
     return {
+      metadataBase,
       title: 'Coming Soon - Egypt Excursions Online',
       description: 'Something extraordinary is coming. Sign up for early access!',
     };
@@ -72,6 +108,7 @@ export async function generateMetadata({
 
     if (tenantConfig) {
       return {
+        metadataBase,
         title: {
           default: tenantConfig.seo.defaultTitle,
           template: `%s | ${tenantConfig.seo.titleSuffix}`,
@@ -100,6 +137,7 @@ export async function generateMetadata({
 
   // Fallback metadata
   return {
+    metadataBase,
     title: {
       default: "Egypt Excursions Online - Unforgettable Experiences",
       template: "%s | Egypt Excursions Online",

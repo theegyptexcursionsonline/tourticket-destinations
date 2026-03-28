@@ -1,7 +1,7 @@
 // app/api/admin/dashboard/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { unstable_cache } from 'next/cache';
 import dbConnect from '@/lib/dbConnect';
+import { cacheIfAvailable } from '@/lib/cache';
 import Tour from '@/lib/models/Tour';
 import Booking from '@/lib/models/Booking';
 import User from '@/lib/models/user';
@@ -99,7 +99,7 @@ async function fetchDashboardStats(effectiveTenantId: string | undefined) {
 }
 
 function getCachedDashboardStats(tenantKey: string) {
-  return unstable_cache(
+  return cacheIfAvailable(
     () => fetchDashboardStats(tenantKey === 'all' ? undefined : tenantKey),
     [`dashboard-stats-${tenantKey}`],
     { revalidate: 60, tags: ['dashboard', `dashboard-${tenantKey}`] }
