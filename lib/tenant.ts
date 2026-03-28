@@ -284,38 +284,39 @@ export async function getTenantPublicConfig(tenantId: string): Promise<TenantPub
     const tenant = await getTenantConfig(tenantId);
     
     if (!tenant) {
+      console.warn(`[Tenant] No active tenant found for "${tenantId}" — DB record may be missing or isActive=false`);
       return null;
     }
-  
-  // Return only public/safe configuration
+
+  // Return only public/safe configuration (with fallbacks for missing nested objects)
   return {
     tenantId: tenant.tenantId,
     name: tenant.name,
     domain: tenant.domain,
     branding: tenant.branding,
     seo: {
-      defaultTitle: tenant.seo.defaultTitle,
-      titleSuffix: tenant.seo.titleSuffix,
-      defaultDescription: tenant.seo.defaultDescription,
-      ogImage: tenant.seo.ogImage,
-      googleTagManagerId: tenant.seo.googleTagManagerId,
+      defaultTitle: tenant.seo?.defaultTitle ?? '',
+      titleSuffix: tenant.seo?.titleSuffix ?? '',
+      defaultDescription: tenant.seo?.defaultDescription ?? '',
+      ogImage: tenant.seo?.ogImage ?? '',
+      googleTagManagerId: tenant.seo?.googleTagManagerId ?? '',
     },
     contact: {
-      email: tenant.contact.email,
-      phone: tenant.contact.phone,
-      whatsapp: tenant.contact.whatsapp,
+      email: tenant.contact?.email ?? '',
+      phone: tenant.contact?.phone ?? '',
+      whatsapp: tenant.contact?.whatsapp ?? '',
     },
     socialLinks: tenant.socialLinks,
     features: tenant.features,
     localization: {
-      defaultLanguage: tenant.localization.defaultLanguage,
-      supportedLanguages: tenant.localization.supportedLanguages,
+      defaultLanguage: tenant.localization?.defaultLanguage ?? 'en',
+      supportedLanguages: tenant.localization?.supportedLanguages ?? ['en'],
     },
     payments: {
-      currency: tenant.payments.currency,
-      currencySymbol: tenant.payments.currencySymbol,
-      supportedCurrencies: tenant.payments.supportedCurrencies,
-      supportedPaymentMethods: tenant.payments.supportedPaymentMethods,
+      currency: tenant.payments?.currency ?? 'USD',
+      currencySymbol: tenant.payments?.currencySymbol ?? '$',
+      supportedCurrencies: tenant.payments?.supportedCurrencies ?? ['USD'],
+      supportedPaymentMethods: tenant.payments?.supportedPaymentMethods ?? ['card'],
     },
   };
   } catch (error) {

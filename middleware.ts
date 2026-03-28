@@ -52,7 +52,6 @@ function getTenantStatusMapping(): Record<string, WebsiteStatus> {
 // Future/prepared tenants that don't have database records yet —
 // default them to 'coming_soon' so they don't crash with 500.
 const FUTURE_TENANTS = new Set([
-  'aswan-excursions',
   'marsa-alam-excursions',
   'dahab-excursions',
 ]);
