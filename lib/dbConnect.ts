@@ -18,6 +18,10 @@ if (!globalWithMongoose.mongoose) {
   globalWithMongoose.mongoose = { conn: null, promise: null };
 }
 
+function isConnectionReady(): boolean {
+  return mongoose.connection.readyState === mongoose.ConnectionStates.connected;
+}
+
 function getMongoURI(): string {
   const uri = process.env.MONGODB_URI;
   if (!uri) {
@@ -28,7 +32,7 @@ function getMongoURI(): string {
 
 async function dbConnect(_tenantId?: string) {
   // Fast path: already connected
-  if (mongoose.connection.readyState === 1) {
+  if (isConnectionReady()) {
     return mongoose;
   }
 
@@ -41,7 +45,7 @@ async function dbConnect(_tenantId?: string) {
   if (globalWithMongoose.mongoose.promise) {
     try {
       const conn = await globalWithMongoose.mongoose.promise;
-      if (mongoose.connection.readyState === 1) {
+      if (isConnectionReady()) {
         return conn;
       }
       // Connection was lost, reset and reconnect
