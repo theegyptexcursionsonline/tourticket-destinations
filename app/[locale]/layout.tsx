@@ -14,6 +14,7 @@ import CartSidebar from "@/components/CartSidebar";
 import WishlistSidebar from "@/components/WishlistSidebar";
 import { Toaster } from 'react-hot-toast';
 import ConditionalAIWidgets from "@/components/ConditionalAIWidgets";
+import ClientErrorReporter from "@/components/ClientErrorReporter";
 import { getTenantFromRequest, getTenantPublicConfig, TenantPublicConfig } from "@/lib/tenant";
 import ComingSoonPage from "@/components/ComingSoonPage";
 import { routing } from '@/i18n/routing';
@@ -266,6 +267,7 @@ export default async function LocaleLayout({
                     <CartSidebar />
                     <WishlistSidebar />
                     <ConditionalAIWidgets />
+                    <ClientErrorReporter />
                     <Toaster
                       position={dir === 'rtl' ? 'top-left' : 'top-right'}
                       reverseOrder={false}

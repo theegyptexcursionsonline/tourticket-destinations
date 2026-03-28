@@ -8,6 +8,7 @@ import Review from '@/lib/models/Review';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import TourDetailClientPage from './TourDetailClientPage';
+import ClientErrorBoundary from '@/components/ClientErrorBoundary';
 import type { Review as ReviewType, Tour as TourType } from '@/types';
 import { getTenantFromRequest, getTenantPublicConfig } from '@/lib/tenant';
 import { localizeTour } from '@/lib/translation/getLocalizedField';
@@ -170,11 +171,13 @@ export default async function TourDetailPage({ params }: PageProps) {
     return (
       <>
         <Header startSolid />
-        <TourDetailClientPage
-          tour={localizedTour}
-          relatedTours={localizedRelated}
-          initialReviews={reviews}
-        />
+        <ClientErrorBoundary>
+          <TourDetailClientPage
+            tour={localizedTour}
+            relatedTours={localizedRelated}
+            initialReviews={reviews}
+          />
+        </ClientErrorBoundary>
         <Footer />
       </>
     );
