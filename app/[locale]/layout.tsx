@@ -154,7 +154,9 @@ export default async function LocaleLayout({
     console.error('Error fetching tenant:', error);
   }
 
-  if (showComingSoonPage) {
+  // Show coming soon page if explicitly in coming-soon mode OR if tenant config
+  // is missing (tenant exists in domain mapping but not in the database yet)
+  if (showComingSoonPage || (!tenantConfig && tenantId !== 'default')) {
     return (
       <html lang={locale} dir={dir}>
         <body>
