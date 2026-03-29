@@ -22,7 +22,7 @@ interface PageProps {
  * Get tour by slug with multi-tenant support
  */
 const getTourBySlug = cacheIfAvailable(
-  async (slug: string, tenantId: string): Promise<TourType | null> => {
+  async (slug: string, tenantId: string): Promise<{ tour: TourType; reviews: ReviewType[] } | null> => {
   try {
     await dbConnect();
 
@@ -30,15 +30,31 @@ const getTourBySlug = cacheIfAvailable(
       ? { $or: [{ tenantId }, { tenantId: 'default' }] }
       : {};
 
+    console.log(`[Tour] Fetching: slug=${slug}, tenantId=${tenantId}`);
+
     const tour = await Tour.findOne({ slug, ...tenantFilter })
       .populate('destination', 'name slug description')
       .populate('category', 'name slug')
       .sort({ tenantId: tenantId !== 'default' ? -1 : 1 })
       .lean();
 
-    if (!tour) return null;
+    if (!tour) {
+      console.log(`[Tour] Not found: slug=${slug}`);
+      return null;
+    }
 
-    return JSON.parse(JSON.stringify(tour)) as TourType;
+    console.log(`[Tour] Found: ${tour.title}, tenantId=${(tour as any).tenantId}`);
+
+    const reviews = await Review.find({ tourId: tour._id })
+      .populate('userId', 'firstName lastName')
+      .sort({ createdAt: -1 })
+      .limit(20)
+      .lean();
+
+    return {
+      tour: JSON.parse(JSON.stringify(tour)) as TourType,
+      reviews: JSON.parse(JSON.stringify(reviews)) as ReviewType[],
+    };
   } catch (error) {
     console.error('[Tour] Error fetching tour:', error);
     throw error;
@@ -46,28 +62,6 @@ const getTourBySlug = cacheIfAvailable(
   },
   ['tour-page-by-slug'],
   { revalidate: 60, tags: ['tours'] }
-);
-
-/**
- * Get reviews for a tour
- */
-const getReviews = cacheIfAvailable(
-  async (tourId: string): Promise<ReviewType[]> => {
-  try {
-    await dbConnect();
-    const reviews = await Review.find({ tourId })
-      .populate('userId', 'firstName lastName')
-      .sort({ createdAt: -1 })
-      .limit(20)
-      .lean();
-    return JSON.parse(JSON.stringify(reviews)) as ReviewType[];
-  } catch (error) {
-    console.error('[Tour] Error fetching reviews:', error);
-    return [];
-  }
-  },
-  ['tour-reviews'],
-  { revalidate: 120, tags: ['reviews'] }
 );
 
 /**
@@ -162,17 +156,14 @@ export default async function TourDetailPage({ params }: PageProps) {
   try {
     const { slug, locale } = await params;
     const tenantId = await getTenantFromRequest();
-    const tour = await getTourBySlug(slug, tenantId);
+    const result = await getTourBySlug(slug, tenantId);
 
-    if (!tour) {
+    if (!result) {
       notFound();
     }
 
-    // Fetch reviews and related tours in parallel
-    const [reviews, relatedTours] = await Promise.all([
-      getReviews((tour._id as any)?.toString()),
-      getRelatedTours(tour.category, (tour._id as any)?.toString(), tenantId),
-    ]);
+    const { tour, reviews } = result;
+    const relatedTours = await getRelatedTours(tour.category, (tour._id as any)?.toString(), tenantId);
 
     const localizedTour = localizeTour(tour as any, locale) as any;
     const localizedRelated = relatedTours.map((t: TourType) => localizeTour(t as any, locale) as any);
@@ -198,16 +189,3 @@ export default async function TourDetailPage({ params }: PageProps) {
 
 export const revalidate = 60;
 export const dynamicParams = true;
-
-export async function generateStaticParams() {
-  try {
-    await dbConnect();
-    const tours = await Tour.find({ isPublished: true })
-      .select('slug')
-      .limit(50)
-      .lean();
-    return tours.map((tour: any) => ({ slug: tour.slug }));
-  } catch {
-    return [];
-  }
-}
