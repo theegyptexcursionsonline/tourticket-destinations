@@ -52,7 +52,7 @@ const normalizeRole = (role: unknown): AdminRole => {
 };
 
 const _getPortalLink = () => {
-  const base = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || 'https://tourticket.app';
+  const base = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || 'https://egypt-excursionsonline.com';
   return `${base.replace(/\/$/, '')}/admin`;
 };
 
@@ -60,7 +60,7 @@ const getSupportEmail = () =>
   process.env.SUPPORT_EMAIL ||
   process.env.ADMIN_NOTIFICATION_EMAIL ||
   process.env.MAILGUN_FROM_EMAIL ||
-  'support@tourticket.app';
+  'support@egypt-excursionsonline.com';
 
 export async function GET(request: NextRequest) {
   const auth = await requireAdminAuth(request, { permissions: ['manageUsers'] });

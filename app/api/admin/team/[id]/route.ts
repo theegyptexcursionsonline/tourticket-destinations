@@ -49,7 +49,7 @@ const normalizePermissions = (
 };
 
 const getPortalLink = () => {
-  const base = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || 'https://tourticket.app';
+  const base = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || 'https://egypt-excursionsonline.com';
   return `${base.replace(/\/$/, '')}/admin`;
 };
 
@@ -57,7 +57,7 @@ const getSupportEmail = () =>
   process.env.SUPPORT_EMAIL ||
   process.env.ADMIN_NOTIFICATION_EMAIL ||
   process.env.MAILGUN_FROM_EMAIL ||
-  'support@tourticket.app';
+  'support@egypt-excursionsonline.com';
 
 const formatName = (user: any) => `${user.firstName || ''} ${user.lastName || ''}`.trim();
 
