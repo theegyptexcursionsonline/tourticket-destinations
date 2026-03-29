@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Link } from '@/i18n/navigation';
+import Link from 'next/link';
 import Image from "next/image";
-import { usePathname } from '@/i18n/navigation';
+import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
   Map,

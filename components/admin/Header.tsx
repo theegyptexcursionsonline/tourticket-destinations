@@ -1,7 +1,7 @@
 "use client";
 import React from 'react';
-import { usePathname, useRouter } from '@/i18n/navigation';
-import { Link } from '@/i18n/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { LogOut, Home, ChevronRight, User, Shield, DollarSign, Euro } from 'lucide-react';
 import { useSettings } from '@/hooks/useSettings';
 import { currencies } from '@/utils/localization';

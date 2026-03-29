@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ChevronDown, Globe, Check, Search, Plus, ExternalLink } from 'lucide-react';
-import { Link } from '@/i18n/navigation';
+import Link from 'next/link';
 
 interface Tenant {
   tenantId: string;
