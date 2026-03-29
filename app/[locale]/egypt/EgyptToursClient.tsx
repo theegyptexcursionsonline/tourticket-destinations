@@ -87,7 +87,7 @@ const SimpleTourCard = ({ tour, onAddToCartClick }: { tour: Tour; onAddToCartCli
 
   return (
     <Link
-      href={`/tour/${tour.slug || '#'}`}
+      href={`/${tour.slug || '#'}`}
       className="block w-full bg-white rounded-2xl overflow-hidden border border-gray-200 transform transition-all duration-300 hover:-translate-y-1 group focus:outline-none"
       style={{ boxShadow: 'none' }}
       aria-label={`Open tour ${tour.title || 'tour'}`}

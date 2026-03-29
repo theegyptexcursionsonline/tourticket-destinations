@@ -31,7 +31,7 @@ const TourCard = ({ tour }: { tour: TourWithDetails }) => {
       transition={{ duration: 0.3 }}
       whileHover={{ y: -8 }}
     >
-      <Link href={`/tour/${tour.slug}`} className="group block bg-white rounded-2xl transition-all duration-300 overflow-hidden border border-slate-100">
+      <Link href={`/${tour.slug}`} className="group block bg-white rounded-2xl transition-all duration-300 overflow-hidden border border-slate-100">
         <div className="relative h-56 overflow-hidden">
           <Image
             src={tour.image || '/images/placeholder.png'}

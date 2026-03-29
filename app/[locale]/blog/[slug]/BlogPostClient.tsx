@@ -131,7 +131,7 @@ function ShareAndLike({ blog }: { blog: IBlog }) {
 /* ---------- Small Tour Card used in sidebar CTA ---------- */
 function MiniTourCard({ tour }: { tour: ITour }) {
   return (
-    <Link href={tour?.slug ? `/tour/${tour.slug}` : '#'} className="flex gap-3 items-center p-3 rounded-lg border hover:shadow-md transition bg-white">
+    <Link href={tour?.slug ? `/${tour.slug}` : '#'} className="flex gap-3 items-center p-3 rounded-lg border hover:shadow-md transition bg-white">
       <div className="relative w-20 h-14 rounded-lg overflow-hidden bg-slate-100 flex-shrink-0">
         {tour?.image ? (
           <Image src={tour.image} alt={tour.title} fill className="object-cover" />

@@ -813,7 +813,7 @@ const UserBookingDetailPage = () => {
         {booking.tour.slug && (
           <div className="mt-6">
             <button
-              onClick={() => router.push(`/tour/${booking.tour.slug}`)}
+              onClick={() => router.push(`/${booking.tour.slug}`)}
               className="w-full px-6 py-4 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition-colors font-semibold text-lg shadow-sm"
             >
               {t('user.viewDetails')}

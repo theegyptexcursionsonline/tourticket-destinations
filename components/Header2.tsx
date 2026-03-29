@@ -518,7 +518,7 @@ const SearchModal_REMOVED: FC<{ onClose: () => void; onSearch: (term: string) =>
             <h3 className="text-slate-500 font-bold text-base tracking-wider uppercase mb-4">Tours</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {searchResults.map((tour) => (
-                <a key={(tour as any)._id} href={`/tour/${(tour as any).slug}`} className="group block bg-white rounded-lg shadow-md overflow-hidden transition-shadow hover:shadow-xl">
+                <a key={(tour as any)._id} href={`/${(tour as any).slug}`} className="group block bg-white rounded-lg shadow-md overflow-hidden transition-shadow hover:shadow-xl">
                   <div className="aspect-w-16 aspect-h-9 w-full overflow-hidden relative">
                     <Image src={(tour as any).image} alt={(tour as any).title} fill sizes="(max-width: 768px) 50vw, 33vw" className="object-cover transition-transform duration-300 group-hover:scale-110" />
                   </div>
