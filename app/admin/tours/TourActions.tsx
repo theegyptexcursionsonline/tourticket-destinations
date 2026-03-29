@@ -2,9 +2,9 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { Link } from '@/i18n/navigation';
+import Link from 'next/link';
 import { Edit, Trash2, MoreVertical, X, Check } from "lucide-react";
-import { useRouter } from '@/i18n/navigation';
+import { useRouter } from 'next/navigation';
 import { useSearchParams } from 'next/navigation';
 import toast from "react-hot-toast";
 

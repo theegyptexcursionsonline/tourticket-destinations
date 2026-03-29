@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Link } from '@/i18n/navigation';
+import Link from 'next/link';
 import { Plus, Edit, Trash2, Eye, Search } from 'lucide-react';
 import { AttractionPage } from '@/types';
 import withAuth from '@/components/admin/withAuth';

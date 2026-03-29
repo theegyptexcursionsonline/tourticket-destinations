@@ -22,7 +22,7 @@ function timeAgo(dateStr?: string): string {
   if (weeks < 4) return `${weeks}w ago`;
   return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
-import { Link } from '@/i18n/navigation';
+import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { 
   Plus, 

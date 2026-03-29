@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from '@/i18n/navigation';
+import { useRouter } from 'next/navigation';
 import { useParams } from 'next/navigation';
 import withAuth from '@/components/admin/withAuth';
 import { Calendar, ArrowLeft, Loader2 } from 'lucide-react';

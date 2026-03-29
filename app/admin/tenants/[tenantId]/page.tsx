@@ -4,9 +4,9 @@
 // Edit tenant/brand page
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useRouter } from '@/i18n/navigation';
+import { useRouter } from 'next/navigation';
 import { useParams } from 'next/navigation';
-import { Link } from '@/i18n/navigation';
+import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { 
   ArrowLeft, Save, Globe, Palette, Mail, Phone, 

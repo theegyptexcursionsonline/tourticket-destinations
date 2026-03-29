@@ -3,7 +3,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import withAuth from '@/components/admin/withAuth';
-import { useRouter } from '@/i18n/navigation';
+import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import {
   ArrowLeft,

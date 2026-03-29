@@ -4,7 +4,7 @@
 // Client component that fetches tours based on selected tenant
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { Link } from '@/i18n/navigation';
+import Link from 'next/link';
 import { Plus, RefreshCw, AlertCircle } from 'lucide-react';
 import { ToursListClient } from './ToursListClient';
 import { useAdminTenant } from '@/contexts/AdminTenantContext';

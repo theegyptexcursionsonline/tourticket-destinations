@@ -1,6 +1,6 @@
 // app/admin/tours/new/page.tsx
 import TourForm from '@/components/TourForm';
-import { Link } from '@/i18n/navigation';
+import Link from 'next/link';
 import { ArrowLeft, Plus } from 'lucide-react';
 
 export default function NewTourPage() {

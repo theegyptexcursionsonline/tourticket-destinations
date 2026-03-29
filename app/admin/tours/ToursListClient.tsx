@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSettings } from '@/hooks/useSettings';
-import { useRouter } from '@/i18n/navigation';
+import { useRouter } from 'next/navigation';
 import { useSearchParams } from 'next/navigation';
 import {
   Search,
@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { TourActions } from './TourActions';
-import { Link } from '@/i18n/navigation';
+import Link from 'next/link';
 
 type TourType = {
   _id: string;

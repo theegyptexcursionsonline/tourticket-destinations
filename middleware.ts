@@ -474,7 +474,7 @@ export function middleware(request: NextRequest) {
   if (isDashboardSubdomain) {
     if (!pathname.startsWith('/admin') && !pathname.startsWith('/api') && !pathname.startsWith('/_next') && !isStaticFile(pathname)) {
       const url = request.nextUrl.clone();
-      url.pathname = pathname === '/' ? '/en/admin' : `/en/admin${pathname}`;
+      url.pathname = pathname === '/' ? '/admin' : `/admin${pathname}`;
       const response = NextResponse.rewrite(url);
       return applyTenantToResponse(response, tenantId, hostname, isPreviewMode);
     }
@@ -542,6 +542,13 @@ export function middleware(request: NextRequest) {
     }
     const redirectResponse = NextResponse.redirect(url);
     return applyTenantToResponse(redirectResponse, tenantId, hostname, isPreviewMode);
+  }
+
+  // ============================================
+  // ADMIN ROUTES — bypass locale middleware (admin is English-only)
+  // ============================================
+  if (isAdminPath(pathname)) {
+    return createTenantResponse(request, tenantId, hostname, isPreviewMode);
   }
 
   // ============================================

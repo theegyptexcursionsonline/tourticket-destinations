@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Link } from '@/i18n/navigation';
+import Link from 'next/link';
 import Image from 'next/image';
 import { Edit, Plus, Tag, Trash2, Loader2, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
