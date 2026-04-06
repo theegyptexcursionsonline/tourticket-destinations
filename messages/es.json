@@ -473,7 +473,16 @@
     "thankYouSubscribing": "¡Gracias por suscribirse!",
     "subscriptionFailed": "Error en la suscripción. Por favor, intenta de nuevo.",
     "subscriptionError": "Ocurrió un error. Por favor, intenta más tarde.",
-    "copyright": "© {year} {siteName}. {rights}."
+    "copyright": "© {year} {siteName}. {rights}.",
+    "getTheApp": "Tu próxima aventura, a un toque",
+    "getTheAppDesc": "Reserva tours, gestiona tus reservas y recibe actualizaciones en tiempo real — todo desde tu bolsillo. Descarga nuestra app y explora como nunca antes.",
+    "launchingOn": "Lanzamiento el 10 de abril",
+    "downloadOn": "Descargar en el",
+    "getItOn": "DISPONIBLE EN",
+    "comingSoon": "¡Próximamente!",
+    "comingSoonDesc": "Nuestra app se lanza el 10 de abril. Escanea el código QR o vuelve pronto para descargarla.",
+    "gotIt": "Entendido",
+    "scanToDownload": "Escanea para descargar"
   },
   "auth": {
     "login": "Iniciar Sesión",

@@ -473,7 +473,16 @@
     "thankYouSubscribing": "Vielen Dank für Ihr Abonnement!",
     "subscriptionFailed": "Abonnement fehlgeschlagen. Bitte versuchen Sie es erneut.",
     "subscriptionError": "Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.",
-    "copyright": "© {year} {siteName}. {rights}."
+    "copyright": "© {year} {siteName}. {rights}.",
+    "getTheApp": "Dein nächstes Abenteuer, nur einen Tipp entfernt",
+    "getTheAppDesc": "Touren buchen, Reservierungen verwalten und Echtzeit-Updates erhalten — alles aus deiner Tasche. Lade unsere App herunter und entdecke wie nie zuvor.",
+    "launchingOn": "Start am 10. April",
+    "downloadOn": "Laden im",
+    "getItOn": "JETZT BEI",
+    "comingSoon": "Demnächst verfügbar!",
+    "comingSoonDesc": "Unsere App startet am 10. April. Scannen Sie den QR-Code oder schauen Sie bald wieder vorbei.",
+    "gotIt": "Verstanden",
+    "scanToDownload": "Zum Download scannen"
   },
   "auth": {
     "login": "Anmelden",

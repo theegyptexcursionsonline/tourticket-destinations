@@ -473,7 +473,16 @@
     "thankYouSubscribing": "Thank you for subscribing!",
     "subscriptionFailed": "Subscription failed. Please try again.",
     "subscriptionError": "An error occurred. Please try again later.",
-    "copyright": "© {year} {siteName}. {rights}."
+    "copyright": "© {year} {siteName}. {rights}.",
+    "getTheApp": "Your Next Adventure, One Tap Away",
+    "getTheAppDesc": "Book tours, manage reservations, and get real-time updates — all from your pocket. Download our app and explore like never before.",
+    "launchingOn": "Launching 10 April",
+    "downloadOn": "Download on the",
+    "getItOn": "GET IT ON",
+    "comingSoon": "Coming Soon!",
+    "comingSoonDesc": "Our mobile app launches on 10 April. Scan the QR code or check back soon to download it from the App Store and Google Play.",
+    "gotIt": "Got it",
+    "scanToDownload": "Scan to download"
   },
   "auth": {
     "login": "Log In",

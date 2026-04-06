@@ -473,7 +473,16 @@
     "thankYouSubscribing": "Merci de vous abonner!",
     "subscriptionFailed": "L'abonnement a échoué. Veuillez réessayer.",
     "subscriptionError": "Une erreur s'est produite. Veuillez réessayer plus tard.",
-    "copyright": "© {year} {siteName}. {rights}."
+    "copyright": "© {year} {siteName}. {rights}.",
+    "getTheApp": "Votre prochaine aventure, à portée de main",
+    "getTheAppDesc": "Réservez des excursions, gérez vos réservations et recevez des mises à jour en temps réel — tout depuis votre poche. Téléchargez notre appli et explorez comme jamais.",
+    "launchingOn": "Lancement le 10 avril",
+    "downloadOn": "Télécharger sur l'",
+    "getItOn": "DISPONIBLE SUR",
+    "comingSoon": "Bientôt disponible !",
+    "comingSoonDesc": "Notre application sera lancée le 10 avril. Scannez le QR code ou revenez bientôt pour la télécharger.",
+    "gotIt": "Compris",
+    "scanToDownload": "Scannez pour télécharger"
   },
   "auth": {
     "login": "Connexion",
