@@ -7,6 +7,7 @@ import Footer from '@/components/Footer';
 import BlogPostClient from './BlogPostClient';
 import type { IBlog } from '@/lib/models/Blog';
 import { getTenantFromRequest, getTenantPublicConfig } from '@/lib/tenant';
+import BlogPostSchema from '@/components/schema/BlogPostSchema';
 
 type Params = { slug: string };
 
@@ -93,6 +94,16 @@ export default async function BlogPostPage({ params }: { params: Promise<Params>
 
   return (
     <>
+      <BlogPostSchema
+        title={(blog as any).title}
+        slug={slug}
+        description={(blog as any).excerpt || (blog as any).description}
+        image={(blog as any).coverImage}
+        author={(blog as any).author}
+        publishedAt={(blog as any).createdAt}
+        updatedAt={(blog as any).updatedAt}
+        tags={(blog as any).tags}
+      />
       <Header startSolid />
       <main className="pt-20">
         <BlogPostClient blog={blog} relatedPosts={relatedPosts} />

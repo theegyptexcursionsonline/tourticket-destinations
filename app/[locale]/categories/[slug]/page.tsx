@@ -9,6 +9,7 @@ import { getLocale } from 'next-intl/server';
 import { localizeTour } from '@/lib/translation/getLocalizedField';
 import { localizeEntityFields } from '@/lib/i18n/contentLocalization';
 import { categoryTranslationFields } from '@/lib/i18n/translationFields';
+import CollectionSchema from '@/components/schema/CollectionSchema';
 
 // Force dynamic rendering to fix ISR caching issues on Netlify
 export const dynamic = 'force-dynamic';
@@ -105,9 +106,26 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
   const localizedCategory = localizeEntityFields(category, locale, catFields);
 
   return (
-    <CategoryPageClient
-      category={localizedCategory}
-      categoryTours={localizedTours}
-    />
+    <>
+      <CollectionSchema
+        name={(localizedCategory as any).name}
+        description={(localizedCategory as any).description}
+        url={`/categories/${resolvedParams.slug}`}
+        items={(localizedTours as any[]).map((t: any) => ({
+          name: t.title,
+          url: `/tour/${t.slug}`,
+          image: t.image,
+        }))}
+        breadcrumbs={[
+          { name: 'Home', url: '/' },
+          { name: 'Categories', url: '/categories' },
+          { name: (localizedCategory as any).name, url: `/categories/${resolvedParams.slug}` },
+        ]}
+      />
+      <CategoryPageClient
+        category={localizedCategory}
+        categoryTours={localizedTours}
+      />
+    </>
   );
 }

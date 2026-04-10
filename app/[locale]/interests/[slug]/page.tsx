@@ -6,6 +6,7 @@ import InterestLandingPage from '@/components/InterestLandingPage';
 import dbConnect from '@/lib/dbConnect';
 import Category from '@/lib/models/Category';
 import { getTenantFromRequest, getTenantPublicConfig } from '@/lib/tenant';
+import CollectionSchema from '@/components/schema/CollectionSchema';
 
 // Types
 interface InterestPageProps {
@@ -125,6 +126,16 @@ export default async function Page(props: InterestPageProps) {
 
   return (
     <>
+      <CollectionSchema
+        name={(interest as any).name || params.slug}
+        description={(interest as any).description}
+        url={`/interests/${params.slug}`}
+        breadcrumbs={[
+          { name: 'Home', url: '/' },
+          { name: 'Interests', url: '/interests' },
+          { name: (interest as any).name || params.slug, url: `/interests/${params.slug}` },
+        ]}
+      />
       <Header startSolid />
       <InterestLandingPage interest={interest} />
       <Footer />

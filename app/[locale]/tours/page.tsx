@@ -11,6 +11,7 @@ import { ITour } from '@/lib/models/Tour';
 import { getTenantFromRequest, getTenantConfig, buildTenantQuery } from '@/lib/tenant';
 import { getLocale } from 'next-intl/server';
 import { localizeTour } from '@/lib/translation/getLocalizedField';
+import ToursListSchema from '@/components/schema/ToursListSchema';
 
 // ISR: revalidate every 60s — cached pages served instantly, refreshed in background
 export const dynamic = 'force-dynamic';
@@ -64,12 +65,25 @@ export default async function ToursIndexPage() {
 
   return (
     <>
+      <ToursListSchema
+        tours={(localizedTours as any[]).map((t: any) => ({
+          title: t.title,
+          slug: t.slug,
+          image: t.image,
+          discountPrice: t.discountPrice,
+          originalPrice: t.originalPrice,
+          rating: t.rating,
+          reviewCount: t.reviewCount,
+          duration: t.duration,
+        }))}
+        listName="All Tours & Activities in Egypt"
+        listDescription="Browse our complete collection of tours and experiences across Egypt"
+      />
       <Header startSolid />
       <main className="min-h-screen bg-slate-50 pt-20">
         <ToursClientPage tours={localizedTours as any} />
       </main>
       <Footer />
-      {/* AI Search Widget */}
       <AISearchWidget />
     </>
   );

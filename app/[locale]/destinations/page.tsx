@@ -9,6 +9,7 @@ import AISearchWidget from '@/components/AISearchWidget';
 import DestinationsClientPage from './DestinationsClientPage';
 import { IDestination } from '@/lib/models/Destination';
 import { getTenantFromRequest, getTenantConfig, buildTenantQuery } from '@/lib/tenant';
+import CollectionSchema from '@/components/schema/CollectionSchema';
 
 // ISR: revalidate every 60s — cached pages served instantly, refreshed in background
 export const dynamic = 'force-dynamic';
@@ -77,12 +78,21 @@ export default async function DestinationsIndexPage() {
 
   return (
     <>
+      <CollectionSchema
+        name="All Destinations"
+        description="Explore amazing destinations across Egypt. Discover tours and activities in Hurghada, Cairo, Luxor, Sharm El Sheikh and more."
+        url="/destinations"
+        items={(destinations as any[]).map((d: any) => ({
+          name: d.name,
+          url: `/destinations/${d.slug}`,
+          image: d.image,
+        }))}
+      />
       <Header startSolid />
       <main className="min-h-screen bg-slate-50 pt-20">
         <DestinationsClientPage destinations={destinations as any} />
       </main>
       <Footer />
-      {/* AI Search Widget */}
       <AISearchWidget />
     </>
   );

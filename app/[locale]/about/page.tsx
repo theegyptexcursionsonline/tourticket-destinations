@@ -11,6 +11,8 @@ import { Link } from '@/i18n/navigation';
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { getTenantFromRequest, getTenantPublicConfig } from "@/lib/tenant";
+import OrganizationSchema from "@/components/schema/OrganizationSchema";
+import WebSiteSchema from "@/components/schema/WebSiteSchema";
 import { getTranslations } from 'next-intl/server';
 
 export const dynamic = 'force-dynamic';
@@ -81,7 +83,8 @@ export default async function AboutUsPage() {
   const t = await getTranslations();
   return (
     <div className="bg-white text-slate-800 min-h-screen flex flex-col">
-      {/* Add the DarkHero section at the top of the page */}
+      <OrganizationSchema />
+      <WebSiteSchema pageName="About Us - Egypt Excursions Online" pageDescription="Learn about Egypt Excursions Online, your trusted partner for tours and excursions across Egypt." pageUrl="/about" breadcrumbs={[{ name: 'Home', url: '/' }, { name: 'About Us', url: '/about' }]} />
       <DarkHero />
 
       {/* Page Header (imported) */}

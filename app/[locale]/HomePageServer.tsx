@@ -17,6 +17,10 @@ import Reviews from '@/components/Reviews';
 import FAQ from '@/components/FAQ';
 import AISearchWidget from '@/components/AISearchWidget';
 import ReviewsStructuredData from '@/components/ReviewsStructuredData';
+import OrganizationSchema from '@/components/schema/OrganizationSchema';
+import WebSiteSchema from '@/components/schema/WebSiteSchema';
+import FAQSchema from '@/components/schema/FAQSchema';
+import ToursListSchema from '@/components/schema/ToursListSchema';
 
 // Import client-side versions that accept props
 import DestinationsServer from '@/components/DestinationsServer';
@@ -677,7 +681,34 @@ export default async function HomePageServer() {
 
   return (
     <main data-tenant={tenantId}>
+      <OrganizationSchema />
+      <WebSiteSchema />
       <ReviewsStructuredData />
+      <FAQSchema
+        items={[
+          { question: 'Can I reschedule or cancel my tickets?', answer: 'Yes, in most cases you can reschedule or cancel your tickets up to 24 hours in advance. Please check the specific conditions for your chosen tour or attraction on its product page.' },
+          { question: 'How long are open tickets valid?', answer: 'Open tickets, which do not require a specific date and time slot, are typically valid for one year from the date of purchase.' },
+          { question: 'What languages do the tour guides speak?', answer: 'Our live guided tours are most commonly offered in English and the local language. Many tours also offer audio guides in multiple languages, including Spanish, French, German, Italian, and more.' },
+          { question: 'Is my booking confirmed instantly?', answer: 'Yes, most of our bookings are confirmed instantly after a successful payment. You will receive a booking confirmation email with your tickets and all necessary information right away.' },
+          { question: 'Do I need to print my ticket?', answer: 'No. All our tickets are mobile-friendly. You can simply show the e-ticket on your smartphone or tablet to the tour guide or at the entrance.' },
+          { question: 'What happens if my tour is canceled by the operator?', answer: 'In the rare event that a tour is canceled by the operator due to unforeseen circumstances, we will notify you immediately and provide a full refund or help you find a suitable alternative.' },
+          { question: 'Are there any hidden fees?', answer: 'The price you see on the product page is the final price. There are no hidden fees or extra charges at checkout.' },
+        ]}
+      />
+      <ToursListSchema
+        tours={(localizedTours as any[]).map((t: any) => ({
+          title: t.title,
+          slug: t.slug,
+          image: t.image,
+          discountPrice: t.discountPrice,
+          originalPrice: t.originalPrice,
+          rating: t.rating,
+          reviewCount: t.reviewCount,
+          duration: t.duration,
+        }))}
+        listName="Featured Tours & Excursions in Egypt"
+        listDescription="Discover the most popular tours, day trips, and activities across Egypt"
+      />
       <Header
         initialDestinations={localizedHeaderDests}
         initialCategories={localizedHeaderCats}

@@ -11,6 +11,7 @@ import { getLocale } from 'next-intl/server';
 import { localizeTour } from '@/lib/translation/getLocalizedField';
 import { localizeEntityFields } from '@/lib/i18n/contentLocalization';
 import { destinationTranslationFields, categoryTranslationFields } from '@/lib/i18n/translationFields';
+import DestinationSchema from '@/components/schema/DestinationSchema';
 
 // Force dynamic rendering to fix 500 errors
 export const dynamic = 'force-dynamic';
@@ -161,13 +162,31 @@ export default async function DestinationPage({ params }: { params: Promise<{ sl
     const localizedRelated = relatedDestinations.map((d: any) => localizeEntityFields(d, locale, destFields));
 
     return (
-      <DestinationPageClient
-        destination={localizedDestination}
-        destinationTours={localizedTours}
-        allCategories={localizedCategories}
-        reviews={reviews}
-        relatedDestinations={localizedRelated}
-      />
+      <>
+        <DestinationSchema
+          name={(localizedDestination as any).name}
+          slug={(localizedDestination as any).slug}
+          description={(localizedDestination as any).description}
+          image={(localizedDestination as any).image}
+          country={(localizedDestination as any).country}
+          tours={(localizedTours as any[]).map((t: any) => ({
+            title: t.title,
+            slug: t.slug,
+            image: t.image,
+            discountPrice: t.discountPrice,
+            originalPrice: t.originalPrice,
+            rating: t.rating,
+            reviewCount: t.reviewCount,
+          }))}
+        />
+        <DestinationPageClient
+          destination={localizedDestination}
+          destinationTours={localizedTours}
+          allCategories={localizedCategories}
+          reviews={reviews}
+          relatedDestinations={localizedRelated}
+        />
+      </>
     );
   } catch (error) {
     console.error('[Destination] Page error:', error);

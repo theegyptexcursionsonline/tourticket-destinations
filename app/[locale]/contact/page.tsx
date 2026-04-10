@@ -2,6 +2,8 @@ import React from 'react';
 import { Metadata } from 'next';
 import ContactClientPage from './ContactClientPage';
 import { getTenantFromRequest, getTenantPublicConfig } from '@/lib/tenant';
+import OrganizationSchema from '@/components/schema/OrganizationSchema';
+import WebSiteSchema from '@/components/schema/WebSiteSchema';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,5 +37,11 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default function ContactPage() {
-  return <ContactClientPage />;
+  return (
+    <>
+      <OrganizationSchema />
+      <WebSiteSchema pageName="Contact Us - Egypt Excursions Online" pageDescription="Get in touch with Egypt Excursions Online. 24/7 support for your travel needs." pageUrl="/contact" breadcrumbs={[{ name: 'Home', url: '/' }, { name: 'Contact', url: '/contact' }]} />
+      <ContactClientPage />
+    </>
+  );
 }

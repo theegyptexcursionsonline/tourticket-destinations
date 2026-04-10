@@ -7,6 +7,7 @@ import Footer from '@/components/Footer';
 import BlogClientPage from './BlogClientPage';
 import { IBlog } from '@/lib/models/Blog';
 import { getTenantFromRequest, getTenantPublicConfig } from '@/lib/tenant';
+import CollectionSchema from '@/components/schema/CollectionSchema';
 
 // ISR: revalidate every 60s — cached pages served instantly, refreshed in background
 export const dynamic = 'force-dynamic';
@@ -100,10 +101,20 @@ export default async function BlogIndexPage() {
 
   return (
     <>
+      <CollectionSchema
+        name="Travel Blog"
+        description="Travel tips, guides, and inspiration for your Egypt adventure"
+        url="/blog"
+        items={(blogs as any[]).map((b: any) => ({
+          name: b.title,
+          url: `/blog/${b.slug}`,
+          image: b.coverImage,
+        }))}
+      />
       <Header startSolid />
       <main className="min-h-screen pt-20">
-        <BlogClientPage 
-          blogs={blogs} 
+        <BlogClientPage
+          blogs={blogs}
           categories={categoryCounts}
           featuredPosts={featuredPosts}
         />

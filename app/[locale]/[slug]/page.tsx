@@ -13,6 +13,7 @@ import type { Review as ReviewType, Tour as TourType } from '@/types';
 import { getTenantFromRequest, getTenantPublicConfig } from '@/lib/tenant';
 import { localizeTour } from '@/lib/translation/getLocalizedField';
 import { cacheIfAvailable } from '@/lib/cache';
+import TourSchema from '@/components/schema/TourSchema';
 
 interface PageProps {
   params: Promise<{ slug: string; locale: string }>;
@@ -170,6 +171,7 @@ export default async function TourDetailPage({ params }: PageProps) {
 
     return (
       <>
+        <TourSchema tour={localizedTour as any} reviews={reviews as any} />
         <Header startSolid />
         <ClientErrorBoundary>
           <TourDetailClientPage
