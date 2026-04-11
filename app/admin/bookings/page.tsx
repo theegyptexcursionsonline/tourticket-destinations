@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import withAuth from '@/components/admin/withAuth';
 import { useRouter } from 'next/navigation';
-import { Search, Calendar, Users, DollarSign, RefreshCw, Eye, Download, AlertTriangle, Loader2, Trash2, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Plus } from 'lucide-react';
+import { Search, Calendar, Users, DollarSign, RefreshCw, Eye, Download, AlertTriangle, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAdminTenant } from '@/contexts/AdminTenantContext';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
@@ -119,11 +119,6 @@ const BookingsPage = () => {
   const [tourOptions, setTourOptions] = useState<TourOption[]>([]);
   const [tourOptionsLoading, setTourOptionsLoading] = useState(false);
 
-  // Bulk selection state
-  const [selectedBookings, setSelectedBookings] = useState<Set<string>>(new Set());
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-
   const router = useRouter();
   const { token } = useAdminAuth();
   
@@ -216,13 +211,7 @@ const BookingsPage = () => {
 
   useEffect(() => {
     setPage(1);
-    setSelectedBookings(new Set());
   }, [filtersKey]);
-
-  // Clear bulk selection when changing pages
-  useEffect(() => {
-    setSelectedBookings(new Set());
-  }, [page]);
 
   const handleRowClick = (id: string) => {
     router.push(`/admin/bookings/${id}`);
@@ -355,65 +344,6 @@ const BookingsPage = () => {
     }
   };
 
-  // Selection handlers
-  const handleSelectAll = () => {
-    if (selectedBookings.size === bookings.length) {
-      setSelectedBookings(new Set());
-    } else {
-      setSelectedBookings(new Set(bookings.map(b => b._id)));
-    }
-  };
-
-  const handleSelectBooking = (bookingId: string) => {
-    const newSelected = new Set(selectedBookings);
-    if (newSelected.has(bookingId)) {
-      newSelected.delete(bookingId);
-    } else {
-      newSelected.add(bookingId);
-    }
-    setSelectedBookings(newSelected);
-  };
-
-  const handleBulkDelete = async () => {
-    if (selectedBookings.size === 0) return;
-
-    setIsDeleting(true);
-    try {
-      const response = await fetch(`/api/admin/bookings/bulk-delete${tenantQuery}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ bookingIds: Array.from(selectedBookings) }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to delete bookings');
-      }
-
-      const data = await response.json();
-
-      // Remove deleted bookings from state
-      setBookings(prevBookings =>
-        prevBookings.filter(booking => !selectedBookings.has(booking._id))
-      );
-      setSelectedBookings(new Set());
-      setShowDeleteModal(false);
-
-      toast.success(`Successfully deleted ${data.deletedCount} booking(s)`);
-    } catch (error) {
-      console.error('Error deleting bookings:', error);
-      toast.error((error as Error).message || 'Failed to delete bookings');
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  const isAllSelected = bookings.length > 0 && selectedBookings.size === bookings.length;
-  const isSomeSelected = selectedBookings.size > 0 && selectedBookings.size < bookings.length;
-
   const showingFrom = totalBookings === 0 ? 0 : (page - 1) * perPage + 1;
   const showingTo = Math.min(totalBookings, (page - 1) * perPage + bookings.length);
 
@@ -462,11 +392,6 @@ const BookingsPage = () => {
             )}
             Showing <span className="font-semibold text-slate-700">{showingFrom}-{showingTo}</span> of{' '}
             <span className="font-semibold text-slate-700">{totalBookings}</span> bookings
-            {selectedBookings.size > 0 && (
-              <span className="ms-2 text-blue-600 font-medium">
-                ({selectedBookings.size} selected)
-              </span>
-            )}
           </p>
         </div>
         <div className="flex items-center gap-3 mt-4 sm:mt-0">
@@ -477,24 +402,6 @@ const BookingsPage = () => {
             <Plus size={16} />
             Create Booking
           </button>
-          {selectedBookings.size > 0 && (
-            <>
-              <button
-                onClick={() => setSelectedBookings(new Set())}
-                className="flex items-center gap-2 px-4 py-2 text-slate-600 border border-slate-300 rounded-full hover:bg-slate-50 transition-colors"
-              >
-                <X size={16} />
-                Clear Selection
-              </button>
-              <button
-                onClick={() => setShowDeleteModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors"
-              >
-                <Trash2 size={16} />
-                Delete Selected ({selectedBookings.size})
-              </button>
-            </>
-          )}
           <button
             onClick={() => fetchBookings(searchTerm.trim())}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors"
@@ -629,7 +536,6 @@ const BookingsPage = () => {
               onChange={(e) => {
                 setPerPage(Number(e.target.value));
                 setPage(1);
-                setSelectedBookings(new Set());
               }}
               className="h-9 px-3 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer"
             >
@@ -681,17 +587,6 @@ const BookingsPage = () => {
             <table className="min-w-full divide-y divide-slate-200">
               <thead className="bg-slate-50">
                 <tr>
-                  <th className="px-4 py-3 text-start">
-                    <input
-                      type="checkbox"
-                      checked={isAllSelected}
-                      ref={(el) => {
-                        if (el) el.indeterminate = isSomeSelected;
-                      }}
-                      onChange={handleSelectAll}
-                      className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500 cursor-pointer"
-                    />
-                  </th>
                   <th className="px-6 py-3 text-start text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Tour & Customer
                   </th>
@@ -727,19 +622,8 @@ const BookingsPage = () => {
                   return (
                     <tr
                       key={booking._id}
-                      className={`hover:bg-slate-50 transition-colors ${
-                        selectedBookings.has(booking._id) ? 'bg-blue-50' : ''
-                      }`}
+                      className="hover:bg-slate-50 transition-colors"
                     >
-                      <td className="px-4 py-4">
-                        <input
-                          type="checkbox"
-                          checked={selectedBookings.has(booking._id)}
-                          onChange={() => handleSelectBooking(booking._id)}
-                          onClick={(e) => e.stopPropagation()}
-                          className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500 cursor-pointer"
-                        />
-                      </td>
                       <td className="px-6 py-4">
                         <div>
                           <div className={`text-sm font-medium truncate max-w-xs flex items-center gap-2 ${
@@ -864,54 +748,6 @@ const BookingsPage = () => {
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex min-h-screen items-center justify-center p-4">
-            <div
-              className="fixed inset-0 bg-black/50 transition-opacity"
-              onClick={() => !isDeleting && setShowDeleteModal(false)}
-            />
-            <div className="relative bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
-              <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-red-100 rounded-full">
-                <Trash2 className="w-6 h-6 text-red-600" />
-              </div>
-              <h3 className="text-lg font-semibold text-center text-slate-900 mb-2">
-                Delete {selectedBookings.size} Booking{selectedBookings.size !== 1 ? 's' : ''}?
-              </h3>
-              <p className="text-sm text-slate-600 text-center mb-6">
-                This action cannot be undone. The selected booking{selectedBookings.size !== 1 ? 's' : ''} will be permanently removed from the system.
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowDeleteModal(false)}
-                  disabled={isDeleting}
-                  className="flex-1 px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleBulkDelete}
-                  disabled={isDeleting}
-                  className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-full hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {isDeleting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Deleting...
-                    </>
-                  ) : (
-                    <>
-                      <Trash2 className="w-4 h-4" />
-                      Delete
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
