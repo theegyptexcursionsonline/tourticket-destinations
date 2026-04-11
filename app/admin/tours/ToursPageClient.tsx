@@ -3,7 +3,7 @@
 // app/admin/tours/ToursPageClient.tsx
 // Client component that fetches tours based on selected tenant
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { Plus, RefreshCw, AlertCircle } from 'lucide-react';
 import { ToursListClient } from './ToursListClient';
@@ -14,6 +14,7 @@ type TourType = {
   _id: string;
   title?: string;
   name?: string;
+  slug?: string;
   image?: string;
   images?: string[];
   destination?: { name?: string } | null;
@@ -22,10 +23,11 @@ type TourType = {
   discountPrice?: number;
   duration?: string | number;
   createdAt?: string;
-  published?: boolean;
-  draft?: boolean;
+  isPublished?: boolean;
   isFeatured?: boolean;
   tenantId?: string;
+  // UI-only field: list of tenantIds that have a copy of this tour (populated by dedupe in All Brands view)
+  tenantCopies?: string[];
 };
 
 function ToursPageClientComponent() {
@@ -69,6 +71,34 @@ function ToursPageClientComponent() {
   useEffect(() => {
     fetchTours();
   }, [fetchTours]);
+
+  // Dedupe tours by slug when viewing "All Brands".
+  // The same tour can exist in multiple tenants (German translations of an English original).
+  // For "All Brands", show one canonical row per slug + a list of tenants that have copies.
+  // For a single-tenant view, no dedupe — show that tenant's tours as-is.
+  const displayTours = useMemo<TourType[]>(() => {
+    if (!isAllTenantsSelected()) return tours;
+
+    const bySlug = new Map<string, { canonical: TourType; tenantIds: string[] }>();
+    for (const t of tours) {
+      // Tours without a slug are kept as individual rows (rare, but be safe)
+      const key = t.slug || `__no-slug__${t._id}`;
+      const existing = bySlug.get(key);
+      if (!existing) {
+        bySlug.set(key, { canonical: t, tenantIds: [t.tenantId || 'unknown'] });
+      } else {
+        existing.tenantIds.push(t.tenantId || 'unknown');
+        // Prefer the 'default' tenant version as the canonical (English original).
+        if (t.tenantId === 'default' && existing.canonical.tenantId !== 'default') {
+          existing.canonical = t;
+        }
+      }
+    }
+    return Array.from(bySlug.values()).map(({ canonical, tenantIds }) => ({
+      ...canonical,
+      tenantCopies: tenantIds,
+    }));
+  }, [tours, isAllTenantsSelected]);
 
   return (
     <div className="max-w-7xl mx-auto px-6 lg:px-8 py-8">
@@ -178,7 +208,7 @@ function ToursPageClientComponent() {
             ))}
           </div>
         </div>
-      ) : tours.length === 0 ? (
+      ) : displayTours.length === 0 ? (
         /* Empty State */
         <div className="text-center py-16 bg-white border border-slate-200 rounded-2xl">
           <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-slate-100 to-slate-200 rounded-full flex items-center justify-center">
@@ -201,7 +231,7 @@ function ToursPageClientComponent() {
         </div>
       ) : (
         /* Tours List */
-        <ToursListClient tours={tours} />
+        <ToursListClient tours={displayTours} />
       )}
     </div>
   );

@@ -30,6 +30,7 @@ type TourType = {
   _id: string;
   title?: string;
   name?: string;
+  slug?: string;
   image?: string;
   images?: string[];
   destination?: { name?: string } | null;
@@ -38,9 +39,12 @@ type TourType = {
   discountPrice?: number;
   duration?: string | number;
   createdAt?: string;
-  published?: boolean;
-  draft?: boolean;
+  isPublished?: boolean;
   isFeatured?: boolean;
+  tenantId?: string;
+  // UI-only field set by ToursPageClient when "All Brands" is selected.
+  // Lists every tenantId that has a copy of this slug (German translations + originals).
+  tenantCopies?: string[];
 };
 
 function Badge({ children, className = '', icon: Icon }: { 
@@ -119,9 +123,9 @@ export function ToursListClient({ tours }: { tours: TourType[] }) {
 
     // Apply tab filter first
     if (activeTab === 'published') {
-      list = list.filter((t) => t.published === true && !t.draft);
+      list = list.filter((t) => t.isPublished === true);
     } else if (activeTab === 'draft') {
-      list = list.filter((t) => t.draft === true || t.published === false);
+      list = list.filter((t) => t.isPublished === false);
     } else if (activeTab === 'featured') {
       list = list.filter((t) => t.isFeatured === true);
     }
@@ -167,8 +171,8 @@ export function ToursListClient({ tours }: { tours: TourType[] }) {
   const tabCounts = useMemo(() => {
     return {
       all: tours.length,
-      published: tours.filter((t) => t.published === true && !t.draft).length,
-      draft: tours.filter((t) => t.draft === true || t.published === false).length,
+      published: tours.filter((t) => t.isPublished === true).length,
+      draft: tours.filter((t) => t.isPublished === false).length,
       featured: tours.filter((t) => t.isFeatured === true).length,
     };
   }, [tours]);
@@ -375,15 +379,23 @@ export function ToursListClient({ tours }: { tours: TourType[] }) {
                           >
                             {t.title || t.name}
                           </Link>
-                          <div className="flex items-center gap-2 text-xs text-slate-500">
+                          <div className="flex items-center gap-2 text-xs text-slate-500 flex-wrap">
                             <Calendar className="h-3 w-3" />
                             <span>{t.duration}</span>
                             {t.isFeatured && (
-                              <Badge 
-                                className="bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-800 border border-yellow-300" 
+                              <Badge
+                                className="bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-800 border border-yellow-300"
                                 icon={Star}
                               >
                                 Featured
+                              </Badge>
+                            )}
+                            {t.tenantCopies && t.tenantCopies.length > 1 && (
+                              <Badge
+                                className="bg-indigo-50 text-indigo-700 border border-indigo-200"
+                                icon={Eye}
+                              >
+                                {t.tenantCopies.length} brands
                               </Badge>
                             )}
                           </div>
@@ -442,11 +454,19 @@ export function ToursListClient({ tours }: { tours: TourType[] }) {
                   {/* Badges Overlay */}
                   <div className="absolute top-3 start-3 flex flex-col gap-2">
                     {t.isFeatured && (
-                      <Badge 
-                        className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-white shadow-lg" 
+                      <Badge
+                        className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-white shadow-lg"
                         icon={Star}
                       >
                         Featured
+                      </Badge>
+                    )}
+                    {t.tenantCopies && t.tenantCopies.length > 1 && (
+                      <Badge
+                        className="bg-white/95 backdrop-blur-sm text-indigo-700 border border-indigo-200 shadow-lg"
+                        icon={Eye}
+                      >
+                        {t.tenantCopies.length} brands
                       </Badge>
                     )}
                   </div>
