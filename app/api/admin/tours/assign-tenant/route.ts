@@ -27,10 +27,10 @@ export async function POST(request: NextRequest) {
 
   try {
     await dbConnect();
-    
+
     const body = await request.json();
     const { tourIds, tenantId, syncAlgolia = true } = body;
-    
+
     // Validation
     if (!tourIds || !Array.isArray(tourIds) || tourIds.length === 0) {
       return NextResponse.json(
@@ -38,14 +38,29 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    
+
     if (!tenantId) {
       return NextResponse.json(
         { success: false, error: 'tenantId is required' },
         { status: 400 }
       );
     }
-    
+
+    // Tenant guard: if a tenantId scope is passed (from AdminTenantContext),
+    // restrict bulk reassignment to within that tenant only — both the
+    // destination tenant and the source tours must match the scope. Prevents
+    // a tenant-scoped admin from moving tours into or out of other tenants.
+    // Absent param = behave as before (super-admin can reassign across tenants).
+    const tenantIdParam = new URL(request.url).searchParams.get('tenantId');
+    const effectiveScope =
+      tenantIdParam && tenantIdParam !== 'all' ? tenantIdParam : undefined;
+    if (effectiveScope && tenantId !== effectiveScope) {
+      return NextResponse.json(
+        { success: false, error: 'Cannot reassign tours to a tenant outside your current scope' },
+        { status: 403 }
+      );
+    }
+
     // Verify tenant exists
     const tenant = await Tenant.findOne({ tenantId, isActive: true });
     if (!tenant) {
@@ -54,27 +69,34 @@ export async function POST(request: NextRequest) {
         { status: 404 }
       );
     }
-    
+
     // Convert string IDs to ObjectIds and validate
     const validObjectIds = tourIds
       .filter(id => mongoose.Types.ObjectId.isValid(id))
       .map(id => new mongoose.Types.ObjectId(id));
-    
+
     if (validObjectIds.length === 0) {
       return NextResponse.json(
         { success: false, error: 'No valid tour IDs provided' },
         { status: 400 }
       );
     }
-    
+
+    // Build the update filter; if scoped, require source tours to already
+    // belong to this tenant — prevents pulling tours from other tenants.
+    const updateFilter: Record<string, unknown> = { _id: { $in: validObjectIds } };
+    if (effectiveScope) {
+      updateFilter.tenantId = effectiveScope;
+    }
+
     // Update tours
     const updateResult = await Tour.updateMany(
-      { _id: { $in: validObjectIds } },
-      { 
-        $set: { 
+      updateFilter,
+      {
+        $set: {
           tenantId: tenantId,
           updatedAt: new Date()
-        } 
+        }
       }
     );
     

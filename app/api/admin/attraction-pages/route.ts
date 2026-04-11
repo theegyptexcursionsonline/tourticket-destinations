@@ -123,10 +123,26 @@ export async function POST(request: NextRequest) {
   if (auth instanceof NextResponse) return auth;
   try {
     await dbConnect();
-    
+
     const body = await request.json();
     console.log('Creating attraction page with data:', body);
-    
+
+    // Tenant guard: if a tenantId scope is passed (from AdminTenantContext),
+    // require body.tenantId to match — or set it from the scope if missing.
+    // Absent param = behave as before.
+    const tenantIdParam = new URL(request.url).searchParams.get('tenantId');
+    const effectiveTenantId =
+      tenantIdParam && tenantIdParam !== 'all' ? tenantIdParam : undefined;
+    if (effectiveTenantId) {
+      if (body.tenantId && body.tenantId !== effectiveTenantId) {
+        return NextResponse.json(
+          { success: false, error: 'Cannot create attraction page for a different tenant' },
+          { status: 403 }
+        );
+      }
+      body.tenantId = effectiveTenantId;
+    }
+
     // Validate required fields
     const requiredFields = ['title', 'slug', 'description', 'heroImage', 'gridTitle', 'pageType'];
     const missingFields = requiredFields.filter(field => !body[field]);

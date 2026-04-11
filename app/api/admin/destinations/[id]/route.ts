@@ -6,6 +6,15 @@ import Destination from '@/lib/models/Destination';
 import Tour from '@/lib/models/Tour';
 import mongoose from 'mongoose';
 
+// Defensive helper: when an admin is scoped to a single tenant via the
+// AdminTenantContext, every write must include `?tenantId=xxx`. We use that
+// to require the target document to belong to that tenant. Absent param =
+// behave as before (no enforcement).
+function getTenantScope(request: NextRequest): string | undefined {
+  const tenantIdParam = new URL(request.url).searchParams.get('tenantId');
+  return tenantIdParam && tenantIdParam !== 'all' ? tenantIdParam : undefined;
+}
+
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -25,12 +34,16 @@ export async function PUT(
       }, { status: 400 });
     }
     
-    // Find the existing destination first
-    const existingDestination = await Destination.findById(id);
+    // Find the existing destination first (tenant-scoped if a scope is passed)
+    const tenantId = getTenantScope(request);
+    const findFilter: Record<string, unknown> = { _id: id };
+    if (tenantId) findFilter.tenantId = tenantId;
+
+    const existingDestination = await Destination.findOne(findFilter);
     if (!existingDestination) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Destination not found' 
+      return NextResponse.json({
+        success: false,
+        error: 'Destination not found'
       }, { status: 404 });
     }
     
@@ -128,11 +141,11 @@ export async function PUT(
         .trim();
     }
     
-    const destination = await Destination.findByIdAndUpdate(
-      id, 
-      updateData, 
-      { 
-        new: true, 
+    const destination = await Destination.findOneAndUpdate(
+      findFilter,
+      updateData,
+      {
+        new: true,
         runValidators: true,
         context: 'query'
       }
@@ -197,6 +210,11 @@ export async function DELETE(
       }, { status: 400 });
     }
 
+    // Tenant guard for delete
+    const tenantId = getTenantScope(request);
+    const deleteFilter: Record<string, unknown> = { _id: id };
+    if (tenantId) deleteFilter.tenantId = tenantId;
+
     // Check if destination has tours
     const tourCount = await Tour.countDocuments({ destination: id });
     if (tourCount > 0) {
@@ -215,7 +233,7 @@ export async function DELETE(
       );
     }
 
-    const destination = await Destination.findByIdAndDelete(id);
+    const destination = await Destination.findOneAndDelete(deleteFilter);
 
     if (!destination) {
       return NextResponse.json({

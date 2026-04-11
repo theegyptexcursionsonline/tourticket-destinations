@@ -154,10 +154,28 @@ export async function POST(request: NextRequest) {
   if (auth instanceof NextResponse) return auth;
 
   await dbConnect();
-  
+
   try {
     const body = await request.json();
-    
+
+    // Tenant guard: if a tenantId scope is passed (from AdminTenantContext),
+    // require body.tenantId to match. Prevents an admin viewing tenant A from
+    // accidentally creating a tour under tenant B by tampering with body.
+    // Absent param = behave as before.
+    const tenantIdParam = new URL(request.url).searchParams.get('tenantId');
+    const effectiveTenantId =
+      tenantIdParam && tenantIdParam !== 'all' ? tenantIdParam : undefined;
+    if (effectiveTenantId) {
+      if (body.tenantId && body.tenantId !== effectiveTenantId) {
+        return NextResponse.json(
+          { success: false, error: 'Cannot create tour for a different tenant' },
+          { status: 403 }
+        );
+      }
+      // Force the tenant from the scope so the create is locked to it
+      body.tenantId = effectiveTenantId;
+    }
+
     // Map 'faqs' from form to 'faq' in the database model
     if (body.faqs) {
       body.faq = body.faqs;

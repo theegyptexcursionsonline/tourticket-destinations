@@ -29,15 +29,31 @@ export async function POST(request: NextRequest) {
   await dbConnect();
   try {
     const body = await request.json();
-    
+
+    // Tenant guard: if a tenantId scope is passed (from AdminTenantContext),
+    // require body.tenantId to match — or set it from the scope if missing.
+    // Absent param = behave as before.
+    const tenantIdParam = new URL(request.url).searchParams.get('tenantId');
+    const effectiveTenantId =
+      tenantIdParam && tenantIdParam !== 'all' ? tenantIdParam : undefined;
+    if (effectiveTenantId) {
+      if (body.tenantId && body.tenantId !== effectiveTenantId) {
+        return NextResponse.json(
+          { success: false, error: 'Cannot create destination for a different tenant' },
+          { status: 403 }
+        );
+      }
+      body.tenantId = effectiveTenantId;
+    }
+
     // For POST (creation), we still need required fields
     const requiredFields = ['name', 'country', 'description', 'image'];
     const missingFields = requiredFields.filter(field => !body[field]?.trim?.());
-    
+
     if (missingFields.length > 0) {
-      return NextResponse.json({ 
-        success: false, 
-        error: `Missing required fields: ${missingFields.join(', ')}` 
+      return NextResponse.json({
+        success: false,
+        error: `Missing required fields: ${missingFields.join(', ')}`
       }, { status: 400 });
     }
     

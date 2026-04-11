@@ -5,6 +5,15 @@ import AttractionPage from '@/lib/models/AttractionPage';
 import Category from '@/lib/models/Category';
 import mongoose from 'mongoose';
 
+// Defensive helper: when an admin is scoped to a single tenant via the
+// AdminTenantContext, every write must include `?tenantId=xxx`. We use that
+// to require the target document to belong to that tenant. Absent param =
+// behave as before (no enforcement).
+function getTenantScope(request: NextRequest): string | undefined {
+  const tenantIdParam = new URL(request.url).searchParams.get('tenantId');
+  return tenantIdParam && tenantIdParam !== 'all' ? tenantIdParam : undefined;
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -114,8 +123,12 @@ export async function PUT(
 
     console.log('💾 Final update data:', JSON.stringify(updateData, null, 2));
 
-    const page = await AttractionPage.findByIdAndUpdate(
-      id,
+    const tenantId = getTenantScope(request);
+    const updateFilter: Record<string, unknown> = { _id: id };
+    if (tenantId) updateFilter.tenantId = tenantId;
+
+    const page = await AttractionPage.findOneAndUpdate(
+      updateFilter,
       updateData, // Use processed data instead of raw body
       { new: true, runValidators: true }
     )
@@ -177,7 +190,11 @@ export async function DELETE(
       }, { status: 400 });
     }
 
-    const page = await AttractionPage.findByIdAndDelete(id);
+    const tenantId = getTenantScope(request);
+    const deleteFilter: Record<string, unknown> = { _id: id };
+    if (tenantId) deleteFilter.tenantId = tenantId;
+
+    const page = await AttractionPage.findOneAndDelete(deleteFilter);
 
     if (!page) {
       return NextResponse.json({

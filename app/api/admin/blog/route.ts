@@ -34,6 +34,23 @@ export async function POST(request: NextRequest) {
   try {
     await dbConnect();
     const data = await request.json();
+
+    // Tenant guard: if a tenantId scope is passed (from AdminTenantContext),
+    // require body.tenantId to match — or set it from the scope if missing.
+    // Absent param = behave as before.
+    const tenantIdParam = new URL(request.url).searchParams.get('tenantId');
+    const effectiveTenantId =
+      tenantIdParam && tenantIdParam !== 'all' ? tenantIdParam : undefined;
+    if (effectiveTenantId) {
+      if (data.tenantId && data.tenantId !== effectiveTenantId) {
+        return NextResponse.json(
+          { success: false, error: 'Cannot create blog post for a different tenant' },
+          { status: 403 }
+        );
+      }
+      data.tenantId = effectiveTenantId;
+    }
+
     const created = await Blog.create(data);
     return NextResponse.json({ success: true, data: created, message: 'Blog post created' }, { status: 201 });
   } catch (error: any) {

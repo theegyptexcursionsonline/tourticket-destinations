@@ -177,6 +177,14 @@ export async function PUT(
         const { id } = await params;
         const body = await request.json();
 
+        // Tenant guard: if a tenantId scope is passed (from AdminTenantContext),
+        // require the target tour to belong to that tenant. Prevents cross-tenant
+        // edits when admin is viewing a single brand. Absent param = behave as before.
+        const { searchParams } = new URL(request.url);
+        const tenantIdParam = searchParams.get('tenantId');
+        const effectiveTenantId =
+            tenantIdParam && tenantIdParam !== 'all' ? tenantIdParam : undefined;
+
         console.log('Updating tour with ID:', id);
         console.log('Request body:', body);
 
@@ -261,8 +269,16 @@ export async function PUT(
             };
         }
 
-        const updatedTour = await Tour.findByIdAndUpdate(
-            id,
+        // Build the update filter, applying tenant guard if scoped
+        const updateFilter: Record<string, unknown> = mongoose.Types.ObjectId.isValid(id)
+            ? { _id: id }
+            : { slug: id };
+        if (effectiveTenantId) {
+            updateFilter.tenantId = effectiveTenantId;
+        }
+
+        const updatedTour = await Tour.findOneAndUpdate(
+            updateFilter,
             { $set: body },
             {
                 new: true,
@@ -350,13 +366,21 @@ export async function DELETE(
         await dbConnect();
         const { id } = await params;
 
-        let deletedTour;
-        
-        if (mongoose.Types.ObjectId.isValid(id)) {
-            deletedTour = await Tour.findByIdAndDelete(id);
-        } else {
-            deletedTour = await Tour.findOneAndDelete({ slug: id });
+        // Tenant guard: same defensive pattern as PUT — require tenant match
+        // when a tenantId scope is passed.
+        const { searchParams } = new URL(request.url);
+        const tenantIdParam = searchParams.get('tenantId');
+        const effectiveTenantId =
+            tenantIdParam && tenantIdParam !== 'all' ? tenantIdParam : undefined;
+
+        const deleteFilter: Record<string, unknown> = mongoose.Types.ObjectId.isValid(id)
+            ? { _id: id }
+            : { slug: id };
+        if (effectiveTenantId) {
+            deleteFilter.tenantId = effectiveTenantId;
         }
+
+        const deletedTour = await Tour.findOneAndDelete(deleteFilter);
 
         if (!deletedTour) {
             return NextResponse.json({ success: false, error: "Tour not found" }, { status: 404 });

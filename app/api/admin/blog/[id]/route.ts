@@ -4,6 +4,15 @@ import dbConnect from '@/lib/dbConnect';
 import Blog from '@/lib/models/Blog';
 import mongoose from 'mongoose';
 
+// Defensive helper: when an admin is scoped to a single tenant via the
+// AdminTenantContext, every write must include `?tenantId=xxx`. We use that
+// to require the target document to belong to that tenant. Absent param =
+// behave as before (no enforcement).
+function getTenantScope(request: NextRequest): string | undefined {
+  const tenantIdParam = new URL(request.url).searchParams.get('tenantId');
+  return tenantIdParam && tenantIdParam !== 'all' ? tenantIdParam : undefined;
+}
+
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -23,12 +32,16 @@ export async function PUT(
       }, { status: 400 });
     }
     
-    const blog = await Blog.findByIdAndUpdate(
-      id, 
-      data, 
-      { 
-        new: true, 
-        runValidators: true 
+    const tenantId = getTenantScope(request);
+    const updateFilter: Record<string, unknown> = { _id: id };
+    if (tenantId) updateFilter.tenantId = tenantId;
+
+    const blog = await Blog.findOneAndUpdate(
+      updateFilter,
+      data,
+      {
+        new: true,
+        runValidators: true
       }
     );
     
@@ -88,12 +101,16 @@ export async function DELETE(
       }, { status: 400 });
     }
     
-    const blog = await Blog.findByIdAndDelete(id);
-    
+    const tenantId = getTenantScope(request);
+    const deleteFilter: Record<string, unknown> = { _id: id };
+    if (tenantId) deleteFilter.tenantId = tenantId;
+
+    const blog = await Blog.findOneAndDelete(deleteFilter);
+
     if (!blog) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Blog post not found' 
+      return NextResponse.json({
+        success: false,
+        error: 'Blog post not found'
       }, { status: 404 });
     }
     
