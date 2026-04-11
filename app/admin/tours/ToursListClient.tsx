@@ -436,8 +436,9 @@ export function ToursListClient({ tours }: { tours: TourType[] }) {
         // Enhanced Cards View
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {paginated.map((t) => (
-            <div 
-              key={t._id} 
+            <div
+              key={t._id}
+              data-testid="tour-card"
               className="group bg-white border border-slate-200/60 rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
             >
               {/* Card Image */}

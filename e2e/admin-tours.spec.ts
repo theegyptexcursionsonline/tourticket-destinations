@@ -27,7 +27,7 @@ test.describe('Admin tour management', () => {
     await page.waitForTimeout(5000);
 
     // Should have table rows or tour cards
-    const rows = page.locator('tr, [class*="tour-row"], [class*="tour-card"]');
+    const rows = page.locator('tr, [data-testid="tour-card"]');
     const count = await rows.count();
     // At least header row + 1 data row, or at least 1 card
     expect(count).toBeGreaterThan(0);
