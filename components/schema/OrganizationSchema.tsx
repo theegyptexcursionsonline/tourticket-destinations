@@ -65,6 +65,10 @@ export default function OrganizationSchema() {
           bestRating: '5',
           worstRating: '1',
         },
+        speakable: {
+          '@type': 'SpeakableSpecification',
+          cssSelector: ['h1', '.organization-description'],
+        },
         makesOffer: {
           '@type': 'AggregateOffer',
           lowPrice: '15',

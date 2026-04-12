@@ -2,9 +2,12 @@
 import React from "react";
 import { Metadata } from "next";
 import CareersClientPage from "./CareersClientPage";
+import OrganizationSchema from "@/components/schema/OrganizationSchema";
+import WebSiteSchema from "@/components/schema/WebSiteSchema";
 import dbConnect from "@/lib/dbConnect";
 import Job from "@/lib/models/Job";
 type JobType = any;
+import { getSeoAlternates } from '@/lib/seo';
 import { getTenantFromRequest, getTenantPublicConfig } from "@/lib/tenant";
 
 // Force dynamic rendering to avoid build-time DB connection issues
@@ -27,6 +30,7 @@ export async function generateMetadata(): Promise<Metadata> {
           siteName: tenant.name,
           images: [tenant.seo.ogImage],
         },
+        alternates: getSeoAlternates('/careers'),
       };
     }
   } catch (error) {
@@ -52,5 +56,11 @@ async function getJobs(): Promise<JobType[]> {
 
 export default async function CareersPage() {
     const jobOpenings = await getJobs();
-    return <CareersClientPage jobOpenings={jobOpenings} />;
+    return (
+        <>
+            <OrganizationSchema />
+            <WebSiteSchema pageName="Careers" />
+            <CareersClientPage jobOpenings={jobOpenings} />
+        </>
+    );
 }

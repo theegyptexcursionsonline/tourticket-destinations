@@ -34,6 +34,10 @@ export default function CollectionSchema({ name, description, url, items = [], b
         url: fullUrl,
         isPartOf: { '@id': `${BASE_URL}/#website` },
         about: { '@id': `${BASE_URL}/#organization` },
+        speakable: {
+          '@type': 'SpeakableSpecification',
+          cssSelector: ['h1', '.collection-description'],
+        },
       },
       ...(items.length > 0
         ? [

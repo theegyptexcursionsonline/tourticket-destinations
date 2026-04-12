@@ -32,6 +32,10 @@ export default function ToursListSchema({
     '@type': 'ItemList',
     name: listName,
     description: listDescription,
+    speakable: {
+      '@type': 'SpeakableSpecification',
+      cssSelector: ['h1', '.tours-list-description'],
+    },
     numberOfItems: tours.length,
     itemListElement: tours.map((tour, i) => ({
       '@type': 'ListItem',

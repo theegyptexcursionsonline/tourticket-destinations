@@ -40,6 +40,10 @@ export default function DestinationSchema({ name, slug, description, image, coun
           addressCountry: country || 'EG',
         },
         touristType: ['Sightseeing', 'Adventure', 'Cultural'],
+        speakable: {
+          '@type': 'SpeakableSpecification',
+          cssSelector: ['h1', '.destination-description', '.destination-highlights'],
+        },
         containsPlace: tours.slice(0, 10).map((t) => ({
           '@type': 'TouristAttraction',
           name: t.title,

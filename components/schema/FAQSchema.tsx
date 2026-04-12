@@ -16,6 +16,10 @@ export default function FAQSchema({ items }: Props) {
   const ld = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
+    speakable: {
+      '@type': 'SpeakableSpecification',
+      cssSelector: ['h1', '.faq-content'],
+    },
     mainEntity: items.map((item) => ({
       '@type': 'Question',
       name: item.question,

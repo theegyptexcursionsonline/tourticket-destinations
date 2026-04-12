@@ -123,10 +123,13 @@ export async function generateMetadata({
         },
         alternates: {
           languages: {
-            en: '/',
-            ar: '/ar',
-            ru: '/ru',
-            de: '/de',
+            'en': '/',
+            'ar': '/ar',
+            'es': '/es',
+            'fr': '/fr',
+            'ru': '/ru',
+            'de': '/de',
+            'x-default': '/',
           },
         },
       };
