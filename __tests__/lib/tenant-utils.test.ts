@@ -67,9 +67,16 @@ describe('Tenant utility helpers', () => {
     });
 
     it('should do strict filter when includeDefault is false', () => {
-      const query = buildTenantQuery({ isPublished: true }, 'hurghada', { includeDefault: false });
-      expect(query.$or).toBeUndefined();
-      expect(query.tenantId).toBe('hurghada');
+      // With multi-brand support (Issue #17) the strict path now matches on
+      // either the primary `tenantId` OR the multi-brand `tenantIds` array
+      // via $or, so a tour assigned to the brand via either field surfaces.
+      // Defaults are still excluded because includeDefault=false.
+      const query = buildTenantQuery({ isPublished: true }, 'hurghada', { includeDefault: false }) as any;
+      expect(query.isPublished).toBe(true);
+      expect(query.$or).toEqual([
+        { tenantId: 'hurghada' },
+        { tenantIds: 'hurghada' },
+      ]);
     });
 
     it('should preserve base query fields', () => {
@@ -80,15 +87,30 @@ describe('Tenant utility helpers', () => {
   });
 
   describe('buildStrictTenantQuery', () => {
-    it('should only include the specified tenant', () => {
-      const query = buildStrictTenantQuery({ isPublished: true }, 'hurghada');
-      expect(query).toEqual({ isPublished: true, tenantId: 'hurghada' });
+    // Strict = no fallback to the default tenant. With Issue #17 the strict
+    // query still uses $or because a tour can live on multiple brands via
+    // the `tenantIds` array, and we want it to match when either the primary
+    // or the multi-brand field contains the current tenant. The distinction
+    // vs. buildTenantQuery(includeDefault=true) is that strict does NOT pull
+    // in the 'default' tenant as a fallback.
+    it('should match on either tenantId or tenantIds', () => {
+      const query = buildStrictTenantQuery({ isPublished: true }, 'hurghada') as any;
+      expect(query.isPublished).toBe(true);
+      expect(query.$or).toEqual([
+        { tenantId: 'hurghada' },
+        { tenantIds: 'hurghada' },
+      ]);
     });
 
-    it('should not include $or or default fallback', () => {
-      const query = buildStrictTenantQuery({}, 'cairo');
-      expect(query.$or).toBeUndefined();
-      expect(query.tenantId).toBe('cairo');
+    it('should not include the default tenant as a fallback', () => {
+      const query = buildStrictTenantQuery({}, 'cairo') as any;
+      expect(query.$or).toEqual([
+        { tenantId: 'cairo' },
+        { tenantIds: 'cairo' },
+      ]);
+      // Neither branch of the $or should accept the default tenant.
+      const mentionsDefault = JSON.stringify(query.$or).includes('default');
+      expect(mentionsDefault).toBe(false);
     });
   });
 
