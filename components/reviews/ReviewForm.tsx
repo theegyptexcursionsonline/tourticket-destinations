@@ -6,8 +6,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Star, Loader2, User, Edit2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Link } from '@/i18n/navigation';
-import LoginModal from '@/components/auth/LoginModal';
-import SignupModal from '@/components/auth/SignupModal';
 import { useTranslations } from 'next-intl';
 
 interface ReviewFormProps {
@@ -24,9 +22,9 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ tourId, onReviewSubmitted }) =>
   const [title, setTitle] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasExistingReview, setHasExistingReview] = useState<any>(null);
+  const [canReview, setCanReview] = useState(false);
+  const [eligibilityReason, setEligibilityReason] = useState<string | null>(null);
   const [isCheckingExisting, setIsCheckingExisting] = useState(false);
-  const [isLoginModalOpen, setLoginModalOpen] = useState(false);
-  const [isSignupModalOpen, setSignupModalOpen] = useState(false);
 
   // Check if user has already reviewed this tour
   useEffect(() => {
@@ -38,6 +36,8 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ tourId, onReviewSubmitted }) =>
       if (!isAuthenticated || !user || !token) {
         if (isMounted) {
           setHasExistingReview(null);
+          setCanReview(false);
+          setEligibilityReason('verified_booking_required');
           setIsCheckingExisting(false);
         }
         return;
@@ -61,8 +61,10 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ tourId, onReviewSubmitted }) =>
 
         if (response.ok) {
           const data = await response.json();
-          if (isMounted && data.hasReview) {
-            setHasExistingReview(data.review);
+          if (isMounted) {
+            setHasExistingReview(data.hasReview ? data.review : null);
+            setCanReview(Boolean(data.canReview));
+            setEligibilityReason(data.reason || null);
           }
         }
       } catch (error) {
@@ -108,6 +110,11 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ tourId, onReviewSubmitted }) =>
 
     if (!token) {
       toast.error('Authentication error. Please log in again.');
+      return;
+    }
+
+    if (!canReview) {
+      toast.error('Only customers with a completed booking can leave a review.');
       return;
     }
 
@@ -250,62 +257,41 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ tourId, onReviewSubmitted }) =>
     );
   }
 
-  // If not authenticated, show login prompt
+  // If not authenticated, explain the verified-review policy
   if (!isAuthenticated) {
     return (
-      <>
-        <div className="mt-8 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border border-blue-200">
-          <div className="text-center">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <User className="w-8 h-8 text-blue-600" />
-            </div>
-            <h3 className="text-xl font-semibold text-gray-800 mb-2">{t('reviews.writeReview')}</h3>
-            <p className="text-gray-600 mb-4">
-              {t('reviews.beFirst')}
-            </p>
-            <div className="flex gap-3 justify-center">
-              <button
-                onClick={() => setLoginModalOpen(true)}
-                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                {t('auth.login')}
-              </button>
-              <button
-                onClick={() => setSignupModalOpen(true)}
-                className="inline-flex items-center px-4 py-2 bg-white text-blue-600 text-sm font-medium rounded-lg border border-blue-600 hover:bg-blue-50 transition-colors"
-              >
-                {t('auth.signup')}
-              </button>
-            </div>
+      <div className="mt-8 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border border-blue-200">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <User className="w-8 h-8 text-blue-600" />
           </div>
+          <h3 className="text-xl font-semibold text-gray-800 mb-2">{t('reviews.writeReview')}</h3>
+          <p className="text-gray-600">
+            Reviews are only available to customers who completed this tour. Eligible guests receive a post-trip review email automatically.
+          </p>
         </div>
+      </div>
+    );
+  }
 
-        {/* Login and Signup Modals */}
-        <LoginModal
-          isOpen={isLoginModalOpen}
-          onClose={() => setLoginModalOpen(false)}
-          onSwitchToSignup={() => {
-            setLoginModalOpen(false);
-            setSignupModalOpen(true);
-          }}
-          onSuccess={() => {
-            // Auth state will update automatically
-            toast.success('You can now leave a review!');
-          }}
-        />
-        <SignupModal
-          isOpen={isSignupModalOpen}
-          onClose={() => setSignupModalOpen(false)}
-          onSwitchToLogin={() => {
-            setSignupModalOpen(false);
-            setLoginModalOpen(true);
-          }}
-          onSuccess={() => {
-            // Auth state will update automatically
-            toast.success('Account created! You can now leave a review!');
-          }}
-        />
-      </>
+  if (!canReview) {
+    return (
+      <div className="mt-8 p-6 bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl border border-amber-200">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Edit2 className="w-8 h-8 text-amber-600" />
+          </div>
+          <h3 className="text-xl font-semibold text-gray-800 mb-2">{t('reviews.writeReview')}</h3>
+          <p className="text-gray-600">
+            Only customers with a completed booking can leave a review. Once you finish this tour, we&apos;ll send your review link by email.
+          </p>
+          {eligibilityReason && (
+            <p className="mt-3 text-xs text-amber-700 uppercase tracking-wide">
+              {eligibilityReason.replaceAll('_', ' ')}
+            </p>
+          )}
+        </div>
+      </div>
     );
   }
 

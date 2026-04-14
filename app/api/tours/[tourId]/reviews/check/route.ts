@@ -1,6 +1,8 @@
 // app/api/tours/[tourId]/reviews/check/route.ts
 import dbConnect from '@/lib/dbConnect';
+import Booking from '@/lib/models/Booking';
 import Review from '@/lib/models/Review';
+import Tour from '@/lib/models/Tour';
 import User from '@/lib/models/user';
 import { NextResponse, NextRequest } from 'next/server';
 import { verifyToken } from '@/lib/jwt';
@@ -10,6 +12,8 @@ import mongoose from 'mongoose';
 interface Params {
   tourId: string;
 }
+
+const REVIEW_ELIGIBLE_STATUSES = ['Confirmed', 'Completed', 'confirmed', 'completed'];
 
 export async function GET(
   request: NextRequest,
@@ -62,6 +66,8 @@ export async function GET(
     if (existingReview) {
       return NextResponse.json({
         hasReview: true,
+        canReview: false,
+        reason: 'already_reviewed',
         review: {
           _id: existingReview._id,
           rating: existingReview.rating,
@@ -72,10 +78,29 @@ export async function GET(
       });
     }
 
-    return NextResponse.json({ hasReview: false });
+    const tour = await Tour.findById(tourId).select('tenantId').lean();
+    if (!tour) {
+      return NextResponse.json({ hasReview: false, canReview: false, reason: 'tour_not_found' });
+    }
+
+    const eligibleBooking = await Booking.findOne({
+      tour: new mongoose.Types.ObjectId(tourId),
+      user: new mongoose.Types.ObjectId(userId),
+      tenantId: (tour as any).tenantId,
+      status: { $in: REVIEW_ELIGIBLE_STATUSES },
+      date: { $lt: new Date() },
+    })
+      .select('_id')
+      .lean();
+
+    return NextResponse.json({
+      hasReview: false,
+      canReview: Boolean(eligibleBooking),
+      reason: eligibleBooking ? null : 'verified_booking_required',
+    });
 
   } catch (error: any) {
     console.error('Check existing review error:', error);
-    return NextResponse.json({ hasReview: false });
+    return NextResponse.json({ hasReview: false, canReview: false, reason: 'review_check_failed' });
   }
 }

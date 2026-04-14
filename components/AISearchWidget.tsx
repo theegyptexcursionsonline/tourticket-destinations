@@ -12,6 +12,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import { useTenant } from '@/contexts/TenantContext';
+import { dedupeTaxonomyEntries } from '@/lib/utils/taxonomy';
 import 'instantsearch.css/themes/satellite.css';
 
 // --- Algolia Config ---
@@ -107,6 +108,26 @@ function CustomSearchBox({ searchQuery, onSearchChange: _onSearchChange }: { sea
   }, [searchQuery, refine]);
 
   return null;
+}
+
+function getUniqueSearchHits<T extends { slug?: string; objectID?: string; name?: string; title?: string; tourCount?: number }>(
+  hits: T[],
+  options?: { requireTours?: boolean }
+) {
+  const requireTours = options?.requireTours ?? false;
+  const uniqueHits = dedupeTaxonomyEntries(
+    hits.map((hit) => ({
+      ...hit,
+      slug: hit.slug || hit.objectID,
+      name: hit.name || hit.title,
+    }))
+  ) as T[];
+
+  if (!requireTours) {
+    return uniqueHits;
+  }
+
+  return uniqueHits.filter((hit) => (Number(hit.tourCount) || 0) > 0);
 }
 
 // Custom Hits components for each index type
@@ -259,7 +280,8 @@ function TourHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: 
 
 function DestinationHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: number }) {
   const { hits } = useHits();
-  const limitedHits = hits.slice(0, limit);
+  const uniqueHits = getUniqueSearchHits(hits as any[], { requireTours: true });
+  const limitedHits = uniqueHits.slice(0, limit);
 
   if (limitedHits.length === 0) return null;
 
@@ -274,7 +296,7 @@ function DestinationHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; l
             Destinations
           </span>
           <span className="ms-auto text-[10px] md:text-xs font-medium text-gray-400 bg-gray-100/80 backdrop-blur-sm px-2 md:px-2.5 py-0.5 md:py-1 rounded-full">
-            {hits.length}
+            {uniqueHits.length}
           </span>
         </div>
       </div>
@@ -298,7 +320,7 @@ function DestinationHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; l
                 {hit.country && (
                   <span className="bg-gray-50/80 backdrop-blur-sm px-1.5 md:px-2.5 py-0.5 md:py-1 rounded-md md:rounded-lg font-medium">{hit.country}</span>
                 )}
-                {hit.tourCount && (
+                {(Number(hit.tourCount) || 0) > 0 && (
                   <span className="bg-emerald-50/80 backdrop-blur-sm px-1.5 md:px-2.5 py-0.5 md:py-1 rounded-md md:rounded-lg font-medium text-emerald-700">
                     {hit.tourCount} tours
                   </span>
@@ -314,7 +336,8 @@ function DestinationHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; l
 
 function CategoryHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: number }) {
   const { hits } = useHits();
-  const limitedHits = hits.slice(0, limit);
+  const uniqueHits = getUniqueSearchHits(hits as any[], { requireTours: true });
+  const limitedHits = uniqueHits.slice(0, limit);
 
   if (limitedHits.length === 0) return null;
 
@@ -329,7 +352,7 @@ function CategoryHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limi
             Categories
           </span>
           <span className="ms-auto text-[10px] md:text-xs font-medium text-gray-400 bg-gray-100/80 backdrop-blur-sm px-2 md:px-2.5 py-0.5 md:py-1 rounded-full">
-            {hits.length}
+            {uniqueHits.length}
           </span>
         </div>
       </div>
@@ -350,7 +373,7 @@ function CategoryHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limi
                 {hit.name || 'Untitled Category'}
               </div>
               <div className="text-[10px] md:text-xs text-gray-500 flex items-center gap-1.5 md:gap-2.5">
-                {hit.tourCount && (
+                {(Number(hit.tourCount) || 0) > 0 && (
                   <span className="bg-purple-50/80 backdrop-blur-sm px-1.5 md:px-2.5 py-0.5 md:py-1 rounded-md md:rounded-lg font-medium text-purple-700">
                     {hit.tourCount} tours
                   </span>
@@ -987,19 +1010,11 @@ export default function AISearchWidget() {
           }
         });
 
-        const destinations = (await Promise.all(searchPromises)).filter(Boolean);
+        const destinations = getUniqueSearchHits((await Promise.all(searchPromises)).filter(Boolean) as any[], {
+          requireTours: true,
+        });
         if (destinations.length > 0) {
-          // Remove duplicates based on slug/objectID
-          const uniqueDestinations = destinations.reduce((acc: any[], dest: any) => {
-            const destId = dest.slug || dest.objectID;
-            if (!acc.find(d => (d.slug || d.objectID) === destId)) {
-              acc.push(dest);
-            }
-            return acc;
-          }, []);
-
-          // Transform destinations to ensure they have the right structure
-          const transformedDestinations = uniqueDestinations.map((dest: any) => ({
+          const transformedDestinations = destinations.map((dest: any) => ({
             slug: dest.slug || dest.objectID,
             name: dest.name || 'Untitled Destination',
             image: dest.image || dest.images?.[0] || dest.primaryImage,

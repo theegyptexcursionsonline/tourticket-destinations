@@ -17,11 +17,6 @@ async function fetchDashboardStats(effectiveTenantId: string | undefined) {
       ? { $in: [effectiveTenantId, 'default'] }
       : effectiveTenantId;
     bookingTenantFilter.tenantId = effectiveTenantId;
-  } else {
-    // "All brands" — exclude default (eeo / egypt-excursionsonline.com) data
-    const excludeDefault = { $nin: ['default', null, undefined] };
-    tourTenantFilter.tenantId = excludeDefault;
-    bookingTenantFilter.tenantId = excludeDefault;
   }
 
   await Promise.race([

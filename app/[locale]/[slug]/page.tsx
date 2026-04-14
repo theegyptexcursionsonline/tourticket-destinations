@@ -89,7 +89,7 @@ const getRelatedTours = cacheIfAvailable(
       isPublished: true,
       tenantId
     })
-      .select('title slug image discountPrice originalPrice duration destination category rating reviewCount translations')
+      .select('title slug image discountPrice originalPrice duration destination category rating reviewCount translations tags')
       .populate('destination', 'name')
       .limit(3)
       .lean();

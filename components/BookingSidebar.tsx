@@ -1110,6 +1110,14 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour }
   const [availability, setAvailability] = useState<AvailabilityData | null>(null);
   const [animationKey, setAnimationKey] = useState(0);
 
+  // Stop-sale state keyed by YYYY-MM-DD. A date appears here if the admin has
+  // blocked (all options) or partially blocked (some options) that day. The
+  // calendar merges this into its day-status map so blocked dates render red
+  // and can't be clicked — the old behavior let users select a stop-saled day,
+  // advance to the Tour Options step, and only then discover the "Unavailable"
+  // banner, which was confusing.
+  const [stopSaleDates, setStopSaleDates] = useState<Record<string, 'full' | 'partial'>>({});
+
   const [bookingData, setBookingData] = useState<BookingData>({
     selectedDate: null,
     selectedTimeSlot: null,
@@ -1120,6 +1128,64 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour }
     selectedLanguage: 'English',
     specialRequests: '',
   });
+
+  // Fetch per-day stop-sale state for the next 6 months so the calendar can
+  // render blocked dates. We use the month endpoint (which already aggregates
+  // StopSale records per day) instead of fetching per-date, so a single tour
+  // detail render performs ≤6 API calls total rather than N×daysPerMonth.
+  useEffect(() => {
+    const tourId = tour?.id || tour?._id;
+    if (!tourId) return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const today = new Date();
+        const monthsToFetch: Array<{ month: number; year: number }> = [];
+        for (let offset = 0; offset < 6; offset += 1) {
+          const d = new Date(today.getFullYear(), today.getMonth() + offset, 1);
+          monthsToFetch.push({ month: d.getMonth() + 1, year: d.getFullYear() });
+        }
+
+        const responses = await Promise.all(
+          monthsToFetch.map(({ month, year }) =>
+            fetch(`/api/availability/${tourId}?month=${month}&year=${year}`, {
+              cache: 'no-store',
+            })
+              .then((r) => (r.ok ? r.json() : null))
+              .catch(() => null),
+          ),
+        );
+
+        if (cancelled) return;
+
+        const next: Record<string, 'full' | 'partial'> = {};
+        for (const res of responses) {
+          const days = res?.data?.days as Record<
+            string,
+            { status: 'none' | 'partial' | 'full' }
+          > | undefined;
+          if (!days) continue;
+          for (const [key, value] of Object.entries(days)) {
+            if (value?.status === 'full' || value?.status === 'partial') {
+              // Full wins over partial if the same date appears in multiple
+              // months (shouldn't happen, but be defensive).
+              if (next[key] !== 'full') next[key] = value.status;
+            }
+          }
+        }
+        setStopSaleDates(next);
+      } catch (err) {
+        // Non-fatal: if the fetch fails, the calendar degrades to its
+        // pre-stop-sale behavior rather than breaking the booking flow.
+        console.warn('[BookingSidebar] stop-sale month fetch failed:', err);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [tour?.id, tour?._id]);
 
   // Generate calendar availability based on tour's availability settings
   const calendarAvailability = useMemo(() => {
@@ -1187,8 +1253,22 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour }
       availabilityMap[dateKey] = 'high';
     }
 
+    // Overlay stop-sale state on top of the availability config. A fully
+    // blocked day becomes `'full'` (the calendar renders this red and
+    // disables the button); a partially blocked day is downgraded to
+    // `'low'` so it still opens but visually warns the user that not every
+    // option is available. This is the single source of truth the calendar
+    // uses to decide whether a date is clickable.
+    for (const [key, status] of Object.entries(stopSaleDates)) {
+      if (status === 'full') {
+        availabilityMap[key] = 'full';
+      } else if (status === 'partial' && availabilityMap[key] !== 'full') {
+        availabilityMap[key] = 'low';
+      }
+    }
+
     return availabilityMap;
-  }, [tour?.availability]);
+  }, [tour?.availability, stopSaleDates]);
 
   // Get tour display data with proper fallbacks
   const tourDisplayData = useMemo(() => {

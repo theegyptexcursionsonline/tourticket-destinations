@@ -147,6 +147,18 @@ const extractEnhancementData = (tour: Tour): TourEnhancement => {
   };
 };
 
+const getDisplayTags = (tags?: string[]) => {
+  if (!Array.isArray(tags)) return [];
+
+  return Array.from(
+    new Set(
+      tags
+        .map((tag) => tag?.trim())
+        .filter(Boolean)
+    )
+  ).slice(0, 2);
+};
+
 // Enhanced Lightbox Component
 const Lightbox = ({ images, selectedIndex, onClose }: { images: string[], selectedIndex: number, onClose: () => void }) => {
   const [currentIndex, setCurrentIndex] = useState(selectedIndex);
@@ -413,27 +425,27 @@ const ItinerarySection = ({ itinerary, tourTitle, sectionRef }: { itinerary: Iti
         {/* Left: Itinerary Timeline */}
         <div className="relative order-2 lg:order-1">
           {/* Dotted line connector */}
-          <div className="absolute start-6 top-6 bottom-6 w-0.5 border-s-2 border-dashed border-slate-300"></div>
+          <div className="absolute start-5 top-5 bottom-5 w-0.5 border-s-2 border-dashed border-slate-300"></div>
 
           <div className="max-h-[600px] lg:max-h-[700px] overflow-y-auto pe-2 custom-scrollbar">
             {itinerary.map((item, index) => (
               <div key={index} className="relative flex items-start gap-4 pb-6 last:pb-0">
-                {/* Large connection point */}
+                {/* Timeline connection point */}
                 <div className="flex-shrink-0 relative z-10">
                   {/* Outer ring */}
                   <div className={`absolute inset-0 rounded-full ${
                     index === 0 ? 'bg-green-100 animate-pulse' :
                     index === itinerary.length - 1 ? 'bg-red-100' :
                     'bg-blue-100'
-                  }`} style={{ transform: 'scale(1.3)' }}></div>
+                  }`} style={{ transform: 'scale(1.16)' }}></div>
 
                   {/* Icon circle */}
-                  <div className={`relative w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm shadow-lg ${
+                  <div className={`relative w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shadow-lg ${
                     index === 0 ? 'bg-green-600' :
                     index === itinerary.length - 1 ? 'bg-red-600' :
                     'bg-blue-600'
                   } text-white`}>
-                    <ItineraryIcon iconType={item.icon} className="w-6 h-6" />
+                    <ItineraryIcon iconType={item.icon} className="w-5 h-5" />
                   </div>
 
                   {/* Connecting dots */}
@@ -1349,15 +1361,26 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
                               height={200}
                               className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-300"
                             />
-                            {relatedTour.tags?.map((tag, index) => (
-                              <span
-                                key={index}
-                                className={`absolute top-2 start-2 px-2 py-1 text-xs font-bold rounded ${tag.includes('%') ? 'bg-red-600 text-white' : 'bg-blue-600 text-white'
-                                  }`}
-                              >
-                                {tag}
-                              </span>
-                            ))}
+                            {getDisplayTags(relatedTour.tags).length > 0 && (
+                              // `end-2` bounds the container on the right so
+                              // `flex-wrap` has a width to wrap against. Without
+                              // it, the container grew rightward past the card
+                              // and got clipped by the `overflow-hidden` on the
+                              // outer wrapper, which is why tags showed up as
+                              // "sunset hu" / "luxury ing" mid-word.
+                              <div className="absolute top-2 start-2 end-2 flex flex-wrap gap-1 pointer-events-none">
+                                {getDisplayTags(relatedTour.tags).map((tag, index) => (
+                                  <span
+                                    key={`${relatedTour._id}-${index}-${tag}`}
+                                    className={`px-2 py-1 text-xs font-bold rounded max-w-full whitespace-nowrap overflow-hidden text-ellipsis ${
+                                      tag.includes('%') ? 'bg-red-600 text-white' : 'bg-blue-600 text-white'
+                                    }`}
+                                  >
+                                    {tag}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
                           </div>
                           <div className="p-3">
                             <h3 className="font-bold text-sm text-slate-800 mb-1 line-clamp-2">{relatedTour.title}</h3>

@@ -4,6 +4,7 @@ import dbConnect from '@/lib/dbConnect';
 import Category from '@/lib/models/Category';
 import Tour from '@/lib/models/Tour';
 import { getTenantFromRequest, buildTenantQuery } from '@/lib/tenant';
+import { filterVisibleTaxonomyEntries } from '@/lib/utils/taxonomy';
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,6 +12,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const explicitTenantId = searchParams.get('tenantId');
     const tenantId = (explicitTenantId && explicitTenantId !== 'all') ? explicitTenantId : await getTenantFromRequest();
+    const featuredOnly = searchParams.get('featured') === 'true';
     await dbConnect(tenantId);
     
     // If tenant has its own categories, show only those (no default fallback)
@@ -19,7 +21,11 @@ export async function GET(request: NextRequest) {
       ? { tenantId }
       : buildTenantQuery({}, tenantId);
 
-    const categories = await Category.find(catQuery)
+    const categories = await Category.find({
+      ...catQuery,
+      ...(featuredOnly ? { featured: true } : {}),
+      isPublished: true,
+    })
       .sort({ order: 1, name: 1 })
       .lean();
 
@@ -51,9 +57,19 @@ export async function GET(request: NextRequest) {
       tourCount: countMap.get(category._id?.toString()) || 0
     }));
 
+    const visibleCategories = filterVisibleTaxonomyEntries(categoriesWithCounts, {
+      requireTours: true,
+    }).sort((a: any, b: any) => {
+      const orderA = typeof a.order === 'number' ? a.order : Number.MAX_SAFE_INTEGER;
+      const orderB = typeof b.order === 'number' ? b.order : Number.MAX_SAFE_INTEGER;
+
+      if (orderA !== orderB) return orderA - orderB;
+      return String(a.name || '').localeCompare(String(b.name || ''));
+    });
+
     return NextResponse.json({ 
       success: true, 
-      data: categoriesWithCounts 
+      data: visibleCategories 
     });
   } catch (error) {
     console.error('Error fetching categories:', error);

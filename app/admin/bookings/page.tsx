@@ -645,6 +645,21 @@ const BookingsPage = () => {
                               {destinationName}
                             </div>
                           )}
+                          {/* "Booked on" — displayed inline under the customer
+                              so admins can see when the reservation was created
+                              at a glance, matching the main-EEO layout. Uses
+                              `createdAt` (booking creation timestamp), NOT
+                              `date` (which is the tour-date). Requested in
+                              Issue #12. */}
+                          {booking.createdAt && (
+                            <div className="text-[11px] text-slate-400 mt-0.5">
+                              Booked on {formatDisplayDate(booking.createdAt, {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                              })}
+                            </div>
+                          )}
                         </div>
                       </td>
                       {isAllTenantsSelected() && (

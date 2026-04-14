@@ -395,7 +395,7 @@ const ItinerarySection = ({ itinerary, sectionRef }: { itinerary: ItineraryItem[
       {itinerary.map((item, index) => (
         <div key={index} className="relative flex items-start gap-4 pb-8">
           <div className="flex-shrink-0 w-12 h-12 bg-red-600 text-white rounded-full flex items-center justify-center font-bold text-sm relative z-10">
-            <ItineraryIcon iconType={item.icon} className="w-6 h-6" />
+            <ItineraryIcon iconType={item.icon} className="w-5 h-5" />
           </div>
           <div className="flex-1 bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
             <div className="flex items-center justify-between mb-2">

@@ -6,6 +6,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { useSettings } from '@/hooks/useSettings';
 import { useAdminTenant } from '@/contexts/AdminTenantContext';
+import TranslationEditor from '@/components/admin/TranslationEditor';
+import { tourTranslationFields, normalizeTranslations } from '@/lib/i18n/translationFields';
 import {
     Loader2,
     XCircle,
@@ -111,6 +113,8 @@ interface AddOn {
 
 interface TourFormData {
     tenantId: string;
+    tenantIds: string[];
+    translations: Record<string, Record<string, unknown>>;
     title: string;
     slug: string;
     description: string;
@@ -146,6 +150,7 @@ interface TourFormData {
 interface Tour extends Partial<TourFormData> {
     _id?: string;
     tenantId?: string;
+    tenantIds?: string[];
     faq?: FAQ[];
     price?: number | string;
 }
@@ -332,19 +337,36 @@ export default function TourForm({ tourToEdit, onSave, fullPage = false }: { tou
     const [expandedItineraryIndex, setExpandedItineraryIndex] = useState<number | null>(0);
     const [expandedFaqIndex, setExpandedFaqIndex] = useState<number | null>(0);
 
-    // Determine default tenantId: use selected tenant if specific one is selected, otherwise 'default'
+    // Determine the default tenantId for a new tour (Issue #15).
+    //
+    // Old behavior: if the admin was viewing "All Brands", this would silently
+    // fall back to `tenants.find(t => t.isDefault)` or the first tenant — so
+    // a tour created from "All Brands" scope was secretly attributed to the
+    // default brand without any indication. Multi-brand tours don't fix that
+    // on their own because the form still needs a starting value.
+    //
+    // New behavior:
+    //   - If a specific brand is selected in the admin header, use it.
+    //   - Otherwise return an empty string. The multi-brand checkbox UI
+    //     requires the admin to TICK at least one brand before the submit
+    //     handler accepts the form (see `handleSubmit`), so an empty default
+    //     forces a conscious choice in "All Brands" mode instead of a silent
+    //     assignment.
     const getDefaultTenantId = () => {
         if (!isAllTenantsSelected() && selectedTenantId) {
             return selectedTenantId;
         }
-        // Fall back to default tenant or first available tenant
-        const defaultTenant = tenants.find(t => t.isDefault);
-        return defaultTenant?.tenantId || tenants[0]?.tenantId || 'default';
+        return '';
     };
 
-    const [formData, setFormData] = useState<TourFormData>({
-        tenantId: getDefaultTenantId(),
-        title: '',
+    const [formData, setFormData] = useState<TourFormData>(() => {
+        const initial = getDefaultTenantId();
+        return {
+            tenantId: initial,
+            // Empty array in All-Brands mode — admin has to tick explicitly.
+            tenantIds: initial ? [initial] : [],
+            translations: {},
+            title: '',
         slug: '',
         description: '',
         longDescription: '',
@@ -375,12 +397,14 @@ export default function TourForm({ tourToEdit, onSave, fullPage = false }: { tou
         },
         attractions: [],
         interests: [],
+        };
     });
 
     // Update default tenantId when tenants are loaded and formData is empty
     useEffect(() => {
         if (!tourToEdit && tenants.length > 0 && !formData.tenantId) {
-            setFormData(prev => ({ ...prev, tenantId: getDefaultTenantId() }));
+            const next = getDefaultTenantId();
+            setFormData(prev => ({ ...prev, tenantId: next, tenantIds: [next] }));
         }
     }, [tenants, selectedTenantId]);
 
@@ -395,8 +419,15 @@ export default function TourForm({ tourToEdit, onSave, fullPage = false }: { tou
         if (tourToEdit) {
             setIsSlugManuallyEdited(Boolean(tourToEdit.slug));
 
+            const primaryTenant = tourToEdit.tenantId || getDefaultTenantId();
+            const extraTenants = Array.isArray(tourToEdit.tenantIds) ? tourToEdit.tenantIds : [];
+            const mergedTenantIds = Array.from(new Set([primaryTenant, ...extraTenants])).filter(Boolean);
             const initialData: Partial<TourFormData> = {
-                tenantId: tourToEdit.tenantId || getDefaultTenantId(),
+                tenantId: primaryTenant,
+                tenantIds: mergedTenantIds.length > 0 ? mergedTenantIds : [primaryTenant],
+                // Load existing translations so the admin can edit them per
+                // locale in the Translations tab (Issue #16).
+                translations: normalizeTranslations((tourToEdit as any).translations),
                 title: tourToEdit.title || '',
                 slug: tourToEdit.slug || '',
                 description: tourToEdit.description || '',
@@ -543,6 +574,8 @@ export default function TourForm({ tourToEdit, onSave, fullPage = false }: { tou
     const resetForm = () => {
         setFormData({
             tenantId: formData.tenantId || '',
+            tenantIds: formData.tenantIds && formData.tenantIds.length > 0 ? formData.tenantIds : (formData.tenantId ? [formData.tenantId] : []),
+            translations: {},
             title: '',
             slug: '',
             description: '',
@@ -857,15 +890,33 @@ const addItineraryItem = () => {
         try {
             const cleanedData = { ...formData };
 
-            // Ensure tenantId is set
-            if (!cleanedData.tenantId) {
-                toast.error('Please select a brand for this tour.');
+            // Ensure at least one brand is ticked in the multi-brand selector
+            // (Issue #15). The old silent default of "first tenant" is gone —
+            // the admin must pick consciously, which matches the multi-brand
+            // checkbox UI the form renders.
+            if (!cleanedData.tenantId || !Array.isArray(cleanedData.tenantIds) || cleanedData.tenantIds.length === 0) {
+                toast.error('Please tick at least one brand for this tour under Basic Info → Assign to Brand(s).');
                 setIsSubmitting(false);
                 return;
             }
 
+            // Normalize the multi-brand selector: `tenantIds` must be a non-empty
+            // array containing the primary `tenantId`. The pre-save hook on the
+            // model does this too, but doing it client-side means the admin sees
+            // consistent data if the save fails and they re-open the form.
+            const normalizedTenantIds = Array.from(
+                new Set([cleanedData.tenantId, ...(Array.isArray(cleanedData.tenantIds) ? cleanedData.tenantIds : [])])
+            ).filter(Boolean);
+
             const payload = {
                 tenantId: cleanedData.tenantId,
+                tenantIds: normalizedTenantIds,
+                // Only send `translations` when there's something to persist.
+                // An empty {} would overwrite any server-side translations the
+                // admin added in another session.
+                ...(cleanedData.translations && Object.keys(cleanedData.translations).length > 0
+                    ? { translations: cleanedData.translations }
+                    : {}),
                 title: cleanedData.title.trim(),
                 slug: cleanedData.slug.trim(),
                 description: cleanedData.description.trim(),
@@ -956,8 +1007,14 @@ const addItineraryItem = () => {
         { id: 'itinerary', label: 'Itinerary', icon: Map },
         { id: 'booking', label: 'Booking Options', icon: Settings },
         { id: 'addons', label: 'Add-ons', icon: Zap },
-     { id: 'availability', label: 'Availability', icon: Calendar },
+        { id: 'availability', label: 'Availability', icon: Calendar },
         { id: 'settings', label: 'Settings', icon: Eye },
+        // Issue #16: the Translations tab used to live only in `tourticket/`
+        // (the main-EEO admin) — tenant admins couldn't see it. Ported here so
+        // every tenant's admin gets the same multi-locale editor, and because
+        // `tourTranslationFields` already includes SEO meta fields the
+        // translations cover the SEO side too.
+        { id: 'translations', label: 'Translations', icon: Globe },
         { id: 'seo', label: 'SEO', icon: Globe }
     ];
 
@@ -1111,29 +1168,84 @@ const addItineraryItem = () => {
                                 {/* Basic Info Tab */}
                                 {activeTab === 'basic' && (
                                     <div className="space-y-6">
-                                        {/* Tenant/Brand Selector */}
+                                        {/* Tenant/Brand Selector — multi-select so one tour can be
+                                            assigned to multiple brands at once (Issue #17). The first
+                                            selected brand is the primary owner and is stored in
+                                            `tenantId`; the full ticked list is stored in `tenantIds`,
+                                            which public queries match against via `buildTenantQuery`. */}
                                         <div className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl">
-                                            <FormLabel icon={Building2} required>Assign to Brand</FormLabel>
-                                            <div className="relative">
-                                                <Building2 className="absolute start-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-indigo-500" />
-                                                <select
-                                                    name="tenantId"
-                                                    value={formData.tenantId || ''}
-                                                    onChange={handleChange}
-                                                    className={`${inputBase} ps-10 appearance-none cursor-pointer border-indigo-200 focus:ring-indigo-500`}
-                                                    required
-                                                >
-                                                    <option value="">Select a brand...</option>
-                                                    {tenants.map(t => (
-                                                        <option key={t.tenantId} value={t.tenantId}>
-                                                            {t.name} ({t.domain})
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                                <ChevronDown className="absolute end-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                                            <FormLabel icon={Building2} required>Assign to Brand(s)</FormLabel>
+                                            <div className="max-h-56 overflow-y-auto space-y-2 rounded-lg border border-indigo-200 bg-white p-3">
+                                                {tenants.length === 0 ? (
+                                                    <p className="text-sm text-slate-500 italic">Loading brands…</p>
+                                                ) : (
+                                                    tenants.map(t => {
+                                                        const isChecked = (formData.tenantIds || []).includes(t.tenantId);
+                                                        const isPrimary = formData.tenantId === t.tenantId;
+                                                        return (
+                                                            <label
+                                                                key={t.tenantId}
+                                                                className={`flex items-center gap-3 rounded-lg border px-3 py-2 cursor-pointer transition-colors ${
+                                                                    isChecked ? 'border-indigo-400 bg-indigo-50' : 'border-slate-200 hover:bg-slate-50'
+                                                                }`}
+                                                            >
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={isChecked}
+                                                                    onChange={() => {
+                                                                        setFormData(prev => {
+                                                                            const current = Array.isArray(prev.tenantIds) ? prev.tenantIds : [];
+                                                                            let nextTenantIds: string[];
+                                                                            if (current.includes(t.tenantId)) {
+                                                                                nextTenantIds = current.filter(id => id !== t.tenantId);
+                                                                            } else {
+                                                                                nextTenantIds = [...current, t.tenantId];
+                                                                            }
+                                                                            // Guarantee at least one brand is selected — admins
+                                                                            // cannot create an orphan tour with no visibility.
+                                                                            if (nextTenantIds.length === 0) {
+                                                                                nextTenantIds = [t.tenantId];
+                                                                            }
+                                                                            // The primary tenant is always the first in the list.
+                                                                            // If the admin unticks the current primary, promote
+                                                                            // whatever ended up at index 0.
+                                                                            const nextPrimary =
+                                                                                nextTenantIds.includes(prev.tenantId)
+                                                                                    ? prev.tenantId
+                                                                                    : nextTenantIds[0];
+                                                                            return { ...prev, tenantIds: nextTenantIds, tenantId: nextPrimary };
+                                                                        });
+                                                                    }}
+                                                                    className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                                                />
+                                                                <div className="flex-1 min-w-0">
+                                                                    <div className="font-medium text-slate-800 truncate">{t.name}</div>
+                                                                    <div className="text-xs text-slate-500 truncate">{t.domain}</div>
+                                                                </div>
+                                                                {isPrimary && isChecked && (
+                                                                    <span className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-indigo-600 text-white">
+                                                                        Primary
+                                                                    </span>
+                                                                )}
+                                                                {isChecked && !isPrimary && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(ev) => {
+                                                                            ev.preventDefault();
+                                                                            setFormData(prev => ({ ...prev, tenantId: t.tenantId }));
+                                                                        }}
+                                                                        className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 hover:bg-indigo-100 hover:text-indigo-700"
+                                                                    >
+                                                                        Set primary
+                                                                    </button>
+                                                                )}
+                                                            </label>
+                                                        );
+                                                    })
+                                                )}
                                             </div>
                                             <SmallHint className="text-indigo-600">
-                                                This tour will only appear on the selected brand's website.
+                                                Tick every brand this tour should appear on. The brand marked <strong>Primary</strong> owns the tour for admin and reporting purposes.
                                             </SmallHint>
                                         </div>
 
@@ -2215,6 +2327,33 @@ const addItineraryItem = () => {
                                                 ))}
                                             </div>
                                     </div>
+                                    </div>
+                                )}
+
+                                {/* Translations Tab (Issue #16) — enables per-locale editing
+                                    for every tenant admin, not just main EEO. Auto-translate
+                                    streams via /api/admin/translate/stream when the tour
+                                    already has an id (edit mode). tourTranslationFields
+                                    already covers title, descriptions, itinerary text, SEO
+                                    meta fields, highlights, and tags. */}
+                                {activeTab === 'translations' && (
+                                    <div className="space-y-6">
+                                        {!tourToEdit ? (
+                                            <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800">
+                                                Save the tour first — translations can be edited
+                                                and auto-generated once the tour has been created.
+                                            </div>
+                                        ) : (
+                                            <TranslationEditor
+                                                fields={tourTranslationFields}
+                                                value={formData.translations || {}}
+                                                onChange={(translations) =>
+                                                    setFormData(prev => ({ ...prev, translations }))
+                                                }
+                                                modelType="tour"
+                                                entityId={tourToEdit?._id as string}
+                                            />
+                                        )}
                                     </div>
                                 )}
 

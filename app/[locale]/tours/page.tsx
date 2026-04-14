@@ -8,7 +8,7 @@ import Footer from '@/components/Footer';
 import AISearchWidget from '@/components/AISearchWidget';
 import ToursClientPage from './ToursClientPage';
 import { ITour } from '@/lib/models/Tour';
-import { getTenantFromRequest, getTenantConfig, buildTenantQuery } from '@/lib/tenant';
+import { getTenantFromRequest, getTenantConfig, buildTenantQuery, buildStrictTenantQuery } from '@/lib/tenant';
 import { getLocale } from 'next-intl/server';
 import { localizeTour } from '@/lib/translation/getLocalizedField';
 import ToursListSchema from '@/components/schema/ToursListSchema';
@@ -34,14 +34,26 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-// Server-side function to fetch all tours with populated data (tenant-aware)
+// Server-side function to fetch all tours with populated data (tenant-aware).
+//
+// Smart-fallback pattern for Issue #8:
+//   1. If the current tenant has ANY tours (primary `tenantId` OR multi-brand
+//      `tenantIds`), return ONLY those — no leakage from 'default'. This is
+//      what makes each brand look isolated.
+//   2. Otherwise (brand-new tenant with no content yet) fall back to the
+//      default-tenant pool so the page isn't completely empty.
+//
+// The old code only counted `tenantId` matches, which meant tours assigned to
+// this tenant via the multi-brand selector (`tenantIds`) were ignored when
+// deciding whether to fall back — so a tenant with ONLY multi-brand tours
+// would unnecessarily inherit default content.
 async function getAllTours(tenantId: string): Promise<ITour[]> {
   await dbConnect();
 
-  // If tenant has its own tours, show only those (no default fallback)
-  const ownTourCount = await Tour.countDocuments({ tenantId });
+  const ownToursQuery = buildStrictTenantQuery({ isPublished: true }, tenantId);
+  const ownTourCount = await Tour.countDocuments(ownToursQuery);
   const query = ownTourCount > 0
-    ? { isPublished: true, tenantId }
+    ? ownToursQuery
     : buildTenantQuery({ isPublished: true }, tenantId);
 
   const tours = await Tour.find(query)

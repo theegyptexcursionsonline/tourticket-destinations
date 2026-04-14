@@ -509,7 +509,7 @@ const MobileInlineSearch: FC<{ isOpen: boolean; onClose: () => void }> = React.m
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search tours in Egypt..."
-                    className="w-full ps-14 pe-16 py-4 text-base text-gray-900 placeholder-gray-400 font-medium bg-transparent outline-none rounded-full"
+                    className="w-full ps-14 pe-16 py-4 text-base text-black placeholder-gray-500 font-medium bg-transparent outline-none rounded-full"
                     autoFocus
                   />
 
@@ -595,7 +595,7 @@ const HeaderSearchBar: FC<{ onFocus: () => void; isTransparent: boolean; }> = Re
             <div className="relative">
                 <Search className={`absolute start-4 top-1/2 -translate-y-1/2 h-5 w-5 pointer-events-none transition-colors duration-500 ${isTransparent ? 'text-white' : 'text-slate-400'}`} />
                 <button onClick={onFocus} className={`w-full text-start ps-12 pe-6 py-3 text-sm bg-white border-2 rounded-full shadow-sm hover:border-red-300 transition-colors ${borderColor}`}>
-                    <span className="text-slate-500">{currentSuggestion}</span>
+                    <span className="text-black">{currentSuggestion}</span>
                 </button>
             </div>
         </div>

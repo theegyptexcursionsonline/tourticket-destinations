@@ -725,7 +725,7 @@ const MobileInlineSearch: FC<{ isOpen: boolean; onClose: () => void }> = React.m
                       }
                     }}
                     placeholder={chatMode ? "Ask AI about tours..." : "Search tours, destinations..."}
-                    className={`w-full ps-14 pe-32 py-4 text-base text-gray-900 placeholder:text-gray-400/70 placeholder:font-normal font-medium bg-transparent outline-none rounded-full ${rtl ? 'text-right' : 'text-left'}`}
+                    className={`w-full ps-14 pe-32 py-4 text-base text-black placeholder:text-gray-500 placeholder:font-normal font-medium bg-transparent outline-none rounded-full ${rtl ? 'text-right' : 'text-left'}`}
                     autoFocus
                     disabled={chatMode && isGenerating}
                   />
@@ -1391,7 +1391,7 @@ const HeaderSearchBar: FC<{ onFocus: () => void; isTransparent: boolean }> = Rea
       <div className="relative">
         <Search className={`absolute start-4 top-1/2 -translate-y-1/2 h-5 w-5 pointer-events-none transition-colors duration-500 ${isTransparent ? 'text-white' : 'text-slate-400'}`} />
         <button onClick={onFocus} className={`w-full text-start ps-12 pe-6 py-3 text-sm bg-white border-2 rounded-full shadow-sm hover:border-[var(--primary-color)] transition-colors ${borderColor}`}>
-          <span className="text-slate-500">{t('search.placeholder')}</span>
+          <span className="text-black">{t('search.placeholder')}</span>
         </button>
       </div>
     </div>

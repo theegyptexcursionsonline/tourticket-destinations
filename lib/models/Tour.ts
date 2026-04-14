@@ -62,8 +62,16 @@ export interface IAddOn {
 // Complete Tour Interface
 export interface ITour extends Document {
   // Multi-tenant support
+  //
+  // `tenantId` is the PRIMARY tenant that owns the tour — the one that shows up
+  // in admin ownership/metrics. `tenantIds` is the full list of brands the tour
+  // is VISIBLE on (always contains `tenantId` plus any additional brands the
+  // admin ticked in the multi-brand selector). Public queries match on the
+  // `tenantIds` array so a tour can appear on multiple branded sites at once;
+  // see `buildTenantQuery` in `lib/tenant.ts`.
   tenantId: string;
-  
+  tenantIds?: string[];
+
   // Basic fields
   title: string;
   slug: string;
@@ -369,14 +377,22 @@ const AddOnSchema = new Schema<IAddOn>({
 
 // COMPLETE Tour Schema with all fields and validation
 const TourSchema: Schema<ITour> = new Schema({
-  // Multi-tenant support
+  // Multi-tenant support. `tenantId` is the primary owning brand; `tenantIds`
+  // is the full visibility list (always contains tenantId). Kept as two fields
+  // for backwards compatibility — legacy code that only reads `tour.tenantId`
+  // still works, while new code uses `tenantIds` for multi-brand assignment.
   tenantId: {
     type: String,
     required: [true, 'Tenant ID is required'],
     index: true,
     ref: 'Tenant',
   },
-  
+  tenantIds: {
+    type: [String],
+    default: undefined,
+    index: true,
+  },
+
   // Basic fields
   title: { 
     type: String, 
@@ -780,6 +796,21 @@ TourSchema.pre('validate', function(next) {
 // Pre-save middleware for slug generation and validation
 TourSchema.pre('save', async function(next) {
   try {
+    // Sync tenantIds with tenantId so queries using either field always agree.
+    // Rules:
+    //   - tenantIds must always contain tenantId (the primary owning brand).
+    //   - tenantIds is the authoritative "visible on" list for the multi-brand
+    //     selector in the admin form.
+    //   - Legacy tours saved without tenantIds get auto-backfilled here so that
+    //     buildTenantQuery's `tenantIds: tenantId` match still hits them.
+    if (this.tenantId) {
+      const existing = Array.isArray(this.tenantIds) ? this.tenantIds.filter(Boolean) : [];
+      const deduped = Array.from(new Set([this.tenantId, ...existing]));
+      if (deduped.length !== existing.length || !existing.includes(this.tenantId)) {
+        this.tenantIds = deduped;
+      }
+    }
+
     // Generate slug if title is modified and slug is not manually set
     if (this.isModified('title') && (!this.slug || !this.isModified('slug'))) {
       let baseSlug = this.title

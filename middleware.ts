@@ -235,6 +235,7 @@ const reservedPaths = [
   '/forgot',
   '/tours',
   '/tour',
+  '/author',
   '/redirecting',
   '/accept-invitation',
   '/sentry-example-page',

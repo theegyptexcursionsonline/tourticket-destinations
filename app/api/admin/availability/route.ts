@@ -1,5 +1,6 @@
 // app/api/admin/availability/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import dbConnect from '@/lib/dbConnect';
 import Availability from '@/lib/models/Availability';
 import Tour from '@/lib/models/Tour';
@@ -7,6 +8,20 @@ import StopSale from '@/lib/models/StopSale';
 import { requireAdminAuth } from '@/lib/auth/adminAuth';
 
 export const dynamic = 'force-dynamic';
+
+// Bust the ISR full-route cache for every public surface that shows a tour's
+// availability / stop-sale state so admin stop-sale changes show up on the
+// public site instantly instead of waiting for the ISR window to elapse.
+function revalidateTourAvailabilitySurfaces() {
+  try {
+    revalidatePath('/[locale]/[slug]', 'page');        // primary tour detail
+    revalidatePath('/[locale]/tour/[slug]', 'page');   // legacy `/tour/:slug`
+    revalidatePath('/[locale]/tours', 'page');         // tours listing
+    revalidatePath('/[locale]/search', 'page');        // search results
+  } catch (err) {
+    console.warn('revalidateTourAvailabilitySurfaces failed:', err);
+  }
+}
 
 // GET - Fetch availability for a tour/month
 export async function GET(request: NextRequest) {
@@ -263,6 +278,8 @@ export async function POST(request: NextRequest) {
       await StopSale.deleteMany({ tenantId, tourId, startDate: availabilityDate, endDate: availabilityDate, optionIds: [] });
     }
 
+    revalidateTourAvailabilitySurfaces();
+
     return NextResponse.json({
       success: true,
       data: availability,
@@ -294,13 +311,26 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    // Dedupe dates at midnight-local precision. Without this, a dates array that
+    // repeats the same day (common when admin selects overlapping ranges) produces
+    // parallel upserts into StopSale, which races against the unique index
+    // `{tenantId, tourId, startDate, endDate, optionIds}` and surfaces as E11000.
+    const seenTimestamps = new Set<number>();
+    const uniqueDates: Date[] = [];
+    for (const dateStr of dates) {
+      const d = new Date(dateStr);
+      if (Number.isNaN(d.getTime())) continue;
+      d.setHours(0, 0, 0, 0);
+      const ts = d.getTime();
+      if (seenTimestamps.has(ts)) continue;
+      seenTimestamps.add(ts);
+      uniqueDates.push(d);
+    }
+
     const operations = [];
     const stopSaleOps: any[] = [];
 
-    for (const dateStr of dates) {
-      const date = new Date(dateStr);
-      date.setHours(0, 0, 0, 0);
-
+    for (const date of uniqueDates) {
       const updateData: Record<string, unknown> = { tenantId };
 
       switch (action) {
@@ -362,21 +392,71 @@ export async function PUT(request: NextRequest) {
     }
 
     const result = await Availability.bulkWrite(operations);
-    if (stopSaleOps.length > 0) {
-      await StopSale.bulkWrite(stopSaleOps, { ordered: false });
+
+    // Sequential stop-sale writes with per-op duplicate-key tolerance.
+    // See tourticket-destinations/app/api/admin/availability/route.ts history
+    // for the rationale: bulkWrite({ ordered: false }) against an upsert on a
+    // unique index races on repeat dates and surfaces as E11000.
+    let stopSaleWritten = 0;
+    let stopSaleDeleted = 0;
+    for (const op of stopSaleOps) {
+      try {
+        if (op.updateOne) {
+          const { filter, update } = op.updateOne;
+          await StopSale.updateOne(filter, update, { upsert: true });
+          stopSaleWritten += 1;
+        } else if (op.deleteOne) {
+          await StopSale.deleteOne(op.deleteOne.filter);
+          stopSaleDeleted += 1;
+        }
+      } catch (opError: any) {
+        if (opError?.code === 11000) {
+          if (op.updateOne) {
+            try {
+              await StopSale.updateOne(op.updateOne.filter, op.updateOne.update);
+              stopSaleWritten += 1;
+              continue;
+            } catch (retryError) {
+              console.error('Stop-sale E11000 retry failed:', retryError);
+            }
+          }
+        }
+        throw opError;
+      }
     }
+
+    revalidateTourAvailabilitySurfaces();
 
     return NextResponse.json({
       success: true,
       data: {
         modified: result.modifiedCount,
         upserted: result.upsertedCount,
+        stopSaleWritten,
+        stopSaleDeleted,
       },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error bulk updating availability:', error);
+
+    if (error?.code === 11000) {
+      return NextResponse.json(
+        {
+          success: false,
+          code: 'DUPLICATE_STOP_SALE',
+          error:
+            'This date range is already stop-saled for this tour. Refresh the admin page and edit the existing record instead.',
+        },
+        { status: 409 }
+      );
+    }
+
     return NextResponse.json(
-      { success: false, error: 'Failed to bulk update availability' },
+      {
+        success: false,
+        code: 'BULK_UPDATE_FAILED',
+        error: error?.message || 'Failed to bulk update availability',
+      },
       { status: 500 }
     );
   }

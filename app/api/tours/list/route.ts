@@ -1,17 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Tour from '@/lib/models/Tour';
+import { buildStrictTenantQuery } from '@/lib/tenant';
 
 export async function GET(request: NextRequest) {
   try {
     await dbConnect();
 
-    // Build query with tenant filter
+    // Per-brand isolation (Issue #8): every tenant — including `default` —
+    // must be filtered strictly by its own tours OR tours that explicitly
+    // ticked it in the multi-brand `tenantIds` list. The old code only
+    // filtered for non-default tenants, which meant egypt-excursionsonline.com
+    // (tenant=`default`) returned tours from every brand in the system and
+    // mixed in German/Arabic content on the English main site.
     const query: Record<string, unknown> = {};
     const { searchParams } = new URL(request.url);
     const tenantId = searchParams.get('tenantId') || request.headers.get('x-tenant-id');
-    if (tenantId && tenantId !== 'all' && tenantId !== 'default') {
-      query.tenantId = tenantId;
+    if (tenantId && tenantId !== 'all') {
+      Object.assign(query, buildStrictTenantQuery({}, tenantId));
     }
 
     // Fetch tours with populated destination and category

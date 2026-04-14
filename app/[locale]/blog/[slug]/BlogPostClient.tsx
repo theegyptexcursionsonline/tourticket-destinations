@@ -200,140 +200,16 @@ function AuthorCard({ author }: { author: any }) {
   );
 }
 
-/* ---------- Comments Section ---------- */
+/* ---------- Comments Section ----------
+ *
+ * Intentionally a no-op. Issue #7 asked that we stop surfacing a comment
+ * form on public blog pages. The render below is kept as a named function
+ * so if we ever re-enable blog comments (e.g. behind an admin toggle) we
+ * just have to flip this body — no call-site changes needed.
+ */
 function CommentsSection({ slug }: { slug: string }) {
-  const [comments, setComments] = useState<any[]>([]);
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [body, setBody] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-
-  useEffect(() => {
-    if (!slug) return;
-    fetchComments();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slug]);
-
-  const fetchComments = async () => {
-    try {
-      setRefreshing(true);
-      const res = await fetch(`/api/blog/${encodeURIComponent(slug)}/comments`);
-      if (!res.ok) throw new Error('Failed to load comments');
-      const data = await res.json();
-      setComments(Array.isArray(data) ? data : data.comments || []);
-    } catch (e) {
-      console.error(e);
-      toast.error('Unable to load comments');
-    } finally {
-      setRefreshing(false);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!body.trim()) {
-      toast.error('Please write a comment');
-      return;
-    }
-    if (!name.trim()) {
-      toast.error('Please enter your name');
-      return;
-    }
-    setLoading(true);
-
-    const newComment = {
-      _id: `tmp-${Date.now()}`,
-      name,
-      email,
-      body,
-      createdAt: new Date().toISOString(),
-      avatar: `/api/avatars/${encodeURIComponent(name)}`,
-      pending: true,
-    };
-
-    // optimistic add
-    setComments((s) => [newComment, ...s]);
-    setBody('');
-
-    try {
-      const res = await fetch(`/api/blog/${encodeURIComponent(slug)}/comments`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, body }),
-      });
-
-      if (!res.ok) throw new Error('Failed to post comment');
-
-      const saved = await res.json();
-      // replace optimistic comment with server response (if provided)
-      setComments((s) => s.map(c => c._id === newComment._id ? (saved.comment || saved || c) : c));
-      toast.success('Comment submitted — will appear after moderation');
-      setName(''); setEmail('');
-    } catch (err) {
-      // remove optimistic comment on error
-      setComments((s) => s.filter(c => c._id !== newComment._id));
-      toast.error('Unable to post comment right now');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="bg-white rounded-2xl shadow p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-lg">Comments</h3>
-        <div className="text-sm text-slate-500">{comments.length} discussion{comments.length !== 1 ? 's' : ''}</div>
-      </div>
-
-      {/* Form */}
-      <form onSubmit={handleSubmit} className="space-y-3 mb-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name*" className="w-full px-3 py-2 rounded border text-sm" />
-          <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email (optional)" className="w-full px-3 py-2 rounded border text-sm" />
-        </div>
-        <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="Write your comment..." rows={4} className="w-full px-3 py-2 rounded border text-sm" />
-        <div className="flex items-center gap-3">
-          <button type="submit" disabled={loading} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700">
-            {loading ? 'Posting...' : 'Post comment'}
-          </button>
-          <button type="button" onClick={() => { setBody(''); setName(''); setEmail(''); }} className="px-3 py-2 text-sm rounded border hover:bg-slate-50">Clear</button>
-          <button type="button" onClick={fetchComments} disabled={refreshing} className="ms-auto px-3 py-2 text-sm rounded border hover:bg-slate-50">
-            {refreshing ? 'Refreshing...' : 'Refresh'}
-          </button>
-        </div>
-        <div className="text-xs text-slate-400">By posting you agree to our comment policy. Comments may be moderated.</div>
-      </form>
-
-      {/* Comments list */}
-      <div className="space-y-4">
-        {comments.length === 0 && <div className="text-sm text-slate-500">No comments yet — start the conversation.</div>}
-        {comments.map((c) => (
-          <div key={c._id} className={`flex gap-3 p-3 rounded-lg ${c.pending ? 'opacity-80 bg-slate-50' : 'bg-white'} border`}>
-            <div className="w-10 h-10 rounded-full overflow-hidden bg-slate-100 flex-shrink-0">
-              <Image src={c.avatar || `/api/avatars/${encodeURIComponent(c.name || 'guest')}`} alt={c.name} width={40} height={40} className="object-cover" />
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-3">
-                <div className="text-sm font-medium text-slate-900">{c.name}</div>
-                <div className="text-xs text-slate-400">{new Date(c.createdAt).toLocaleString()}</div>
-                {c.pending && <div className="ms-2 text-xs text-amber-600">Pending</div>}
-              </div>
-              <div className="text-sm text-slate-700 mt-2">{c.body}</div>
-
-              {/* simple reply / actions */}
-              <div className="mt-3 flex items-center gap-3 text-xs">
-                <button className="text-slate-500 hover:text-slate-700">Like</button>
-                <button className="text-slate-500 hover:text-slate-700">Reply</button>
-                <button className="text-slate-500 hover:text-slate-700">Report</button>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+  void slug;
+  return null;
 }
 
 /* ---------- Structured Sidebar component (travel-focused) ---------- */

@@ -402,7 +402,16 @@ export function withTenant<T>(
 /**
  * Build tenant-filtered query for Mongoose
  * Usage: const filter = buildTenantQuery({ isPublished: true }, tenantId);
- * 
+ *
+ * Matches documents where EITHER:
+ *   - the primary `tenantId` equals the current tenant, OR
+ *   - the `tenantIds` array (multi-brand assignment) contains the current
+ *     tenant
+ * This is what makes Issue #17 (one tour assignable to multiple brands) work:
+ * as long as a tour's `tenantIds` list contains a brand, that brand's public
+ * queries will surface the tour even if its primary `tenantId` is a different
+ * brand.
+ *
  * Options:
  * - includeDefault: If true, includes 'default' tenant content as fallback
  * - includeShared: If true, includes content marked as shared (tenantId: null or 'shared')
@@ -413,40 +422,46 @@ export function buildTenantQuery(
   options?: { includeDefault?: boolean; includeShared?: boolean }
 ): Record<string, unknown> {
   const { includeDefault = true, includeShared = false } = options || {};
-  
+
   // Build tenant filter
   if (includeDefault || includeShared) {
-    const tenantIds: (string | null)[] = [tenantId];
-    
+    const candidateTenants: (string | null)[] = [tenantId];
+
     // Include default tenant content as fallback
     if (includeDefault && tenantId !== 'default') {
-      tenantIds.push('default');
+      candidateTenants.push('default');
     }
-    
+
     // Include shared content (null or 'shared' tenantId)
     if (includeShared) {
-      tenantIds.push(null as any, 'shared');
+      candidateTenants.push(null as any, 'shared');
     }
-    
+
     return {
       ...baseQuery,
       $or: [
-        { tenantId: { $in: tenantIds } },
+        { tenantId: { $in: candidateTenants } },
+        { tenantIds: { $in: candidateTenants } },
         { tenantId: { $exists: false } }, // Legacy content without tenantId
       ],
     };
   }
-  
-  // Strict tenant filtering (no fallback)
+
+  // Strict tenant filtering (no fallback to default) — still matches both
+  // fields so multi-brand tours show up for the right tenants.
   return {
     ...baseQuery,
-    tenantId,
+    $or: [
+      { tenantId },
+      { tenantIds: tenantId },
+    ],
   };
 }
 
 /**
- * Build tenant-filtered query with STRICT tenant filtering (no fallback)
- * Use this when you only want content from the specific tenant
+ * Build tenant-filtered query with STRICT tenant filtering (no fallback).
+ * Use this when you only want content for the specific tenant and do NOT
+ * want the 'default' fallback. Still honors multi-brand `tenantIds`.
  */
 export function buildStrictTenantQuery(
   baseQuery: Record<string, unknown>,
@@ -454,7 +469,10 @@ export function buildStrictTenantQuery(
 ): Record<string, unknown> {
   return {
     ...baseQuery,
-    tenantId,
+    $or: [
+      { tenantId },
+      { tenantIds: tenantId },
+    ],
   };
 }
 

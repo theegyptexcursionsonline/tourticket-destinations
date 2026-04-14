@@ -308,7 +308,7 @@ const MobileInlineSearch: FC<{ isOpen: boolean; onClose: () => void }> = React.m
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search tours in Egypt..."
-                    className="w-full ps-14 pe-16 py-4 text-base text-gray-900 placeholder-gray-400 font-medium bg-transparent outline-none rounded-full"
+                    className="w-full ps-14 pe-16 py-4 text-base text-black placeholder-gray-500 font-medium bg-transparent outline-none rounded-full"
                     autoFocus
                   />
 
@@ -497,7 +497,7 @@ const SearchModal_REMOVED: FC<{ onClose: () => void; onSearch: (term: string) =>
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="What are you looking for?"
               autoFocus
-              className="w-full text-xl sm:text-2xl ps-10 pe-6 py-4 bg-transparent border-b-2 border-slate-200 focus:outline-none focus:border-red-500"
+              className="w-full text-xl sm:text-2xl ps-10 pe-6 py-4 text-black placeholder-gray-500 bg-transparent border-b-2 border-slate-200 focus:outline-none focus:border-red-500"
             />
           </div>
         </form>

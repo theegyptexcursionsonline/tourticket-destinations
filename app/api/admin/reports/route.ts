@@ -12,12 +12,26 @@ const VALID_STATUSES = ['Confirmed', 'Pending', 'Completed', 'Partial Refunded']
 async function fetchReportData(effectiveTenantId: string | undefined) {
   await dbConnect(effectiveTenantId || undefined);
 
+  // Brand-scoped reporting (Issue #13). The old filter was a bare equality
+  // on `tenantId`, which meant two classes of bookings were silently dropped
+  // when an admin picked a specific brand:
+  //   1. Legacy bookings saved BEFORE tenantId was added — they have no
+  //      `tenantId` field at all, but belong to the default tenant.
+  //   2. Bookings mis-saved with `null` tenantId (happens when a create path
+  //      forgets to pass the context header).
+  // Both should roll up into `default` reporting. For non-default brands we
+  // stay strict so one brand can't leak revenue into another's totals.
   const tenantFilter: Record<string, unknown> = {};
   if (effectiveTenantId) {
-    tenantFilter.tenantId = effectiveTenantId;
-  } else {
-    // "All brands" — exclude default (eeo / egypt-excursionsonline.com) data
-    tenantFilter.tenantId = { $nin: ['default', null, undefined] };
+    if (effectiveTenantId === 'default') {
+      tenantFilter.$or = [
+        { tenantId: 'default' },
+        { tenantId: { $exists: false } },
+        { tenantId: null },
+      ];
+    } else {
+      tenantFilter.tenantId = effectiveTenantId;
+    }
   }
 
   const today = new Date();

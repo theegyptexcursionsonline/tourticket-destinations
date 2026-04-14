@@ -210,6 +210,29 @@ export async function PUT(
             body.interests = body.interests.filter((id: string) => id && id.trim());
         }
 
+        // Multi-brand normalization (Issue #17). A scoped admin can only toggle
+        // the current scope on/off; they cannot reassign a tour to another
+        // brand they don't own. An unscoped (super-admin) request passes
+        // `tenantIds` through untouched after deduping.
+        if (Array.isArray(body.tenantIds)) {
+            body.tenantIds = Array.from(
+                new Set(
+                    (body.tenantIds as unknown[]).filter(
+                        (tid: unknown): tid is string => typeof tid === 'string' && tid.length > 0
+                    )
+                )
+            );
+            if (body.tenantId && !body.tenantIds.includes(body.tenantId)) {
+                body.tenantIds.unshift(body.tenantId);
+            }
+        }
+        if (effectiveTenantId && Array.isArray(body.tenantIds)) {
+            // Prevent a scoped admin from adding other brands to the visibility
+            // list. The scope must be present; everything else is stripped.
+            body.tenantIds = body.tenantIds.filter((tid: string) => tid === effectiveTenantId);
+            if (body.tenantIds.length === 0) body.tenantIds = [effectiveTenantId];
+        }
+
         // Validate required fields only if they're being updated
         // For partial updates (like syncing relationships), we don't need all fields
         const isFullUpdate = body.title || body.description || body.duration || body.discountPrice;
@@ -269,12 +292,18 @@ export async function PUT(
             };
         }
 
-        // Build the update filter, applying tenant guard if scoped
+        // Build the update filter, applying tenant guard if scoped.
+        // A tour "belongs" to a scoped admin if EITHER its primary tenantId
+        // matches OR its multi-brand tenantIds contains the scope — otherwise
+        // multi-brand tours become uneditable from a secondary brand's admin.
         const updateFilter: Record<string, unknown> = mongoose.Types.ObjectId.isValid(id)
             ? { _id: id }
             : { slug: id };
         if (effectiveTenantId) {
-            updateFilter.tenantId = effectiveTenantId;
+            updateFilter.$or = [
+                { tenantId: effectiveTenantId },
+                { tenantIds: effectiveTenantId },
+            ];
         }
 
         const updatedTour = await Tour.findOneAndUpdate(

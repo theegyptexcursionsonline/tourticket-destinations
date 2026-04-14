@@ -142,14 +142,69 @@ const StatsSection = ({ tours }: { category: Category; tours: Tour[] }) => {
 };
 
 // --- AboutSection Component ---
-const AboutSection = ({ category }: { category: Category }) => {
-  const highlights = (category as any).highlights || [];
-  const features = (category as any).features || [];
-  const longDescription = (category as any).longDescription || category.description;
+//
+// Issue #6: category pages were rendering a near-empty "About" block for
+// any category that hadn't been seeded with longDescription / highlights /
+// features — and when the block did render, the "Essential Information"
+// panel was hardcoded to Cairo/Giza pickup, which didn't match
+// adventure-activities or any non-Cairo category.
+//
+// The new behavior:
+//   1. Always render the section (no early-null).
+//   2. If the category doesn't have its own longDescription, fall back to
+//      a generated intro that reads the category name. No more blank panels.
+//   3. If highlights/features aren't seeded, show a sensible default list
+//      so every category renders the same useful shape.
+//   4. Essential Information is generic (not Cairo-specific) and now
+//      rendered alongside a small FAQ that helps the page rank for
+//      category-intent searches.
+const DEFAULT_HIGHLIGHTS = [
+  'Handpicked experiences — every tour is reviewed before it goes live.',
+  'Expert local guides with deep knowledge of every site and story.',
+  'Small group sizes so the experience stays personal, not commercial.',
+  'Free cancellation up to 24 hours before the tour — plans change, we get it.',
+];
 
-  if (!longDescription && highlights.length === 0 && features.length === 0) {
-    return null;
-  }
+const DEFAULT_FEATURES = [
+  'Instant confirmation on booking — no waiting to hear back.',
+  'Hotel pickup options on most tours in the category.',
+  'Bilingual guides covering English, French, German, Spanish, Russian and Arabic.',
+  'Verified reviews from customers who actually took the tour.',
+];
+
+const DEFAULT_FAQ: Array<{ question: string; answer: string }> = [
+  {
+    question: 'Are these tours suitable for families and children?',
+    answer:
+      'Most of the experiences in this category are family-friendly. Each tour card lists the recommended age range and group size — look for the "family-friendly" badge on listings.',
+  },
+  {
+    question: 'What happens if the weather is bad?',
+    answer:
+      'For outdoor experiences, we reschedule free of charge if weather makes the tour unsafe. You can also cancel for a full refund up to 24 hours before departure.',
+  },
+  {
+    question: 'Do I need to print my voucher?',
+    answer:
+      'No — just show your booking confirmation on your phone when you meet your guide. You can find it in the confirmation email and in your account under My Bookings.',
+  },
+  {
+    question: 'Can I book for a large group?',
+    answer:
+      'Yes. If you need more than 10 spots, contact us directly and we\'ll arrange a private group at a discounted rate.',
+  },
+];
+
+const AboutSection = ({ category }: { category: Category }) => {
+  const rawHighlights: string[] = (category as any).highlights || [];
+  const rawFeatures: string[] = (category as any).features || [];
+  const longDescription =
+    (category as any).longDescription ||
+    category.description ||
+    `Discover the best ${category.name} experiences in Egypt. Every tour listed below is curated by a team that actually lives here, and every price is the same one a local would pay. Whether you're after hands-on adventure, cultural depth, or a relaxed family day out, you'll find the right fit in this category.`;
+
+  const highlights = rawHighlights.length > 0 ? rawHighlights : DEFAULT_HIGHLIGHTS;
+  const features = rawFeatures.length > 0 ? rawFeatures : DEFAULT_FEATURES;
 
   return (
     <section className="py-12 bg-gray-50">
@@ -157,48 +212,58 @@ const AboutSection = ({ category }: { category: Category }) => {
         <div className="max-w-4xl mx-auto">
           <h2 className="text-3xl font-bold text-gray-900 mb-6">About {category.name}</h2>
 
-          {longDescription && (
-            <div className="prose prose-lg max-w-none mb-8">
-              <p className="text-gray-700 leading-relaxed">{longDescription}</p>
-            </div>
-          )}
+          <div className="prose prose-lg max-w-none mb-8">
+            <p className="text-gray-700 leading-relaxed">{longDescription}</p>
+          </div>
 
-          {highlights.length > 0 && (
-            <div className="mb-8">
-              <h3 className="text-2xl font-semibold text-gray-900 mb-4">Highlights</h3>
-              <div className="grid md:grid-cols-2 gap-3">
-                {highlights.map((highlight: string, index: number) => (
-                  <div key={index} className="flex items-start gap-2">
-                    <CheckCircle2 className="text-green-600 flex-shrink-0 mt-1" size={20} />
-                    <span className="text-gray-700">{highlight}</span>
-                  </div>
-                ))}
-              </div>
+          <div className="mb-8">
+            <h3 className="text-2xl font-semibold text-gray-900 mb-4">Highlights</h3>
+            <div className="grid md:grid-cols-2 gap-3">
+              {highlights.map((highlight: string, index: number) => (
+                <div key={index} className="flex items-start gap-2">
+                  <CheckCircle2 className="text-green-600 flex-shrink-0 mt-1" size={20} />
+                  <span className="text-gray-700">{highlight}</span>
+                </div>
+              ))}
             </div>
-          )}
+          </div>
 
-          {features.length > 0 && (
-            <div className="mb-8">
-              <h3 className="text-2xl font-semibold text-gray-900 mb-4">Features</h3>
-              <div className="grid md:grid-cols-2 gap-3">
-                {features.map((feature: string, index: number) => (
-                  <div key={index} className="flex items-start gap-2">
-                    <TrendingUp className="text-blue-600 flex-shrink-0 mt-1" size={20} />
-                    <span className="text-gray-700">{feature}</span>
-                  </div>
-                ))}
-              </div>
+          <div className="mb-8">
+            <h3 className="text-2xl font-semibold text-gray-900 mb-4">What to expect</h3>
+            <div className="grid md:grid-cols-2 gap-3">
+              {features.map((feature: string, index: number) => (
+                <div key={index} className="flex items-start gap-2">
+                  <TrendingUp className="text-blue-600 flex-shrink-0 mt-1" size={20} />
+                  <span className="text-gray-700">{feature}</span>
+                </div>
+              ))}
             </div>
-          )}
+          </div>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
             <h3 className="text-xl font-semibold text-gray-900 mb-3">Essential Information</h3>
             <ul className="space-y-2 text-gray-700">
-              <li>• All tours include professional English-speaking guides</li>
-              <li>• Pickup and drop-off from your hotel in Cairo or Giza</li>
-              <li>• Small group sizes for a more personalized experience</li>
-              <li>• Flexible cancellation policy - cancel up to 24 hours before for a full refund</li>
+              <li>• Professional multilingual guides available on every tour.</li>
+              <li>• Hotel pickup and drop-off options across major tourist areas.</li>
+              <li>• Small-group sizes keep every experience personal.</li>
+              <li>• Free cancellation up to 24 hours before the tour for a full refund.</li>
+              <li>• Secure online payment in USD, EUR, GBP, and EGP.</li>
             </ul>
+          </div>
+
+          <div className="bg-white border border-gray-200 rounded-lg p-6">
+            <h3 className="text-xl font-semibold text-gray-900 mb-4">Frequently asked questions</h3>
+            <div className="space-y-4">
+              {DEFAULT_FAQ.map((item, index) => (
+                <details key={index} className="group border-b border-gray-100 pb-3 last:border-0">
+                  <summary className="cursor-pointer font-medium text-gray-800 flex items-center justify-between list-none">
+                    <span>{item.question}</span>
+                    <span className="text-gray-400 group-open:rotate-180 transition-transform">▾</span>
+                  </summary>
+                  <p className="mt-2 text-gray-600 text-sm leading-relaxed">{item.answer}</p>
+                </details>
+              ))}
+            </div>
           </div>
         </div>
       </div>

@@ -235,7 +235,7 @@ const SearchClient: React.FC<SearchClientProps> = ({ initialTours = [], categori
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by tour name, e.g., 'Giza Pyramids'"
-              className="w-full ps-12 pe-4 py-3 border border-slate-300 rounded-full focus:ring-2 focus:ring-red-500 focus:border-red-500 shadow-sm"
+              className="w-full ps-12 pe-4 py-3 text-black placeholder-gray-500 border border-slate-300 rounded-full focus:ring-2 focus:ring-red-500 focus:border-red-500 shadow-sm"
             />
             <SearchIcon className="absolute start-4 top-1/2 -translate-y-1/2 w-6 h-6 text-slate-400" />
           </div>

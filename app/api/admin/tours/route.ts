@@ -113,10 +113,16 @@ export async function GET(request: NextRequest) {
     
     // Build filter object
     const filter: Record<string, unknown> = {};
-    
-    // Filter by tenant if specified (and not 'all')
+
+    // Filter by tenant if specified (and not 'all'). Match on either the
+    // primary `tenantId` or the multi-brand `tenantIds` list (Issue #17) so
+    // the admin tour list for a secondary brand still surfaces multi-brand
+    // tours owned by another brand.
     if (tenantId && tenantId !== 'all') {
-      filter.tenantId = tenantId;
+      filter.$or = [
+        { tenantId: tenantId },
+        { tenantIds: tenantId },
+      ];
     }
     
     // Filter by published status if specified
@@ -174,6 +180,35 @@ export async function POST(request: NextRequest) {
       }
       // Force the tenant from the scope so the create is locked to it
       body.tenantId = effectiveTenantId;
+      // For the multi-brand selector (Issue #17): a scoped admin can only
+      // assign the tour to brands THEY are scoped to. Strip any extra tenant
+      // IDs they tried to slip in, and ensure the scope itself is always in
+      // the visibility list.
+      if (Array.isArray(body.tenantIds)) {
+        body.tenantIds = Array.from(
+          new Set(
+            [effectiveTenantId, ...body.tenantIds].filter(
+              (id: unknown) => typeof id === 'string' && id === effectiveTenantId
+            )
+          )
+        );
+      } else {
+        body.tenantIds = [effectiveTenantId];
+      }
+    }
+
+    // Normalize tenantIds on the server as a defense-in-depth layer: the
+    // pre-save hook on the model does the same thing, but doing it here gives
+    // us a chance to reject obviously invalid payloads before hitting Mongoose.
+    if (Array.isArray(body.tenantIds)) {
+      body.tenantIds = Array.from(
+        new Set(body.tenantIds.filter((id: unknown) => typeof id === 'string' && id.length > 0))
+      );
+      if (body.tenantId && !body.tenantIds.includes(body.tenantId)) {
+        body.tenantIds.unshift(body.tenantId);
+      }
+    } else if (body.tenantId) {
+      body.tenantIds = [body.tenantId];
     }
 
     // Map 'faqs' from form to 'faq' in the database model

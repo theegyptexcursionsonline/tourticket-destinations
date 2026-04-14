@@ -2,18 +2,21 @@
 import dbConnect from '@/lib/dbConnect';
 import Tour from '@/lib/models/Tour';
 import { NextRequest, NextResponse } from 'next/server';
+import { buildStrictTenantQuery } from '@/lib/tenant';
 
 export async function GET(request: NextRequest) {
   await dbConnect();
   try {
-    // Build query with tenant filter
-    const query: Record<string, unknown> = { isActive: true, isPublished: true };
-    
-    // Multi-tenant: Filter by tenantId if provided
+    // Per-brand isolation (Issue #8): always filter by tenant, including
+    // `default`. See the list route for the full rationale — the short
+    // version is that the old "skip filtering for default" shortcut caused
+    // the main EEO English site to surface every brand's content.
+    let query: Record<string, unknown> = { isActive: true, isPublished: true };
+
     const { searchParams } = new URL(request.url);
     const tenantId = searchParams.get('tenantId') || request.headers.get('x-tenant-id');
-    if (tenantId && tenantId !== 'all' && tenantId !== 'default') {
-      query.tenantId = tenantId;
+    if (tenantId && tenantId !== 'all') {
+      query = buildStrictTenantQuery(query, tenantId);
     }
     
     // Return public tour data with fields needed by DayTrips component
