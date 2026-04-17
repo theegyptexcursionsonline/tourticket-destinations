@@ -1849,7 +1849,14 @@ export default function AISearchWidget() {
                         }
                       }}
                       placeholder={chatMode ? 'Ask anything about Egypt, tours, prices…' : placeholderTexts[placeholderIndex]}
-                      className="ai-search-input w-full ps-14 md:ps-16 pe-24 md:pe-28 py-3.5 md:py-4 text-sm md:text-[15px] font-semibold text-gray-900 placeholder-gray-400 bg-transparent outline-none cursor-text relative z-10 rounded-full tracking-tight"
+                      className={`ai-search-input w-full ps-14 md:ps-16 pe-24 md:pe-28 py-3.5 md:py-4 text-sm md:text-[15px] font-semibold ${
+                        isExpanded ? 'text-gray-900 placeholder:text-gray-400' : 'text-white placeholder:text-white/75'
+                      } bg-transparent outline-none cursor-text relative z-10 rounded-full tracking-tight`}
+                      style={{
+                        color: isExpanded ? '#111827' : '#ffffff',
+                        WebkitTextFillColor: isExpanded ? '#111827' : '#ffffff',
+                        caretColor: isExpanded ? '#111827' : '#ffffff',
+                      }}
                     />
 
                     <div className="absolute start-3 md:start-4 top-1/2 transform -translate-y-1/2 z-10">

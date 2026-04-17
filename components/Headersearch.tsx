@@ -510,6 +510,7 @@ const MobileInlineSearch: FC<{ isOpen: boolean; onClose: () => void }> = React.m
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search tours in Egypt..."
                     className="w-full ps-14 pe-16 py-4 text-base text-black placeholder-gray-500 font-medium bg-transparent outline-none rounded-full"
+                    style={{ color: '#111827', WebkitTextFillColor: '#111827', caretColor: '#111827' }}
                     autoFocus
                   />
 

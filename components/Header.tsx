@@ -726,6 +726,7 @@ const MobileInlineSearch: FC<{ isOpen: boolean; onClose: () => void }> = React.m
                     }}
                     placeholder={chatMode ? "Ask AI about tours..." : "Search tours, destinations..."}
                     className={`w-full ps-14 pe-32 py-4 text-base text-black placeholder:text-gray-500 placeholder:font-normal font-medium bg-transparent outline-none rounded-full ${rtl ? 'text-right' : 'text-left'}`}
+                    style={{ color: '#111827', WebkitTextFillColor: '#111827', caretColor: '#111827' }}
                     autoFocus
                     disabled={chatMode && isGenerating}
                   />

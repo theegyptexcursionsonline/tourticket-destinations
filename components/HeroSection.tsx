@@ -1282,7 +1282,12 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
                   className={`w-full py-4 md:py-5 text-sm md:text-base text-gray-900 placeholder:text-gray-400/70 placeholder:font-normal font-medium bg-transparent outline-none rounded-full relative z-10 transition-all duration-300 ${
                     rtl ? 'pe-16 md:pe-[70px] ps-14 md:ps-20 text-right' : 'ps-16 md:ps-[70px] pe-14 md:pe-20 text-left'
                   }`}
-                  style={{ cursor: 'text' }}
+                  style={{
+                    cursor: 'text',
+                    color: '#111827',
+                    WebkitTextFillColor: '#111827',
+                    caretColor: '#111827',
+                  }}
                   disabled={chatMode && isGenerating}
                   autoComplete="off"
                 />

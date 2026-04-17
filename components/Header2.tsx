@@ -309,6 +309,7 @@ const MobileInlineSearch: FC<{ isOpen: boolean; onClose: () => void }> = React.m
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search tours in Egypt..."
                     className="w-full ps-14 pe-16 py-4 text-base text-black placeholder-gray-500 font-medium bg-transparent outline-none rounded-full"
+                    style={{ color: '#111827', WebkitTextFillColor: '#111827', caretColor: '#111827' }}
                     autoFocus
                   />
 
@@ -498,6 +499,7 @@ const SearchModal_REMOVED: FC<{ onClose: () => void; onSearch: (term: string) =>
               placeholder="What are you looking for?"
               autoFocus
               className="w-full text-xl sm:text-2xl ps-10 pe-6 py-4 text-black placeholder-gray-500 bg-transparent border-b-2 border-slate-200 focus:outline-none focus:border-red-500"
+              style={{ color: '#111827', WebkitTextFillColor: '#111827', caretColor: '#111827' }}
             />
           </div>
         </form>

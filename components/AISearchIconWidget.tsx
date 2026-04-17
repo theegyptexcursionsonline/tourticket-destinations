@@ -306,7 +306,7 @@ export default function AISearchIconWidget() {
             <motion.div whileHover={{ y: -4, scale: 1.01 }} whileTap={{ scale: 0.98 }} className="relative group">
               <div className="relative rounded-full transition-all duration-500 shadow-xl hover:shadow-2xl" style={{ background: isExpanded ? 'linear-gradient(to bottom, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.95))' : 'linear-gradient(to bottom, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.92))', backdropFilter: 'blur(40px) saturate(180%)', border: isExpanded ? '2px solid rgba(59, 130, 246, 0.3)' : '1.5px solid rgba(255, 255, 255, 0.3)', boxShadow: isExpanded ? '0 20px 60px -15px rgba(59, 130, 246, 0.35)' : '0 10px 40px -10px rgba(0, 0, 0, 0.2)' }}>
                 <div className="relative">
-                  <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onFocus={() => setIsExpanded(true)} placeholder="AI Search - Find tours, destinations & more..." className="w-full ps-12 md:ps-16 pe-14 md:pe-36 py-3.5 md:py-5 text-sm md:text-[15px] font-medium text-gray-900 placeholder-gray-400 bg-transparent outline-none rounded-full" />
+                  <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onFocus={() => setIsExpanded(true)} placeholder="AI Search - Find tours, destinations & more..." className="w-full ps-12 md:ps-16 pe-14 md:pe-36 py-3.5 md:py-5 text-sm md:text-[15px] font-medium text-gray-900 placeholder-gray-400 bg-transparent outline-none rounded-full" style={{ color: '#111827', WebkitTextFillColor: '#111827', caretColor: '#111827' }} />
                   <div className="absolute start-3 md:start-5 top-1/2 transform -translate-y-1/2 z-10">
                     <div className="w-8 md:w-10 h-8 md:h-10 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg"><Search className="w-4 md:w-5 h-4 md:h-5 text-white" strokeWidth={2.5} /></div>
                   </div>
@@ -331,7 +331,7 @@ export default function AISearchIconWidget() {
                   <div className="flex items-center gap-2"><Sparkles className="w-4 h-4 text-blue-500" /><span className="text-sm font-semibold text-gray-800">AI Search</span></div>
                   <button onClick={() => setIsExpanded(false)} className="text-gray-400 hover:text-gray-700 p-2 rounded-xl"><X className="w-4 h-4" /></button>
                 </div>
-                <div className="relative"><input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search tours, destinations..." autoFocus className="w-full ps-10 pe-4 py-2.5 text-sm font-medium text-gray-900 placeholder-gray-400 bg-white/90 outline-none rounded-xl border border-gray-200 focus:border-blue-400" /><Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" /></div>
+                <div className="relative"><input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search tours, destinations..." autoFocus className="w-full ps-10 pe-4 py-2.5 text-sm font-medium text-gray-900 placeholder-gray-400 bg-white/90 outline-none rounded-xl border border-gray-200 focus:border-blue-400" style={{ color: '#111827', WebkitTextFillColor: '#111827', caretColor: '#111827' }} /><Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" /></div>
               </div>
               <div className="max-h-[50vh] overflow-y-auto apple-scrollbar">
                 {searchQuery ? (
