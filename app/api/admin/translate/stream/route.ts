@@ -6,7 +6,9 @@ import Destination from '@/lib/models/Destination';
 import Category from '@/lib/models/Category';
 import {
   translateEntityFieldsForLocale,
+  translateTourContentForLocale,
   extractFields,
+  extractStructuredTourContent,
 } from '@/lib/i18n/autoTranslate';
 import {
   translatableLocales,
@@ -78,8 +80,19 @@ export async function POST(request: NextRequest) {
         }
 
         const fields = extractFields(doc, fieldDefs);
+        const structuredTourContent = modelType === 'tour'
+          ? extractStructuredTourContent(doc)
+          : null;
 
-        if (Object.keys(fields).length === 0) {
+        const hasFlatFields = Object.keys(fields).length > 0;
+        const hasStructuredFields = modelType === 'tour' && structuredTourContent
+          ? ['itinerary', 'faq', 'bookingOptions', 'addOns'].some((key) => {
+              const value = structuredTourContent[key as keyof typeof structuredTourContent];
+              return Array.isArray(value) && value.length > 0;
+            })
+          : false;
+
+        if (!hasFlatFields && !hasStructuredFields) {
           send('error', { error: 'No translatable content found' });
           controller.close();
           return;
@@ -91,7 +104,7 @@ export async function POST(request: NextRequest) {
           totalLocales: translatableLocales.length,
         });
 
-        const allTranslations: Record<string, Record<string, string | string[]>> = {};
+        const allTranslations: Record<string, Record<string, unknown>> = {};
 
         // Translate one locale at a time and stream each result
         for (let i = 0; i < translatableLocales.length; i++) {
@@ -105,12 +118,19 @@ export async function POST(request: NextRequest) {
             total: translatableLocales.length,
           });
 
-          const translated = await translateEntityFieldsForLocale(
-            fields,
-            fieldDefs,
-            modelType,
-            locale
-          );
+          const translated = modelType === 'tour'
+            ? await translateTourContentForLocale(fields, structuredTourContent || {
+                itinerary: [],
+                faq: [],
+                bookingOptions: [],
+                addOns: [],
+              }, locale)
+            : await translateEntityFieldsForLocale(
+                fields,
+                fieldDefs,
+                modelType,
+                locale
+              );
 
           if (Object.keys(translated).length > 0) {
             allTranslations[locale] = translated;

@@ -153,10 +153,36 @@ export interface ITour extends Document {
       description?: string;
       longDescription?: string;
       shortDescription?: string;
+      location?: string;
+      duration?: string;
       meetingPoint?: string;
       cancellationPolicy?: string;
+      includes?: string[];
+      highlights?: string[];
+      whatsIncluded?: string[];
+      whatsNotIncluded?: string[];
+      tags?: string[];
       metaTitle?: string;
       metaDescription?: string;
+      itinerary?: Array<{
+        title?: string;
+        description?: string;
+        location?: string;
+        includes?: string[];
+      }>;
+      faq?: Array<{
+        question?: string;
+        answer?: string;
+      }>;
+      bookingOptions?: Array<{
+        label?: string;
+        description?: string;
+        badge?: string;
+      }>;
+      addOns?: Array<{
+        name?: string;
+        description?: string;
+      }>;
     };
   };
 

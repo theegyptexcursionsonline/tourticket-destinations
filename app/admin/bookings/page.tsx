@@ -96,6 +96,13 @@ const formatDisplayDate = (dateString: string | undefined, options?: Intl.DateTi
   });
 };
 
+const formatBookedDate = (dateString: string | undefined): string => {
+  return formatDisplayDate(dateString, {
+    month: 'short',
+    day: 'numeric',
+  });
+};
+
 const BookingsPage = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [totalBookings, setTotalBookings] = useState(0);
@@ -645,21 +652,6 @@ const BookingsPage = () => {
                               {destinationName}
                             </div>
                           )}
-                          {/* "Booked on" — displayed inline under the customer
-                              so admins can see when the reservation was created
-                              at a glance, matching the main-EEO layout. Uses
-                              `createdAt` (booking creation timestamp), NOT
-                              `date` (which is the tour-date). Requested in
-                              Issue #12. */}
-                          {booking.createdAt && (
-                            <div className="text-[11px] text-slate-400 mt-0.5">
-                              Booked on {formatDisplayDate(booking.createdAt, {
-                                year: 'numeric',
-                                month: 'short',
-                                day: 'numeric',
-                              })}
-                            </div>
-                          )}
                         </div>
                       </td>
                       {isAllTenantsSelected() && (
@@ -674,6 +666,11 @@ const BookingsPage = () => {
                           {formatDisplayDate(booking.dateString || booking.date)}
                         </div>
                         <div className="text-sm text-slate-500">{booking.time}</div>
+                        {booking.createdAt && (
+                          <div className="text-xs text-slate-400 mt-1">
+                            Booked: {formatBookedDate(booking.createdAt)}
+                          </div>
+                        )}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center text-sm text-slate-900">

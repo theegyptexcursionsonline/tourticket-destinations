@@ -14,6 +14,40 @@ import {
 
 type FieldValues = Record<string, string | string[]>;
 type TranslationsMap = Record<string, Record<string, string | string[]>>;
+type StructuredTranslationMap = Record<string, unknown>;
+
+interface StructuredItineraryItem {
+  title?: string;
+  description?: string;
+  location?: string;
+  includes?: string[];
+}
+
+interface StructuredFaqItem {
+  question?: string;
+  answer?: string;
+}
+
+interface StructuredBookingOptionItem {
+  label?: string;
+  description?: string;
+  badge?: string;
+}
+
+interface StructuredAddOnItem {
+  name?: string;
+  description?: string;
+}
+
+interface StructuredTourContent {
+  itinerary: StructuredItineraryItem[];
+  faq: StructuredFaqItem[];
+  bookingOptions: StructuredBookingOptionItem[];
+  addOns: StructuredAddOnItem[];
+}
+
+const hasText = (value: unknown): value is string =>
+  typeof value === 'string' && value.trim().length > 0;
 
 /**
  * Translate a set of English field values into all target locales using OpenAI.
@@ -155,6 +189,127 @@ ${locale === 'ar' ? '- Produce proper RTL text for Arabic\n' : ''}- Keep transla
   }
 }
 
+export function extractStructuredTourContent(doc: Record<string, unknown>): StructuredTourContent {
+  const itinerary = Array.isArray(doc.itinerary)
+    ? doc.itinerary.map((item) => {
+        const record = (item || {}) as Record<string, unknown>;
+        return {
+          title: hasText(record.title) ? record.title : undefined,
+          description: hasText(record.description) ? record.description : undefined,
+          location: hasText(record.location) ? record.location : undefined,
+          includes: Array.isArray(record.includes)
+            ? record.includes.filter((entry): entry is string => hasText(entry))
+            : undefined,
+        };
+      })
+    : [];
+
+  const faq = Array.isArray(doc.faq)
+    ? doc.faq.map((item) => {
+        const record = (item || {}) as Record<string, unknown>;
+        return {
+          question: hasText(record.question) ? record.question : undefined,
+          answer: hasText(record.answer) ? record.answer : undefined,
+        };
+      })
+    : [];
+
+  const bookingOptions = Array.isArray(doc.bookingOptions)
+    ? doc.bookingOptions.map((item) => {
+        const record = (item || {}) as Record<string, unknown>;
+        return {
+          label: hasText(record.label) ? record.label : undefined,
+          description: hasText(record.description) ? record.description : undefined,
+          badge: hasText(record.badge) ? record.badge : undefined,
+        };
+      })
+    : [];
+
+  const addOns = Array.isArray(doc.addOns)
+    ? doc.addOns.map((item) => {
+        const record = (item || {}) as Record<string, unknown>;
+        return {
+          name: hasText(record.name) ? record.name : undefined,
+          description: hasText(record.description) ? record.description : undefined,
+        };
+      })
+    : [];
+
+  return { itinerary, faq, bookingOptions, addOns };
+}
+
+const hasStructuredTourContent = (content: StructuredTourContent) =>
+  content.itinerary.some((item) => Object.values(item).some((value) => hasText(value) || (Array.isArray(value) && value.length > 0))) ||
+  content.faq.some((item) => Object.values(item).some((value) => hasText(value))) ||
+  content.bookingOptions.some((item) => Object.values(item).some((value) => hasText(value))) ||
+  content.addOns.some((item) => Object.values(item).some((value) => hasText(value)));
+
+export async function translateStructuredTourContentForLocale(
+  content: StructuredTourContent,
+  locale: string
+): Promise<StructuredTranslationMap> {
+  const openai = getOpenAIClient();
+  if (!openai || !hasStructuredTourContent(content)) return {};
+
+  const localeName = localeNames[locale] || locale;
+  const contentToTranslate: Record<string, unknown> = {};
+
+  if (content.itinerary.length > 0) contentToTranslate.itinerary = content.itinerary;
+  if (content.faq.length > 0) contentToTranslate.faq = content.faq;
+  if (content.bookingOptions.length > 0) contentToTranslate.bookingOptions = content.bookingOptions;
+  if (content.addOns.length > 0) contentToTranslate.addOns = content.addOns;
+
+  const prompt = `You are a professional translator for a tour booking website. Translate the following structured English tour content into ${localeName} (${locale}).
+
+Content to translate:
+${JSON.stringify(contentToTranslate, null, 2)}
+
+Rules:
+- Preserve the same JSON keys and array order exactly
+- Translate only text values that customers can read
+- Keep proper nouns in their commonly used local form
+${locale === 'ar' ? '- Produce proper RTL text for Arabic\n' : ''}- Keep the wording natural for a tourism website
+- Keep empty values empty
+- Return only a valid JSON object`;
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      response_format: { type: 'json_object' },
+      messages: [
+        { role: 'system', content: 'You are a translation API. Return only valid JSON.' },
+        { role: 'user', content: prompt },
+      ],
+      temperature: 0.3,
+    });
+
+    const text = response.choices[0]?.message?.content;
+    if (!text) return {};
+
+    const parsed = JSON.parse(text) as StructuredTranslationMap;
+    return typeof parsed === 'object' && parsed !== null ? parsed : {};
+  } catch (error) {
+    console.error(`Auto-translate failed for structured tour content (${locale}):`, error);
+    return {};
+  }
+}
+
+export async function translateTourContentForLocale(
+  fields: FieldValues,
+  structuredContent: StructuredTourContent,
+  locale: string
+): Promise<Record<string, unknown>> {
+  const [flatTranslations, structuredTranslations] = await Promise.all([
+    translateEntityFieldsForLocale(fields, tourTranslationFields, 'tour', locale),
+    translateStructuredTourContentForLocale(structuredContent, locale),
+  ]);
+
+  return {
+    ...flatTranslations,
+    ...structuredTranslations,
+  };
+}
+
 // ── Convenience helpers that fetch, translate, and save back ──
 
 /**
@@ -196,7 +351,16 @@ export async function autoTranslateTour(tourId: string): Promise<void> {
   if (!tour) return;
 
   const fields = extractFields(tour as Record<string, unknown>, tourTranslationFields);
-  const translations = await translateEntityFields(fields, tourTranslationFields, 'tour');
+  const structuredContent = extractStructuredTourContent(tour as Record<string, unknown>);
+  const translations: Record<string, Record<string, unknown>> = {};
+
+  for (const locale of translatableLocales) {
+    const localeTranslations = await translateTourContentForLocale(fields, structuredContent, locale);
+    if (Object.keys(localeTranslations).length > 0) {
+      translations[locale] = localeTranslations;
+    }
+  }
+
   if (Object.keys(translations).length === 0) return;
 
   await Tour.findByIdAndUpdate(tourId, { $set: { translations } });

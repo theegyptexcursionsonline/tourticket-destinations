@@ -176,17 +176,7 @@ const AdminSidebar = () => {
         <div
           className={`flex ${showLabel ? "items-start justify-between" : "items-center justify-center"} ${headerPaddingClass} py-6 border-b border-slate-100 flex-shrink-0`}
         >
-          {/* The whole logo + title block is a single Link back to the admin
-              dashboard. Before this change the title looked clickable (bold,
-              dark text) but had no handler, so admins clicked it expecting to
-              go home and nothing happened — that was the "title as link but
-              menu doesn't respond" bug from Issue #14. Now the click has a
-              real target and the cursor/hover state match the behavior. */}
-          <Link
-            href="/admin"
-            className={`${showLabel ? "flex-1 min-w-0" : ""} group/brand focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-xl`}
-            aria-label="Go to admin dashboard"
-          >
+          <div className={`${showLabel ? "flex-1 min-w-0" : ""}`}>
             <div className={`flex flex-col ${showLabel ? "items-start" : "items-center"} gap-3 min-w-0`}>
               {/* Logo */}
               <div className={`relative h-10 flex-shrink-0 transition-all duration-300 ${logoWidthClass}`}>
@@ -203,7 +193,7 @@ const AdminSidebar = () => {
               {/* Title (stacked under logo for better UX) */}
               {showLabel && (
                 <div className="min-w-0 w-full">
-                  <h1 className="text-lg font-bold text-slate-800 truncate leading-tight group-hover/brand:text-blue-700 transition-colors">
+                  <h1 className="text-lg font-bold text-slate-800 truncate leading-tight">
                     Admin Panel
                   </h1>
                   <p className="text-[11px] text-slate-400 truncate leading-snug mb-1">
@@ -223,7 +213,7 @@ const AdminSidebar = () => {
                 </div>
               )}
             </div>
-          </Link>
+          </div>
 
           {/* Toggle button (Desktop only) */}
           {!isMobile && isOpen && (

@@ -16,6 +16,7 @@ export default [
     ignores: [
       '**/node_modules/**',
       '**/.next/**',
+      '**/.netlify/**',
       '**/out/**',
       '**/coverage/**',
       '**/dist/**',

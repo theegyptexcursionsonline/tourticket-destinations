@@ -192,6 +192,42 @@ export interface Tour {
   metaTitle?: string;
   metaDescription?: string;
   keywords?: string[];
+  translations?: Record<
+    string,
+    {
+      title?: string;
+      description?: string;
+      longDescription?: string;
+      location?: string;
+      duration?: string;
+      includes?: string[];
+      highlights?: string[];
+      whatsIncluded?: string[];
+      whatsNotIncluded?: string[];
+      tags?: string[];
+      metaTitle?: string;
+      metaDescription?: string;
+      itinerary?: Array<{
+        title?: string;
+        description?: string;
+        location?: string;
+        includes?: string[];
+      }>;
+      faq?: Array<{
+        question?: string;
+        answer?: string;
+      }>;
+      bookingOptions?: Array<{
+        label?: string;
+        description?: string;
+        badge?: string;
+      }>;
+      addOns?: Array<{
+        name?: string;
+        description?: string;
+      }>;
+    }
+  >;
   createdAt?: string;
   updatedAt?: string;
 }

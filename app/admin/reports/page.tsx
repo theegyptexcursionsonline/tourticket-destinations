@@ -43,6 +43,12 @@ interface KpiData {
   averageBookingValue: number;
   totalGuests?: number;
   conversionRate?: number;
+  trends?: {
+    totalRevenue?: { value: number; isPositive: boolean };
+    totalBookings?: { value: number; isPositive: boolean };
+    totalGuests?: { value: number; isPositive: boolean };
+    averageBookingValue?: { value: number; isPositive: boolean };
+  };
 }
 
 interface MonthlyRevenue {
@@ -331,11 +337,11 @@ const ReportsPage = () => {
 
   // Mock rating distribution if not provided
   const ratingDistribution = ratings?.distribution || [
-    { stars: 5, count: 45 },
-    { stars: 4, count: 30 },
-    { stars: 3, count: 15 },
-    { stars: 2, count: 7 },
-    { stars: 1, count: 3 },
+    { stars: 5, count: 0 },
+    { stars: 4, count: 0 },
+    { stars: 3, count: 0 },
+    { stars: 2, count: 0 },
+    { stars: 1, count: 0 },
   ];
 
   return (
@@ -350,7 +356,7 @@ const ReportsPage = () => {
             <h1 className="text-2xl font-bold text-slate-800">Reports & Analytics</h1>
             <p className="text-sm text-slate-500">
               {isAllTenantsSelected() ? (
-                <>Showing data from <span className="font-medium text-slate-700">Egypt Excursions Online</span></>
+                <>Showing data from <span className="font-medium text-slate-700">all brands</span></>
               ) : (
                 <>Data for <span className="font-medium text-indigo-600">{selectedTenant?.name}</span></>
               )}
@@ -531,21 +537,21 @@ const ReportsPage = () => {
             icon={DollarSign} 
             format="currency" 
             color="green"
-            trend={{ value: 12, isPositive: true }}
+            trend={kpis.trends?.totalRevenue}
           />
           <KpiCard 
             title="Total Bookings" 
             value={kpis.totalBookings} 
             icon={BookOpen} 
             color="sky"
-            trend={{ value: 8, isPositive: true }}
+            trend={kpis.trends?.totalBookings}
           />
           <KpiCard 
             title="Total Guests" 
-            value={kpis.totalGuests || kpis.totalBookings * 2} 
+            value={kpis.totalGuests || 0} 
             icon={Users} 
             color="purple"
-            trend={{ value: 5, isPositive: true }}
+            trend={kpis.trends?.totalGuests}
           />
           <KpiCard 
             title="Avg. Booking Value" 
@@ -553,7 +559,7 @@ const ReportsPage = () => {
             icon={Ticket} 
             format="currency" 
             color="amber"
-            trend={{ value: 3, isPositive: true }}
+            trend={kpis.trends?.averageBookingValue}
           />
         </div>
       </section>
@@ -642,11 +648,11 @@ const ReportsPage = () => {
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
             <div className="text-center">
               <div className="text-5xl font-bold text-slate-800 mb-2">
-                {(ratings?.averageRating || 4.5).toFixed(1)}
+                {(ratings?.averageRating || 0).toFixed(1)}
               </div>
-              <StarRating rating={ratings?.averageRating || 4.5} size="lg" />
+              <StarRating rating={ratings?.averageRating || 0} size="lg" />
               <p className="text-sm text-slate-500 mt-3">
-                Based on {ratings?.totalReviews || 127} reviews
+                Based on {ratings?.totalReviews || 0} reviews
               </p>
             </div>
           </div>
@@ -685,27 +691,27 @@ const ReportsPage = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <KpiCard 
             title="Lost Revenue" 
-            value={cancellations?.lostRevenue || 1250} 
+            value={cancellations?.lostRevenue || 0} 
             icon={DollarSign} 
             format="currency" 
             color="rose"
           />
           <KpiCard 
             title="Cancelled Bookings" 
-            value={cancellations?.cancelledBookings || 8} 
+            value={cancellations?.cancelledBookings || 0} 
             icon={XCircle} 
             color="rose"
           />
           <KpiCard 
             title="Cancellation Rate" 
-            value={cancellations?.cancellationRate || 3.2} 
+            value={cancellations?.cancellationRate || 0} 
             icon={Percent} 
             format="percent" 
             color="amber"
           />
           <KpiCard 
             title="No-Show Rate" 
-            value={cancellations?.noShowRate || 1.5} 
+            value={cancellations?.noShowRate || 0} 
             icon={Users} 
             format="percent" 
             color="amber"
@@ -758,17 +764,7 @@ const ReportsPage = () => {
                       <StarRating rating={tour.rating || 4.5} />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className={`flex items-center gap-1 text-sm ${
-                        index % 3 === 0 ? 'text-emerald-600' : index % 3 === 1 ? 'text-rose-600' : 'text-slate-500'
-                      }`}>
-                        {index % 3 === 0 ? (
-                          <><ArrowUpRight className="w-4 h-4" /> +{5 + index}%</>
-                        ) : index % 3 === 1 ? (
-                          <><ArrowDownRight className="w-4 h-4" /> -{2 + index}%</>
-                        ) : (
-                          <>— 0%</>
-                        )}
-                      </div>
+                      <div className="text-sm text-slate-400">—</div>
                     </td>
                   </tr>
                 ))}

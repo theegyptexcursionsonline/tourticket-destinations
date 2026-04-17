@@ -59,6 +59,11 @@ export function getLocalizedArray(
     if (Array.isArray(value) && value.length > 0) return value;
   }
 
+  const directTranslation = doc.translations?.[locale]?.[field];
+  if (Array.isArray(directTranslation) && directTranslation.length > 0) {
+    return directTranslation as string[];
+  }
+
   // Fallback to English
   return (doc[field] as string[]) || [];
 }
@@ -178,7 +183,7 @@ export function localizeTour<T extends TourLike>(tour: T, locale: string): T {
 
   // Localize simple text fields
   const textFields = [
-    'title', 'description', 'longDescription', 'meetingPoint',
+    'title', 'description', 'longDescription', 'location', 'duration', 'meetingPoint',
     'cancellationPolicy', 'metaTitle', 'metaDescription',
     'physicalRequirements', 'transportationDetails', 'mealInfo',
     'weatherPolicy', 'photoPolicy', 'tipPolicy', 'seasonalVariations',
@@ -190,7 +195,7 @@ export function localizeTour<T extends TourLike>(tour: T, locale: string): T {
 
   // Localize array fields
   const arrayFields = [
-    'includes', 'highlights', 'whatsIncluded', 'whatsNotIncluded',
+    'includes', 'highlights', 'whatsIncluded', 'whatsNotIncluded', 'tags',
     'whatToBring', 'whatToWear', 'healthSafety', 'culturalInfo',
     'localCustoms', 'accessibilityInfo',
   ];

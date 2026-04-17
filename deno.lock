@@ -16,7 +16,6 @@
         "npm:@eslint/eslintrc@3",
         "npm:@intercom/messenger-js-sdk@^0.0.18",
         "npm:@playwright/test@^1.58.2",
-        "npm:@sentry/nextjs@^10.32.0",
         "npm:@stripe/react-stripe-js@^4.0.2",
         "npm:@stripe/stripe-js@^7.9.0",
         "npm:@tailwindcss/typography@~0.5.16",

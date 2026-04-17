@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { useSettings } from '@/hooks/useSettings';
 import { useAdminTenant } from '@/contexts/AdminTenantContext';
 import TranslationEditor from '@/components/admin/TranslationEditor';
+import TourStructuredTranslationEditor from '@/components/admin/TourStructuredTranslationEditor';
 import { tourTranslationFields, normalizeTranslations } from '@/lib/i18n/translationFields';
 import {
     Loader2,
@@ -179,6 +180,22 @@ const textareaBase = "block w-full px-4 py-3 border border-slate-300 rounded-xl 
 
 const generateBookingOptionId = () =>
     (globalThis.crypto as any)?.randomUUID?.() || `opt-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+const TourTranslationHelp = ({ isDraft }: { isDraft: boolean }) => (
+    <div className="rounded-2xl border border-indigo-100 bg-indigo-50/70 p-4 space-y-2">
+        <p className="text-sm font-semibold text-slate-800">Translation scope</p>
+        <p className="text-sm text-slate-700">
+            This tab localizes the core tour copy used across listings and detail pages:
+            title, descriptions, duration, highlights, includes, tags, SEO meta fields,
+            plus structured itinerary, FAQ, booking option, and add-on content below.
+        </p>
+        {isDraft && (
+            <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                You can draft manual translations now. Auto-translate becomes available after the tour is saved the first time.
+            </p>
+        )}
+    </div>
+);
 
 // --- Availability Manager Sub-Component ---
 const AvailabilityManager = ({ availability, setAvailability }: { availability: Availability, setAvailability: (data: Availability) => void }) => {
@@ -1009,11 +1026,9 @@ const addItineraryItem = () => {
         { id: 'addons', label: 'Add-ons', icon: Zap },
         { id: 'availability', label: 'Availability', icon: Calendar },
         { id: 'settings', label: 'Settings', icon: Eye },
-        // Issue #16: the Translations tab used to live only in `tourticket/`
-        // (the main-EEO admin) — tenant admins couldn't see it. Ported here so
-        // every tenant's admin gets the same multi-locale editor, and because
-        // `tourTranslationFields` already includes SEO meta fields the
-        // translations cover the SEO side too.
+        // Keep the same translation workflow in tenant admin as main EEO.
+        // The current manual editor is intentionally scoped to the flat
+        // translatable tour fields only; the UI callout explains that scope.
         { id: 'translations', label: 'Translations', icon: Globe },
         { id: 'seo', label: 'SEO', icon: Globe }
     ];
@@ -2330,30 +2345,29 @@ const addItineraryItem = () => {
                                     </div>
                                 )}
 
-                                {/* Translations Tab (Issue #16) — enables per-locale editing
-                                    for every tenant admin, not just main EEO. Auto-translate
-                                    streams via /api/admin/translate/stream when the tour
-                                    already has an id (edit mode). tourTranslationFields
-                                    already covers title, descriptions, itinerary text, SEO
-                                    meta fields, highlights, and tags. */}
+                                {/* Translations Tab */}
                                 {activeTab === 'translations' && (
                                     <div className="space-y-6">
-                                        {!tourToEdit ? (
-                                            <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800">
-                                                Save the tour first — translations can be edited
-                                                and auto-generated once the tour has been created.
-                                            </div>
-                                        ) : (
-                                            <TranslationEditor
-                                                fields={tourTranslationFields}
-                                                value={formData.translations || {}}
-                                                onChange={(translations) =>
-                                                    setFormData(prev => ({ ...prev, translations }))
-                                                }
-                                                modelType="tour"
-                                                entityId={tourToEdit?._id as string}
-                                            />
-                                        )}
+                                        <TourTranslationHelp isDraft={!tourToEdit?._id} />
+                                        <TranslationEditor
+                                            fields={tourTranslationFields}
+                                            value={formData.translations || {}}
+                                            onChange={(translations) =>
+                                                setFormData(prev => ({ ...prev, translations }))
+                                            }
+                                            modelType="tour"
+                                            entityId={tourToEdit?._id as string}
+                                        />
+                                        <TourStructuredTranslationEditor
+                                            value={formData.translations || {}}
+                                            onChange={(translations) =>
+                                                setFormData(prev => ({ ...prev, translations }))
+                                            }
+                                            itinerary={formData.itinerary}
+                                            faqs={formData.faqs}
+                                            bookingOptions={formData.bookingOptions}
+                                            addOns={formData.addOns}
+                                        />
                                     </div>
                                 )}
 
