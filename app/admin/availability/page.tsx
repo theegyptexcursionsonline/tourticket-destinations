@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback } from 'react';
 import withAuth from '@/components/admin/withAuth';
 import { 
   Calendar, ChevronLeft, ChevronRight, X, Lock, Unlock, 
-  AlertCircle, Users, RefreshCw,
+  AlertCircle, Users, RefreshCw, Search,
   Plus, Minus, Save, Loader2, History, Info
 } from 'lucide-react';
 import { useAdminTenant } from '@/contexts/AdminTenantContext';
@@ -56,6 +56,7 @@ type TabType = 'calendar' | 'history';
 const AvailabilityPage = () => {
   const [tours, setTours] = useState<Tour[]>([]);
   const [selectedTour, setSelectedTour] = useState<string>('');
+  const [tourSearch, setTourSearch] = useState('');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [availability, setAvailability] = useState<Map<string, AvailabilityData>>(new Map());
   const [selectedDates, setSelectedDates] = useState<Set<string>>(new Set());
@@ -85,6 +86,15 @@ const AvailabilityPage = () => {
   const daysInMonth = getDaysInMonth(year, month);
   const firstDay = getFirstDayOfMonth(year, month);
   const monthName = currentDate.toLocaleString('default', { month: 'long' });
+
+  useEffect(() => {
+    const selected = tours.find((tour) => tour._id === selectedTour);
+    if (selected) {
+      setTourSearch(selected.title);
+    } else if (!selectedTour) {
+      setTourSearch('');
+    }
+  }, [selectedTour, tours]);
 
   // Fetch tours
   useEffect(() => {
@@ -317,22 +327,30 @@ const AvailabilityPage = () => {
         
         {/* Tour selector */}
         <div className="flex items-center gap-3">
-          <select
-            value={selectedTour}
-            onChange={(e) => setSelectedTour(e.target.value)}
-            disabled={isToursLoading}
-            className="px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent min-w-[250px]"
-          >
-            {isToursLoading ? (
-              <option>Loading tours...</option>
-            ) : tours.length === 0 ? (
-              <option>No tours available</option>
-            ) : (
-              tours.map(tour => (
-                <option key={tour._id} value={tour._id}>{tour.title}</option>
-              ))
-            )}
-          </select>
+          <div className="relative min-w-[320px] flex-1 lg:min-w-[420px]">
+            <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+            <input
+              type="text"
+              value={tourSearch}
+              onChange={(e) => {
+                const nextValue = e.target.value;
+                setTourSearch(nextValue);
+                const exactMatch = tours.find((tour) => tour.title.toLowerCase() === nextValue.trim().toLowerCase());
+                if (exactMatch) {
+                  setSelectedTour(exactMatch._id);
+                }
+              }}
+              list="availability-tour-options"
+              placeholder={isToursLoading ? 'Loading tours...' : tours.length === 0 ? 'No tours available' : 'Search tours...'}
+              disabled={isToursLoading || tours.length === 0}
+              className="w-full ps-10 pe-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            />
+            <datalist id="availability-tour-options">
+              {tours.map((tour) => (
+                <option key={tour._id} value={tour.title} />
+              ))}
+            </datalist>
+          </div>
           <button
             onClick={fetchAvailability}
             disabled={isLoading}
@@ -1168,4 +1186,3 @@ function SlotEditorModal({
 }
 
 export default withAuth(AvailabilityPage, { permissions: ['manageTours'] });
-
