@@ -663,6 +663,10 @@ function StopSaleRangeModal({
   onApplied: () => void;
 }) {
   const [tourId, setTourId] = useState(initialTourId);
+  const [tourSearch, setTourSearch] = useState(() =>
+    tours.find((t) => t._id === initialTourId)?.title || ''
+  );
+  const [isTourListOpen, setIsTourListOpen] = useState(false);
   const [options, setOptions] = useState<Array<{ id: string; title: string }>>([]);
   const [allOptions, setAllOptions] = useState(true);
   const [selectedOptionIds, setSelectedOptionIds] = useState<Set<string>>(new Set());
@@ -670,6 +674,13 @@ function StopSaleRangeModal({
   const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [reason, setReason] = useState('');
   const [isWorking, setIsWorking] = useState(false);
+
+  const selectedTourTitle = tours.find((t) => t._id === tourId)?.title || '';
+  const filteredTours = tourSearch.trim()
+    ? tours.filter((t) =>
+        t.title.toLowerCase().includes(tourSearch.trim().toLowerCase())
+      )
+    : tours;
 
   useEffect(() => {
     const load = async () => {
@@ -740,17 +751,57 @@ function StopSaleRangeModal({
         <div className="p-4 max-h-[60vh] overflow-y-auto space-y-4">
           <div>
             <label className="text-sm font-medium text-slate-700">Tour</label>
-            <select
-              value={tourId}
-              onChange={(e) => setTourId(e.target.value)}
-              className="mt-2 w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-            >
-              {tours.map((t) => (
-                <option key={t._id} value={t._id}>
-                  {t.title}
-                </option>
-              ))}
-            </select>
+            <div className="relative mt-2">
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+              <input
+                type="text"
+                value={isTourListOpen ? tourSearch : selectedTourTitle || tourSearch}
+                onChange={(e) => {
+                  setTourSearch(e.target.value);
+                  setIsTourListOpen(true);
+                }}
+                onFocus={() => {
+                  setTourSearch('');
+                  setIsTourListOpen(true);
+                }}
+                onBlur={() => {
+                  setTimeout(() => setIsTourListOpen(false), 150);
+                }}
+                placeholder={tours.length === 0 ? 'No tours available' : 'Search tours...'}
+                disabled={tours.length === 0}
+                className="w-full ps-10 pe-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              />
+              {isTourListOpen && filteredTours.length > 0 && (
+                <ul
+                  role="listbox"
+                  className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-slate-200 bg-white shadow-lg"
+                >
+                  {filteredTours.map((t) => (
+                    <li
+                      key={t._id}
+                      role="option"
+                      aria-selected={t._id === tourId}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        setTourId(t._id);
+                        setTourSearch(t.title);
+                        setIsTourListOpen(false);
+                      }}
+                      className={`px-3 py-2 text-sm cursor-pointer hover:bg-indigo-50 ${
+                        t._id === tourId ? 'bg-indigo-50 text-indigo-700 font-medium' : 'text-slate-700'
+                      }`}
+                    >
+                      {t.title}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {isTourListOpen && filteredTours.length === 0 && (
+                <div className="absolute z-10 mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-lg px-3 py-2 text-sm text-slate-500">
+                  No tours match &ldquo;{tourSearch}&rdquo;
+                </div>
+              )}
+            </div>
           </div>
 
           <div>
