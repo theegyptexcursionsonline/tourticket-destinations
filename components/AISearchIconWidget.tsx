@@ -102,7 +102,7 @@ function DestinationHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; l
               <div className="font-semibold text-gray-900 text-sm md:text-[15px] leading-snug mb-1 md:mb-1.5 truncate group-hover:text-emerald-600 transition-colors duration-300">{hit.name || 'Untitled Destination'}</div>
               <div className="text-[10px] md:text-xs text-gray-500 flex items-center gap-1.5 md:gap-2.5 flex-wrap">
                 {hit.country && (<span className="bg-gray-50/80 backdrop-blur-sm px-1.5 md:px-2.5 py-0.5 md:py-1 rounded-md md:rounded-lg font-medium">{hit.country}</span>)}
-                {hit.tourCount && (<span className="bg-emerald-50/80 backdrop-blur-sm px-1.5 md:px-2.5 py-0.5 md:py-1 rounded-md md:rounded-lg font-medium text-emerald-700">{hit.tourCount} tours</span>)}
+                {hit.tourCount > 0 && (<span className="bg-emerald-50/80 backdrop-blur-sm px-1.5 md:px-2.5 py-0.5 md:py-1 rounded-md md:rounded-lg font-medium text-emerald-700">{hit.tourCount} tours</span>)}
               </div>
             </div>
           </div>
@@ -133,7 +133,7 @@ function CategoryHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limi
             <div className="flex-1 min-w-0">
               <div className="font-semibold text-gray-900 text-sm md:text-[15px] leading-snug mb-1 md:mb-1.5 truncate group-hover:text-purple-600 transition-colors duration-300">{hit.name || 'Untitled Category'}</div>
               <div className="text-[10px] md:text-xs text-gray-500 flex items-center gap-1.5 md:gap-2.5">
-                {hit.tourCount && (<span className="bg-purple-50/80 backdrop-blur-sm px-1.5 md:px-2.5 py-0.5 md:py-1 rounded-md md:rounded-lg font-medium text-purple-700">{hit.tourCount} tours</span>)}
+                {hit.tourCount > 0 && (<span className="bg-purple-50/80 backdrop-blur-sm px-1.5 md:px-2.5 py-0.5 md:py-1 rounded-md md:rounded-lg font-medium text-purple-700">{hit.tourCount} tours</span>)}
               </div>
             </div>
           </div>

@@ -368,7 +368,7 @@ function DestinationHits({ onHitClick, limit = 3 }: { onHitClick?: () => void; l
                     {hit.country}
                   </span>
                 )}
-                {hit.tourCount && (
+                {hit.tourCount > 0 && (
                   <span className="bg-emerald-100 backdrop-blur-sm px-2.5 py-1 rounded-lg font-semibold text-emerald-700">
                     {hit.tourCount} tours
                   </span>
@@ -438,7 +438,7 @@ function CategoryHits({ onHitClick, limit = 3 }: { onHitClick?: () => void; limi
                 {hit.name || 'Untitled Category'}
               </div>
               <div className="text-[10px] md:text-xs text-gray-500 flex items-center gap-2 flex-wrap">
-                {hit.tourCount && (
+                {hit.tourCount > 0 && (
                   <span className="bg-purple-100 backdrop-blur-sm px-2.5 py-1 rounded-lg font-semibold text-purple-700">
                     {hit.tourCount} tours
                   </span>
@@ -1262,7 +1262,7 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
           {/* Main Search/Chat Input Box - Enhanced */}
           <form onSubmit={handleSubmit}>
             <div
-              className={`relative bg-white/98 backdrop-blur-2xl rounded-full transition-all duration-500 ease-out ${
+              className={`relative bg-white backdrop-blur-2xl rounded-full transition-all duration-500 ease-out ${
                 isExpanded || isFocused
                   ? 'shadow-[0_20px_60px_-15px_rgba(59,130,246,0.5)] border-2 border-blue-400 ring-4 ring-blue-100/50'
                   : 'shadow-[0_10px_40px_-10px_rgba(0,0,0,0.3)] border-2 border-white/40 hover:border-blue-300 hover:shadow-[0_20px_50px_-15px_rgba(59,130,246,0.4)]'
@@ -1279,13 +1279,12 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
                   }}
                   onBlur={() => setIsFocused(false)}
                   placeholder={chatMode ? t('search.askAiAnything') : suggestion}
-                  className={`w-full py-4 md:py-5 text-sm md:text-base text-gray-900 placeholder:text-gray-400/70 placeholder:font-normal font-medium bg-transparent outline-none rounded-full relative z-10 transition-all duration-300 ${
+                  className={`w-full py-4 md:py-5 text-sm md:text-base text-gray-900 placeholder:text-gray-500 placeholder:font-normal font-medium bg-transparent outline-none rounded-full relative z-10 transition-all duration-300 ${
                     rtl ? 'pe-16 md:pe-[70px] ps-14 md:ps-20 text-right' : 'ps-16 md:ps-[70px] pe-14 md:pe-20 text-left'
                   }`}
                   style={{
                     cursor: 'text',
                     color: '#111827',
-                    WebkitTextFillColor: '#111827',
                     caretColor: '#111827',
                   }}
                   disabled={chatMode && isGenerating}
@@ -1395,8 +1394,8 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
                 ease: [0.34, 1.56, 0.64, 1],
                 opacity: { duration: 0.25 }
               }}
-              className="absolute top-full mt-4 start-0 end-0 backdrop-blur-[40px] rounded-[28px] shadow-[0_8px_32px_0_rgba(31,38,135,0.37)] border border-white/30 overflow-hidden glass-dropdown"
-              style={{ 
+              className="absolute top-full mt-4 start-0 end-0 bg-white backdrop-blur-[40px] rounded-[28px] shadow-[0_8px_32px_0_rgba(31,38,135,0.37)] border border-white/30 overflow-hidden glass-dropdown flex flex-col"
+              style={{
                 maxHeight: '70vh',
                 boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37), inset 0 1px 0 0 rgba(255, 255, 255, 0.3)',
                 zIndex: 99999,
@@ -1430,8 +1429,8 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
               </div>
               
               {/* Content with glass effect */}
-              <div className="relative z-10 bg-white/10 backdrop-blur-md"
-                style={{ 
+              <div className="relative z-10 bg-white/10 backdrop-blur-md flex flex-col flex-1 min-h-0"
+                style={{
                   background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.15) 100%)',
                 }}
               >
@@ -1542,7 +1541,7 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
               </div>
 
               {/* Results Area */}
-              <div ref={chatContainerRef} className="overflow-y-auto custom-scrollbar" style={{ maxHeight: 'calc(65vh - 120px)', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+              <div ref={chatContainerRef} className="overflow-y-auto custom-scrollbar flex-1 min-h-0" style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
                 {chatMode ? (
                   /* Enhanced Chat Interface */
                   <motion.div 

@@ -308,7 +308,7 @@ function DestinationHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; l
                 {hit.country && (
                   <span className="bg-gray-50/80 backdrop-blur-sm px-1.5 md:px-2.5 py-0.5 md:py-1 rounded-md md:rounded-lg font-medium">{hit.country}</span>
                 )}
-                {hit.tourCount && (
+                {hit.tourCount > 0 && (
                   <span className="bg-emerald-50/80 backdrop-blur-sm px-1.5 md:px-2.5 py-0.5 md:py-1 rounded-md md:rounded-lg font-medium text-emerald-700">
                     {hit.tourCount} tours
                   </span>
@@ -364,7 +364,7 @@ function CategoryHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limi
                 {hit.name || 'Untitled Category'}
               </div>
               <div className="text-[10px] md:text-xs text-gray-500 flex items-center gap-1.5 md:gap-2.5">
-                {hit.tourCount && (
+                {hit.tourCount > 0 && (
                   <span className="bg-purple-50/80 backdrop-blur-sm px-1.5 md:px-2.5 py-0.5 md:py-1 rounded-md md:rounded-lg font-medium text-purple-700">
                     {hit.tourCount} tours
                   </span>
