@@ -723,7 +723,9 @@
     "name": "Votre Nom",
     "namePlaceholder": "Entrez votre nom",
     "email": "Email",
-    "emailPlaceholder": "Entrez votre email"
+    "emailPlaceholder": "Entrez votre email",
+    "bookNowHint": "Réservez maintenant et nous vous inviterons à laisser un avis après votre sortie.",
+    "completeTourHint": "Terminez d'abord ce tour et nous vous enverrons automatiquement votre lien d'avis vérifié par e-mail."
   },
   "wishlist": {
     "title": "Ma Liste de Souhaits",

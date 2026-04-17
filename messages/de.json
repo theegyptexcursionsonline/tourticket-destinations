@@ -723,7 +723,9 @@
     "name": "Ihr Name",
     "namePlaceholder": "Name eingeben",
     "email": "E-Mail",
-    "emailPlaceholder": "E-Mail eingeben"
+    "emailPlaceholder": "E-Mail eingeben",
+    "bookNowHint": "Buchen Sie jetzt und wir laden Sie nach Abschluss Ihrer Reise zur Bewertung ein.",
+    "completeTourHint": "Schließen Sie diese Tour zuerst ab, dann senden wir Ihnen Ihren verifizierten Bewertungslink per E-Mail."
   },
   "wishlist": {
     "title": "Meine Wunschliste",

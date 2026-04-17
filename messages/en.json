@@ -724,6 +724,9 @@
     "namePlaceholder": "Enter your name",
     "email": "Email",
     "emailPlaceholder": "Enter your email"
+    ,
+    "bookNowHint": "Book now and we will invite you to review after your trip is completed.",
+    "completeTourHint": "Complete this tour first and we will email your verified review link automatically."
   },
   "wishlist": {
     "title": "My Wishlist",

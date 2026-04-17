@@ -723,7 +723,9 @@
     "name": "Tu Nombre",
     "namePlaceholder": "Ingresa tu nombre",
     "email": "Correo Electrónico",
-    "emailPlaceholder": "Ingresa tu correo electrónico"
+    "emailPlaceholder": "Ingresa tu correo electrónico",
+    "bookNowHint": "Reserva ahora y te invitaremos a dejar tu reseña después de completar el viaje.",
+    "completeTourHint": "Completa primero este tour y te enviaremos automáticamente tu enlace de reseña verificada por correo."
   },
   "wishlist": {
     "title": "Mi Lista de Deseos",
