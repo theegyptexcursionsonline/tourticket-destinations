@@ -14,6 +14,7 @@ import { getTenantFromRequest, getTenantPublicConfig } from '@/lib/tenant';
 import { localizeTour } from '@/lib/translation/getLocalizedField';
 import { cacheIfAvailable } from '@/lib/cache';
 import TourSchema from '@/components/schema/TourSchema';
+import { getStopSaleDatesForTour } from '@/lib/stopSaleFetcher';
 
 interface PageProps {
   params: Promise<{ slug: string; locale: string }>;
@@ -164,7 +165,15 @@ export default async function TourDetailPage({ params }: PageProps) {
     }
 
     const { tour, reviews } = result;
-    const relatedTours = await getRelatedTours(tour.category, (tour._id as any)?.toString(), tenantId);
+    const tourIdString = (tour._id as any)?.toString?.() || '';
+
+    // Fire related-tours + stop-sale prefetch in parallel. Stop-sale prefetch
+    // ensures BookingSidebar's calendar shows accurate "Unavailable" state on
+    // first paint rather than doing 6 client-side fetches on mount.
+    const [relatedTours, initialStopSaleDates] = await Promise.all([
+      getRelatedTours(tour.category, tourIdString, tenantId),
+      getStopSaleDatesForTour(tourIdString, tenantId, 6),
+    ]);
 
     const localizedTour = localizeTour(tour as any, locale) as any;
     const localizedRelated = relatedTours.map((t: TourType) => localizeTour(t as any, locale) as any);
@@ -178,6 +187,7 @@ export default async function TourDetailPage({ params }: PageProps) {
             tour={localizedTour}
             relatedTours={localizedRelated}
             initialReviews={reviews}
+            initialStopSaleDates={initialStopSaleDates}
           />
         </ClientErrorBoundary>
         <Footer />

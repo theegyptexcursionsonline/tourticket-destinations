@@ -401,8 +401,7 @@ const CalendarWidget: React.FC<{
       // Check if day of week is available (if availableDays is provided)
       const dayOfWeek = currentDate.getDay();
       const isDayUnavailable = availableDays && availableDays.length > 0 && !availableDays.includes(dayOfWeek);
-      // Disable clicks during the stop-sale loading window too.
-      const isUnavailable = isPast || isFull || isDayUnavailable || !hasLoadedStopSales;
+      const isUnavailable = isPast || isFull || isDayUnavailable;
 
       const unavailableTitle = isPast
         ? undefined
@@ -428,15 +427,13 @@ const CalendarWidget: React.FC<{
               ? 'bg-gradient-to-br from-red-100 to-red-200 text-red-700 border-red-300 font-bold'
               : isPast || isDayUnavailable || isFull
               ? 'text-gray-300 bg-gray-50 border-gray-100 cursor-not-allowed line-through'
-              : !hasLoadedStopSales
-              ? 'bg-white border-gray-100 text-gray-400 animate-pulse'
               : availability
               ? getAvailabilityColor(availability) + ' hover:scale-105'
               : 'bg-white border-gray-200 text-gray-700 hover:border-gray-300 hover:scale-105'
           }`}
         >
           {day}
-          {hasLoadedStopSales && availability && availability !== 'full' && !isDayUnavailable && (
+          {availability && availability !== 'full' && !isDayUnavailable && (
             <div className={`absolute -bottom-1 start-1/2 transform -translate-x-1/2 w-2 h-2 rounded-full ${
               availability === 'high' ? 'bg-green-400' :
               availability === 'medium' ? 'bg-yellow-400' :
@@ -484,39 +481,66 @@ const CalendarWidget: React.FC<{
         </div>
       </div>
 
-      {/* Availability Legend - Mobile Friendly */}
-      <div className="flex items-center justify-center gap-2 sm:gap-4 mb-4 text-xs">
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded-full bg-green-400"></div>
-          <span className="text-gray-600">{t('booking.availabilityHigh')}</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
-          <span className="text-gray-600">{t('booking.availabilityMedium')}</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded-full bg-orange-400"></div>
-          <span className="text-gray-600">{t('booking.availabilityLow')}</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded-full bg-red-400"></div>
-          <span className="text-gray-600">{t('booking.unavailable')}</span>
-        </div>
-      </div>
-
-      {/* Day names */}
-      <div className="grid grid-cols-7 gap-1 mb-3">
-        {dayNames.map(day => (
-          <div key={day} className="text-center text-xs font-semibold text-gray-500 py-2">
-            {day}
+      {hasLoadedStopSales ? (
+        <>
+          {/* Availability Legend - Mobile Friendly */}
+          <div className="flex items-center justify-center gap-2 sm:gap-4 mb-4 text-xs">
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 rounded-full bg-green-400"></div>
+              <span className="text-gray-600">{t('booking.availabilityHigh')}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+              <span className="text-gray-600">{t('booking.availabilityMedium')}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 rounded-full bg-orange-400"></div>
+              <span className="text-gray-600">{t('booking.availabilityLow')}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 rounded-full bg-red-400"></div>
+              <span className="text-gray-600">{t('booking.unavailable')}</span>
+            </div>
           </div>
-        ))}
-      </div>
 
-      {/* Calendar grid */}
-      <div className="grid grid-cols-7 gap-1">
-        {renderCalendarDays()}
-      </div>
+          {/* Day names */}
+          <div className="grid grid-cols-7 gap-1 mb-3">
+            {dayNames.map(day => (
+              <div key={day} className="text-center text-xs font-semibold text-gray-500 py-2">
+                {day}
+              </div>
+            ))}
+          </div>
+
+          {/* Calendar grid */}
+          <div className="grid grid-cols-7 gap-1">
+            {renderCalendarDays()}
+          </div>
+        </>
+      ) : (
+        // Full-calendar skeleton while availability is loading. We hide the
+        // legend (meaningless without data) and render one pulsing circle
+        // per day cell so the entire calendar reads as "loading".
+        <div aria-busy="true" aria-label="Loading availability">
+          <div className="flex items-center justify-center mb-4">
+            <div className="h-3 w-56 bg-gray-100 rounded-full animate-pulse" />
+          </div>
+          <div className="grid grid-cols-7 gap-1 mb-3">
+            {dayNames.map(day => (
+              <div key={day} className="text-center text-xs font-semibold text-gray-300 py-2">
+                {day}
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-7 gap-1">
+            {Array.from({ length: 42 }).map((_, i) => (
+              <div key={i} className="flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-gray-100 animate-pulse" />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 };
@@ -1106,9 +1130,13 @@ interface BookingSidebarProps {
   isOpen: boolean;
   onClose: () => void;
   tour: Tour;
+  // Server-prefetched stop-sale state. When provided, the calendar renders
+  // with correct state on first paint and skips the loading skeleton. A
+  // background refresh still runs on mount to pick up late changes.
+  initialStopSaleDates?: Record<string, 'full' | 'partial'>;
 }
 
-const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour }) => {
+const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, initialStopSaleDates }) => {
   const t = useTranslations();
   const router = useRouter();
   const { formatPrice } = useSettings();
@@ -1133,11 +1161,16 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour }
   // and can't be clicked — the old behavior let users select a stop-saled day,
   // advance to the Tour Options step, and only then discover the "Unavailable"
   // banner, which was confusing.
-  const [stopSaleDates, setStopSaleDates] = useState<Record<string, 'full' | 'partial'>>({});
+  const [stopSaleDates, setStopSaleDates] = useState<Record<string, 'full' | 'partial'>>(
+    () => initialStopSaleDates || {},
+  );
   // Flipped true after the first stop-sale fetch completes (success or
-  // failure). The calendar suppresses availability dots + date clicks until
-  // this is true so stop-saled dates can't briefly render as "available".
-  const [hasLoadedStopSales, setHasLoadedStopSales] = useState(false);
+  // failure). The calendar renders a full-calendar skeleton until this is
+  // true so stop-saled dates can't briefly render as "available". When we
+  // already have server-prefetched data, we're loaded on first paint.
+  const [hasLoadedStopSales, setHasLoadedStopSales] = useState(
+    !!initialStopSaleDates,
+  );
 
   const [bookingData, setBookingData] = useState<BookingData>({
     selectedDate: null,

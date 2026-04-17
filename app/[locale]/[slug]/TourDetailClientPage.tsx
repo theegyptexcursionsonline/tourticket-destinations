@@ -963,10 +963,14 @@ interface TourPageClientProps {
   tour: Tour;
   relatedTours: Tour[];
   initialReviews?: Review[];
+  // Server-prefetched stop-sale state keyed by YYYY-MM-DD. Passed through
+  // to BookingSidebar so the calendar renders with correct state on first
+  // paint instead of making 6 client-side fetches on mount.
+  initialStopSaleDates?: Record<string, 'full' | 'partial'>;
 }
 
 // Main TourPageClient component
-export default function TourPageClient({ tour, relatedTours, initialReviews = [] }: TourPageClientProps) {
+export default function TourPageClient({ tour, relatedTours, initialReviews = [], initialStopSaleDates }: TourPageClientProps) {
   const { formatPrice } = useSettings();
   const { addToCart } = useCart();
   const { tenant } = useTenant();
@@ -1571,7 +1575,7 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
       </main>
 
 
-      <BookingSidebar isOpen={isBookingSidebarOpen} onClose={() => setBookingSidebarOpen(false)} tour={tour} />
+      <BookingSidebar isOpen={isBookingSidebarOpen} onClose={() => setBookingSidebarOpen(false)} tour={tour} initialStopSaleDates={initialStopSaleDates} />
 
       <StickyBookButton
         price={tour.discountPrice}
