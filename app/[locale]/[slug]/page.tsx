@@ -10,8 +10,16 @@ import Footer from '@/components/Footer';
 import TourDetailClientPage from './TourDetailClientPage';
 import ClientErrorBoundary from '@/components/ClientErrorBoundary';
 import type { Review as ReviewType, Tour as TourType } from '@/types';
-import { getTenantFromRequest, getTenantPublicConfig } from '@/lib/tenant';
+import {
+  buildStrictTenantQuery,
+  getTenantFromRequest,
+  getTenantPublicConfig,
+} from '@/lib/tenant';
 import { localizeTour } from '@/lib/translation/getLocalizedField';
+import {
+  localizeAndDedupeTours,
+  selectLocalizedTourCandidate,
+} from '@/lib/translation/localizeTourCollection';
 import { cacheIfAvailable } from '@/lib/cache';
 import TourSchema from '@/components/schema/TourSchema';
 import { getStopSaleDatesForTour } from '@/lib/stopSaleFetcher';
@@ -24,21 +32,21 @@ interface PageProps {
  * Get tour by slug with multi-tenant support
  */
 const getTourBySlug = cacheIfAvailable(
-  async (slug: string, tenantId: string): Promise<{ tour: TourType; reviews: ReviewType[] } | null> => {
+  async (slug: string, tenantId: string, locale: string): Promise<{ tour: TourType; reviews: ReviewType[] } | null> => {
   try {
     await dbConnect();
 
-    const tenantFilter = tenantId !== 'default'
-      ? { $or: [{ tenantId }, { tenantId: 'default' }] }
-      : {};
-
     console.log(`[Tour] Fetching: slug=${slug}, tenantId=${tenantId}`);
 
-    const tour = await Tour.findOne({ slug, ...tenantFilter })
+    const tourCandidates = await Tour.find(buildStrictTenantQuery({ slug }, tenantId))
       .populate('destination', 'name slug description')
       .populate('category', 'name slug')
-      .sort({ tenantId: tenantId !== 'default' ? -1 : 1 })
       .lean();
+
+    const tour = selectLocalizedTourCandidate(
+      JSON.parse(JSON.stringify(tourCandidates)) as TourType[],
+      locale
+    );
 
     if (!tour) {
       console.log(`[Tour] Not found: slug=${slug}`);
@@ -87,8 +95,9 @@ const getRelatedTours = cacheIfAvailable(
     const relatedTours = await Tour.find({
       category: { $in: categoryIdArray },
       _id: { $ne: currentTourId },
-      isPublished: true,
-      tenantId
+      ...buildStrictTenantQuery({
+        isPublished: true,
+      }, tenantId),
     })
       .select('title slug image discountPrice originalPrice duration destination category rating reviewCount translations tags')
       .populate('destination', 'name')
@@ -106,18 +115,18 @@ const getRelatedTours = cacheIfAvailable(
 );
 
 const getTourMetadataData = cacheIfAvailable(
-  async (slug: string, tenantId: string) => {
+  async (slug: string, tenantId: string, locale: string) => {
     await dbConnect();
 
-    const tenantFilter = tenantId !== 'default'
-      ? { $or: [{ tenantId }, { tenantId: 'default' }] }
-      : {};
-
-    return Tour.findOne({ slug, ...tenantFilter })
+    const candidates = await Tour.find(buildStrictTenantQuery({ slug }, tenantId))
       .select('title description metaTitle metaDescription keywords image destination')
       .populate('destination', 'name')
-      .sort({ tenantId: tenantId !== 'default' ? -1 : 1 })
       .lean();
+
+    return selectLocalizedTourCandidate(
+      JSON.parse(JSON.stringify(candidates)) as TourType[],
+      locale
+    );
   },
   ['tour-page-metadata'],
   { revalidate: 60, tags: ['tours'] }
@@ -126,12 +135,12 @@ const getTourMetadataData = cacheIfAvailable(
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const t = await getTranslations('metadata');
   try {
-    const { slug } = await params;
+    const { slug, locale } = await params;
     const tenantId = await getTenantFromRequest();
     const tenant = await getTenantPublicConfig(tenantId);
     const siteName = tenant?.name || 'Tours';
 
-    const tour = await getTourMetadataData(slug, tenantId);
+    const tour = await getTourMetadataData(slug, tenantId, locale);
 
     if (!tour) {
       return { title: t('tourNotFound') };
@@ -158,7 +167,7 @@ export default async function TourDetailPage({ params }: PageProps) {
   try {
     const { slug, locale } = await params;
     const tenantId = await getTenantFromRequest();
-    const result = await getTourBySlug(slug, tenantId);
+    const result = await getTourBySlug(slug, tenantId, locale);
 
     if (!result) {
       notFound();
@@ -176,7 +185,7 @@ export default async function TourDetailPage({ params }: PageProps) {
     ]);
 
     const localizedTour = localizeTour(tour as any, locale) as any;
-    const localizedRelated = relatedTours.map((t: TourType) => localizeTour(t as any, locale) as any);
+    const localizedRelated = localizeAndDedupeTours(relatedTours as any[], locale) as any;
 
     return (
       <>

@@ -26,6 +26,8 @@ const DATE_RANGE_PRESETS = [
   { value: 'custom', label: 'Custom range' },
 ] as const;
 
+const DEFAULT_REPORT_RANGE = 'this_year';
+
 // Helper to format date for display
 const formatDateDisplay = (date: string) => {
   if (!date) return '';
@@ -173,7 +175,7 @@ const ReportsPage = () => {
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [dateRange, setDateRange] = useState('30d');
+  const [dateRange, setDateRange] = useState(DEFAULT_REPORT_RANGE);
   
   // Custom date range state
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -191,7 +193,7 @@ const ReportsPage = () => {
     if (dateRange === 'custom' && appliedCustomRange) {
       return `${formatDateDisplay(appliedCustomRange.start)} – ${formatDateDisplay(appliedCustomRange.end)}`;
     }
-    return DATE_RANGE_PRESETS.find(p => p.value === dateRange)?.label || 'Last 30 days';
+    return DATE_RANGE_PRESETS.find(p => p.value === dateRange)?.label || 'This year';
   };
 
   // Validate custom date range
@@ -210,11 +212,10 @@ const ReportsPage = () => {
   const handlePresetSelect = (preset: string) => {
     if (preset === 'custom') {
       setShowDatePicker(true);
-      // Pre-fill with last 30 days if no custom range set
+      // Pre-fill with the current calendar year if no custom range is set yet.
       if (!customStartDate && !customEndDate) {
         const end = new Date();
-        const start = new Date();
-        start.setDate(start.getDate() - 30);
+        const start = new Date(Date.UTC(end.getUTCFullYear(), 0, 1));
         setCustomStartDate(start.toISOString().split('T')[0]);
         setCustomEndDate(end.toISOString().split('T')[0]);
       }
@@ -334,6 +335,13 @@ const ReportsPage = () => {
   }
 
   const { kpis, monthlyRevenue, topTours, cancellations, ratings } = reportData;
+  const hasReportBookings = kpis.totalBookings > 0;
+  const zeroStateHeading = isAllTenantsSelected()
+    ? 'No tenant-scoped bookings in this date range'
+    : `No bookings found for ${selectedTenant?.name || 'this brand'} in this date range`;
+  const zeroStateBody = isAllTenantsSelected()
+    ? `All Brands is currently showing ${getDateRangeLabel()}. Try a wider range if you want to review older tenant bookings across the network.`
+    : `${selectedTenant?.name || 'This brand'} has no qualifying bookings in ${getDateRangeLabel()}. Switch to a wider date range to inspect older bookings.`;
 
   // Mock rating distribution if not provided
   const ratingDistribution = ratings?.distribution || [
@@ -502,7 +510,7 @@ const ReportsPage = () => {
           {dateRange === 'custom' && appliedCustomRange && (
             <button
               onClick={() => {
-                setDateRange('30d');
+                setDateRange(DEFAULT_REPORT_RANGE);
                 setAppliedCustomRange(null);
                 setCustomStartDate('');
                 setCustomEndDate('');
@@ -526,6 +534,47 @@ const ReportsPage = () => {
           </button>
         </div>
       </div>
+
+      {!hasReportBookings && (
+        <div className="mb-8 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-amber-900">{zeroStateHeading}</p>
+              <p className="mt-1 text-sm text-amber-800">{zeroStateBody}</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {dateRange !== DEFAULT_REPORT_RANGE && (
+                <button
+                  onClick={() => {
+                    setDateRange(DEFAULT_REPORT_RANGE);
+                    setAppliedCustomRange(null);
+                    setCustomStartDate('');
+                    setCustomEndDate('');
+                    setShowDatePicker(false);
+                    setDateValidationError(null);
+                  }}
+                  className="rounded-xl bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm ring-1 ring-amber-200 transition-colors hover:bg-slate-50"
+                >
+                  Show This Year
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  const today = new Date();
+                  const yearStart = new Date(Date.UTC(today.getUTCFullYear(), 0, 1));
+                  setCustomStartDate(yearStart.toISOString().split('T')[0]);
+                  setCustomEndDate(today.toISOString().split('T')[0]);
+                  setShowDatePicker(true);
+                  setDateValidationError(null);
+                }}
+                className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800"
+              >
+                Choose Custom Range
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Section 1: Sales & Revenue KPIs */}
       <section className="mb-10">
@@ -634,7 +683,9 @@ const ReportsPage = () => {
                 ))}
               </ul>
             ) : (
-              <p className="text-slate-500 text-center py-8">No booking data available</p>
+              <p className="text-slate-500 text-center py-8">
+                No top tours found for {getDateRangeLabel().toLowerCase()}.
+              </p>
             )}
           </div>
         </div>

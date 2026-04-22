@@ -6,7 +6,6 @@ import {
   eachMonthOfInterval,
   endOfDay,
   endOfMonth,
-  endOfYear,
   format,
   startOfDay,
   startOfMonth,
@@ -23,6 +22,8 @@ import Tour from '@/lib/models/Tour';
 
 const SUCCESS_STATUSES = ['Confirmed', 'Pending', 'Completed', 'Partial Refunded'];
 const CANCELLATION_STATUSES = ['Cancelled', 'Refunded', 'Partial Refunded'];
+const REPORT_CACHE_VERSION = 'tenant-tour-scope-v2';
+const DEFAULT_REPORT_RANGE = 'this_year';
 
 type TrendInfo = {
   value: number;
@@ -47,7 +48,7 @@ function normalizeDateInput(value: string | null): Date | null {
 
 function buildDateSelection(searchParams: URLSearchParams): DateRangeSelection {
   const today = new Date();
-  const range = searchParams.get('range') || '30d';
+  const range = searchParams.get('range') || DEFAULT_REPORT_RANGE;
   const requestedStart = normalizeDateInput(searchParams.get('startDate'));
   const requestedEnd = normalizeDateInput(searchParams.get('endDate'));
 
@@ -85,15 +86,15 @@ function buildDateSelection(searchParams: URLSearchParams): DateRangeSelection {
         currentEnd = endOfMonth(previousMonth);
         break;
       }
-      case 'this_year':
-        currentStart = startOfYear(today);
-        currentEnd = endOfDay(today);
-        break;
       case '30d':
-      default:
         currentStart = startOfDay(subDays(today, 29));
         currentEnd = endOfDay(today);
         rangeKey = '30d';
+        break;
+      default:
+        currentStart = startOfYear(today);
+        currentEnd = endOfDay(today);
+        rangeKey = DEFAULT_REPORT_RANGE;
         break;
     }
   }
@@ -165,6 +166,74 @@ function buildReviewTenantMatch(effectiveTenantId: string | undefined) {
   return { tenantId: effectiveTenantId };
 }
 
+function buildBookingTourScopeStages(
+  effectiveTenantId: string | undefined,
+  asField = 'tourDetails',
+) {
+  if (effectiveTenantId === 'default') {
+    return [];
+  }
+
+  if (!effectiveTenantId) {
+    return [
+      {
+        $lookup: {
+          from: Tour.collection.name,
+          localField: 'tour',
+          foreignField: '_id',
+          as: asField,
+        },
+      },
+      {
+        $unwind: {
+          path: `$${asField}`,
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $match: {
+          $expr: {
+            $or: [
+              { $eq: [`$${asField}.tenantId`, '$tenantId'] },
+              {
+                $in: [
+                  '$tenantId',
+                  { $ifNull: [`$${asField}.tenantIds`, []] },
+                ],
+              },
+            ],
+          },
+        },
+      },
+    ];
+  }
+
+  return [
+    {
+      $lookup: {
+        from: Tour.collection.name,
+        localField: 'tour',
+        foreignField: '_id',
+        as: asField,
+      },
+    },
+    {
+      $unwind: {
+        path: `$${asField}`,
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $match: {
+        $or: [
+          { [`${asField}.tenantId`]: effectiveTenantId },
+          { [`${asField}.tenantIds`]: effectiveTenantId },
+        ],
+      },
+    },
+  ];
+}
+
 function computeTrend(currentValue: number, previousValue: number): TrendInfo {
   if (previousValue === 0) {
     return {
@@ -194,6 +263,7 @@ async function fetchReportData(
   };
   const chartFormat = selection.bucket === 'day' ? '%Y-%m-%d' : '%Y-%m';
   const tenantBookingMatch = buildTenantBookingMatch(effectiveTenantId);
+  const tenantBookingScopeStages = buildBookingTourScopeStages(effectiveTenantId);
   const reviewTenantMatch = buildReviewTenantMatch(effectiveTenantId);
 
   const [
@@ -207,6 +277,7 @@ async function fetchReportData(
   ] = await Promise.all([
     Booking.aggregate([
       { $match: { ...currentDateMatch, status: { $in: SUCCESS_STATUSES }, ...tenantBookingMatch } },
+      ...tenantBookingScopeStages,
       {
         $group: {
           _id: null,
@@ -219,6 +290,7 @@ async function fetchReportData(
 
     Booking.aggregate([
       { $match: { ...previousDateMatch, status: { $in: SUCCESS_STATUSES }, ...tenantBookingMatch } },
+      ...tenantBookingScopeStages,
       {
         $group: {
           _id: null,
@@ -231,6 +303,7 @@ async function fetchReportData(
 
     Booking.aggregate([
       { $match: { ...currentDateMatch, status: { $in: SUCCESS_STATUSES }, ...tenantBookingMatch } },
+      ...tenantBookingScopeStages,
       {
         $group: {
           _id: {
@@ -248,20 +321,7 @@ async function fetchReportData(
 
     Booking.aggregate([
       { $match: { ...currentDateMatch, status: { $in: SUCCESS_STATUSES }, ...tenantBookingMatch } },
-      {
-        $lookup: {
-          from: Tour.collection.name,
-          localField: 'tour',
-          foreignField: '_id',
-          as: 'tourDetails',
-        },
-      },
-      {
-        $unwind: {
-          path: '$tourDetails',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
+      ...buildBookingTourScopeStages(effectiveTenantId, 'tourDetails'),
       {
         $group: {
           _id: '$tour',
@@ -287,6 +347,7 @@ async function fetchReportData(
 
     Booking.aggregate([
       { $match: { ...currentDateMatch, status: { $in: CANCELLATION_STATUSES }, ...tenantBookingMatch } },
+      ...tenantBookingScopeStages,
       {
         $group: {
           _id: null,
@@ -298,6 +359,7 @@ async function fetchReportData(
 
     Booking.aggregate([
       { $match: { ...currentDateMatch, ...tenantBookingMatch } },
+      ...tenantBookingScopeStages,
       {
         $group: {
           _id: null,
@@ -420,7 +482,7 @@ function getCachedReportData(
 ) {
   return cacheIfAvailable(
     () => fetchReportData(tenantKey === 'all' ? undefined : tenantKey, selection),
-    [`report-data-${tenantKey}-${rangeKey}`],
+    [`report-data-${REPORT_CACHE_VERSION}-${tenantKey}-${rangeKey}`],
     { revalidate: 120, tags: ['reports', `reports-${tenantKey}`] },
   )();
 }

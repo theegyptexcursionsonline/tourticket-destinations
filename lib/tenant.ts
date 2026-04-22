@@ -4,6 +4,7 @@
 import { headers, cookies } from 'next/headers';
 import dbConnect from './dbConnect';
 import Tenant, { ITenant } from './models/Tenant';
+import { resolveTenantBranding } from './tenantBranding';
 
 // ============================================
 // TYPES
@@ -291,37 +292,39 @@ export async function getTenantPublicConfig(tenantId: string): Promise<TenantPub
       return null;
     }
 
-  // Return only public/safe configuration (with fallbacks for missing nested objects)
-  return {
-    tenantId: tenant.tenantId,
-    name: tenant.name,
-    domain: tenant.domain,
-    branding: tenant.branding,
-    seo: {
-      defaultTitle: tenant.seo?.defaultTitle ?? '',
-      titleSuffix: tenant.seo?.titleSuffix ?? '',
-      defaultDescription: tenant.seo?.defaultDescription ?? '',
-      ogImage: tenant.seo?.ogImage ?? '',
-      googleTagManagerId: tenant.seo?.googleTagManagerId ?? '',
-    },
-    contact: {
-      email: tenant.contact?.email ?? '',
-      phone: tenant.contact?.phone ?? '',
-      whatsapp: tenant.contact?.whatsapp ?? '',
-    },
-    socialLinks: tenant.socialLinks,
-    features: tenant.features,
-    localization: {
-      defaultLanguage: tenant.localization?.defaultLanguage ?? 'en',
-      supportedLanguages: tenant.localization?.supportedLanguages ?? ['en'],
-    },
-    payments: {
-      currency: tenant.payments?.currency ?? 'USD',
-      currencySymbol: tenant.payments?.currencySymbol ?? '$',
-      supportedCurrencies: tenant.payments?.supportedCurrencies ?? ['USD'],
-      supportedPaymentMethods: tenant.payments?.supportedPaymentMethods ?? ['card'],
-    },
-  };
+    const branding = resolveTenantBranding(tenant);
+
+    // Return only public/safe configuration (with fallbacks for missing nested objects)
+    return {
+      tenantId: tenant.tenantId,
+      name: tenant.name,
+      domain: tenant.domain,
+      branding,
+      seo: {
+        defaultTitle: tenant.seo?.defaultTitle ?? '',
+        titleSuffix: tenant.seo?.titleSuffix ?? '',
+        defaultDescription: tenant.seo?.defaultDescription ?? '',
+        ogImage: tenant.seo?.ogImage ?? '',
+        googleTagManagerId: tenant.seo?.googleTagManagerId ?? '',
+      },
+      contact: {
+        email: tenant.contact?.email ?? '',
+        phone: tenant.contact?.phone ?? '',
+        whatsapp: tenant.contact?.whatsapp ?? '',
+      },
+      socialLinks: tenant.socialLinks,
+      features: tenant.features,
+      localization: {
+        defaultLanguage: tenant.localization?.defaultLanguage ?? 'en',
+        supportedLanguages: tenant.localization?.supportedLanguages ?? ['en'],
+      },
+      payments: {
+        currency: tenant.payments?.currency ?? 'USD',
+        currencySymbol: tenant.payments?.currencySymbol ?? '$',
+        supportedCurrencies: tenant.payments?.supportedCurrencies ?? ['USD'],
+        supportedPaymentMethods: tenant.payments?.supportedPaymentMethods ?? ['card'],
+      },
+    };
   } catch (error) {
     console.error(`Error fetching public tenant config for ${tenantId}:`, error);
     return null;
@@ -691,13 +694,15 @@ export function getDefaultTenantConfig(tenantId: string, name: string): Partial<
 export function getTenantEmailBranding(tenantConfig: ITenant | null, baseUrl?: string): import('@/lib/email/type').TenantEmailBranding | undefined {
   if (!tenantConfig) return undefined;
 
+  const branding = resolveTenantBranding(tenantConfig);
+
   return {
     tenantId: tenantConfig.tenantId,
     companyName: tenantConfig.name,
-    logo: tenantConfig.branding?.logo,
-    primaryColor: tenantConfig.branding?.primaryColor || '#E63946',
-    secondaryColor: tenantConfig.branding?.secondaryColor || '#1D3557',
-    accentColor: tenantConfig.branding?.accentColor || '#F4A261',
+    logo: branding.logo,
+    primaryColor: branding.primaryColor,
+    secondaryColor: branding.secondaryColor,
+    accentColor: branding.accentColor,
     contactEmail: tenantConfig.contact?.email || 'info@tours.com',
     contactPhone: tenantConfig.contact?.phone || '+20 000 000 0000',
     website: baseUrl || tenantConfig.domain,

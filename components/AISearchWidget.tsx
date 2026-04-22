@@ -3,29 +3,24 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, X, Search, ChevronUp, MapPin, Clock, AlertCircle, Compass, Tag, FileText, MessageCircle, ArrowLeft, Bot, Loader2, ChevronLeft, ChevronRight, DollarSign, Star, Send } from 'lucide-react';
-import { liteClient as algoliasearch } from 'algoliasearch/lite';
-import type { SearchResponse } from 'algoliasearch';
-import { InstantSearch, Index, useSearchBox, useHits, Configure } from 'react-instantsearch';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import { useTenant } from '@/contexts/TenantContext';
-import { dedupeTaxonomyEntries } from '@/lib/utils/taxonomy';
+import {
+  findTenantDestinationsByNames,
+  findTenantToursByTitles,
+  getTenantFeaturedTours,
+  getTenantSiteSearchResults,
+} from '@/lib/tenantSiteSearch';
 import 'instantsearch.css/themes/satellite.css';
 
 // --- Algolia Config ---
 const ALGOLIA_APP_ID = process.env.NEXT_PUBLIC_ALGOLIA_APP_ID || 'WMDNV9WSOI';
 const ALGOLIA_SEARCH_KEY = process.env.NEXT_PUBLIC_ALGOLIA_SEARCH_API_KEY || 'f485b4906072cedbd2f51a46e5ac2637';
-const INDEX_TOURS = process.env.NEXT_PUBLIC_ALGOLIA_INDEX_NAME || 'foxes_technology';
-const INDEX_DESTINATIONS = 'destinations';
-const INDEX_CATEGORIES = 'categories';
-const INDEX_BLOGS = 'blogs';
 const AGENT_ID = 'fb2ac93a-1b89-40e2-a9cb-c85c1bbd978e';
-
-// Create search client outside component to avoid recreating on every render
-const searchClient = algoliasearch(ALGOLIA_APP_ID, ALGOLIA_SEARCH_KEY);
 
 // Tour card creation helper (unused - kept for potential future use)
 const _createTourCardHTML = (tour: any): string => {
@@ -99,44 +94,16 @@ const _createTourCardHTML = (tour: any): string => {
   `;
 };
 
-// Custom SearchBox component
-function CustomSearchBox({ searchQuery, onSearchChange: _onSearchChange }: { searchQuery: string; onSearchChange: (value: string) => void }) {
-  const { refine } = useSearchBox();
-
-  useEffect(() => {
-    refine(searchQuery);
-  }, [searchQuery, refine]);
-
-  return null;
-}
-
-function getUniqueSearchHits<T extends { slug?: string; objectID?: string; name?: string; title?: string; tourCount?: number }>(
-  hits: T[],
-  options?: { requireTours?: boolean }
-) {
-  const requireTours = options?.requireTours ?? false;
-  const uniqueHits = dedupeTaxonomyEntries(
-    hits.map((hit) => ({
-      ...hit,
-      slug: hit.slug || hit.objectID,
-      name: hit.name || hit.title,
-    }))
-  ) as T[];
-
-  if (!requireTours) {
-    return uniqueHits;
-  }
-
-  return uniqueHits.filter((hit) => (Number(hit.tourCount) || 0) > 0);
-}
-
-// Custom Hits components for each index type
-function TourHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: number }) {
-  const { hits } = useHits();
-  const limitedHits = hits.slice(0, limit);
+function TourHits({
+  tours,
+  onHitClick,
+}: {
+  tours: any[];
+  onHitClick?: () => void;
+}) {
   const sliderRef = useRef<HTMLDivElement>(null);
 
-  if (limitedHits.length === 0) return null;
+  if (tours.length === 0) return null;
 
   const scroll = (direction: 'left' | 'right') => {
     if (!sliderRef.current) return;
@@ -146,21 +113,6 @@ function TourHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: 
       behavior: 'smooth',
     });
   };
-
-  // Transform hits to tour objects for TourCard
-  const tours = limitedHits.map((hit: any) => ({
-    slug: hit.slug || hit.objectID,
-    title: hit.title || 'Untitled Tour',
-    image: hit.image || hit.images?.[0] || hit.primaryImage,
-    location: hit.location,
-    duration: hit.duration,
-    rating: hit.rating,
-    reviews: hit.reviews,
-    price: hit.discountPrice || hit.price,
-    isFeatured: hit.isFeatured,
-    discountPrice: hit.discountPrice,
-    originalPrice: hit.price,
-  }));
 
   return (
     <div>
@@ -173,7 +125,7 @@ function TourHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: 
             Tours
           </span>
           <span className="ms-auto text-[10px] md:text-xs font-medium text-gray-400 bg-gray-100/80 backdrop-blur-sm px-2 md:px-2.5 py-0.5 md:py-1 rounded-full">
-            {hits.length}
+            {tours.length}
           </span>
         </div>
       </div>
@@ -202,7 +154,7 @@ function TourHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: 
           >
             {tours.map((tour, idx) => (
               <a
-                key={limitedHits[idx].objectID}
+                key={tour.slug || tour._id || idx}
                 href={`/${tour.slug}`}
                 onClick={onHitClick}
                 target="_blank"
@@ -278,12 +230,14 @@ function TourHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: 
   );
 }
 
-function DestinationHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: number }) {
-  const { hits } = useHits();
-  const uniqueHits = getUniqueSearchHits(hits as any[], { requireTours: true });
-  const limitedHits = uniqueHits.slice(0, limit);
-
-  if (limitedHits.length === 0) return null;
+function DestinationHits({
+  destinations,
+  onHitClick,
+}: {
+  destinations: any[];
+  onHitClick?: () => void;
+}) {
+  if (destinations.length === 0) return null;
 
   return (
     <div>
@@ -296,14 +250,14 @@ function DestinationHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; l
             Destinations
           </span>
           <span className="ms-auto text-[10px] md:text-xs font-medium text-gray-400 bg-gray-100/80 backdrop-blur-sm px-2 md:px-2.5 py-0.5 md:py-1 rounded-full">
-            {uniqueHits.length}
+            {destinations.length}
           </span>
         </div>
       </div>
-      {limitedHits.map((hit: any, _index) => (
+      {destinations.map((hit: any, _index) => (
         <a
-          key={hit.objectID}
-          href={`/destinations/${hit.slug || hit.objectID}`}
+          key={hit.slug || hit._id || _index}
+          href={`/destinations/${hit.slug}`}
           onClick={onHitClick}
           className="block px-3 md:px-6 py-3 md:py-4 hover:bg-gradient-to-r hover:from-emerald-500/5 hover:via-teal-500/5 hover:to-transparent transition-all duration-300 border-b border-white/5 last:border-0 group relative overflow-hidden"
         >
@@ -334,12 +288,14 @@ function DestinationHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; l
   );
 }
 
-function CategoryHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: number }) {
-  const { hits } = useHits();
-  const uniqueHits = getUniqueSearchHits(hits as any[], { requireTours: true });
-  const limitedHits = uniqueHits.slice(0, limit);
-
-  if (limitedHits.length === 0) return null;
+function CategoryHits({
+  categories,
+  onHitClick,
+}: {
+  categories: any[];
+  onHitClick?: () => void;
+}) {
+  if (categories.length === 0) return null;
 
   return (
     <div>
@@ -352,14 +308,14 @@ function CategoryHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limi
             Categories
           </span>
           <span className="ms-auto text-[10px] md:text-xs font-medium text-gray-400 bg-gray-100/80 backdrop-blur-sm px-2 md:px-2.5 py-0.5 md:py-1 rounded-full">
-            {uniqueHits.length}
+            {categories.length}
           </span>
         </div>
       </div>
-      {limitedHits.map((hit: any, _index) => (
+      {categories.map((hit: any, _index) => (
         <a
-          key={hit.objectID}
-          href={`/categories/${hit.slug || hit.objectID}`}
+          key={hit.slug || hit._id || _index}
+          href={`/categories/${hit.slug}`}
           onClick={onHitClick}
           className="block px-3 md:px-6 py-3 md:py-4 hover:bg-gradient-to-r hover:from-purple-500/5 hover:via-fuchsia-500/5 hover:to-transparent transition-all duration-300 border-b border-white/5 last:border-0 group relative overflow-hidden"
         >
@@ -387,11 +343,14 @@ function CategoryHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limi
   );
 }
 
-function BlogHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: number }) {
-  const { hits } = useHits();
-  const limitedHits = hits.slice(0, limit);
-
-  if (limitedHits.length === 0) return null;
+function BlogHits({
+  blogs,
+  onHitClick,
+}: {
+  blogs: any[];
+  onHitClick?: () => void;
+}) {
+  if (blogs.length === 0) return null;
 
   return (
     <div>
@@ -404,14 +363,14 @@ function BlogHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: 
             Blog Posts
           </span>
           <span className="ms-auto text-[10px] md:text-xs font-medium text-gray-400 bg-gray-100/80 backdrop-blur-sm px-2 md:px-2.5 py-0.5 md:py-1 rounded-full">
-            {hits.length}
+            {blogs.length}
           </span>
         </div>
       </div>
-      {limitedHits.map((hit: any, _index) => (
+      {blogs.map((hit: any, _index) => (
         <a
-          key={hit.objectID}
-          href={`/blog/${hit.slug || hit.objectID}`}
+          key={hit.slug || hit._id || _index}
+          href={`/blog/${hit.slug}`}
           onClick={onHitClick}
           className="block px-3 md:px-6 py-3 md:py-4 hover:bg-gradient-to-r hover:from-amber-500/5 hover:via-orange-500/5 hover:to-transparent transition-all duration-300 border-b border-white/5 last:border-0 group relative overflow-hidden"
         >
@@ -616,16 +575,38 @@ const DestinationSlider = ({ destinations }: { destinations: any[] }) => {
 };
 
 export default function AISearchWidget() {
-  const { getSiteName } = useTenant();
+  const { tenantId, getSiteName } = useTenant();
   const [isExpanded, setIsExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [inputValue, setInputValue] = useState('');
   const [featuredTours, setFeaturedTours] = useState<any[]>([]);
-  const [algoliaError, _setAlgoliaError] = useState<string | null>(null);
+  const [searchCollections, setSearchCollections] = useState<{
+    tours: any[];
+    destinations: any[];
+    categories: any[];
+    blogs: any[];
+  }>({
+    tours: [],
+    destinations: [],
+    categories: [],
+    blogs: [],
+  });
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [chatMode, setChatMode] = useState(false);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const searchResults = useMemo(
+    () =>
+      getTenantSiteSearchResults({
+        query: searchQuery,
+        tours: searchCollections.tours,
+        destinations: searchCollections.destinations,
+        categories: searchCollections.categories,
+        blogs: searchCollections.blogs,
+      }),
+    [searchCollections, searchQuery]
+  );
 
   // Dynamic placeholder texts for AI
   const siteName = getSiteName();
@@ -727,39 +708,66 @@ export default function AISearchWidget() {
     }
   }, [isExpanded]);
 
-  // Fetch featured tours from Algolia
+  // Load tenant-scoped search data once for the widget.
   useEffect(() => {
-    const fetchFeaturedTours = async () => {
+    const controller = new AbortController();
+
+    const loadTenantSearchData = async () => {
       try {
-        const response = await searchClient.search([{
-          indexName: INDEX_TOURS,
-          params: {
-            query: '',
-            hitsPerPage: 3,
-            filters: 'isFeatured:true',
-          }
-        }]);
-        const firstResult = response.results[0] as SearchResponse<any>;
-        if (firstResult?.hits && firstResult.hits.length > 0) {
-          setFeaturedTours(firstResult.hits);
-        } else {
-          // Fallback: fetch any tours if no featured tours
-          const fallbackResponse = await searchClient.search([{
-            indexName: INDEX_TOURS,
-            params: {
-              query: '',
-              hitsPerPage: 3,
-            }
-          }]);
-          const fallbackResult = fallbackResponse.results[0] as SearchResponse<any>;
-          setFeaturedTours(fallbackResult?.hits || []);
+        setSearchError(null);
+
+        const tenantParam = encodeURIComponent(tenantId || 'default');
+        const [toursResponse, destinationsResponse, categoriesResponse] = await Promise.all([
+          fetch(`/api/tours/public?tenantId=${tenantParam}`, { signal: controller.signal }),
+          fetch(`/api/destinations?tenantId=${tenantParam}&featured=false`, { signal: controller.signal }),
+          fetch(`/api/categories?tenantId=${tenantParam}`, { signal: controller.signal }),
+        ]);
+
+        if (!toursResponse.ok || !destinationsResponse.ok || !categoriesResponse.ok) {
+          throw new Error('Failed to load tenant search data');
         }
+
+        const [toursJson, destinationsJson, categoriesJson] = await Promise.all([
+          toursResponse.json(),
+          destinationsResponse.json(),
+          categoriesResponse.json(),
+        ]);
+
+        const tours = Array.isArray(toursJson?.data)
+          ? toursJson.data.map((tour: any) => ({
+              ...tour,
+              reviews: tour.reviews ?? tour.reviewCount,
+              price: tour.discountPrice || tour.price,
+              originalPrice: tour.originalPrice || tour.price,
+            }))
+          : [];
+
+        const destinations = Array.isArray(destinationsJson?.data) ? destinationsJson.data : [];
+        const categories = Array.isArray(categoriesJson?.data) ? categoriesJson.data : [];
+
+        setSearchCollections({
+          tours,
+          destinations,
+          categories,
+          blogs: [],
+        });
+        setFeaturedTours(getTenantFeaturedTours(tours, 3));
       } catch (error) {
-        console.error('Error fetching featured tours:', error);
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        console.error('Error loading tenant search collections:', error);
+        setSearchError('Unable to load tenant search results right now.');
+        setSearchCollections({ tours: [], destinations: [], categories: [], blogs: [] });
+        setFeaturedTours([]);
       }
     };
-    fetchFeaturedTours();
-  }, []);
+
+    loadTenantSearchData();
+
+    return () => controller.abort();
+  }, [tenantId]);
 
   // Smart auto-scroll: only scroll if user is already near bottom
   const [isUserScrolling, setIsUserScrolling] = useState(false);
@@ -869,7 +877,7 @@ export default function AISearchWidget() {
     }
   };
 
-  // Parse tour information from text and fetch from Algolia (memoized)
+  // Parse tour information from AI text and match against tenant-local tours.
   const detectAndFetchTours = useCallback(async (text: string) => {
     try {
       // Enhanced patterns to match various tour formats
@@ -900,72 +908,32 @@ export default function AISearchWidget() {
       }
 
       if (potentialTours.size > 0) {
-        // Search Algolia for these tours - limit to first 4 mentioned tours
-        const toursArray = Array.from(potentialTours.entries()).slice(0, 4);
-        const searchPromises = toursArray.map(async ([tourTitle, _price]) => {
-          try {
-            // First try exact title match
-            let response = await searchClient.search([{
-              indexName: INDEX_TOURS,
-              params: {
-                query: tourTitle,
-                hitsPerPage: 1, // Only get 1 result per tour
-              }
-            }]);
-            let firstResult = response.results[0] as SearchResponse<any>;
+        const matches = findTenantToursByTitles(
+          Array.from(potentialTours.keys()).slice(0, 4),
+          searchCollections.tours,
+          4
+        );
 
-            // If no results, try with just keywords
-            if (!firstResult?.hits?.length) {
-              const keywords = tourTitle.split(/\s+/).filter(w => w.length > 3).slice(0, 4).join(' ');
-              response = await searchClient.search([{
-                indexName: INDEX_TOURS,
-                params: {
-                  query: keywords,
-                  hitsPerPage: 1, // Only get 1 result per tour
-                }
-              }]);
-              firstResult = response.results[0] as SearchResponse<any>;
-            }
-
-            return firstResult?.hits?.[0];
-          } catch (error) {
-            console.error('Error searching for tour:', tourTitle, error);
-            return null;
-          }
-        });
-
-        const tours = (await Promise.all(searchPromises)).filter(Boolean);
-        if (tours.length > 0) {
-          // Remove duplicates based on slug/objectID
-          const uniqueTours = tours.reduce((acc: any[], tour: any) => {
-            const tourId = tour.slug || tour.objectID;
-            if (!acc.find(t => (t.slug || t.objectID) === tourId)) {
-              acc.push(tour);
-            }
-            return acc;
-          }, []);
-
-          // Transform tours to ensure they have the right structure
-          const transformedTours = uniqueTours.map((tour: any) => ({
-            slug: tour.slug || tour.objectID,
+        if (matches.length > 0) {
+          return matches.map((tour: any) => ({
+            slug: tour.slug,
             title: tour.title || 'Untitled Tour',
             image: tour.image || tour.images?.[0] || tour.primaryImage,
             location: tour.location,
             duration: tour.duration,
             rating: tour.rating,
-            reviews: tour.reviews,
+            reviews: tour.reviews ?? tour.reviewCount,
             price: tour.discountPrice || tour.price,
           }));
-          return transformedTours;
         }
       }
     } catch (error) {
       console.error('Error detecting tours:', error);
     }
     return [];
-  }, []); // No dependencies - function is stable
+  }, [searchCollections.tours]);
 
-  // Parse destination information from text and fetch from Algolia (memoized)
+  // Parse destination information from AI text and match against tenant-local destinations.
   const detectAndFetchDestinations = useCallback(async (text: string) => {
     try {
       // Pattern to match destinations mentioned in the response
@@ -991,45 +959,28 @@ export default function AISearchWidget() {
       }
 
       if (destinationNames.size > 0) {
-        // Search Algolia for these destinations
-        const destsArray = Array.from(destinationNames.keys()).slice(0, 4);
-        const searchPromises = destsArray.map(async (destName) => {
-          try {
-            const response = await searchClient.search([{
-              indexName: INDEX_DESTINATIONS,
-              params: {
-                query: destName,
-                hitsPerPage: 1,
-              }
-            }]);
-            const firstResult = response.results[0] as SearchResponse<any>;
-            return firstResult?.hits?.[0];
-          } catch (error) {
-            console.error('Error searching for destination:', destName, error);
-            return null;
-          }
-        });
+        const matches = findTenantDestinationsByNames(
+          Array.from(destinationNames.keys()).slice(0, 4),
+          searchCollections.destinations,
+          4
+        );
 
-        const destinations = getUniqueSearchHits((await Promise.all(searchPromises)).filter(Boolean) as any[], {
-          requireTours: true,
-        });
-        if (destinations.length > 0) {
-          const transformedDestinations = destinations.map((dest: any) => ({
-            slug: dest.slug || dest.objectID,
+        if (matches.length > 0) {
+          return matches.map((dest: any) => ({
+            slug: dest.slug,
             name: dest.name || 'Untitled Destination',
             image: dest.image || dest.images?.[0] || dest.primaryImage,
             description: dest.description,
             tourCount: dest.tourCount || 0,
             isFeatured: dest.isFeatured,
           }));
-          return transformedDestinations;
         }
       }
     } catch (error) {
       console.error('Error detecting destinations:', error);
     }
     return [];
-  }, []); // No dependencies - function is stable
+  }, [searchCollections.destinations]);
 
   // Render tool outputs (tours)
   const renderToolOutput = useCallback((obj: any) => {
@@ -1581,7 +1532,7 @@ export default function AISearchWidget() {
                             </motion.div>
                           )}
                         </div>
-                      ) : algoliaError ? (
+                      ) : searchError ? (
                         <div className="p-16 text-center">
                           <motion.div
                             initial={{ scale: 0.8, opacity: 0 }}
@@ -1592,35 +1543,34 @@ export default function AISearchWidget() {
                             <AlertCircle className="w-10 h-10 text-red-500" strokeWidth={2.5} />
                           </motion.div>
                           <p className="text-sm font-semibold text-red-600 mb-2">Search Error</p>
-                          <p className="text-xs text-gray-500 max-w-xs mx-auto leading-relaxed">{algoliaError}</p>
+                          <p className="text-xs text-gray-500 max-w-xs mx-auto leading-relaxed">{searchError}</p>
                         </div>
                       ) : searchQuery ? (
-                        <InstantSearch searchClient={searchClient} indexName={INDEX_TOURS}>
-                          <CustomSearchBox
-                            searchQuery={searchQuery}
-                            onSearchChange={setSearchQuery}
-                          />
-
-                          <Index indexName={INDEX_TOURS}>
-                            <Configure hitsPerPage={5} />
-                            <TourHits onHitClick={handleCloseSearch} limit={5} />
-                          </Index>
-
-                          <Index indexName={INDEX_DESTINATIONS}>
-                            <Configure hitsPerPage={5} />
-                            <DestinationHits onHitClick={handleCloseSearch} limit={5} />
-                          </Index>
-
-                          <Index indexName={INDEX_CATEGORIES}>
-                            <Configure hitsPerPage={5} />
-                            <CategoryHits onHitClick={handleCloseSearch} limit={5} />
-                          </Index>
-
-                          <Index indexName={INDEX_BLOGS}>
-                            <Configure hitsPerPage={5} />
-                            <BlogHits onHitClick={handleCloseSearch} limit={5} />
-                          </Index>
-                        </InstantSearch>
+                        <>
+                          <TourHits tours={searchResults.tours} onHitClick={handleCloseSearch} />
+                          <DestinationHits destinations={searchResults.destinations} onHitClick={handleCloseSearch} />
+                          <CategoryHits categories={searchResults.categories} onHitClick={handleCloseSearch} />
+                          <BlogHits blogs={searchResults.blogs} onHitClick={handleCloseSearch} />
+                          {searchResults.tours.length === 0 &&
+                            searchResults.destinations.length === 0 &&
+                            searchResults.categories.length === 0 &&
+                            searchResults.blogs.length === 0 && (
+                              <div className="p-16 text-center">
+                                <motion.div
+                                  initial={{ scale: 0.8, opacity: 0 }}
+                                  animate={{ scale: 1, opacity: 1 }}
+                                  transition={{ duration: 0.3 }}
+                                  className="inline-flex items-center justify-center w-20 h-20 rounded-[22px] bg-gradient-to-br from-slate-50 to-slate-100 mb-5 shadow-lg shadow-slate-500/10"
+                                >
+                                  <Search className="w-10 h-10 text-slate-400" strokeWidth={2.5} />
+                                </motion.div>
+                                <p className="text-sm font-semibold text-slate-700 mb-2">No tenant-specific results</p>
+                                <p className="text-xs text-gray-500 max-w-xs mx-auto leading-relaxed">
+                                  Try another search related to this destination or tenant site.
+                                </p>
+                              </div>
+                            )}
+                        </>
                       ) : (
                         <div>
                           {featuredTours.length > 0 ? (
@@ -1850,12 +1800,12 @@ export default function AISearchWidget() {
                       }}
                       placeholder={chatMode ? 'Ask anything about Egypt, tours, prices…' : placeholderTexts[placeholderIndex]}
                       className={`ai-search-input w-full ps-14 md:ps-16 pe-24 md:pe-28 py-3.5 md:py-4 text-sm md:text-[15px] font-semibold ${
-                        isExpanded ? 'text-gray-900 placeholder:text-gray-400' : 'text-white placeholder:text-white/75'
+                        isExpanded ? 'text-gray-900 placeholder:text-gray-400' : 'text-slate-900 placeholder:text-slate-400'
                       } bg-transparent outline-none cursor-text relative z-10 rounded-full tracking-tight`}
                       style={{
-                        color: isExpanded ? '#111827' : '#ffffff',
-                        WebkitTextFillColor: isExpanded ? '#111827' : '#ffffff',
-                        caretColor: isExpanded ? '#111827' : '#ffffff',
+                        color: '#111827',
+                        WebkitTextFillColor: '#111827',
+                        caretColor: '#111827',
                       }}
                     />
 

@@ -49,6 +49,11 @@ import { DefaultChatTransport } from 'ai';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
+import {
+  hasTenantScopedNavigationContent,
+  tenantMegaMenuCategories,
+  tenantMegaMenuDestinations,
+} from '@/lib/tenantNavigation';
 import 'instantsearch.css/themes/satellite.css';
 import { isRTL } from '@/i18n/config';
 
@@ -989,51 +994,6 @@ const TourResultSkeleton = () => (
 
 // SearchModal removed - now using MobileInlineSearch for mobile devices
 
-// =================================================================
-// Tenant-specific mega menu destinations
-const tenantMegaMenuDestinations: Record<string, { name: string; slug: string; image: string; country: string }[]> = {
-  'hurghada-speedboat': [
-    { name: 'Giftun Island', slug: 'giftun-island', image: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400&q=80', country: 'Red Sea' },
-    { name: 'Orange Bay', slug: 'orange-bay', image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400&q=80', country: 'Red Sea' },
-    { name: 'Mahmya Island', slug: 'mahmya-island', image: 'https://images.unsplash.com/photo-1559827291-72ee739d0d9a?w=400&q=80', country: 'Red Sea' },
-    { name: 'Paradise Island', slug: 'paradise-island', image: 'https://images.unsplash.com/photo-1682687220742-aba13b6e50ba?w=400&q=80', country: 'Red Sea' },
-    { name: 'Dolphin House', slug: 'dolphin-house', image: 'https://images.unsplash.com/photo-1568430462989-44163eb1752f?w=400&q=80', country: 'Red Sea' },
-    { name: 'Hurghada Marina', slug: 'hurghada-marina', image: 'https://images.unsplash.com/photo-1540541338287-41700207dee6?w=400&q=80', country: 'Red Sea' },
-  ],
-  'sharm-excursions-online': [
-    { name: 'Ras Mohammed', slug: 'ras-mohammed', image: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400&q=80', country: 'Red Sea' },
-    { name: 'Tiran Island', slug: 'tiran-island', image: 'https://images.unsplash.com/photo-1559827291-72ee739d0d9a?w=400&q=80', country: 'Red Sea' },
-    { name: 'Blue Hole Dahab', slug: 'blue-hole', image: 'https://images.unsplash.com/photo-1682407186023-12c70a4a35e0?w=400&q=80', country: 'Sinai' },
-    { name: 'Naama Bay', slug: 'naama-bay', image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400&q=80', country: 'Red Sea' },
-    { name: 'White Island', slug: 'white-island', image: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400&q=80', country: 'Red Sea' },
-    { name: 'Colored Canyon', slug: 'colored-canyon', image: 'https://images.unsplash.com/photo-1682687220742-aba13b6e50ba?w=400&q=80', country: 'Sinai' },
-  ],
-};
-
-// Tenant-specific mega menu categories/activities
-const tenantMegaMenuCategories: Record<string, { name: string; slug: string; icon: string }[]> = {
-  'hurghada-speedboat': [
-    { name: 'Speedboat Tours', slug: 'speedboat-tours', icon: 'boat' },
-    { name: 'Island Hopping', slug: 'island-hopping', icon: 'island' },
-    { name: 'Snorkeling Trips', slug: 'snorkeling', icon: 'snorkel' },
-    { name: 'Dolphin Watching', slug: 'dolphin-watching', icon: 'dolphin' },
-    { name: 'Sunset Cruises', slug: 'sunset-cruises', icon: 'sunset' },
-    { name: 'Glass Bottom Boat', slug: 'glass-bottom-boat', icon: 'boat' },
-    { name: 'Fishing Trips', slug: 'fishing', icon: 'fish' },
-    { name: 'Private Charters', slug: 'private-charters', icon: 'yacht' },
-  ],
-  'sharm-excursions-online': [
-    { name: 'Diving Tours', slug: 'diving', icon: 'dive' },
-    { name: 'Snorkeling', slug: 'snorkeling', icon: 'snorkel' },
-    { name: 'Desert Safari', slug: 'desert-safari', icon: 'desert' },
-    { name: 'Quad Biking', slug: 'quad-biking', icon: 'quad' },
-    { name: 'Boat Trips', slug: 'boat-trips', icon: 'boat' },
-    { name: 'Camel Riding', slug: 'camel-riding', icon: 'camel' },
-    { name: 'Day Trips', slug: 'day-trips', icon: 'trip' },
-    { name: 'Water Sports', slug: 'water-sports', icon: 'water' },
-  ],
-};
-
 // --- MEGA MENU ---
 // =================================================================
 const MegaMenu: FC<{ isOpen: boolean; onClose: () => void; destinations: Destination[]; categories: Category[]; tenantId?: string }> = React.memo(({ isOpen, onClose, destinations, categories, tenantId }) => {
@@ -1046,12 +1006,12 @@ const MegaMenu: FC<{ isOpen: boolean; onClose: () => void; destinations: Destina
   const tenantCategories = tenantId ? tenantMegaMenuCategories[tenantId] : null;
   
   // Check if destinations are tenant-specific or from default
-  const hasTenantSpecificDest = destinations.some((d: any) => d.tenantId === tenantId);
+  const hasTenantSpecificDest = hasTenantScopedNavigationContent(destinations as any, tenantId);
   const effectiveDestinations = (hasTenantSpecificDest || !tenantDestinations) 
     ? destinations 
     : tenantDestinations.map((d, i) => ({ ...d, _id: `tenant-dest-${i}` }));
   
-  const hasTenantSpecificCat = categories.some((c: any) => c.tenantId === tenantId);
+  const hasTenantSpecificCat = hasTenantScopedNavigationContent(categories as any, tenantId);
   const effectiveCategories = (hasTenantSpecificCat || !tenantCategories)
     ? categories
     : tenantCategories.map((c, i) => ({ ...c, _id: `tenant-cat-${i}` }));
@@ -1239,12 +1199,12 @@ const MobileMenu: FC<{
   const tenantDestinations = tenantId ? tenantMegaMenuDestinations[tenantId] : null;
   const tenantCategories = tenantId ? tenantMegaMenuCategories[tenantId] : null;
   
-  const hasTenantSpecificDest = destinations.some((d: any) => d.tenantId === tenantId);
+  const hasTenantSpecificDest = hasTenantScopedNavigationContent(destinations as any, tenantId);
   const effectiveDestinations = (hasTenantSpecificDest || !tenantDestinations) 
     ? destinations 
     : tenantDestinations.map((d, i) => ({ ...d, _id: `tenant-dest-${i}` }));
   
-  const hasTenantSpecificCat = categories.some((c: any) => c.tenantId === tenantId);
+  const hasTenantSpecificCat = hasTenantScopedNavigationContent(categories as any, tenantId);
   const effectiveCategories = (hasTenantSpecificCat || !tenantCategories)
     ? categories
     : tenantCategories.map((c, i) => ({ ...c, _id: `tenant-cat-${i}` }));
@@ -1423,6 +1383,7 @@ export default function Header({
   const [destinations, setDestinations] = useState<Destination[]>(initialDestinations || []);
   const [categories, setCategories] = useState<Category[]>(initialCategories || []);
   const t = useTranslations();
+  const locale = useLocale();
   const { tenant, getLogo, getSiteName } = useTenant();
 
   useEffect(() => {
@@ -1431,10 +1392,10 @@ export default function Header({
 
     const fetchNavData = async () => {
       try {
-        // API routes now automatically detect tenant from request headers/cookies
+        const tenantId = tenant?.tenantId || 'default';
         const [destRes, catRes] = await Promise.all([
-          fetch('/api/destinations'),
-          fetch('/api/categories?featured=true')
+          fetch(`/api/destinations?tenantId=${encodeURIComponent(tenantId)}&locale=${encodeURIComponent(locale)}`),
+          fetch(`/api/categories?featured=true&tenantId=${encodeURIComponent(tenantId)}&locale=${encodeURIComponent(locale)}`)
         ]);
         const destData = await destRes.json();
         const catData = await catRes.json();
@@ -1445,7 +1406,7 @@ export default function Header({
       }
     };
     fetchNavData();
-  }, [initialDestinations, initialCategories, tenant?.tenantId]); // Re-fetch when tenant changes
+  }, [initialDestinations, initialCategories, tenant?.tenantId, locale]); // Re-fetch when tenant or locale changes
 
   const { openCart, totalItems } = useCart();
   const { user, logout } = useAuth();

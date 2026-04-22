@@ -83,13 +83,29 @@ function buildBaseMatch(params: {
 function buildTenantStage(
   effectiveTenantId: string | undefined
 ): Record<string, unknown>[] {
-  if (!effectiveTenantId) return [];
+  if (!effectiveTenantId) {
+    return [
+      {
+        $match: {
+          $expr: {
+            $or: [
+              { $eq: ['$tour.tenantId', '$tenantId'] },
+              {
+                $in: ['$tenantId', { $ifNull: ['$tour.tenantIds', []] }],
+              },
+            ],
+          },
+        },
+      },
+    ];
+  }
+
   return [
     {
       $match: {
         $or: [
-          { tenantId: effectiveTenantId },
           { 'tour.tenantId': effectiveTenantId },
+          { 'tour.tenantIds': effectiveTenantId },
         ],
       },
     },
@@ -146,30 +162,50 @@ describe('Admin Bookings API — filter logic', () => {
   // Tenant pipeline stage
   // ============================
   describe('buildTenantStage', () => {
-    it('returns empty array when no tenant is selected (all brands)', () => {
+    it('returns a booking-to-tour tenant match stage when no tenant is selected (all brands)', () => {
       const stages = buildTenantStage(undefined);
-      expect(stages).toEqual([]);
-    });
-
-    it('returns $match with $or for a specific tenant', () => {
-      const stages = buildTenantStage('hurghada-speedboat');
-      expect(stages).toHaveLength(1);
-      expect(stages[0]).toEqual({
-        $match: {
-          $or: [
-            { tenantId: 'hurghada-speedboat' },
-            { 'tour.tenantId': 'hurghada-speedboat' },
-          ],
+      expect(stages).toEqual([
+        {
+          $match: {
+            $expr: {
+              $or: [
+                { $eq: ['$tour.tenantId', '$tenantId'] },
+                {
+                  $in: ['$tenantId', { $ifNull: ['$tour.tenantIds', []] }],
+                },
+              ],
+            },
+          },
         },
-      });
+      ]);
     });
 
-    it('works for "default" tenant', () => {
+    it('returns a joined-tour tenant scope stage for a specific tenant', () => {
+      const stages = buildTenantStage('hurghada-speedboat');
+      expect(stages).toEqual([
+        {
+          $match: {
+            $or: [
+              { 'tour.tenantId': 'hurghada-speedboat' },
+              { 'tour.tenantIds': 'hurghada-speedboat' },
+            ],
+          },
+        },
+      ]);
+    });
+
+    it('uses the selected tenant value verbatim, including "default"', () => {
       const stages = buildTenantStage('default');
-      expect(stages).toHaveLength(1);
-      const orClauses = (stages[0] as any).$match.$or;
-      expect(orClauses).toContainEqual({ tenantId: 'default' });
-      expect(orClauses).toContainEqual({ 'tour.tenantId': 'default' });
+      expect(stages).toEqual([
+        {
+          $match: {
+            $or: [
+              { 'tour.tenantId': 'default' },
+              { 'tour.tenantIds': 'default' },
+            ],
+          },
+        },
+      ]);
     });
   });
 
@@ -479,14 +515,26 @@ describe('Admin Bookings API — filter logic', () => {
         { $unwind: '$user' },
       ];
 
-      // No tenant $match stage when "all" is selected
+      // One tenant integrity stage when "all" is selected
       const matchStages = pipeline.filter(
-        (s: any) => s.$match && s.$match.$or
+        (s: any) => s.$match && (s.$match.$or || s.$match.$expr)
       );
-      expect(matchStages).toHaveLength(0);
+      expect(matchStages).toHaveLength(1);
+      expect(matchStages[0]).toEqual({
+        $match: {
+          $expr: {
+            $or: [
+              { $eq: ['$tour.tenantId', '$tenantId'] },
+              {
+                $in: ['$tenantId', { $ifNull: ['$tour.tenantIds', []] }],
+              },
+            ],
+          },
+        },
+      });
     });
 
-    it('injects tenant stage when a brand is selected', () => {
+    it('injects a joined-tour tenant stage when a brand is selected', () => {
       const tenantStages = buildTenantStage('cairo-excursions-online');
 
       const pipeline = [
@@ -501,9 +549,14 @@ describe('Admin Bookings API — filter logic', () => {
         (s: any) => s.$match && s.$match.$or
       );
       expect(matchStages).toHaveLength(1);
-      expect((matchStages[0] as any).$match.$or[0].tenantId).toBe(
-        'cairo-excursions-online'
-      );
+      expect(matchStages[0]).toEqual({
+        $match: {
+          $or: [
+            { 'tour.tenantId': 'cairo-excursions-online' },
+            { 'tour.tenantIds': 'cairo-excursions-online' },
+          ],
+        },
+      });
     });
   });
 });

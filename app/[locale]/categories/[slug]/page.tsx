@@ -4,9 +4,13 @@ import dbConnect from '@/lib/dbConnect';
 import TourModel from '@/lib/models/Tour';
 import CategoryModel from '@/lib/models/Category';
 import CategoryPageClient from './CategoryPageClient';
-import { getTenantFromRequest, getTenantConfig, buildTenantQuery } from '@/lib/tenant';
+import {
+  buildStrictTenantQuery,
+  getTenantFromRequest,
+  getTenantConfig,
+} from '@/lib/tenant';
 import { getLocale } from 'next-intl/server';
-import { localizeTour } from '@/lib/translation/getLocalizedField';
+import { localizeAndDedupeTours } from '@/lib/translation/localizeTourCollection';
 import { localizeEntityFields } from '@/lib/i18n/contentLocalization';
 import { categoryTranslationFields } from '@/lib/i18n/translationFields';
 import CollectionSchema from '@/components/schema/CollectionSchema';
@@ -25,10 +29,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     
     await dbConnect();
     
-    // Smart tenant detection for metadata
-    const ownCatCount = await CategoryModel.countDocuments({ tenantId });
-    const metaCatQuery = ownCatCount > 0 ? { slug, tenantId } : { slug };
-    const category = await CategoryModel.findOne(metaCatQuery)
+    const category = await CategoryModel.findOne(buildStrictTenantQuery({ slug }, tenantId))
       .select('name description heroImage metaTitle metaDescription keywords')
       .lean() as any;
 
@@ -62,24 +63,16 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 async function getPageData(slug: string, tenantId: string) {
   await dbConnect();
 
-  // Smart tenant detection: check if tenant has own categories
-  const ownCatCount = await CategoryModel.countDocuments({ tenantId });
-  const categoryQuery = ownCatCount > 0
-    ? { slug, tenantId }
-    : { slug };
-
-  const category = await CategoryModel.findOne(categoryQuery).lean() as any;
+  const category = await CategoryModel.findOne(buildStrictTenantQuery({ slug }, tenantId)).lean() as any;
   if (!category) {
     return { category: null, categoryTours: [] };
   }
 
-  // Smart tenant detection for tours
-  const ownTourCount = await TourModel.countDocuments({ tenantId });
-  const tourQuery = ownTourCount > 0
-    ? { category: { $in: [category._id] }, isPublished: true, tenantId }
-    : buildTenantQuery({ category: { $in: [category._id] }, isPublished: true }, tenantId);
-
-  const categoryTours = await TourModel.find(tourQuery).populate('destination').lean();
+  const categoryTours = await TourModel.find(
+    buildStrictTenantQuery({ category: { $in: [category._id] }, isPublished: true }, tenantId)
+  )
+    .populate('destination')
+    .lean();
   
   const serializedCategory = JSON.parse(JSON.stringify(category));
   const serializedTours = JSON.parse(JSON.stringify(categoryTours));
@@ -101,7 +94,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
   }
 
   // Apply translations for the current locale
-  const localizedTours = categoryTours.map((t: any) => localizeTour(t, locale));
+  const localizedTours = localizeAndDedupeTours(categoryTours as any[], locale);
   const catFields = categoryTranslationFields.map(f => f.key);
   const localizedCategory = localizeEntityFields(category, locale, catFields);
 

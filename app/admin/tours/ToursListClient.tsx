@@ -64,7 +64,13 @@ function Badge({ children, className = '', icon: Icon }: {
 
 type TabFilter = 'all' | 'published' | 'draft' | 'featured';
 
-export function ToursListClient({ tours }: { tours: TourType[] }) {
+export function ToursListClient({
+  tours,
+  countExplanation,
+}: {
+  tours: TourType[];
+  countExplanation?: string;
+}) {
   const { selectedCurrency } = useSettings();
   const CurrencyIcon = selectedCurrency.code === 'USD' ? DollarSign : Euro;
   const router = useRouter();
@@ -188,6 +194,11 @@ export function ToursListClient({ tours }: { tours: TourType[] }) {
     <div className="space-y-8">
       {/* Tabs Section */}
       <div className="bg-gradient-to-br from-white to-slate-50 backdrop-blur-sm border border-slate-200/60 rounded-2xl shadow-xl shadow-slate-200/40 p-6">
+        {countExplanation && (
+          <div className="mb-4 rounded-xl border border-indigo-100 bg-indigo-50/70 px-4 py-3 text-sm text-indigo-900">
+            {countExplanation}
+          </div>
+        )}
         <div className="flex items-center gap-2 overflow-x-auto pb-2">
           {tabs.map((tab) => {
             const Icon = tab.icon;

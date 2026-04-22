@@ -3,8 +3,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Destination from '@/lib/models/Destination';
 import Tour from '@/lib/models/Tour';
-import { buildTenantQuery, getTenantFromRequest } from '@/lib/tenant';
+import { buildStrictTenantQuery, getTenantFromRequest } from '@/lib/tenant';
 import { filterVisibleTaxonomyEntries } from '@/lib/utils/taxonomy';
+import { localizeEntityFields } from '@/lib/i18n/contentLocalization';
+import { destinationTranslationFields } from '@/lib/i18n/translationFields';
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,15 +17,12 @@ export async function GET(request: NextRequest) {
         ? explicitTenantId
         : await getTenantFromRequest();
     const featuredOnly = searchParams.get('featured') !== 'false';
+    const locale = searchParams.get('locale') || 'en';
 
     await dbConnect(tenantId);
 
-    const destinationQuery = buildTenantQuery({ isPublished: true }, tenantId, {
-      includeDefault: tenantId !== 'default',
-    });
-    const tourQuery = buildTenantQuery({ isPublished: true }, tenantId, {
-      includeDefault: tenantId !== 'default',
-    });
+    const destinationQuery = buildStrictTenantQuery({ isPublished: true }, tenantId);
+    const tourQuery = buildStrictTenantQuery({ isPublished: true }, tenantId);
 
     const destinations = await Destination.find({
       ...destinationQuery,
@@ -46,11 +45,19 @@ export async function GET(request: NextRequest) {
       }
     });
 
+    const destFields = destinationTranslationFields.map((field) => field.key);
+
     // Add tour counts to destinations
-    const destinationsWithCountsData = destinations.map(dest => ({
-      ...dest,
-      tourCount: tourCounts[(dest._id as any).toString()] || 0,
-    }));
+    const destinationsWithCountsData = destinations.map(dest =>
+      localizeEntityFields(
+        {
+          ...dest,
+          tourCount: tourCounts[(dest._id as any).toString()] || 0,
+        },
+        locale,
+        destFields
+      )
+    );
 
     const destinationsWithCounts = filterVisibleTaxonomyEntries(destinationsWithCountsData)
       .filter(dest => (dest.tourCount || 0) > 0 || (dest as any).featured)

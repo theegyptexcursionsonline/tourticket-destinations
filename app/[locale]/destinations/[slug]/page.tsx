@@ -6,9 +6,13 @@ import TourModel from '@/lib/models/Tour';
 import CategoryModel from '@/lib/models/Category';
 import ReviewModel from '@/lib/models/Review';
 import DestinationPageClient from './DestinationPageClient';
-import { getTenantFromRequest, getTenantPublicConfig } from '@/lib/tenant';
+import {
+  buildStrictTenantQuery,
+  getTenantFromRequest,
+  getTenantPublicConfig,
+} from '@/lib/tenant';
 import { getLocale } from 'next-intl/server';
-import { localizeTour } from '@/lib/translation/getLocalizedField';
+import { localizeAndDedupeTours } from '@/lib/translation/localizeTourCollection';
 import { localizeEntityFields } from '@/lib/i18n/contentLocalization';
 import { destinationTranslationFields, categoryTranslationFields } from '@/lib/i18n/translationFields';
 import DestinationSchema from '@/components/schema/DestinationSchema';
@@ -27,14 +31,10 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     
     await dbConnect();
     
-    // OPTIMIZED: Single query with $or for tenant fallback
-    const tenantFilter = tenantId !== 'default' 
-      ? { $or: [{ tenantId }, { tenantId: 'default' }] }
-      : { tenantId: 'default' };
-    
-    const destination = await DestinationModel.findOne({ slug, ...tenantFilter })
+    const destination = await DestinationModel.findOne(
+      buildStrictTenantQuery({ slug }, tenantId)
+    )
       .select('name description image country')
-      .sort({ tenantId: tenantId !== 'default' ? -1 : 1 })
       .lean() as any;
 
     if (!destination) {
@@ -72,15 +72,9 @@ async function getPageData(slug: string, tenantId: string) {
   try {
     await dbConnect();
 
-    const tenantFilter = tenantId !== 'default' 
-      ? { $or: [{ tenantId }, { tenantId: 'default' }] }
-      : { tenantId: 'default' };
-    
-    const destination = await DestinationModel.findOne({ 
-      slug, 
-      ...tenantFilter 
-    })
-      .sort({ tenantId: tenantId !== 'default' ? -1 : 1 })
+    const destination = await DestinationModel.findOne(
+      buildStrictTenantQuery({ slug }, tenantId)
+    )
       .lean() as any;
   
     if (!destination) {
@@ -96,17 +90,19 @@ async function getPageData(slug: string, tenantId: string) {
     // Run all queries in parallel
     const [destinationTours, allCategories, relatedDestinationsRaw] = await Promise.all([
       TourModel.find({
-        destination: destination._id,
-        isPublished: true,
-        tenantId
+        ...buildStrictTenantQuery({
+          destination: destination._id,
+          isPublished: true,
+        }, tenantId),
       }).lean(),
       
-      CategoryModel.find({ tenantId }).limit(20).lean(),
+      CategoryModel.find(buildStrictTenantQuery({}, tenantId)).limit(20).lean(),
       
       DestinationModel.find({
-        _id: { $ne: destination._id },
-        tenantId,
-        $or: [{ country: destination.country }, { featured: true }]
+        $and: [
+          buildStrictTenantQuery({ _id: { $ne: destination._id } }, tenantId),
+          { $or: [{ country: destination.country }, { featured: true }] },
+        ],
       }).limit(4).lean()
     ]);
 
@@ -154,7 +150,7 @@ export default async function DestinationPage({ params }: { params: Promise<{ sl
     }
 
     // Apply translations for the current locale
-    const localizedTours = destinationTours.map((t: any) => localizeTour(t, locale));
+    const localizedTours = localizeAndDedupeTours(destinationTours as any[], locale);
     const destFields = destinationTranslationFields.map(f => f.key);
     const catFields = categoryTranslationFields.map(f => f.key);
     const localizedDestination = localizeEntityFields(destination, locale, destFields);

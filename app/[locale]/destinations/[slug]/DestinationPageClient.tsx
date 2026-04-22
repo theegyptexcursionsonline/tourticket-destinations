@@ -20,7 +20,6 @@ import { useLocale } from 'next-intl';
 import { isRTL } from '@/i18n/config';
 import BookingSidebar from '@/components/BookingSidebar';
 import { liteClient as algoliasearch } from 'algoliasearch/lite';
-import { InstantSearch, Index, useSearchBox, useHits, Configure } from 'react-instantsearch';
 import { motion, AnimatePresence } from 'framer-motion';
 import 'instantsearch.css/themes/satellite.css';
 import { useChat } from '@ai-sdk/react';
@@ -28,6 +27,11 @@ import { DefaultChatTransport } from 'ai';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
+import {
+  getDestinationCategories,
+  getDestinationPageSearchResults,
+  getDestinationTrendingSearches,
+} from '@/lib/destinationPageSearch';
 
 interface DestinationPageClientProps {
   destination: Destination;
@@ -626,39 +630,16 @@ const DestinationSlider = ({ destinations }: { destinations: any[] }) => {
   );
 };
 
-// Custom SearchBox component
-function CustomSearchBox({ searchQuery }: { searchQuery: string; onSearchChange: (value: string) => void }) {
-  const { refine } = useSearchBox();
-
-  useEffect(() => {
-    refine(searchQuery);
-  }, [searchQuery, refine]);
-
-  return null;
-}
-
-// Custom Hits component for Tours
-function TourHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: number }) {
+function TourSearchResults({
+  tours,
+  onHitClick,
+}: {
+  tours: any[];
+  onHitClick?: () => void;
+}) {
   const { copy } = useDestinationPageLocale();
-  const { hits } = useHits();
-  const limitedHits = hits.slice(0, limit);
 
-  if (limitedHits.length === 0) return null;
-
-  // Transform hits to tour objects
-  const tours = limitedHits.map((hit: any) => ({
-    slug: hit.slug || hit.objectID,
-    title: hit.title || copy.untitledTour,
-    image: hit.image || hit.images?.[0] || hit.primaryImage,
-    location: hit.location,
-    duration: hit.duration,
-    rating: hit.rating,
-    reviews: hit.reviews,
-    price: hit.discountPrice || hit.price,
-    isFeatured: hit.isFeatured,
-    discountPrice: hit.discountPrice,
-    originalPrice: hit.price,
-  }));
+  if (tours.length === 0) return null;
 
   return (
     <div>
@@ -671,7 +652,7 @@ function TourHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: 
             {copy.tours}
           </span>
           <span className="ms-auto text-[10px] md:text-xs font-medium text-gray-400 bg-gray-100/80 backdrop-blur-sm px-2 md:px-2.5 py-0.5 md:py-1 rounded-full">
-            {hits.length}
+            {tours.length}
           </span>
         </div>
       </div>
@@ -683,12 +664,21 @@ function TourHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: 
   );
 }
 
-function DestinationHits({ onHitClick, limit = 3 }: { onHitClick?: () => void; limit?: number }) {
+function DestinationSearchResults({
+  destinations,
+  onHitClick,
+}: {
+  destinations: Array<{
+    _id?: string;
+    slug: string;
+    name: string;
+    country?: string;
+    tourCount?: number;
+  }>;
+  onHitClick?: () => void;
+}) {
   const { copy } = useDestinationPageLocale();
-  const { hits } = useHits();
-  const limitedHits = hits.slice(0, limit);
-
-  if (limitedHits.length === 0) return null;
+  if (destinations.length === 0) return null;
 
   return (
     <div>
@@ -701,15 +691,15 @@ function DestinationHits({ onHitClick, limit = 3 }: { onHitClick?: () => void; l
             {copy.destinations}
           </span>
           <span className="ms-auto text-[10px] md:text-xs font-medium text-gray-400 bg-gray-100/80 backdrop-blur-sm px-2 md:px-2.5 py-0.5 md:py-1 rounded-full">
-            {hits.length}
+            {destinations.length}
           </span>
         </div>
       </div>
-      {limitedHits.map((hit: any) => (
-        <a
-          key={hit.objectID}
-          href={`/destinations/${hit.slug || hit.objectID}`}
-                onClick={onHitClick}
+      {destinations.map((item) => (
+        <Link
+          key={item.slug || item._id}
+          href={`/destinations/${item.slug}`}
+          onClick={onHitClick}
           className="block px-4 md:px-6 py-3 md:py-4 hover:bg-gradient-to-r hover:from-emerald-500/5 hover:via-teal-500/5 hover:to-transparent transition-all duration-300 border-b border-white/5 last:border-0 group relative overflow-hidden"
         >
           <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 via-teal-500/0 to-cyan-500/0 group-hover:from-emerald-500/5 group-hover:via-teal-500/5 group-hover:to-cyan-500/5 transition-all duration-500" />
@@ -719,34 +709,37 @@ function DestinationHits({ onHitClick, limit = 3 }: { onHitClick?: () => void; l
                       </div>
             <div className="flex-1 min-w-0">
               <div className="font-semibold text-gray-900 text-sm md:text-[15px] leading-snug mb-1 md:mb-1.5 truncate group-hover:text-emerald-600 transition-colors duration-300">
-                {hit.name || copy.untitledDestination}
+                {item.name || copy.untitledDestination}
                       </div>
               <div className="text-[10px] md:text-xs text-gray-500 flex items-center gap-1.5 md:gap-2.5 flex-wrap">
-                {hit.country && (
+                {item.country && (
                   <span className="bg-gray-50/80 backdrop-blur-sm px-1.5 md:px-2.5 py-0.5 md:py-1 rounded-md md:rounded-lg font-medium">
-                    {hit.country}
+                    {item.country}
                   </span>
                 )}
-                {hit.tourCount && (
+                {item.tourCount && (
                   <span className="bg-emerald-50/80 backdrop-blur-sm px-1.5 md:px-2.5 py-0.5 md:py-1 rounded-md md:rounded-lg font-medium text-emerald-700">
-                    {copy.toursCount(hit.tourCount)}
+                    {copy.toursCount(item.tourCount)}
                   </span>
                     )}
                   </div>
                     </div>
                         </div>
-        </a>
+        </Link>
       ))}
                     </div>
   );
 }
 
-function CategoryHits({ onHitClick, limit = 3 }: { onHitClick?: () => void; limit?: number }) {
+function CategorySearchResults({
+  categories,
+  onHitClick,
+}: {
+  categories: Category[];
+  onHitClick?: () => void;
+}) {
   const { copy } = useDestinationPageLocale();
-  const { hits } = useHits();
-  const limitedHits = hits.slice(0, limit);
-
-  if (limitedHits.length === 0) return null;
+  if (categories.length === 0) return null;
 
   return (
     <div>
@@ -759,14 +752,14 @@ function CategoryHits({ onHitClick, limit = 3 }: { onHitClick?: () => void; limi
             {copy.categories}
           </span>
           <span className="ms-auto text-[10px] md:text-xs font-medium text-gray-400 bg-gray-100/80 backdrop-blur-sm px-2 md:px-2.5 py-0.5 md:py-1 rounded-full">
-            {hits.length}
+            {categories.length}
           </span>
                   </div>
                 </div>
-      {limitedHits.map((hit: any) => (
-        <a
-          key={hit.objectID}
-          href={`/categories/${hit.slug || hit.objectID}`}
+      {categories.map((item) => (
+        <Link
+          key={item.slug || item._id}
+          href={`/categories/${item.slug}`}
           onClick={onHitClick}
           className="block px-4 md:px-6 py-3 md:py-4 hover:bg-gradient-to-r hover:from-purple-500/5 hover:via-fuchsia-500/5 hover:to-transparent transition-all duration-300 border-b border-white/5 last:border-0 group relative overflow-hidden"
         >
@@ -777,25 +770,37 @@ function CategoryHits({ onHitClick, limit = 3 }: { onHitClick?: () => void; limi
           </div>
             <div className="flex-1 min-w-0">
               <div className="font-semibold text-gray-900 text-sm md:text-[15px] leading-snug mb-1 md:mb-1.5 truncate group-hover:text-purple-600 transition-colors duration-300">
-                {hit.name || copy.untitledCategory}
+                {item.name || copy.untitledCategory}
         </div>
               <div className="text-[10px] md:text-xs text-gray-500 flex items-center gap-1.5 md:gap-2.5">
-                {hit.tourCount && (
+                {item.tourCount && (
                   <span className="bg-purple-50/80 backdrop-blur-sm px-1.5 md:px-2.5 py-0.5 md:py-1 rounded-md md:rounded-lg font-medium text-purple-700">
-                    {copy.toursCount(hit.tourCount)}
+                    {copy.toursCount(item.tourCount)}
                   </span>
                 )}
       </div>
             </div>
           </div>
-        </a>
+        </Link>
       ))}
     </div>
   );
 }
 
 // --- Hero Search Bar ---
-const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
+const HeroSearchBar = ({
+  suggestion,
+  destination,
+  destinationTours,
+  relatedDestinations,
+  allCategories,
+}: {
+  suggestion: string;
+  destination: Destination;
+  destinationTours: Tour[];
+  relatedDestinations: Destination[];
+  allCategories: Category[];
+}) => {
   const { rtl, copy } = useDestinationPageLocale();
   const BackArrow = rtl ? ArrowRight : ArrowLeft;
   const [query, setQuery] = useState('');
@@ -806,6 +811,22 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [detectedToursByMessage, setDetectedToursByMessage] = useState<Record<string, any[]>>({});
   const [detectedDestinationsByMessage, setDetectedDestinationsByMessage] = useState<Record<string, any[]>>({});
+  const searchResults = getDestinationPageSearchResults({
+    query,
+    destination,
+    destinationTours,
+    relatedDestinations,
+    allCategories,
+  });
+  const trendingSearches = getDestinationTrendingSearches({
+    destination,
+    destinationTours,
+    allCategories,
+  });
+  const hasLocalSearchResults =
+    searchResults.tours.length > 0 ||
+    searchResults.destinations.length > 0 ||
+    searchResults.categories.length > 0;
 
   const {
     messages,
@@ -1533,26 +1554,13 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
                       </div>
                     )}
                   </div>
-                ) : (
-                  query ? (
-                    <InstantSearch searchClient={searchClient} indexName={INDEX_TOURS}>
-                      <CustomSearchBox searchQuery={query} onSearchChange={setQuery} />
-
-                      <Index indexName={INDEX_TOURS}>
-                        <Configure hitsPerPage={5} />
-                        <TourHits onHitClick={handleCloseDropdown} limit={5} />
-                      </Index>
-
-                      <Index indexName={INDEX_DESTINATIONS}>
-                        <Configure hitsPerPage={3} />
-                        <DestinationHits onHitClick={handleCloseDropdown} limit={3} />
-                      </Index>
-
-                      <Index indexName={INDEX_CATEGORIES}>
-                        <Configure hitsPerPage={3} />
-                        <CategoryHits onHitClick={handleCloseDropdown} limit={3} />
-                      </Index>
-                    </InstantSearch>
+                ) : query ? (
+                  hasLocalSearchResults ? (
+                    <div>
+                      <TourSearchResults tours={searchResults.tours} onHitClick={handleCloseDropdown} />
+                      <DestinationSearchResults destinations={searchResults.destinations} onHitClick={handleCloseDropdown} />
+                      <CategorySearchResults categories={searchResults.categories} onHitClick={handleCloseDropdown} />
+                    </div>
                   ) : (
                     <div className="p-6">
                       <div className="flex items-center gap-2 mb-4">
@@ -1562,7 +1570,7 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
                         </span>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        {['Pyramids of Giza', 'Nile Cruise', 'Luxor Temple', 'Desert Safari', 'Cairo Tours', 'Red Sea Diving'].map((trend) => (
+                        {trendingSearches.map((trend) => (
                           <button
                             key={trend}
                             onClick={() => setQuery(trend)}
@@ -1574,6 +1582,26 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
                       </div>
                     </div>
                   )
+                ) : (
+                  <div className="p-6">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Star className="w-4 h-4 text-blue-500 fill-current" />
+                      <span className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                        {copy.trendingTours}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {trendingSearches.map((trend) => (
+                        <button
+                          key={trend}
+                          onClick={() => setQuery(trend)}
+                          className="px-4 py-2 bg-white/80 backdrop-blur-sm border border-gray-200/50 rounded-full text-xs font-medium text-gray-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:border-blue-200 hover:text-blue-700 hover:shadow-md transition-all duration-200 hover:scale-105"
+                        >
+                          {trend}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
             </motion.div>
@@ -1646,7 +1674,19 @@ const BackgroundSlideshow = ({
   );
 };
 
-const DestinationHeroSection = ({ destination, tourCount }: { destination: Destination, tourCount: number }) => {
+const DestinationHeroSection = ({
+  destination,
+  tourCount,
+  destinationTours,
+  relatedDestinations,
+  allCategories,
+}: {
+  destination: Destination;
+  tourCount: number;
+  destinationTours: Tour[];
+  relatedDestinations: Destination[];
+  allCategories: Category[];
+}) => {
   const { rtl, copy } = useDestinationPageLocale();
   const slides = destination.image
     ? [{ src: destination.image, alt: destination.name }]
@@ -1682,6 +1722,10 @@ const DestinationHeroSection = ({ destination, tourCount }: { destination: Desti
 
           <HeroSearchBar
             suggestion={currentSuggestion}
+            destination={destination}
+            destinationTours={destinationTours}
+            relatedDestinations={relatedDestinations}
+            allCategories={allCategories}
           />
 
           <div className="mt-4 sm:mt-6 flex flex-wrap items-center justify-center md:justify-start gap-3 sm:gap-4 text-white/90 text-xs sm:text-sm px-4 sm:px-0">
@@ -2226,7 +2270,7 @@ export default function DestinationPageClient({
 
   const top10Tours = destinationTours.slice(0, 10);
   const featuredTours = destinationTours.filter(tour => tour.isFeatured).slice(0, 5);
-  const destinationCategories = allCategories.map(category => ({
+  const destinationCategories = getDestinationCategories(destinationTours, allCategories).map(category => ({
     ...category,
     tourCount: destinationTours.filter(tour => 
       typeof tour.category === 'object' ? tour.category._id === category._id : tour.category === category._id
@@ -2238,7 +2282,13 @@ export default function DestinationPageClient({
       <Header />
       <main className="min-h-screen bg-white" dir={rtl ? 'rtl' : 'ltr'}>
         
-        <DestinationHeroSection destination={destination} tourCount={destinationTours.length} />
+        <DestinationHeroSection
+          destination={destination}
+          tourCount={destinationTours.length}
+          destinationTours={destinationTours}
+          relatedDestinations={relatedDestinations}
+          allCategories={allCategories}
+        />
 
         <StatsSection destinationTours={destinationTours} />
         

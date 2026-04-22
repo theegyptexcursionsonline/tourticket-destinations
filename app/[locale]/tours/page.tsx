@@ -8,9 +8,9 @@ import Footer from '@/components/Footer';
 import AISearchWidget from '@/components/AISearchWidget';
 import ToursClientPage from './ToursClientPage';
 import { ITour } from '@/lib/models/Tour';
-import { getTenantFromRequest, getTenantConfig, buildTenantQuery, buildStrictTenantQuery } from '@/lib/tenant';
+import { getTenantFromRequest, getTenantConfig, buildStrictTenantQuery } from '@/lib/tenant';
 import { getLocale } from 'next-intl/server';
-import { localizeTour } from '@/lib/translation/getLocalizedField';
+import { localizeAndDedupeTours } from '@/lib/translation/localizeTourCollection';
 import ToursListSchema from '@/components/schema/ToursListSchema';
 
 // ISR: revalidate every 60s — cached pages served instantly, refreshed in background
@@ -36,27 +36,10 @@ export async function generateMetadata(): Promise<Metadata> {
 
 // Server-side function to fetch all tours with populated data (tenant-aware).
 //
-// Smart-fallback pattern for Issue #8:
-//   1. If the current tenant has ANY tours (primary `tenantId` OR multi-brand
-//      `tenantIds`), return ONLY those — no leakage from 'default'. This is
-//      what makes each brand look isolated.
-//   2. Otherwise (brand-new tenant with no content yet) fall back to the
-//      default-tenant pool so the page isn't completely empty.
-//
-// The old code only counted `tenantId` matches, which meant tours assigned to
-// this tenant via the multi-brand selector (`tenantIds`) were ignored when
-// deciding whether to fall back — so a tenant with ONLY multi-brand tours
-// would unnecessarily inherit default content.
 async function getAllTours(tenantId: string): Promise<ITour[]> {
   await dbConnect();
 
-  const ownToursQuery = buildStrictTenantQuery({ isPublished: true }, tenantId);
-  const ownTourCount = await Tour.countDocuments(ownToursQuery);
-  const query = ownTourCount > 0
-    ? ownToursQuery
-    : buildTenantQuery({ isPublished: true }, tenantId);
-
-  const tours = await Tour.find(query)
+  const tours = await Tour.find(buildStrictTenantQuery({ isPublished: true }, tenantId))
     .populate('destination', 'name')
     .populate('category', 'name')
     .sort({ isFeatured: -1, createdAt: -1 }) // Featured first, then most recent
@@ -73,7 +56,7 @@ export default async function ToursIndexPage() {
   const tours = await getAllTours(tenantId);
 
   // Apply translations for the current locale
-  const localizedTours = tours.map((t: any) => localizeTour(t, locale));
+  const localizedTours = localizeAndDedupeTours(tours as any[], locale);
 
   return (
     <>

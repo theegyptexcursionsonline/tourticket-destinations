@@ -32,9 +32,11 @@ import DayTripsServer from '@/components/DayTripsServer';
 // Import tenant utilities
 import { getTenantFromRequest, getTenantConfig, buildTenantQuery } from '@/lib/tenant';
 import { getLocale } from 'next-intl/server';
-import { localizeTour } from '@/lib/translation/getLocalizedField';
+import { localizeAndDedupeTours } from '@/lib/translation/localizeTourCollection';
 import { localizeEntityFields } from '@/lib/i18n/contentLocalization';
 import { destinationTranslationFields, categoryTranslationFields } from '@/lib/i18n/translationFields';
+import { dedupeTaxonomyEntries } from '@/lib/utils/taxonomy';
+import type { Destination as HeaderDestination, Category as HeaderCategory } from '@/types';
 
 /**
  * Get homepage data (internal function)
@@ -496,16 +498,24 @@ export default async function HomePageServer() {
   } = await getHomePageData(tenantId);
 
   // Apply translations for the current locale
-  const localizedTours = tours.map((t: any) => localizeTour(t, locale));
-  const localizedDayTrips = dayTrips.map((t: any) => localizeTour(t, locale));
+  const localizedTours = localizeAndDedupeTours(tours as any[], locale);
+  const localizedDayTrips = localizeAndDedupeTours(dayTrips as any[], locale);
 
   // Localize destinations and categories
   const destFields = destinationTranslationFields.map(f => f.key);
   const catFields = categoryTranslationFields.map(f => f.key);
-  const localizedDestinations = destinations.map((d: any) => localizeEntityFields(d, locale, destFields));
-  const localizedCategories = categories.map((c: any) => localizeEntityFields(c, locale, catFields));
-  const localizedHeaderDests = headerDestinations.map((d: any) => localizeEntityFields(d, locale, destFields));
-  const localizedHeaderCats = headerCategories.map((c: any) => localizeEntityFields(c, locale, catFields));
+  const localizedDestinations = dedupeTaxonomyEntries(
+    destinations.map((d: any) => localizeEntityFields(d, locale, destFields))
+  );
+  const localizedCategories = dedupeTaxonomyEntries(
+    categories.map((c: any) => localizeEntityFields(c, locale, catFields))
+  );
+  const localizedHeaderDests = dedupeTaxonomyEntries(
+    headerDestinations.map((d: any) => localizeEntityFields(d, locale, destFields))
+  );
+  const localizedHeaderCats = dedupeTaxonomyEntries(
+    headerCategories.map((c: any) => localizeEntityFields(c, locale, catFields))
+  );
   
   // Check if destinations are tenant-specific or from 'default' fallback
   const hasTenantSpecificDestinations = destinations.some(
@@ -710,8 +720,8 @@ export default async function HomePageServer() {
         listDescription="Discover the most popular tours, day trips, and activities across Egypt"
       />
       <Header
-        initialDestinations={localizedHeaderDests}
-        initialCategories={localizedHeaderCats}
+        initialDestinations={localizedHeaderDests as HeaderDestination[]}
+        initialCategories={localizedHeaderCats as HeaderCategory[]}
       />
       <HeroSection initialSettings={effectiveHeroSettings} />
 

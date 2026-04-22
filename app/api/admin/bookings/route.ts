@@ -39,9 +39,10 @@ export async function GET(request: NextRequest) {
 
     const baseMatch: Record<string, unknown> = {};
 
-    // Early tenant filter — narrows working set BEFORE expensive $lookups
-    // Only show bookings from the EEO network (branded tenants), never from the
-    // default/legacy tourticket site.
+    // Early tenant filter — narrows working set BEFORE expensive $lookups.
+    // Important: brand-scoped admin views must be keyed off the booking's own
+    // tenant, not the joined tour tenant, otherwise a Makadi admin can see a
+    // Hurghada booking for a shared/copied tour title.
     if (effectiveTenantId) {
       baseMatch.tenantId = effectiveTenantId;
     } else {
@@ -114,23 +115,39 @@ export async function GET(request: NextRequest) {
         },
       },
       { $unwind: { path: '$tour', preserveNullAndEmptyArrays: true } },
-      // Tenant filter: strict match when a specific brand is selected;
-      // when "all" is selected, exclude default tenant bookings.
-      ...(effectiveTenantId
-        ? [
-            {
-              $match: {
-                $or: [{ tenantId: effectiveTenantId }, { 'tour.tenantId': effectiveTenantId }],
+      // For a selected brand, keep only bookings whose joined tour is still
+      // assigned to that same brand. This trims legacy/default-tour leakage
+      // from older bookings created before the tenant-content isolation fixes.
+      ...(
+        effectiveTenantId
+          ? [
+              {
+                $match: {
+                  $or: [
+                    { 'tour.tenantId': effectiveTenantId },
+                    { 'tour.tenantIds': effectiveTenantId },
+                  ],
+                },
               },
-            },
-          ]
-        : [
-            {
-              $match: {
-                tenantId: { $nin: ['default', null, undefined] },
+            ]
+          : [
+              {
+                $match: {
+                  $expr: {
+                    $or: [
+                      { $eq: ['$tour.tenantId', '$tenantId'] },
+                      {
+                        $in: [
+                          '$tenantId',
+                          { $ifNull: ['$tour.tenantIds', []] },
+                        ],
+                      },
+                    ],
+                  },
+                },
               },
-            },
-          ]),
+            ]
+      ),
       // Join Destination (optional)
       {
         $lookup: {
@@ -212,6 +229,7 @@ export async function GET(request: NextRequest) {
                   image: '$tour.image',
                   duration: '$tour.duration',
                   tenantId: '$tour.tenantId',
+                  tenantIds: '$tour.tenantIds',
                   destination: {
                     _id: '$destination._id',
                     name: '$destination.name',

@@ -1,6 +1,18 @@
 import React from 'react'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import Header from '../Header'
+
+const mockUseTenant = jest.fn()
+
+jest.mock('@/contexts/TenantContext', () => ({
+  useTenant: () => mockUseTenant(),
+}))
+
+jest.mock('next/image', () => {
+  return function MockNextImage({ alt, src, fill, priority, ...props }: any) {
+    return <img alt={alt} src={src} {...props} />
+  }
+})
 
 jest.mock('@/hooks/useCart', () => ({
   useCart: () => ({
@@ -52,10 +64,39 @@ jest.mock('framer-motion', () => ({
 }))
 
 describe('Header', () => {
+  const renderStaticHeader = () =>
+    render(<Header initialDestinations={[]} initialCategories={[]} />)
+
   beforeEach(() => {
-    global.fetch = jest.fn(() =>
-      Promise.resolve({ ok: true, json: () => Promise.resolve({ destinations: [], categories: [] }) })
-    ) as jest.Mock
+    mockUseTenant.mockReturnValue({
+      tenant: {
+        tenantId: 'default',
+        name: 'Test Brand',
+        domain: 'localhost',
+      },
+      getLogo: () => '/logo.png',
+      getSiteName: () => 'Test Brand',
+      isFeatureEnabled: () => true,
+    })
+    global.fetch = jest.fn((input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url.includes('/api/destinations')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ success: true, data: [] }),
+        })
+      }
+      if (url.includes('/api/categories')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ success: true, data: [] }),
+        })
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ success: true, data: [] }),
+      })
+    }) as jest.Mock
   })
 
   afterEach(() => {
@@ -63,24 +104,84 @@ describe('Header', () => {
   })
 
   it('should render header component', () => {
-    const { container } = render(<Header />)
+    const { container } = renderStaticHeader()
     expect(container.firstChild).toBeTruthy()
   })
 
   it('should render navigation buttons', () => {
-    render(<Header />)
+    renderStaticHeader()
     const buttons = screen.getAllByRole('button')
     expect(buttons.length).toBeGreaterThan(0)
   })
 
   it('should render the currency/language switcher', () => {
-    render(<Header />)
+    renderStaticHeader()
     expect(screen.getByTestId('currency-language-switcher')).toBeInTheDocument()
   })
 
   it('should have accessible buttons', () => {
-    render(<Header />)
+    renderStaticHeader()
     const buttons = screen.getAllByRole('button')
     expect(buttons.length).toBeGreaterThan(0)
+  })
+
+  it('falls back to tenant-specific navigation when the API returns default-scoped content', async () => {
+    mockUseTenant.mockReturnValue({
+      tenant: {
+        tenantId: 'el-gouna',
+        name: 'El Gouna Excursions Online',
+        domain: 'localhost',
+      },
+      getLogo: () => '/tenants/el-gouna/logo.png',
+      getSiteName: () => 'El Gouna Excursions Online',
+      isFeatureEnabled: () => true,
+    })
+
+    global.fetch = jest.fn((input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url.includes('/api/destinations')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              success: true,
+              data: [
+                { _id: 'default-dest', name: 'Hurghada', slug: 'hurghada', image: '/hurghada.jpg', tenantId: 'default' },
+              ],
+            }),
+        })
+      }
+
+      if (url.includes('/api/categories')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              success: true,
+              data: [
+                { _id: 'default-cat', name: 'Boat Trips', slug: 'boat-trips', tenantId: 'default' },
+              ],
+            }),
+        })
+      }
+
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ success: true, data: [] }),
+      })
+    }) as jest.Mock
+
+    render(<Header startSolid />)
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith('/api/destinations?tenantId=el-gouna&locale=en')
+      expect(global.fetch).toHaveBeenCalledWith('/api/categories?featured=true&tenantId=el-gouna&locale=en')
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /explore/i }))
+
+    expect(await screen.findByText('ABU TIG MARINA')).toBeInTheDocument()
+    expect(screen.getByText('Kitesurfing & Watersports')).toBeInTheDocument()
+    expect(screen.queryByText('HURGHADA')).not.toBeInTheDocument()
   })
 })

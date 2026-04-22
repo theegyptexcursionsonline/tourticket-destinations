@@ -9,7 +9,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import CurrencyLanguageSwitcher from '@/components/shared/CurrencyLanguageSwitcher';
 import AuthModal from '@/components/AuthModal';
 import { Destination, Category } from '@/types';
+import { useTenant } from '@/contexts/TenantContext';
 import { useWishlist } from '@/contexts/WishlistContext';
+import {
+  hasTenantScopedNavigationContent,
+  tenantMegaMenuCategories,
+  tenantMegaMenuDestinations,
+} from '@/lib/tenantNavigation';
+import { useLocale } from 'next-intl';
 import { liteClient as algoliasearch } from 'algoliasearch/lite';
 import { InstantSearch, Index, useSearchBox, useHits, Configure } from 'react-instantsearch';
 import 'instantsearch.css/themes/satellite.css';
@@ -71,9 +78,20 @@ function useScrollDirection() {
   return { scrollY, isVisible };
 }
 
-const MegaMenu: FC<{ isOpen: boolean; onClose: () => void; destinations: Destination[]; categories: Category[]; }> = React.memo(({ isOpen, onClose, destinations, categories }) => {
+const MegaMenu: FC<{ isOpen: boolean; onClose: () => void; destinations: Destination[]; categories: Category[]; tenantId?: string; }> = React.memo(({ isOpen, onClose, destinations, categories, tenantId }) => {
     const menuRef = useRef<HTMLDivElement>(null);
     useOnClickOutside(menuRef, onClose);
+
+    const tenantDestinations = tenantId ? tenantMegaMenuDestinations[tenantId] : null;
+    const tenantCategories = tenantId ? tenantMegaMenuCategories[tenantId] : null;
+    const hasTenantSpecificDest = hasTenantScopedNavigationContent(destinations as any, tenantId);
+    const effectiveDestinations = (hasTenantSpecificDest || !tenantDestinations)
+      ? destinations
+      : tenantDestinations.map((destination, index) => ({ ...destination, _id: `tenant-dest-${index}` }));
+    const hasTenantSpecificCat = hasTenantScopedNavigationContent(categories as any, tenantId);
+    const effectiveCategories = (hasTenantSpecificCat || !tenantCategories)
+      ? categories
+      : tenantCategories.map((category, index) => ({ ...category, _id: `tenant-cat-${index}` }));
     
     const activityIcons: { [key: string]: React.ElementType } = {
         'attractions': Landmark,
@@ -96,7 +114,7 @@ const MegaMenu: FC<{ isOpen: boolean; onClose: () => void; destinations: Destina
                             <div className="md:col-span-2">
                                 <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500 mb-4">Top Destinations</h3>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                                    {destinations.slice(0, 6).map(dest => (
+                                    {effectiveDestinations.slice(0, 6).map(dest => (
                                         <a href={`/destinations/${dest.slug}`} key={dest._id} className="group block">
                                             <div className="aspect-square w-full rounded-lg overflow-hidden relative bg-slate-200">
                                                 <Image src={dest.image} alt={dest.name} fill sizes="(max-width: 768px) 50vw, 33vw" className="object-cover transition-transform duration-300 group-hover:scale-110" />
@@ -111,7 +129,7 @@ const MegaMenu: FC<{ isOpen: boolean; onClose: () => void; destinations: Destina
                             <div>
                                 <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500 mb-4">Activity Types</h3>
                                 <ul className="space-y-3">
-                                    {categories.slice(0, 9).map(activity => {
+                                    {effectiveCategories.slice(0, 9).map(activity => {
                                         const Icon = activityIcons[activity.slug] || Ticket;
                                         return (
                                         <li key={activity._id}><a href={`/categories/${activity.slug}`} className="flex items-center gap-3 text-gray-700 hover:text-red-500 group"><Icon size={20} className="text-gray-400 group-hover:text-red-500" /> <span className="font-semibold">{activity.name}</span></a></li>
@@ -214,9 +232,20 @@ const UserMenu: FC<{ user: any; onLogout: () => void; }> = ({ user, onLogout }) 
   );
 };
 
-const MobileMenu: FC<{ isOpen: boolean; onClose: () => void; onOpenSearch: () => void; onOpenAuth: (state: 'login' | 'signup') => void; destinations: Destination[]; categories: Category[]; }> = React.memo(({ isOpen, onClose, onOpenSearch, onOpenAuth: _onOpenAuth, destinations, categories }) => {
+const MobileMenu: FC<{ isOpen: boolean; onClose: () => void; onOpenSearch: () => void; onOpenAuth: (state: 'login' | 'signup') => void; destinations: Destination[]; categories: Category[]; tenantId?: string; }> = React.memo(({ isOpen, onClose, onOpenSearch, onOpenAuth: _onOpenAuth, destinations, categories, tenantId }) => {
   const menuRef = useRef<HTMLDivElement>(null);
   const { user, logout } = useAuth();
+  const { getLogo, getSiteName } = useTenant();
+  const tenantDestinations = tenantId ? tenantMegaMenuDestinations[tenantId] : null;
+  const tenantCategories = tenantId ? tenantMegaMenuCategories[tenantId] : null;
+  const hasTenantSpecificDest = hasTenantScopedNavigationContent(destinations as any, tenantId);
+  const effectiveDestinations = (hasTenantSpecificDest || !tenantDestinations)
+    ? destinations
+    : tenantDestinations.map((destination, index) => ({ ...destination, _id: `tenant-dest-${index}` }));
+  const hasTenantSpecificCat = hasTenantScopedNavigationContent(categories as any, tenantId);
+  const effectiveCategories = (hasTenantSpecificCat || !tenantCategories)
+    ? categories
+    : tenantCategories.map((category, index) => ({ ...category, _id: `tenant-cat-${index}` }));
 
   useOnClickOutside(menuRef, onClose);
   
@@ -254,7 +283,13 @@ const MobileMenu: FC<{ isOpen: boolean; onClose: () => void; onOpenSearch: () =>
           >
             <div className="flex flex-col h-full">
               <div className="flex items-center justify-between p-6 border-b">
-                <img src="/EEO-logo.png" alt="Egypt Excursions Online" className="h-10 object-contain" />
+                <Image
+                  src={getLogo()}
+                  alt={getSiteName()}
+                  width={120}
+                  height={40}
+                  className="h-10 w-auto object-contain"
+                />
                 <button onClick={onClose} className="p-2 rounded-full text-slate-500 hover:bg-slate-100">
                   <X size={24} />
                 </button>
@@ -336,7 +371,7 @@ const MobileMenu: FC<{ isOpen: boolean; onClose: () => void; onOpenSearch: () =>
                 <div>
                   <h3 className="font-bold text-lg text-slate-800 mb-4">Destinations</h3>
                   <div className="space-y-2">
-                    {destinations.map(dest => (
+                    {effectiveDestinations.map(dest => (
                       <a key={dest._id} href={`/destinations/${dest.slug}`} className="block py-2 text-slate-700 hover:text-red-500" onClick={onClose}>
                         {dest.name}
                       </a>
@@ -347,7 +382,7 @@ const MobileMenu: FC<{ isOpen: boolean; onClose: () => void; onOpenSearch: () =>
                 <div>
                   <h3 className="font-bold text-lg text-slate-800 mb-4">Activities</h3>
                   <div className="space-y-2">
-                    {categories.map(activity => {
+                    {effectiveCategories.map(activity => {
                       const Icon = activityIcons[activity.slug] || Ticket;
                       return (
                         <a key={activity._id} href={`/categories/${activity.slug}`} className="flex items-center gap-3 py-2 text-slate-700 hover:text-red-500" onClick={onClose}>
@@ -616,13 +651,16 @@ export default function Header({ startSolid = false }: { startSolid?: boolean; }
   
   const [destinations, setDestinations] = useState<Destination[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const locale = useLocale();
+  const { tenant, getLogo, getSiteName } = useTenant();
   
   useEffect(() => {
     const fetchNavData = async () => {
         try {
+            const tenantId = tenant?.tenantId || 'default';
             const [destRes, catRes] = await Promise.all([
-                fetch('/api/destinations'),
-                fetch('/api/categories'),
+                fetch(`/api/destinations?tenantId=${encodeURIComponent(tenantId)}&locale=${encodeURIComponent(locale)}`),
+                fetch(`/api/categories?tenantId=${encodeURIComponent(tenantId)}&locale=${encodeURIComponent(locale)}`),
             ]);
             const destData = await destRes.json();
             const catData = await catRes.json();
@@ -633,7 +671,7 @@ export default function Header({ startSolid = false }: { startSolid?: boolean; }
         }
     };
     fetchNavData();
-  }, []);
+  }, [tenant?.tenantId, locale]);
 
   const { openCart, totalItems } = useCart();
   const { user, logout } = useAuth();
@@ -684,7 +722,14 @@ const linkHoverColor = 'hover:text-red-500';
             <div className="flex items-center justify-between h-16 md:h-20">
                 <div className="flex items-center gap-4 lg:gap-8">
                     <a href="/" className="flex items-center h-full">
-                        <img src="/EEO-logo.png" alt="Egypt Excursions Online" className="h-12 md:h-14 lg:h-16 object-contain transition-colors duration-300" />
+                        <Image
+                          src={getLogo()}
+                          alt={getSiteName()}
+                          width={160}
+                          height={64}
+                          priority
+                          className="h-12 md:h-14 lg:h-16 w-auto object-contain transition-colors duration-300"
+                        />
                     </a>
                     <nav className="hidden md:flex items-center relative">
                         <button onClick={handleMegaMenuToggle} className={`${headerText} ${linkHoverColor} flex items-center gap-1 font-semibold group text-sm lg:text-base`}>
@@ -744,7 +789,7 @@ const linkHoverColor = 'hover:text-red-500';
                 </div>
             </div>
         </div>
-        <MegaMenu isOpen={isMegaMenuOpen} onClose={() => setMegaMenuOpen(false)} destinations={destinations} categories={categories} />
+        <MegaMenu isOpen={isMegaMenuOpen} onClose={() => setMegaMenuOpen(false)} destinations={destinations} categories={categories} tenantId={tenant?.tenantId} />
       </header>
 
       {/* Spacer to prevent content overlap with fixed header */}
@@ -757,6 +802,7 @@ const linkHoverColor = 'hover:text-red-500';
         onOpenAuth={handleAuthModalOpen}
         destinations={destinations}
         categories={categories}
+        tenantId={tenant?.tenantId}
       />
 
       <MobileInlineSearch

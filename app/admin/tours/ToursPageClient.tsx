@@ -5,7 +5,7 @@
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import { Plus, RefreshCw, AlertCircle } from 'lucide-react';
+import { Plus, RefreshCw, AlertCircle, Copy, Files, Layers3 } from 'lucide-react';
 import { ToursListClient } from './ToursListClient';
 import { useAdminTenant } from '@/contexts/AdminTenantContext';
 import withAuth from '@/components/admin/withAuth';
@@ -100,6 +100,22 @@ function ToursPageClientComponent() {
     }));
   }, [tours, isAllTenantsSelected]);
 
+  const allBrandsSummary = useMemo(() => {
+    if (!isAllTenantsSelected()) {
+      return null;
+    }
+
+    const rawRecords = tours.length;
+    const uniqueTours = displayTours.length;
+    const extraCopies = Math.max(0, rawRecords - uniqueTours);
+
+    return {
+      rawRecords,
+      uniqueTours,
+      extraCopies,
+    };
+  }, [displayTours.length, isAllTenantsSelected, tours.length]);
+
   return (
     <div className="max-w-7xl mx-auto px-6 lg:px-8 py-8">
       {/* Header */}
@@ -110,7 +126,10 @@ function ToursPageClientComponent() {
           </h1>
           <p className="mt-1 text-sm text-slate-500">
             {isAllTenantsSelected() ? (
-              <>Showing tours from <span className="font-semibold text-slate-700">all brands</span>. Select a brand to filter.</>
+              <>
+                Showing <span className="font-semibold text-slate-700">unique tours from all brands</span>.
+                Raw tenant copies are grouped by shared slug.
+              </>
             ) : (
               <>Showing tours for <span className="font-semibold text-indigo-600">{selectedTenant?.name || selectedTenantId}</span></>
             )}
@@ -152,6 +171,43 @@ function ToursPageClientComponent() {
             </div>
             <div className="ms-auto text-sm text-slate-600">
               <span className="font-bold text-indigo-600">{tours.length}</span> tour{tours.length !== 1 ? 's' : ''}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isAllTenantsSelected() && allBrandsSummary && (
+        <div className="mb-6 rounded-2xl border border-sky-200 bg-gradient-to-r from-sky-50 via-white to-indigo-50 p-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-slate-900">How this count works</p>
+              <p className="mt-1 text-sm text-slate-600">
+                The All Brands screen shows one row per shared <span className="font-semibold text-slate-800">slug</span>.
+                If the same tour exists in multiple tenants or languages, those copies are grouped into one visible tour.
+              </p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <Files className="h-3.5 w-3.5" />
+                  Raw Records
+                </div>
+                <div className="mt-1 text-2xl font-bold text-slate-900">{allBrandsSummary.rawRecords}</div>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <Layers3 className="h-3.5 w-3.5" />
+                  Unique Tours
+                </div>
+                <div className="mt-1 text-2xl font-bold text-indigo-700">{allBrandsSummary.uniqueTours}</div>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <Copy className="h-3.5 w-3.5" />
+                  Grouped Copies
+                </div>
+                <div className="mt-1 text-2xl font-bold text-slate-900">{allBrandsSummary.extraCopies}</div>
+              </div>
             </div>
           </div>
         </div>
@@ -231,7 +287,14 @@ function ToursPageClientComponent() {
         </div>
       ) : (
         /* Tours List */
-        <ToursListClient tours={displayTours} />
+        <ToursListClient
+          tours={displayTours}
+          countExplanation={
+            isAllTenantsSelected()
+              ? `Tab counts below use unique tours (${displayTours.length}) instead of raw tenant records (${tours.length}).`
+              : undefined
+          }
+        />
       )}
     </div>
   );

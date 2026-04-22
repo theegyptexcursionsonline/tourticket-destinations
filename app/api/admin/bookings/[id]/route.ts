@@ -37,6 +37,21 @@ function formatBookingDate(dateString: string | Date | undefined): string {
   });
 }
 
+function bookingMatchesTenantScope(booking: any, effectiveTenantId?: string): boolean {
+  if (!effectiveTenantId) {
+    return true;
+  }
+
+  if (booking?.tenantId !== effectiveTenantId) {
+    return false;
+  }
+
+  const tourTenantId = booking?.tour?.tenantId;
+  const tourTenantIds = Array.isArray(booking?.tour?.tenantIds) ? booking.tour.tenantIds : [];
+
+  return tourTenantId === effectiveTenantId || tourTenantIds.includes(effectiveTenantId);
+}
+
 // GET - Fetch a single booking by ID
 export async function GET(
   request: NextRequest,
@@ -57,11 +72,15 @@ export async function GET(
   try {
     const { id } = await params;
 
-    const booking = await Booking.findById(id)
+    const bookingQuery = effectiveTenantId
+      ? { _id: id, tenantId: effectiveTenantId }
+      : { _id: id };
+
+    const booking = await Booking.findOne(bookingQuery)
       .populate({
         path: 'tour',
         model: Tour,
-        select: 'title slug image images duration rating discountPrice destination',
+        select: 'title slug image images duration rating discountPrice destination tenantId tenantIds',
         populate: {
           path: 'destination',
           model: 'Destination',
@@ -76,6 +95,13 @@ export async function GET(
       .lean();
 
     if (!booking) {
+      return NextResponse.json(
+        { success: false, message: 'Booking not found' },
+        { status: 404 }
+      );
+    }
+
+    if (!bookingMatchesTenantScope(booking, effectiveTenantId)) {
       return NextResponse.json(
         { success: false, message: 'Booking not found' },
         { status: 404 }
@@ -149,11 +175,15 @@ export async function PATCH(
     }
 
     // Get the current booking with populated fields before updating
-    const currentBooking = await Booking.findById(id)
+    const bookingQuery = effectiveTenantId
+      ? { _id: id, tenantId: effectiveTenantId }
+      : { _id: id };
+
+    const currentBooking = await Booking.findOne(bookingQuery)
       .populate({
         path: 'tour',
         model: Tour,
-        select: 'title slug image duration rating discountPrice destination',
+        select: 'title slug image duration rating discountPrice destination tenantId tenantIds',
         populate: {
           path: 'destination',
           model: 'Destination',
@@ -173,6 +203,13 @@ export async function PATCH(
       );
     }
 
+    if (!bookingMatchesTenantScope(currentBooking, effectiveTenantId)) {
+      return NextResponse.json(
+        { success: false, message: 'Booking not found' },
+        { status: 404 }
+      );
+    }
+
     // Store old status for comparison
     const oldStatus = currentBooking.status;
 
@@ -181,11 +218,11 @@ export async function PATCH(
     await currentBooking.save();
 
     // Reload with lean for response
-    const updatedBooking = await Booking.findById(id)
+    const updatedBooking = await Booking.findOne(bookingQuery)
       .populate({
         path: 'tour',
         model: Tour,
-        select: 'title slug image duration rating discountPrice destination',
+        select: 'title slug image duration rating discountPrice destination tenantId tenantIds',
         populate: {
           path: 'destination',
           model: 'Destination',

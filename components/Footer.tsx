@@ -9,6 +9,10 @@ import toast, { Toaster } from 'react-hot-toast';
 import { useTenant } from '@/contexts/TenantContext';
 import { useLocale, useTranslations } from 'next-intl';
 import { isRTL } from '@/i18n/config';
+import {
+  getTenantFooterDestinations,
+  hasTenantScopedNavigationContent,
+} from '@/lib/tenantNavigation';
 
 // Import the single, consolidated switcher component
 import CurrencyLanguageSwitcher from '@/components/shared/CurrencyLanguageSwitcher';
@@ -40,38 +44,6 @@ const paymentMethods = [
   { name: "Alipay", component: PaymentIcons.Alipay },
   { name: "G Pay", component: PaymentIcons.GPay },
 ];
-
-// Tenant-specific default destinations for footer
-const tenantFooterDestinations: Record<string, { _id: string; name: string; slug: string }[]> = {
-  'hurghada-speedboat': [
-    { _id: 'sb-dest-1', name: 'Giftun Island', slug: 'giftun-island' },
-    { _id: 'sb-dest-2', name: 'Orange Bay', slug: 'orange-bay' },
-    { _id: 'sb-dest-3', name: 'Mahmya Island', slug: 'mahmya-island' },
-    { _id: 'sb-dest-4', name: 'Paradise Island', slug: 'paradise-island' },
-    { _id: 'sb-dest-5', name: 'Dolphin House', slug: 'dolphin-house' },
-  ],
-  'sharm-excursions-online': [
-    { _id: 'sh-dest-1', name: 'Ras Mohammed', slug: 'ras-mohammed' },
-    { _id: 'sh-dest-2', name: 'Tiran Island', slug: 'tiran-island' },
-    { _id: 'sh-dest-3', name: 'Blue Hole', slug: 'blue-hole' },
-    { _id: 'sh-dest-4', name: 'Naama Bay', slug: 'naama-bay' },
-    { _id: 'sh-dest-5', name: 'White Island', slug: 'white-island' },
-  ],
-  'luxor-excursions': [
-    { _id: 'lx-dest-1', name: 'Valley of Kings', slug: 'valley-of-kings' },
-    { _id: 'lx-dest-2', name: 'Karnak Temple', slug: 'karnak-temple' },
-    { _id: 'lx-dest-3', name: 'Luxor Temple', slug: 'luxor-temple' },
-    { _id: 'lx-dest-4', name: 'West Bank', slug: 'west-bank' },
-    { _id: 'lx-dest-5', name: 'Hatshepsut Temple', slug: 'hatshepsut-temple' },
-  ],
-  'cairo-excursions-online': [
-    { _id: 'ca-dest-1', name: 'Giza Pyramids', slug: 'giza-pyramids' },
-    { _id: 'ca-dest-2', name: 'Egyptian Museum', slug: 'egyptian-museum' },
-    { _id: 'ca-dest-3', name: 'Khan El Khalili', slug: 'khan-el-khalili' },
-    { _id: 'ca-dest-4', name: 'Islamic Cairo', slug: 'islamic-cairo' },
-    { _id: 'ca-dest-5', name: 'Coptic Cairo', slug: 'coptic-cairo' },
-  ],
-};
 
 // =================================================================
 // --- FOOTER COMPONENT ---
@@ -110,37 +82,34 @@ export default function Footer() {
       try {
         // Use public destinations endpoint (tenant-aware)
         const tenantId = tenant?.tenantId || 'default';
-        const response = await fetch(`/api/destinations?tenantId=${encodeURIComponent(tenantId)}`);
+        const tenantFallbackDestinations = getTenantFooterDestinations(tenantId);
+        const response = await fetch(`/api/destinations?tenantId=${encodeURIComponent(tenantId)}&locale=${encodeURIComponent(locale)}`);
         if (response.ok) {
           const data = await response.json();
           if (data.success && data.data?.length > 0) {
-            // Check if any destinations are tenant-specific
-            const hasTenantSpecific = data.data.some((d: any) => d.tenantId === tenantId);
-            if (hasTenantSpecific || !tenantFooterDestinations[tenantId]) {
+            const hasTenantSpecific = hasTenantScopedNavigationContent(data.data, tenantId);
+            if (hasTenantSpecific || !tenantFallbackDestinations) {
               setDestinations(data.data);
             } else {
-              // Use tenant-specific defaults
-              setDestinations(tenantFooterDestinations[tenantId] as any);
+              setDestinations(tenantFallbackDestinations as any);
             }
-          } else if (tenantFooterDestinations[tenantId]) {
-            // Use tenant-specific defaults if no data returned
-            setDestinations(tenantFooterDestinations[tenantId] as any);
+          } else if (tenantFallbackDestinations) {
+            setDestinations(tenantFallbackDestinations as any);
           }
-        } else if (tenantFooterDestinations[tenantId]) {
-          // Use tenant-specific defaults on API error
-          setDestinations(tenantFooterDestinations[tenantId] as any);
+        } else if (tenantFallbackDestinations) {
+          setDestinations(tenantFallbackDestinations as any);
         }
       } catch (error) {
         console.error("Failed to fetch destinations for footer:", error);
-        // Use tenant-specific defaults on error
         const tenantId = tenant?.tenantId;
-        if (tenantId && tenantFooterDestinations[tenantId]) {
-          setDestinations(tenantFooterDestinations[tenantId] as any);
+        const tenantFallbackDestinations = getTenantFooterDestinations(tenantId);
+        if (tenantFallbackDestinations) {
+          setDestinations(tenantFallbackDestinations as any);
         }
       }
     };
     fetchDestinations();
-  }, [tenant?.tenantId]);
+  }, [tenant?.tenantId, locale]);
 
   // Listen for open-chatbot events (dispatched by openChatbot)
   useEffect(() => {

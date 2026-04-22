@@ -3,6 +3,7 @@ import dbConnect from '@/lib/dbConnect';
 import Tour from '@/lib/models/Tour';
 import mongoose from 'mongoose';
 import Fuse from 'fuse.js';
+import { buildStrictTenantQuery, getTenantFromRequest } from '@/lib/tenant';
 
 // Fuse.js configuration for fuzzy search fallback
 const fuseOptions = {
@@ -94,19 +95,18 @@ async function performTextSearch(searchQuery: string, additionalFilters: any = {
 
 export async function GET(request: Request) {
     try {
-        await dbConnect();
+        const tenantId =
+          new URL(request.url).searchParams.get('tenantId') ||
+          request.headers.get('x-tenant-id') ||
+          await getTenantFromRequest();
+
+        await dbConnect(tenantId);
         const { searchParams } = new URL(request.url);
 
         // Build additional filters - ALWAYS filter for published tours only
-        const additionalFilters: any = {
-            isPublished: true  // Only show published tours
-        };
-
-        // Multi-tenant: Filter by tenantId if provided (from header or query param)
-        const tenantId = searchParams.get('tenantId') || request.headers.get('x-tenant-id');
-        if (tenantId && tenantId !== 'all' && tenantId !== 'default') {
-            additionalFilters.tenantId = tenantId;
-        }
+        const additionalFilters: any = buildStrictTenantQuery({
+            isPublished: true
+        }, tenantId);
 
         // Categories Filter
         const categories = searchParams.get('categories');

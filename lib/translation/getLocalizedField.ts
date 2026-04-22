@@ -5,6 +5,34 @@ type TourLike = Record<string, unknown> & {
   translations?: Record<string, Record<string, unknown>>;
 };
 
+function getLocaleKeys(locale: string): string[] {
+  const normalized = locale.toLowerCase();
+  return normalized === 'en' ? [normalized, locale] : [normalized, locale, 'en'];
+}
+
+function getLocaleRecord(
+  doc: TourLike,
+  locale: string
+): Record<string, unknown> | undefined {
+  for (const key of getLocaleKeys(locale)) {
+    const value = doc.translations?.[key];
+    if (value && typeof value === 'object') {
+      return value as Record<string, unknown>;
+    }
+  }
+  return undefined;
+}
+
+function getStructuredLocaleRecord(
+  doc: TourLike,
+  locale: string,
+  bucketKey: string
+): Record<string, unknown> | undefined {
+  const localeRecord = getLocaleRecord(doc, locale);
+  const value = localeRecord?.[bucketKey];
+  return value && typeof value === 'object' ? (value as Record<string, unknown>) : undefined;
+}
+
 /**
  * Get a localized text field from a tour document.
  * Falls back to the original English field if no translation exists.
@@ -19,22 +47,19 @@ export function getLocalizedField(
   locale: string
 ): string {
   if (!doc) return '';
-  if (locale === 'en') return (doc[field] as string) || '';
 
-  // Check translations first
-  const translated = doc.translations?.[locale]?.fields;
-  if (translated && typeof translated === 'object') {
-    const value = (translated as Record<string, unknown>)[field];
+  const translated = getStructuredLocaleRecord(doc, locale, 'fields');
+  if (translated) {
+    const value = translated[field];
     if (typeof value === 'string' && value.trim()) return value;
   }
 
-  // Direct locale check (for flat translation structure)
-  const directTranslation = doc.translations?.[locale]?.[field];
+  const localeRecord = getLocaleRecord(doc, locale);
+  const directTranslation = localeRecord?.[field];
   if (typeof directTranslation === 'string' && directTranslation.trim()) {
     return directTranslation;
   }
 
-  // Fallback to English
   return (doc[field] as string) || '';
 }
 
@@ -50,21 +75,19 @@ export function getLocalizedArray(
   locale: string
 ): string[] {
   if (!doc) return [];
-  if (locale === 'en') return (doc[field] as string[]) || [];
 
-  // Check translations
-  const translated = doc.translations?.[locale]?.arrays;
-  if (translated && typeof translated === 'object') {
-    const value = (translated as Record<string, unknown>)[field];
+  const translated = getStructuredLocaleRecord(doc, locale, 'arrays');
+  if (translated) {
+    const value = translated[field];
     if (Array.isArray(value) && value.length > 0) return value;
   }
 
-  const directTranslation = doc.translations?.[locale]?.[field];
+  const localeRecord = getLocaleRecord(doc, locale);
+  const directTranslation = localeRecord?.[field];
   if (Array.isArray(directTranslation) && directTranslation.length > 0) {
     return directTranslation as string[];
   }
 
-  // Fallback to English
   return (doc[field] as string[]) || [];
 }
 
@@ -76,9 +99,9 @@ export function getLocalizedItinerary(
   locale: string
 ): Array<Record<string, unknown>> {
   const original = (doc.itinerary as Array<Record<string, unknown>>) || [];
-  if (!doc || locale === 'en') return original;
+  if (!doc) return original;
 
-  const translated = doc.translations?.[locale]?.itinerary;
+  const translated = getLocaleRecord(doc, locale)?.itinerary;
   if (Array.isArray(translated) && translated.length > 0) {
     // Merge translated text with original non-text fields (time, day, icon, duration)
     return original.map((item, i) => {
@@ -104,9 +127,9 @@ export function getLocalizedFaq(
   locale: string
 ): Array<Record<string, unknown>> {
   const original = (doc.faq as Array<Record<string, unknown>>) || [];
-  if (!doc || locale === 'en') return original;
+  if (!doc) return original;
 
-  const translated = doc.translations?.[locale]?.faq;
+  const translated = getLocaleRecord(doc, locale)?.faq;
   if (Array.isArray(translated) && translated.length > 0) {
     return original.map((item, i) => {
       const t = (translated[i] as Record<string, unknown>) || {};
@@ -129,9 +152,9 @@ export function getLocalizedBookingOptions(
   locale: string
 ): Array<Record<string, unknown>> {
   const original = (doc.bookingOptions as Array<Record<string, unknown>>) || [];
-  if (!doc || locale === 'en') return original;
+  if (!doc) return original;
 
-  const translated = doc.translations?.[locale]?.bookingOptions;
+  const translated = getLocaleRecord(doc, locale)?.bookingOptions;
   if (Array.isArray(translated) && translated.length > 0) {
     return original.map((item, i) => {
       const t = (translated[i] as Record<string, unknown>) || {};
@@ -155,9 +178,9 @@ export function getLocalizedAddOns(
   locale: string
 ): Array<Record<string, unknown>> {
   const original = (doc.addOns as Array<Record<string, unknown>>) || [];
-  if (!doc || locale === 'en') return original;
+  if (!doc) return original;
 
-  const translated = doc.translations?.[locale]?.addOns;
+  const translated = getLocaleRecord(doc, locale)?.addOns;
   if (Array.isArray(translated) && translated.length > 0) {
     return original.map((item, i) => {
       const t = (translated[i] as Record<string, unknown>) || {};
@@ -177,7 +200,7 @@ export function getLocalizedAddOns(
  * This is the main utility - call it once in the server component before passing to client.
  */
 export function localizeTour<T extends TourLike>(tour: T, locale: string): T {
-  if (!tour || locale === 'en') return tour;
+  if (!tour) return tour;
 
   const localized = { ...tour };
 

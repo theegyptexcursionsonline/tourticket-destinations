@@ -7,8 +7,14 @@ import Category from '@/lib/models/Category';
 import Destination from '@/lib/models/Destination';
 import Tour from '@/lib/models/Tour';
 import { Loader2 } from 'lucide-react';
-import { buildTenantQuery, getTenantFromRequest, getTenantPublicConfig } from '@/lib/tenant';
+import { buildStrictTenantQuery, getTenantFromRequest, getTenantPublicConfig } from '@/lib/tenant';
 import { filterVisibleTaxonomyEntries } from '@/lib/utils/taxonomy';
+import { getLocale } from 'next-intl/server';
+import { localizeEntityFields } from '@/lib/i18n/contentLocalization';
+import {
+  categoryTranslationFields,
+  destinationTranslationFields,
+} from '@/lib/i18n/translationFields';
 
 // Enable ISR with 60 second revalidation for instant page loads
 export const dynamic = 'force-dynamic';
@@ -42,7 +48,7 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-async function getFilters() {
+async function getFilters(locale: string) {
     const tenantId = await getTenantFromRequest();
     await dbConnect(tenantId);
     try {
@@ -54,11 +60,7 @@ async function getFilters() {
         // which is what Issue #2 was about. Any content the tenant can ever
         // surface is preferable to a completely empty filter bar.
 
-        const tenantQueryOptions = {
-          includeDefault: tenantId !== 'default',
-        };
-
-        const tourQuery = buildTenantQuery({ isPublished: true }, tenantId, tenantQueryOptions);
+        const tourQuery = buildStrictTenantQuery({ isPublished: true }, tenantId);
         const tours = await Tour.find(tourQuery)
           .select('category destination')
           .lean();
@@ -88,12 +90,12 @@ async function getFilters() {
         // "with-tours" set is used only for sort ordering below.
         const [categoriesAll, destinationsAll] = await Promise.all([
             Category.find(
-              buildTenantQuery({ isPublished: true }, tenantId, tenantQueryOptions),
+              buildStrictTenantQuery({ isPublished: true }, tenantId),
             )
               .sort({ order: 1, name: 1 })
               .lean(),
             Destination.find(
-              buildTenantQuery({ isPublished: true }, tenantId, tenantQueryOptions),
+              buildStrictTenantQuery({ isPublished: true }, tenantId),
             )
               .sort({ featured: -1, name: 1 })
               .lean(),
@@ -110,12 +112,23 @@ async function getFilters() {
           return aHas - bHas;
         };
 
+        const catFields = categoryTranslationFields.map((field) => field.key);
+        const destFields = destinationTranslationFields.map((field) => field.key);
+
         const categories = [...categoriesAll].sort(rank(categoryIdSet));
         const destinations = [...destinationsAll].sort(rank(destinationIdSet));
 
         return {
-            categories: JSON.parse(JSON.stringify(filterVisibleTaxonomyEntries(categories))),
-            destinations: JSON.parse(JSON.stringify(filterVisibleTaxonomyEntries(destinations))),
+            categories: JSON.parse(JSON.stringify(
+              filterVisibleTaxonomyEntries(
+                categories.map((category: any) => localizeEntityFields(category, locale, catFields))
+              )
+            )),
+            destinations: JSON.parse(JSON.stringify(
+              filterVisibleTaxonomyEntries(
+                destinations.map((destination: any) => localizeEntityFields(destination, locale, destFields))
+              )
+            )),
         };
     } catch (error) {
         console.error("Failed to fetch filters:", error);
@@ -134,7 +147,8 @@ function Loading() {
 }
 
 export default async function SearchPage() {
-    const { categories, destinations } = await getFilters();
+    const locale = await getLocale();
+    const { categories, destinations } = await getFilters(locale);
 
     return (
         <Suspense fallback={<Loading />}>

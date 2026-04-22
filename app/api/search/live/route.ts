@@ -2,6 +2,7 @@ import dbConnect from '@/lib/dbConnect';
 import Tour from '@/lib/models/Tour';
 import { NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
+import { buildStrictTenantQuery, getTenantFromRequest } from '@/lib/tenant';
 
 // Helper function for flexible live search
 function createLiveSearchConditions(searchQuery: string) {
@@ -28,15 +29,17 @@ function createLiveSearchConditions(searchQuery: string) {
 }
 
 export async function GET(req: NextRequest) {
-    await dbConnect();
+    const tenantId = req.nextUrl.searchParams.get('tenantId') || req.headers.get('x-tenant-id') || await getTenantFromRequest();
+    await dbConnect(tenantId);
 
     try {
         const { searchParams } = new URL(req.url);
         const searchQuery = searchParams.get('q');
+        const tenantFilter = buildStrictTenantQuery({}, tenantId);
 
         if (!searchQuery) {
             // Return tours based on filters when no search query
-            const query: any = {};
+            const query: any = { ...tenantFilter };
 
             const categories = searchParams.get('categories');
             if (categories) {
@@ -99,7 +102,12 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ success: true, data: [] });
         }
 
-        const tours = await Tour.find(searchConditions)
+        const tours = await Tour.find({
+            $and: [
+              tenantFilter,
+              searchConditions,
+            ]
+        })
             .select('title slug image rating reviews destination location tags')
             .populate('destination', 'name')
             .sort({ rating: -1, bookings: -1 }) // Prioritize high-rated popular tours

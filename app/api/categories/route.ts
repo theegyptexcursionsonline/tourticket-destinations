@@ -3,8 +3,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Category from '@/lib/models/Category';
 import Tour from '@/lib/models/Tour';
-import { getTenantFromRequest, buildTenantQuery } from '@/lib/tenant';
+import { buildStrictTenantQuery, getTenantFromRequest } from '@/lib/tenant';
 import { filterVisibleTaxonomyEntries } from '@/lib/utils/taxonomy';
+import { localizeEntityFields } from '@/lib/i18n/contentLocalization';
+import { categoryTranslationFields } from '@/lib/i18n/translationFields';
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,16 +15,11 @@ export async function GET(request: NextRequest) {
     const explicitTenantId = searchParams.get('tenantId');
     const tenantId = (explicitTenantId && explicitTenantId !== 'all') ? explicitTenantId : await getTenantFromRequest();
     const featuredOnly = searchParams.get('featured') === 'true';
+    const locale = searchParams.get('locale') || 'en';
     await dbConnect(tenantId);
     
-    // If tenant has its own categories, show only those (no default fallback)
-    const ownCount = await Category.countDocuments({ tenantId });
-    const catQuery = ownCount > 0
-      ? { tenantId }
-      : buildTenantQuery({}, tenantId);
-
     const categories = await Category.find({
-      ...catQuery,
+      ...buildStrictTenantQuery({}, tenantId),
       ...(featuredOnly ? { featured: true } : {}),
       isPublished: true,
     })
@@ -36,12 +33,10 @@ export async function GET(request: NextRequest) {
     const tourCounts = await Tour.aggregate([
       { 
         $match: { 
-          isPublished: true,
-          category: { $in: categoryIds },
-          $or: [
-            { tenantId: { $in: [tenantId, 'default'] } },
-            { tenantId: { $exists: false } }
-          ]
+          ...buildStrictTenantQuery({
+            isPublished: true,
+            category: { $in: categoryIds },
+          }, tenantId),
         } 
       },
       { $unwind: '$category' },
@@ -51,11 +46,19 @@ export async function GET(request: NextRequest) {
     // Create lookup map
     const countMap = new Map(tourCounts.map((c: any) => [c._id?.toString(), c.count]));
     
+    const catFields = categoryTranslationFields.map((field) => field.key);
+
     // Add tour counts
-    const categoriesWithCounts = categories.map((category: any) => ({
-      ...category,
-      tourCount: countMap.get(category._id?.toString()) || 0
-    }));
+    const categoriesWithCounts = categories.map((category: any) =>
+      localizeEntityFields(
+        {
+          ...category,
+          tourCount: countMap.get(category._id?.toString()) || 0,
+        },
+        locale,
+        catFields
+      )
+    );
 
     const visibleCategories = filterVisibleTaxonomyEntries(categoriesWithCounts, {
       requireTours: true,
