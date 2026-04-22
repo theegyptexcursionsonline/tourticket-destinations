@@ -236,13 +236,13 @@ function createTenantAliasMap<T>(groups: Array<{ aliases: string[]; value: T }>)
 }
 
 export const tenantMegaMenuDestinations: Record<string, TenantMenuDestination[]> = createTenantAliasMap([
-  { aliases: ['hurghada', 'hurghada-excursions-online'], value: tenantDestinationPresets.hurghada },
+  { aliases: ['hurghada', 'hurghada-excursions-online', 'hurghada-ausfluege'], value: tenantDestinationPresets.hurghada },
   { aliases: ['hurghada-speedboat'], value: tenantDestinationPresets.speedboat },
-  { aliases: ['cairo', 'cairo-excursions-online'], value: tenantDestinationPresets.cairo },
-  { aliases: ['makadi-bay'], value: tenantDestinationPresets.makadi },
-  { aliases: ['el-gouna'], value: tenantDestinationPresets.elGouna },
-  { aliases: ['luxor', 'luxor-excursions'], value: tenantDestinationPresets.luxor },
-  { aliases: ['sharm', 'sharm-excursions-online'], value: tenantDestinationPresets.sharm },
+  { aliases: ['cairo', 'cairo-excursions-online', 'cairo-ausfluege'], value: tenantDestinationPresets.cairo },
+  { aliases: ['makadi-bay', 'makadi-ausfluege'], value: tenantDestinationPresets.makadi },
+  { aliases: ['el-gouna', 'elgouna-ausfluege'], value: tenantDestinationPresets.elGouna },
+  { aliases: ['luxor', 'luxor-excursions', 'luxor-ausfluege'], value: tenantDestinationPresets.luxor },
+  { aliases: ['sharm', 'sharm-excursions-online', 'sharm-ausfluege'], value: tenantDestinationPresets.sharm },
   { aliases: ['aswan', 'aswan-excursions'], value: tenantDestinationPresets.aswan },
   { aliases: ['marsa-alam', 'marsa-alam-excursions'], value: tenantDestinationPresets.marsaAlam },
   { aliases: ['dahab', 'dahab-excursions'], value: tenantDestinationPresets.dahab },
@@ -250,13 +250,13 @@ export const tenantMegaMenuDestinations: Record<string, TenantMenuDestination[]>
 ]);
 
 export const tenantMegaMenuCategories: Record<string, TenantMenuCategory[]> = createTenantAliasMap([
-  { aliases: ['hurghada', 'hurghada-excursions-online'], value: tenantCategoryPresets.hurghada },
+  { aliases: ['hurghada', 'hurghada-excursions-online', 'hurghada-ausfluege'], value: tenantCategoryPresets.hurghada },
   { aliases: ['hurghada-speedboat'], value: tenantCategoryPresets.speedboat },
-  { aliases: ['cairo', 'cairo-excursions-online'], value: tenantCategoryPresets.cairo },
-  { aliases: ['makadi-bay'], value: tenantCategoryPresets.makadi },
-  { aliases: ['el-gouna'], value: tenantCategoryPresets.elGouna },
-  { aliases: ['luxor', 'luxor-excursions'], value: tenantCategoryPresets.luxor },
-  { aliases: ['sharm', 'sharm-excursions-online'], value: tenantCategoryPresets.sharm },
+  { aliases: ['cairo', 'cairo-excursions-online', 'cairo-ausfluege'], value: tenantCategoryPresets.cairo },
+  { aliases: ['makadi-bay', 'makadi-ausfluege'], value: tenantCategoryPresets.makadi },
+  { aliases: ['el-gouna', 'elgouna-ausfluege'], value: tenantCategoryPresets.elGouna },
+  { aliases: ['luxor', 'luxor-excursions', 'luxor-ausfluege'], value: tenantCategoryPresets.luxor },
+  { aliases: ['sharm', 'sharm-excursions-online', 'sharm-ausfluege'], value: tenantCategoryPresets.sharm },
   { aliases: ['aswan', 'aswan-excursions'], value: tenantCategoryPresets.aswan },
   { aliases: ['marsa-alam', 'marsa-alam-excursions'], value: tenantCategoryPresets.marsaAlam },
   { aliases: ['dahab', 'dahab-excursions'], value: tenantCategoryPresets.dahab },

@@ -5,6 +5,7 @@ import { headers, cookies } from 'next/headers';
 import dbConnect from './dbConnect';
 import Tenant, { ITenant } from './models/Tenant';
 import { resolveTenantBranding } from './tenantBranding';
+import { getTenantPresentationSourceTenantId, resolveTenantPresentation } from './tenantPresentation';
 
 // ============================================
 // TYPES
@@ -87,6 +88,7 @@ export interface TenantPublicConfig {
   name: string;
   domain: string;
   branding: TenantConfig['branding'];
+  theme?: ITenant['theme'];
   seo: Pick<TenantConfig['seo'], 'defaultTitle' | 'titleSuffix' | 'defaultDescription' | 'ogImage' | 'googleTagManagerId'>;
   contact: Pick<TenantConfig['contact'], 'email' | 'phone' | 'whatsapp'>;
   socialLinks: TenantConfig['socialLinks'];
@@ -292,7 +294,12 @@ export async function getTenantPublicConfig(tenantId: string): Promise<TenantPub
       return null;
     }
 
-    const branding = resolveTenantBranding(tenant);
+    const presentationSourceTenantId = getTenantPresentationSourceTenantId(tenant.tenantId);
+    const sourceTenant =
+      presentationSourceTenantId && presentationSourceTenantId !== tenant.tenantId
+        ? await getTenantConfigCached(presentationSourceTenantId)
+        : null;
+    const { branding, theme } = resolveTenantPresentation(tenant, sourceTenant);
 
     // Return only public/safe configuration (with fallbacks for missing nested objects)
     return {
@@ -300,6 +307,7 @@ export async function getTenantPublicConfig(tenantId: string): Promise<TenantPub
       name: tenant.name,
       domain: tenant.domain,
       branding,
+      theme,
       seo: {
         defaultTitle: tenant.seo?.defaultTitle ?? '',
         titleSuffix: tenant.seo?.titleSuffix ?? '',

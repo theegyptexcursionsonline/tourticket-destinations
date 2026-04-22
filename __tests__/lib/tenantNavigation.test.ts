@@ -15,8 +15,14 @@ describe('tenantNavigation', () => {
     expect(tenantMegaMenuDestinations.hurghada?.[0]?.slug).toBe(
       tenantMegaMenuDestinations['hurghada-excursions-online']?.[0]?.slug
     );
+    expect(tenantMegaMenuDestinations['makadi-ausfluege']?.[0]?.slug).toBe(
+      tenantMegaMenuDestinations['makadi-bay']?.[0]?.slug
+    );
     expect(tenantMegaMenuCategories.luxor?.[0]?.slug).toBe(
       tenantMegaMenuCategories['luxor-excursions']?.[0]?.slug
+    );
+    expect(tenantMegaMenuCategories['sharm-ausfluege']?.[0]?.slug).toBe(
+      tenantMegaMenuCategories['sharm-excursions-online']?.[0]?.slug
     );
   });
 
