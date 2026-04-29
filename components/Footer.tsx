@@ -46,6 +46,17 @@ const paymentMethods = [
   { name: "G Pay", component: PaymentIcons.GPay },
 ];
 
+const isFallbackFooterDestination = (destination: Destination) =>
+  String(destination._id || '').startsWith('tenant-footer-');
+
+const getFooterDestinationHref = (destination: Destination) => {
+  if (!isFallbackFooterDestination(destination)) {
+    return `/destinations/${destination.slug}`;
+  }
+
+  return `/search?q=${encodeURIComponent(String(destination.name || destination.slug || ''))}`;
+};
+
 // =================================================================
 // --- FOOTER COMPONENT ---
 // =================================================================
@@ -617,7 +628,7 @@ export default function Footer() {
                   <li key={destination._id}>
                     <Link
                       className="hover:text-[var(--primary-color)] transition-colors inline-flex items-center gap-2"
-                      href={`/destinations/${destination.slug}`}
+                      href={getFooterDestinationHref(destination)}
                     >
                       <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: 'var(--primary-color)' }} />
                       {t('footer.thingsToDoIn', { destination: destination.name })}
@@ -637,7 +648,7 @@ export default function Footer() {
                 <li key={destination._id}>
                   <Link
                     className="hover:text-[var(--primary-color)] transition-colors inline-flex items-center gap-2"
-                    href={`/destinations/${destination.slug}`}
+                    href={getFooterDestinationHref(destination)}
                   >
                     <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
                     {destination.name}
