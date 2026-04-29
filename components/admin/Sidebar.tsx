@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from 'next/link';
 import Image from "next/image";
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
   Map,
@@ -57,6 +57,7 @@ const AdminSidebar = () => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
   const showLabel = isOpen || (isMobile && isMobileOpen);
   const { hasAnyPermission } = useAdminAuth();
   const { getSelectedTenant, isAllTenantsSelected, isLoading: isTenantLoading } = useAdminTenant();
@@ -137,6 +138,14 @@ const AdminSidebar = () => {
     } else {
       setIsOpen(!isOpen);
     }
+  };
+
+  const handleNavClick = (event: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    event.preventDefault();
+    if (isMobile) {
+      setIsMobileOpen(false);
+    }
+    router.push(href);
   };
 
   const sidebarWidth = isMobile ? "w-72" : isOpen ? "w-72" : "w-20";
@@ -245,6 +254,7 @@ const AdminSidebar = () => {
                 <li key={href}>
                   <Link
                     href={href}
+                    onClick={(event) => handleNavClick(event, href)}
                     className={`relative group flex items-center rounded-2xl transition-all duration-200 overflow-hidden ${
                       showLabel
                         ? "gap-4 px-4 py-3.5"

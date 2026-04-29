@@ -66,13 +66,21 @@ const SearchClient: React.FC<SearchClientProps> = ({ initialTours = [], categori
   const searchParams = useSearchParams();
 
   // Filters & UI state
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [selectedDestinations, setSelectedDestinations] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState(() => searchParams?.get('q') ?? '');
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(() =>
+    normalizeArrayParam(searchParams?.get('categories'))
+  );
+  const [selectedDestinations, setSelectedDestinations] = useState<string[]>(() =>
+    normalizeArrayParam(searchParams?.get('destinations'))
+  );
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 500]);
-  const [selectedDurations, setSelectedDurations] = useState<string[]>([]);
-  const [selectedRatings, setSelectedRatings] = useState<number[]>([]);
-  const [sortBy, setSortBy] = useState('relevance');
+  const [selectedDurations, setSelectedDurations] = useState<string[]>(() =>
+    normalizeArrayParam(searchParams?.get('durations'))
+  );
+  const [selectedRatings, setSelectedRatings] = useState<number[]>(() =>
+    parseNumberArray(searchParams?.get('ratings'))
+  );
+  const [sortBy, setSortBy] = useState(() => searchParams?.get('sortBy') ?? 'relevance');
 
   // component logic state
   const [tours, setTours] = useState<TourType[]>(initialTours || []);
@@ -177,6 +185,8 @@ const SearchClient: React.FC<SearchClientProps> = ({ initialTours = [], categori
       if (selectedDurations.length > 0) params.set('durations', selectedDurations.join(','));
       if (selectedRatings.length > 0) params.set('ratings', selectedRatings.join(','));
       params.set('sortBy', sortBy);
+      const previewTenant = searchParams?.get('tenant');
+      if (previewTenant) params.set('tenant', previewTenant);
 
       const newQuery = params.toString();
       router.replace(`${pathname}?${newQuery}`, { scroll: false });

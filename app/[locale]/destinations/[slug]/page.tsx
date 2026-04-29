@@ -176,6 +176,7 @@ export default async function DestinationPage({ params }: { params: Promise<{ sl
           }))}
         />
         <DestinationPageClient
+          tenantId={tenantId}
           destination={localizedDestination}
           destinationTours={localizedTours}
           allCategories={localizedCategories}

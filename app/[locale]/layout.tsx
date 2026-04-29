@@ -249,12 +249,7 @@ export default async function LocaleLayout({
 
   return (
     <html lang={locale} dir={dir} suppressHydrationWarning>
-      <head>
-        {/* Inject tenant branding styles */}
-        {brandingStyles && (
-          <style dangerouslySetInnerHTML={{ __html: brandingStyles }} />
-        )}
-      </head>
+      <head>{brandingStyles ? <style dangerouslySetInnerHTML={{ __html: brandingStyles }} /> : null}</head>
       <body className={fontClass} suppressHydrationWarning>
         <NextIntlClientProvider messages={messages}>
           {/* TenantProvider wraps all other providers */}

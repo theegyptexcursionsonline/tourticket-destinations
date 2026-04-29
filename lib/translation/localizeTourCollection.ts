@@ -121,6 +121,17 @@ export function localizeAndDedupeTours<T extends TourCollectionItem>(
 
   tours.forEach((tour, index) => {
     const localized = localizeTour(tour as any, locale) as T;
+
+    // English pages should not render untranslated German tenant copies. If a
+    // record has no English translation and the visible fields still look
+    // German, leave it out instead of showing mixed-language cards.
+    if (locale.toLowerCase() === 'en') {
+      const preview = `${localized.title || ''} ${localized.duration || ''}`;
+      if (!hasLocaleContent(tour, 'en') && ENGLISH_FOREIGN_HINTS.test(preview)) {
+        return;
+      }
+    }
+
     const key = getKey(localized, index);
     const score = getScore(tour, localized, locale, index);
     const existing = bestByKey.get(key);

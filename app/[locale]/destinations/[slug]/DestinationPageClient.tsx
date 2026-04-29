@@ -32,10 +32,12 @@ import {
   getDestinationPageSearchResults,
   getDestinationTrendingSearches,
 } from '@/lib/destinationPageSearch';
+import { filterSearchHitsByTenant } from '@/lib/tenantSearchHitFilter';
 
 const DESTINATION_HERO_FALLBACK_IMAGE = '/hero2.jpg';
 
 interface DestinationPageClientProps {
+  tenantId?: string;
   destination: Destination;
   destinationTours: Tour[];
   allCategories: Category[];
@@ -61,6 +63,8 @@ type DestinationPageCopy = {
   aiDestinationAssistant: string;
   searchResults: string;
   popularSearches: string;
+  noTenantResultsTitle: string;
+  noTenantResultsBody: (destination: string) => string;
   newChat: string;
   askDestinationPrompt: string;
   trendingTours: string;
@@ -171,6 +175,9 @@ const destinationPageCopy: Record<'en' | 'ar', DestinationPageCopy> = {
     aiDestinationAssistant: 'AI Destination Assistant',
     searchResults: 'Search Results',
     popularSearches: 'Popular Searches',
+    noTenantResultsTitle: 'No matching results found',
+    noTenantResultsBody: (destination) =>
+      `Try a different search related to ${destination}, or browse the available tours and destinations on this website.`,
     newChat: 'New Chat',
     askDestinationPrompt: 'Ask me anything about this destination!',
     trendingTours: 'Trending Tours',
@@ -293,6 +300,9 @@ const destinationPageCopy: Record<'en' | 'ar', DestinationPageCopy> = {
     aiDestinationAssistant: 'مساعد الوجهات الذكي',
     searchResults: 'نتائج البحث',
     popularSearches: 'عمليات بحث شائعة',
+    noTenantResultsTitle: 'لا توجد نتائج مطابقة',
+    noTenantResultsBody: (destination) =>
+      `جرّب بحثًا مختلفًا مرتبطًا بـ ${destination}، أو تصفح الجولات والوجهات المتاحة على هذا الموقع.`,
     newChat: 'محادثة جديدة',
     askDestinationPrompt: 'اسألني أي شيء عن هذه الوجهة!',
     trendingTours: 'جولات رائجة',
@@ -792,12 +802,14 @@ function CategorySearchResults({
 // --- Hero Search Bar ---
 const HeroSearchBar = ({
   suggestion,
+  tenantId,
   destination,
   destinationTours,
   relatedDestinations,
   allCategories,
 }: {
   suggestion: string;
+  tenantId?: string;
   destination: Destination;
   destinationTours: Tour[];
   relatedDestinations: Destination[];
@@ -807,12 +819,14 @@ const HeroSearchBar = ({
   const BackArrow = rtl ? ArrowRight : ArrowLeft;
   const [query, setQuery] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [chatMode, setChatMode] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [detectedToursByMessage, setDetectedToursByMessage] = useState<Record<string, any[]>>({});
   const [detectedDestinationsByMessage, setDetectedDestinationsByMessage] = useState<Record<string, any[]>>({});
+  const activeTenantId = tenantId || 'default';
   const searchResults = getDestinationPageSearchResults({
     query,
     destination,
@@ -829,6 +843,7 @@ const HeroSearchBar = ({
     searchResults.tours.length > 0 ||
     searchResults.destinations.length > 0 ||
     searchResults.categories.length > 0;
+  const shouldShowSearchDropdown = isExpanded || (isSearchFocused && Boolean(query.trim()));
 
   const {
     messages,
@@ -851,6 +866,7 @@ const HeroSearchBar = ({
     const handleClickOutside = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setIsExpanded(false);
+        setIsSearchFocused(false);
         setChatMode(false);
       }
     };
@@ -921,6 +937,7 @@ const HeroSearchBar = ({
 
   const handleCloseDropdown = () => {
     setIsExpanded(false);
+    setIsSearchFocused(false);
     setChatMode(false);
   };
 
@@ -997,24 +1014,26 @@ const HeroSearchBar = ({
               indexName: INDEX_TOURS,
               params: {
                 query: tourTitle,
-                hitsPerPage: 1,
+                hitsPerPage: 8,
               }
             }]);
             let firstResult = response.results[0] as any;
+            let scopedHits = filterSearchHitsByTenant((firstResult?.hits || []) as any[], activeTenantId);
 
-            if (!firstResult?.hits?.length) {
+            if (scopedHits.length === 0) {
               const keywords = tourTitle.split(/\s+/).filter(w => w.length > 3).slice(0, 4).join(' ');
               response = await searchClient.search([{
                 indexName: INDEX_TOURS,
                 params: {
                   query: keywords,
-                  hitsPerPage: 1,
+                  hitsPerPage: 8,
                 }
               }]);
               firstResult = response.results[0] as any;
+              scopedHits = filterSearchHitsByTenant((firstResult?.hits || []) as any[], activeTenantId);
             }
 
-            return firstResult?.hits?.[0];
+            return scopedHits[0];
           } catch (error) {
             console.error('Error searching for tour:', tourTitle, error);
             return null;
@@ -1050,7 +1069,7 @@ const HeroSearchBar = ({
       console.error('Error detecting tours:', error);
     }
     return [];
-  }, [copy.untitledTour]);
+  }, [activeTenantId, copy.untitledTour]);
 
   const detectAndFetchDestinations = useCallback(async (text: string) => {
     try {
@@ -1078,11 +1097,11 @@ const HeroSearchBar = ({
               indexName: INDEX_DESTINATIONS,
               params: {
                 query: destName,
-                hitsPerPage: 1,
+                hitsPerPage: 8,
               }
             }]);
             const firstResult = response.results[0] as any;
-            return firstResult?.hits?.[0];
+            return filterSearchHitsByTenant((firstResult?.hits || []) as any[], activeTenantId)[0];
           } catch (error) {
             console.error('Error searching for destination:', destName, error);
             return null;
@@ -1113,11 +1132,11 @@ const HeroSearchBar = ({
       console.error('Error detecting destinations:', error);
     }
     return [];
-  }, [copy.untitledDestination]);
+  }, [activeTenantId, copy.untitledDestination]);
 
   const renderToolOutput = useCallback((obj: any) => {
     if (Array.isArray(obj)) {
-      const tours = obj
+      const tours = filterSearchHitsByTenant(obj as any[], activeTenantId)
         .map((item) => ({
           slug: item.slug || item.objectID,
           title: item.title,
@@ -1132,7 +1151,7 @@ const HeroSearchBar = ({
       if (tours.length > 0) return <TourSlider tours={tours} onHitClick={handleCloseDropdown} />;
     }
     if (obj?.hits && Array.isArray(obj.hits)) {
-      const tours = obj.hits
+      const tours = filterSearchHitsByTenant(obj.hits as any[], activeTenantId)
         .map((item: any) => ({
           slug: item.slug || item.objectID,
           title: item.title,
@@ -1146,7 +1165,7 @@ const HeroSearchBar = ({
         .filter((item: any) => item.title && item.slug);
       if (tours.length > 0) return <TourSlider tours={tours} onHitClick={handleCloseDropdown} />;
     }
-    if (obj?.title && obj?.slug) {
+    if (obj?.title && obj?.slug && filterSearchHitsByTenant([obj], activeTenantId).length > 0) {
       return <TourSlider tours={[obj]} onHitClick={handleCloseDropdown} />;
     }
     return (
@@ -1154,7 +1173,7 @@ const HeroSearchBar = ({
         {JSON.stringify(obj, null, 2)}
       </pre>
     );
-  }, [handleCloseDropdown]);
+  }, [activeTenantId, handleCloseDropdown]);
 
   useEffect(() => {
     if (isGenerating) return;
@@ -1312,8 +1331,14 @@ const HeroSearchBar = ({
                 <input
                   type="text"
                   value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  onFocus={() => setIsExpanded(true)}
+                  onChange={(e) => {
+                    setQuery(e.target.value);
+                    setIsExpanded(true);
+                  }}
+                  onFocus={() => {
+                    setIsSearchFocused(true);
+                    setIsExpanded(true);
+                  }}
                   onKeyDown={(e) => {
                     if (chatMode && e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
@@ -1354,6 +1379,7 @@ const HeroSearchBar = ({
                       onClick={() => {
                         setQuery('');
                         setIsExpanded(false);
+                        setIsSearchFocused(false);
                         setChatMode(false);
                       }}
                       className="p-1.5 hover:bg-gray-100 rounded-full transition-colors"
@@ -1439,7 +1465,7 @@ const HeroSearchBar = ({
         </motion.div>
 
         <AnimatePresence>
-          {isExpanded && (
+          {shouldShowSearchDropdown && (
             <motion.div
               ref={dropdownRef}
               initial={{ opacity: 0, y: -10, scale: 0.96 }}
@@ -1565,22 +1591,12 @@ const HeroSearchBar = ({
                     </div>
                   ) : (
                     <div className="p-6">
-                      <div className="flex items-center gap-2 mb-4">
-                        <Star className="w-4 h-4 text-blue-500 fill-current" />
-                        <span className="text-xs font-bold text-gray-700 uppercase tracking-wider">
-                          {copy.trendingTours}
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {trendingSearches.map((trend) => (
-                          <button
-                            key={trend}
-                            onClick={() => setQuery(trend)}
-                            className="px-4 py-2 bg-white/80 backdrop-blur-sm border border-gray-200/50 rounded-full text-xs font-medium text-gray-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:border-blue-200 hover:text-blue-700 hover:shadow-md transition-all duration-200 hover:scale-105"
-                          >
-                            {trend}
-                          </button>
-                        ))}
+                      <div className="rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50/90 via-white to-purple-50/80 p-5 text-center shadow-sm">
+                        <Compass className="mx-auto mb-3 h-8 w-8 text-blue-500" />
+                        <p className="text-sm font-bold text-gray-900">{copy.noTenantResultsTitle}</p>
+                        <p className="mt-2 text-xs leading-relaxed text-gray-500">
+                          {copy.noTenantResultsBody(destination.name)}
+                        </p>
                       </div>
                     </div>
                   )
@@ -1723,12 +1739,14 @@ const BackgroundSlideImage = ({ src, alt }: { src: string; alt: string }) => {
 };
 
 const DestinationHeroSection = ({
+  tenantId,
   destination,
   tourCount,
   destinationTours,
   relatedDestinations,
   allCategories,
 }: {
+  tenantId?: string;
   destination: Destination;
   tourCount: number;
   destinationTours: Tour[];
@@ -1770,6 +1788,7 @@ const DestinationHeroSection = ({
 
           <HeroSearchBar
             suggestion={currentSuggestion}
+            tenantId={tenantId}
             destination={destination}
             destinationTours={destinationTours}
             relatedDestinations={relatedDestinations}
@@ -2285,6 +2304,7 @@ const NewsletterSection = ({ destinationName }: { destinationName: string }) => 
 
 // --- MAIN COMPONENT ---
 export default function DestinationPageClient({
+  tenantId = 'default',
   destination,
   destinationTours,
   allCategories,
@@ -2331,6 +2351,7 @@ export default function DestinationPageClient({
       <main className="min-h-screen bg-white" dir={rtl ? 'rtl' : 'ltr'}>
         
         <DestinationHeroSection
+          tenantId={tenantId}
           destination={destination}
           tourCount={destinationTours.length}
           destinationTours={destinationTours}

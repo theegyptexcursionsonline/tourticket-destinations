@@ -112,7 +112,9 @@ const scoreMatch = (query: string, fields: unknown[]): number => {
     return 0;
   }
 
-  const queryTerms = normalizedQuery.split(/\s+/).filter(Boolean);
+  const queryTerms = normalizedQuery
+    .split(/\s+/)
+    .filter((term) => term.length > 2);
   let bestScore = 0;
 
   for (const field of fields) {

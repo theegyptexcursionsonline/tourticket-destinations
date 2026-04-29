@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import AdminClientLayout from './AdminClientLayout';
 import ClientErrorReporter from '@/components/ClientErrorReporter';
+import AdminDocumentTitle from '@/components/admin/AdminDocumentTitle';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
@@ -23,6 +24,7 @@ export default function AdminLayout({
     return (
         <html lang="en" dir="ltr">
             <body className={`${inter.variable} font-sans`}>
+                <AdminDocumentTitle />
                 <AdminClientLayout>{children}</AdminClientLayout>
                 <ClientErrorReporter />
             </body>

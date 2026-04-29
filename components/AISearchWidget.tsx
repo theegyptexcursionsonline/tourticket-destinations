@@ -850,6 +850,7 @@ export default function AISearchWidget() {
 
   const handleInputChange = (value: string) => {
     setInputValue(value);
+    setIsExpanded(true);
     if (!chatMode) {
       setSearchQuery(value);
     }
@@ -990,12 +991,16 @@ export default function AISearchWidget() {
   // Render tool outputs (tours)
   const renderToolOutput = useCallback((obj: any) => {
     if (Array.isArray(obj)) {
-      const tours = obj.filter(item => item.title && item.slug);
+      const tours = filterSearchHitsByTenant(obj, tenantId || 'default')
+        .filter(item => item.title && item.slug);
       if (tours.length > 0) return <TourSlider tours={tours} />;
     }
-    if (obj.title && obj.slug) return <TourSlider tours={[obj]} />;
+    if (obj.title && obj.slug && filterSearchHitsByTenant([obj], tenantId || 'default').length > 0) {
+      return <TourSlider tours={[obj]} />;
+    }
     if (obj.hits && Array.isArray(obj.hits)) {
-      const tours = obj.hits.filter((item: any) => item.title && item.slug);
+      const tours = filterSearchHitsByTenant(obj.hits, tenantId || 'default')
+        .filter((item: any) => item.title && item.slug);
       if (tours.length > 0) return <TourSlider tours={tours} />;
     }
     return (
@@ -1003,7 +1008,7 @@ export default function AISearchWidget() {
         {JSON.stringify(obj, null, 2)}
       </pre>
     );
-  }, []);
+  }, [tenantId]);
 
   // Detect tours and destinations in messages (optimized to avoid lag)
   useEffect(() => {
@@ -1569,9 +1574,9 @@ export default function AISearchWidget() {
                                 >
                                   <Search className="w-10 h-10 text-slate-400" strokeWidth={2.5} />
                                 </motion.div>
-                                <p className="text-sm font-semibold text-slate-700 mb-2">No tenant-specific results</p>
+                                <p className="text-sm font-semibold text-slate-700 mb-2">No matching results found</p>
                                 <p className="text-xs text-gray-500 max-w-xs mx-auto leading-relaxed">
-                                  Try another search related to this destination or tenant site.
+                                  Try a different search or browse the available tours and destinations on this website.
                                 </p>
                               </div>
                             )}

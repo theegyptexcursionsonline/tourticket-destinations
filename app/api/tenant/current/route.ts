@@ -8,6 +8,55 @@ import { getTenantFromRequest, getTenantPublicConfig } from '@/lib/tenant';
 
 export const dynamic = 'force-dynamic';
 
+const EEO_DEFAULT_TENANT = {
+  tenantId: 'default',
+  name: 'Egypt Excursions Online',
+  domain: 'egypt-excursionsonline.com',
+  branding: {
+    logo: '/EEO-logo.png',
+    logoAlt: 'Egypt Excursions Online',
+    favicon: '/favicon.ico',
+    primaryColor: '#E63946',
+    secondaryColor: '#1D3557',
+    accentColor: '#F4A261',
+    backgroundColor: '#FFFFFF',
+    textColor: '#1F2937',
+    fontFamily: 'Inter',
+    borderRadius: '8px',
+  },
+  seo: {
+    defaultTitle: 'Egypt Excursions Online - Tours & Experiences',
+    titleSuffix: 'Egypt Excursions Online',
+    defaultDescription: 'Discover Egypt\'s wonders with unforgettable tours and experiences.',
+    ogImage: '/hero1.jpg',
+  },
+  contact: {
+    email: 'info@egypt-excursionsonline.com',
+    phone: '+20 000 000 0000',
+  },
+  socialLinks: {},
+  features: {
+    enableBlog: true,
+    enableReviews: true,
+    enableWishlist: true,
+    enableAISearch: true,
+    enableIntercom: false,
+    enableMultiCurrency: true,
+    enableMultiLanguage: true,
+    enableHotelPickup: true,
+  },
+  payments: {
+    currency: 'USD',
+    currencySymbol: '$',
+    supportedCurrencies: ['USD', 'EUR', 'GBP', 'EGP'],
+    supportedPaymentMethods: ['card', 'paypal'],
+  },
+  localization: {
+    defaultLanguage: 'en',
+    supportedLanguages: ['en', 'ar'],
+  },
+};
+
 /**
  * GET /api/tenant/current
  * Get current tenant configuration
@@ -29,6 +78,14 @@ export async function GET(request: NextRequest) {
     
     // Priority: query param > header > default
     const tenantId = queryTenantId || headerTenantId || await getTenantFromRequest();
+
+    if (tenantId === 'default') {
+      return NextResponse.json({
+        success: true,
+        tenant: EEO_DEFAULT_TENANT,
+        isDefault: true,
+      });
+    }
     
     // Get public config (safe for client-side)
     const tenantConfig = await getTenantPublicConfig(tenantId);
@@ -49,54 +106,7 @@ export async function GET(request: NextRequest) {
       // Return minimal default config if no tenant found
       return NextResponse.json({
         success: true,
-        tenant: {
-          tenantId: 'default',
-          name: 'Egypt Excursions Online',
-          domain: 'egypt-excursionsonline.com',
-          branding: {
-            logo: '/EEO-logo.png',
-            logoAlt: 'Egypt Excursions Online',
-            favicon: '/favicon.ico',
-            primaryColor: '#E63946',
-            secondaryColor: '#1D3557',
-            accentColor: '#F4A261',
-            backgroundColor: '#FFFFFF',
-            textColor: '#1F2937',
-            fontFamily: 'Inter',
-            borderRadius: '8px',
-          },
-          seo: {
-            defaultTitle: 'Egypt Excursions Online - Tours & Experiences',
-            titleSuffix: 'Egypt Excursions Online',
-            defaultDescription: 'Discover Egypt\'s wonders with unforgettable tours and experiences.',
-            ogImage: '/hero1.jpg',
-          },
-          contact: {
-            email: 'info@egypt-excursionsonline.com',
-            phone: '+20 000 000 0000',
-          },
-          socialLinks: {},
-          features: {
-            enableBlog: true,
-            enableReviews: true,
-            enableWishlist: true,
-            enableAISearch: true,
-            enableIntercom: false,
-            enableMultiCurrency: true,
-            enableMultiLanguage: true,
-            enableHotelPickup: true,
-          },
-          payments: {
-            currency: 'USD',
-            currencySymbol: '$',
-            supportedCurrencies: ['USD', 'EUR', 'GBP', 'EGP'],
-            supportedPaymentMethods: ['card', 'paypal'],
-          },
-          localization: {
-            defaultLanguage: 'en',
-            supportedLanguages: ['en', 'ar'],
-          },
-        },
+        tenant: EEO_DEFAULT_TENANT,
         isDefault: true,
         isFallback: true,
       });
@@ -115,4 +125,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-
