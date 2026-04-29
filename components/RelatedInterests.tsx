@@ -5,6 +5,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from '@/i18n/navigation';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
+import { useTenant } from '@/contexts/TenantContext';
 import {
   ArrowRight,
   Sparkles,
@@ -135,7 +136,8 @@ const getIconForInterest = (name: string, _slug: string) => {
 const InterestCard = ({ interest }: { interest: Interest }) => {
   const linkUrl =
     interest.type === 'attraction' ? `/attraction/${interest.slug}` : `/interests/${interest.slug}`;
-  const imageUrl = interest.image || getInterestImage(interest.name);
+  const fallbackImageUrl = getInterestImage(interest.name);
+  const [imageUrl, setImageUrl] = useState(interest.image || fallbackImageUrl);
   const { Icon, gradient } = getIconForInterest(interest.name, interest.slug);
 
   return (
@@ -154,6 +156,7 @@ const InterestCard = ({ interest }: { interest: Interest }) => {
           className="object-cover transition-transform duration-700 group-hover:scale-110"
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
           placeholder="empty"
+          onError={() => setImageUrl(fallbackImageUrl)}
         />
 
         {/* Gradient Overlay */}
@@ -214,6 +217,8 @@ const RelatedInterests: React.FC<RelatedInterestsProps> = ({
 }) => {
   const [interests, setInterests] = useState<Interest[]>([]);
   const [loading, setLoading] = useState(!initialInterests);
+  const { tenant } = useTenant();
+  const tenantId = tenant?.tenantId || 'default';
 
   useEffect(() => {
     // If we have initialInterests, process and use them
@@ -226,10 +231,17 @@ const RelatedInterests: React.FC<RelatedInterestsProps> = ({
       return;
     }
 
+    let isActive = true;
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 8000);
+
     // Otherwise fetch from API (fallback for pages not using server component)
     const fetchRelatedInterests = async () => {
       try {
-        const response = await fetch('/api/interests');
+        const params = new URLSearchParams({ tenantId });
+        const response = await fetch(`/api/interests?${params.toString()}`, {
+          signal: controller.signal,
+        });
 
         if (!response.ok) {
           throw new Error('Failed to fetch interests');
@@ -242,17 +254,27 @@ const RelatedInterests: React.FC<RelatedInterestsProps> = ({
             .filter((interest: Interest) => interest.slug !== currentSlug && interest.products > 0)
             .slice(0, limit);
 
-          setInterests(filtered);
+          if (isActive) setInterests(filtered);
         }
       } catch (error) {
-        console.error('Error fetching related interests:', error);
+        if ((error as Error).name !== 'AbortError') {
+          console.error('Error fetching related interests:', error);
+        }
+        if (isActive) setInterests([]);
       } finally {
-        setLoading(false);
+        window.clearTimeout(timeoutId);
+        if (isActive) setLoading(false);
       }
     };
 
     fetchRelatedInterests();
-  }, [initialInterests, currentSlug, limit]);
+
+    return () => {
+      isActive = false;
+      controller.abort();
+      window.clearTimeout(timeoutId);
+    };
+  }, [initialInterests, currentSlug, limit, tenantId]);
 
   if (loading) {
     return (
