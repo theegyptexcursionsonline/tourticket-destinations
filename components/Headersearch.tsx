@@ -423,6 +423,14 @@ function CustomSearchBox({ searchQuery, onSearchChange: _onSearchChange }: { sea
   return null;
 }
 
+function TenantSearchScopeNote({ tenantName }: { tenantName: string }) {
+  return (
+    <div className="px-5 py-3 text-xs font-medium text-gray-500 bg-white border-t border-gray-100">
+      Showing only content available on {tenantName}.
+    </div>
+  );
+}
+
 function TourHits({
   onHitClick,
   limit = 5,
@@ -516,8 +524,9 @@ function TourHits({
 const MobileInlineSearch: FC<{ isOpen: boolean; onClose: () => void }> = React.memo(({ isOpen, onClose }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
-  const { tenant } = useTenant();
+  const { tenant, getSiteName } = useTenant();
   const tenantId = tenant?.tenantId || 'default';
+  const tenantName = getSiteName();
 
   useOnClickOutside(containerRef, onClose);
 
@@ -599,6 +608,7 @@ const MobileInlineSearch: FC<{ isOpen: boolean; onClose: () => void }> = React.m
                       <TourHits onHitClick={onClose} limit={10} tenantId={tenantId} />
                     </Index>
                   </InstantSearch>
+                  <TenantSearchScopeNote tenantName={tenantName} />
                 </motion.div>
               )}
             </AnimatePresence>

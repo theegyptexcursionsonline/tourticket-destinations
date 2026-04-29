@@ -188,6 +188,14 @@ function CustomSearchBox({ searchQuery, onSearchChange: _onSearchChange }: { sea
   return null;
 }
 
+function TenantSearchScopeNote({ tenantName }: { tenantName: string }) {
+  return (
+    <div className="px-4 md:px-6 py-3 text-xs font-medium text-gray-500 bg-white/80 border-t border-gray-100">
+      Showing only content available on {tenantName}.
+    </div>
+  );
+}
+
 function TourHits({
   onHitClick,
   limit = 5,
@@ -575,8 +583,9 @@ const TourSlider = ({ tours }: { tours: any[] }) => {
 
 // Mobile Inline Search Component with AI
 const MobileInlineSearch: FC<{ isOpen: boolean; onClose: () => void }> = React.memo(({ isOpen, onClose }) => {
-  const { tenant, getSiteName: _getSiteName } = useTenant();
+  const { tenant, getSiteName } = useTenant();
   const tenantId = tenant?.tenantId || 'default';
+  const tenantName = getSiteName();
   const locale = useLocale();
   const rtl = isRTL(locale);
   const BackToSearchIcon = rtl ? ArrowRight : ArrowLeft;
@@ -938,29 +947,32 @@ const MobileInlineSearch: FC<{ isOpen: boolean; onClose: () => void }> = React.m
                       )}
                     </div>
                   ) : searchQuery ? (
-                    <InstantSearch searchClient={searchClient} indexName={INDEX_TOURS}>
-                      <CustomSearchBox searchQuery={searchQuery} onSearchChange={setSearchQuery} />
+                    <>
+                      <InstantSearch searchClient={searchClient} indexName={INDEX_TOURS}>
+                        <CustomSearchBox searchQuery={searchQuery} onSearchChange={setSearchQuery} />
 
-                      <Index indexName={INDEX_TOURS}>
-                        <Configure hitsPerPage={5} />
-                        <TourHits onHitClick={onClose} limit={5} tenantId={tenantId} />
-                      </Index>
+                        <Index indexName={INDEX_TOURS}>
+                          <Configure hitsPerPage={5} />
+                          <TourHits onHitClick={onClose} limit={5} tenantId={tenantId} />
+                        </Index>
 
-                      <Index indexName={INDEX_DESTINATIONS}>
-                        <Configure hitsPerPage={3} />
-                        <DestinationHits onHitClick={onClose} limit={3} tenantId={tenantId} />
-                      </Index>
+                        <Index indexName={INDEX_DESTINATIONS}>
+                          <Configure hitsPerPage={3} />
+                          <DestinationHits onHitClick={onClose} limit={3} tenantId={tenantId} />
+                        </Index>
 
-                      <Index indexName={INDEX_CATEGORIES}>
-                        <Configure hitsPerPage={3} />
-                        <CategoryHits onHitClick={onClose} limit={3} tenantId={tenantId} />
-                      </Index>
+                        <Index indexName={INDEX_CATEGORIES}>
+                          <Configure hitsPerPage={3} />
+                          <CategoryHits onHitClick={onClose} limit={3} tenantId={tenantId} />
+                        </Index>
 
-                      <Index indexName={INDEX_BLOGS}>
-                        <Configure hitsPerPage={3} />
-                        <BlogHits onHitClick={onClose} limit={3} tenantId={tenantId} />
-                      </Index>
-                    </InstantSearch>
+                        <Index indexName={INDEX_BLOGS}>
+                          <Configure hitsPerPage={3} />
+                          <BlogHits onHitClick={onClose} limit={3} tenantId={tenantId} />
+                        </Index>
+                      </InstantSearch>
+                      <TenantSearchScopeNote tenantName={tenantName} />
+                    </>
                   ) : (
                     <div className="p-6">
                       <div className="flex items-center gap-2 mb-4">
