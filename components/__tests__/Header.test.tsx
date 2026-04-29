@@ -182,6 +182,14 @@ describe('Header', () => {
 
     expect(await screen.findByText('ABU TIG MARINA')).toBeInTheDocument()
     expect(screen.getByText('Kitesurfing & Watersports')).toBeInTheDocument()
+    expect(screen.getByText('ABU TIG MARINA').closest('a')).toHaveAttribute(
+      'href',
+      '/search?q=Abu%20Tig%20Marina'
+    )
+    expect(screen.getByText('Kitesurfing & Watersports').closest('a')).toHaveAttribute(
+      'href',
+      '/search?q=Kitesurfing%20%26%20Watersports'
+    )
     expect(screen.queryByText('HURGHADA')).not.toBeInTheDocument()
   })
 })

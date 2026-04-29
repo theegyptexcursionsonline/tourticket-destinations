@@ -12,6 +12,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { isRTL } from '@/i18n/config';
 import {
   getTenantFooterDestinations,
+  getTenantDestinationHref,
   hasTenantScopedNavigationContent,
 } from '@/lib/tenantNavigation';
 
@@ -45,17 +46,6 @@ const paymentMethods = [
   { name: "Alipay", component: PaymentIcons.Alipay },
   { name: "G Pay", component: PaymentIcons.GPay },
 ];
-
-const isFallbackFooterDestination = (destination: Destination) =>
-  String(destination._id || '').startsWith('tenant-footer-');
-
-const getFooterDestinationHref = (destination: Destination) => {
-  if (!isFallbackFooterDestination(destination)) {
-    return `/destinations/${destination.slug}`;
-  }
-
-  return `/search?q=${encodeURIComponent(String(destination.name || destination.slug || ''))}`;
-};
 
 // =================================================================
 // --- FOOTER COMPONENT ---
@@ -628,7 +618,7 @@ export default function Footer() {
                   <li key={destination._id}>
                     <Link
                       className="hover:text-[var(--primary-color)] transition-colors inline-flex items-center gap-2"
-                      href={getFooterDestinationHref(destination)}
+                      href={getTenantDestinationHref(destination)}
                     >
                       <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: 'var(--primary-color)' }} />
                       {t('footer.thingsToDoIn', { destination: destination.name })}
@@ -648,7 +638,7 @@ export default function Footer() {
                 <li key={destination._id}>
                   <Link
                     className="hover:text-[var(--primary-color)] transition-colors inline-flex items-center gap-2"
-                    href={getFooterDestinationHref(destination)}
+                    href={getTenantDestinationHref(destination)}
                   >
                     <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
                     {destination.name}

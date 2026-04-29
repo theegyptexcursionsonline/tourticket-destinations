@@ -22,6 +22,39 @@ type TenantScopedEntity = {
   tenantIds?: string[] | null;
 };
 
+type TenantNavigationLinkItem = {
+  _id?: unknown;
+  name?: unknown;
+  slug?: unknown;
+};
+
+const generatedTenantNavigationPrefixes = ['tenant-dest-', 'tenant-cat-', 'tenant-footer-'];
+
+function getSearchHref(label: unknown): string {
+  return `/search?q=${encodeURIComponent(String(label || ''))}`;
+}
+
+export function isGeneratedTenantNavigationItem(item: TenantNavigationLinkItem): boolean {
+  const id = String(item._id || '');
+  return generatedTenantNavigationPrefixes.some((prefix) => id.startsWith(prefix));
+}
+
+export function getTenantDestinationHref(destination: TenantNavigationLinkItem): string {
+  if (isGeneratedTenantNavigationItem(destination) || !destination.slug) {
+    return getSearchHref(destination.name || destination.slug);
+  }
+
+  return `/destinations/${destination.slug}`;
+}
+
+export function getTenantCategoryHref(category: TenantNavigationLinkItem): string {
+  if (isGeneratedTenantNavigationItem(category) || !category.slug) {
+    return getSearchHref(category.name || category.slug);
+  }
+
+  return `/categories/${category.slug}`;
+}
+
 const tenantDestinationPresets: Record<string, TenantMenuDestination[]> = {
   hurghada: [
     { name: 'Hurghada Marina', slug: 'hurghada-marina', image: 'https://images.unsplash.com/photo-1540541338287-41700207dee6?w=400&q=80', country: 'Red Sea' },

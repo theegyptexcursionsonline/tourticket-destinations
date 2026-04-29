@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
       ...destinationQuery,
       ...(featuredOnly ? { featured: true } : {}),
     })
-      .select('_id name slug country image description featured tourCount')
+      .select('_id name slug country image description featured tourCount tenantId tenantIds')
       .sort({ featured: -1, tourCount: -1, name: 1 })
       .lean();
 

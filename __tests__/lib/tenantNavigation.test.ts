@@ -1,5 +1,7 @@
 import {
   getTenantFooterDestinations,
+  getTenantCategoryHref,
+  getTenantDestinationHref,
   hasTenantScopedNavigationContent,
   tenantMegaMenuCategories,
   tenantMegaMenuDestinations,
@@ -57,5 +59,41 @@ describe('tenantNavigation', () => {
         'el-gouna'
       )
     ).toBe(false);
+  });
+
+  it('sends generated tenant fallback links to search instead of dead detail pages', () => {
+    expect(
+      getTenantDestinationHref({
+        _id: 'tenant-dest-0',
+        name: 'Abu Tig Marina',
+        slug: 'abu-tig-marina',
+      })
+    ).toBe('/search?q=Abu%20Tig%20Marina');
+
+    expect(
+      getTenantCategoryHref({
+        _id: 'tenant-cat-0',
+        name: 'Kitesurfing & Watersports',
+        slug: 'kitesurfing-watersports',
+      })
+    ).toBe('/search?q=Kitesurfing%20%26%20Watersports');
+  });
+
+  it('keeps real tenant records linked to their detail pages', () => {
+    expect(
+      getTenantDestinationHref({
+        _id: 'real-dest',
+        name: 'Downtown El Gouna',
+        slug: 'downtown-el-gouna',
+      })
+    ).toBe('/destinations/downtown-el-gouna');
+
+    expect(
+      getTenantCategoryHref({
+        _id: 'real-cat',
+        name: 'Day Trips',
+        slug: 'day-trips',
+      })
+    ).toBe('/categories/day-trips');
   });
 });

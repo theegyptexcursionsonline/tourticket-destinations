@@ -50,6 +50,8 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import {
+  getTenantCategoryHref,
+  getTenantDestinationHref,
   hasTenantScopedNavigationContent,
   tenantMegaMenuCategories,
   tenantMegaMenuDestinations,
@@ -1062,7 +1064,7 @@ const MegaMenu: FC<{ isOpen: boolean; onClose: () => void; destinations: Destina
                 </h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   {effectiveDestinations.slice(0, 6).map((dest: any) => (
-                    <Link key={dest._id} href={`/destinations/${dest.slug}`} className="group block">
+                    <Link key={dest._id} href={getTenantDestinationHref(dest)} className="group block">
                       <div className="aspect-square w-full rounded-lg overflow-hidden relative bg-slate-200">
                         <Image 
                           src={dest.image} 
@@ -1094,7 +1096,7 @@ const MegaMenu: FC<{ isOpen: boolean; onClose: () => void; destinations: Destina
                     return (
                       <li key={activity._id}>
                         <Link 
-                          href={`/categories/${activity.slug}`} 
+                          href={getTenantCategoryHref(activity)}
                           className="flex items-center gap-3 group text-gray-700 hover:text-[var(--primary-color)]"
                         >
                           <Icon 
@@ -1303,7 +1305,7 @@ const MobileMenu: FC<{
                   </h3>
                   <div className="space-y-2">
                     {effectiveDestinations.map((dest: any) => (
-                      <a key={dest._id} href={`/destinations/${dest.slug}`} className="block py-2 text-slate-700 hover:text-[var(--primary-color)]" onClick={onClose}>
+                      <a key={dest._id} href={getTenantDestinationHref(dest)} className="block py-2 text-slate-700 hover:text-[var(--primary-color)]" onClick={onClose}>
                         {dest.name}
                       </a>
                     ))}
@@ -1318,7 +1320,7 @@ const MobileMenu: FC<{
                     {effectiveCategories.map((activity: any) => {
                       const Icon = activityIcons[activity.slug] || Ticket;
                       return (
-                        <a key={activity._id} href={`/categories/${activity.slug}`} className="flex items-center gap-3 py-2 text-slate-700 hover:text-[var(--primary-color)]" onClick={onClose}>
+                        <a key={activity._id} href={getTenantCategoryHref(activity)} className="flex items-center gap-3 py-2 text-slate-700 hover:text-[var(--primary-color)]" onClick={onClose}>
                           <Icon size={16} />
                           <span>{activity.name}</span>
                         </a>
