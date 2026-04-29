@@ -56,6 +56,7 @@ import {
   tenantMegaMenuCategories,
   tenantMegaMenuDestinations,
 } from '@/lib/tenantNavigation';
+import { filterSearchHitsByTenant } from '@/lib/tenantSearchHitFilter';
 import 'instantsearch.css/themes/satellite.css';
 import { isRTL } from '@/i18n/config';
 
@@ -187,9 +188,18 @@ function CustomSearchBox({ searchQuery, onSearchChange: _onSearchChange }: { sea
   return null;
 }
 
-function TourHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: number }) {
+function TourHits({
+  onHitClick,
+  limit = 5,
+  tenantId,
+}: {
+  onHitClick?: () => void;
+  limit?: number;
+  tenantId?: string;
+}) {
   const { hits } = useHits();
-  const limitedHits = hits.slice(0, limit);
+  const tenantHits = filterSearchHitsByTenant(hits as any[], tenantId);
+  const limitedHits = tenantHits.slice(0, limit);
 
   if (limitedHits.length === 0) return null;
 
@@ -204,7 +214,7 @@ function TourHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: 
             Tours
           </span>
           <span className="ms-auto text-[10px] md:text-xs font-medium text-gray-400 bg-gray-100/80 backdrop-blur-sm px-2 md:px-2.5 py-0.5 md:py-1 rounded-full">
-            {hits.length}
+            {tenantHits.length}
           </span>
         </div>
       </div>
@@ -268,9 +278,18 @@ function TourHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: 
   );
 }
 
-function DestinationHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: number }) {
+function DestinationHits({
+  onHitClick,
+  limit = 5,
+  tenantId,
+}: {
+  onHitClick?: () => void;
+  limit?: number;
+  tenantId?: string;
+}) {
   const { hits } = useHits();
-  const limitedHits = hits.slice(0, limit);
+  const tenantHits = filterSearchHitsByTenant(hits as any[], tenantId);
+  const limitedHits = tenantHits.slice(0, limit);
 
   if (limitedHits.length === 0) return null;
 
@@ -285,7 +304,7 @@ function DestinationHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; l
             Destinations
           </span>
           <span className="ms-auto text-[10px] md:text-xs font-medium text-gray-400 bg-gray-100/80 backdrop-blur-sm px-2 md:px-2.5 py-0.5 md:py-1 rounded-full">
-            {hits.length}
+            {tenantHits.length}
           </span>
         </div>
       </div>
@@ -330,9 +349,18 @@ function DestinationHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; l
   );
 }
 
-function CategoryHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: number }) {
+function CategoryHits({
+  onHitClick,
+  limit = 5,
+  tenantId,
+}: {
+  onHitClick?: () => void;
+  limit?: number;
+  tenantId?: string;
+}) {
   const { hits } = useHits();
-  const limitedHits = hits.slice(0, limit);
+  const tenantHits = filterSearchHitsByTenant(hits as any[], tenantId);
+  const limitedHits = tenantHits.slice(0, limit);
 
   if (limitedHits.length === 0) return null;
 
@@ -347,7 +375,7 @@ function CategoryHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limi
             Categories
           </span>
           <span className="ms-auto text-[10px] md:text-xs font-medium text-gray-400 bg-gray-100/80 backdrop-blur-sm px-2 md:px-2.5 py-0.5 md:py-1 rounded-full">
-            {hits.length}
+            {tenantHits.length}
           </span>
         </div>
       </div>
@@ -385,9 +413,18 @@ function CategoryHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limi
   );
 }
 
-function BlogHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: number }) {
+function BlogHits({
+  onHitClick,
+  limit = 5,
+  tenantId,
+}: {
+  onHitClick?: () => void;
+  limit?: number;
+  tenantId?: string;
+}) {
   const { hits } = useHits();
-  const limitedHits = hits.slice(0, limit);
+  const tenantHits = filterSearchHitsByTenant(hits as any[], tenantId);
+  const limitedHits = tenantHits.slice(0, limit);
 
   if (limitedHits.length === 0) return null;
 
@@ -402,7 +439,7 @@ function BlogHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: 
             Blog Posts
           </span>
           <span className="ms-auto text-[10px] md:text-xs font-medium text-gray-400 bg-gray-100/80 backdrop-blur-sm px-2 md:px-2.5 py-0.5 md:py-1 rounded-full">
-            {hits.length}
+            {tenantHits.length}
           </span>
         </div>
       </div>
@@ -538,7 +575,8 @@ const TourSlider = ({ tours }: { tours: any[] }) => {
 
 // Mobile Inline Search Component with AI
 const MobileInlineSearch: FC<{ isOpen: boolean; onClose: () => void }> = React.memo(({ isOpen, onClose }) => {
-  const { getSiteName: _getSiteName } = useTenant();
+  const { tenant, getSiteName: _getSiteName } = useTenant();
+  const tenantId = tenant?.tenantId || 'default';
   const locale = useLocale();
   const rtl = isRTL(locale);
   const BackToSearchIcon = rtl ? ArrowRight : ArrowLeft;
@@ -659,12 +697,20 @@ const MobileInlineSearch: FC<{ isOpen: boolean; onClose: () => void }> = React.m
   // Render tool outputs (tours)
   const renderToolOutput = (obj: any) => {
     if (Array.isArray(obj)) {
-      const tours = obj.filter(item => item.title && item.slug);
+      const tours = filterSearchHitsByTenant(
+        obj.filter(item => item.title && item.slug),
+        tenantId
+      );
       if (tours.length > 0) return <TourSlider tours={tours} />;
     }
-    if (obj.title && obj.slug) return <TourSlider tours={[obj]} />;
+    if (obj.title && obj.slug && filterSearchHitsByTenant([obj], tenantId).length > 0) {
+      return <TourSlider tours={[obj]} />;
+    }
     if (obj.hits && Array.isArray(obj.hits)) {
-      const tours = obj.hits.filter((item: any) => item.title && item.slug);
+      const tours = filterSearchHitsByTenant(
+        obj.hits.filter((item: any) => item.title && item.slug),
+        tenantId
+      );
       if (tours.length > 0) return <TourSlider tours={tours} />;
     }
     return (
@@ -897,22 +943,22 @@ const MobileInlineSearch: FC<{ isOpen: boolean; onClose: () => void }> = React.m
 
                       <Index indexName={INDEX_TOURS}>
                         <Configure hitsPerPage={5} />
-                        <TourHits onHitClick={onClose} limit={5} />
+                        <TourHits onHitClick={onClose} limit={5} tenantId={tenantId} />
                       </Index>
 
                       <Index indexName={INDEX_DESTINATIONS}>
                         <Configure hitsPerPage={3} />
-                        <DestinationHits onHitClick={onClose} limit={3} />
+                        <DestinationHits onHitClick={onClose} limit={3} tenantId={tenantId} />
                       </Index>
 
                       <Index indexName={INDEX_CATEGORIES}>
                         <Configure hitsPerPage={3} />
-                        <CategoryHits onHitClick={onClose} limit={3} />
+                        <CategoryHits onHitClick={onClose} limit={3} tenantId={tenantId} />
                       </Index>
 
                       <Index indexName={INDEX_BLOGS}>
                         <Configure hitsPerPage={3} />
-                        <BlogHits onHitClick={onClose} limit={3} />
+                        <BlogHits onHitClick={onClose} limit={3} tenantId={tenantId} />
                       </Index>
                     </InstantSearch>
                   ) : (

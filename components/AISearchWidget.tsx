@@ -15,6 +15,7 @@ import {
   getTenantFeaturedTours,
   getTenantSiteSearchResults,
 } from '@/lib/tenantSiteSearch';
+import { filterSearchHitsByTenant, searchHitBelongsToTenant } from '@/lib/tenantSearchHitFilter';
 import 'instantsearch.css/themes/satellite.css';
 
 // --- Algolia Config ---
@@ -739,11 +740,15 @@ export default function AISearchWidget() {
               reviews: tour.reviews ?? tour.reviewCount,
               price: tour.discountPrice || tour.price,
               originalPrice: tour.originalPrice || tour.price,
-            }))
+            })).filter((tour: any) => searchHitBelongsToTenant(tour, tenantId || 'default'))
           : [];
 
-        const destinations = Array.isArray(destinationsJson?.data) ? destinationsJson.data : [];
-        const categories = Array.isArray(categoriesJson?.data) ? categoriesJson.data : [];
+        const destinations = Array.isArray(destinationsJson?.data)
+          ? filterSearchHitsByTenant(destinationsJson.data, tenantId || 'default')
+          : [];
+        const categories = Array.isArray(categoriesJson?.data)
+          ? filterSearchHitsByTenant(categoriesJson.data, tenantId || 'default')
+          : [];
 
         setSearchCollections({
           tours,

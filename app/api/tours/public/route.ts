@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     
     // Return public tour data with fields needed by DayTrips component
     const tours = await Tour.find(query)
-      .select('title slug image description discountPrice originalPrice price duration rating reviewCount bookings tags specialOffer tenantId isFeatured destination translations')
+      .select('title slug image description discountPrice originalPrice price duration rating reviewCount bookings tags specialOffer tenantId tenantIds isFeatured destination translations')
       .populate('destination', 'name slug')
       .sort({ createdAt: -1 })
       .limit(50)

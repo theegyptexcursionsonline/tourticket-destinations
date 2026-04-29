@@ -18,6 +18,7 @@ import {
   tenantMegaMenuCategories,
   tenantMegaMenuDestinations,
 } from '@/lib/tenantNavigation';
+import { filterSearchHitsByTenant } from '@/lib/tenantSearchHitFilter';
 import { useLocale } from 'next-intl';
 import { liteClient as algoliasearch } from 'algoliasearch/lite';
 import { InstantSearch, Index, useSearchBox, useHits, Configure } from 'react-instantsearch';
@@ -422,9 +423,18 @@ function CustomSearchBox({ searchQuery, onSearchChange: _onSearchChange }: { sea
   return null;
 }
 
-function TourHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: number }) {
+function TourHits({
+  onHitClick,
+  limit = 5,
+  tenantId,
+}: {
+  onHitClick?: () => void;
+  limit?: number;
+  tenantId?: string;
+}) {
   const { hits } = useHits();
-  const limitedHits = hits.slice(0, limit);
+  const tenantHits = filterSearchHitsByTenant(hits as any[], tenantId);
+  const limitedHits = tenantHits.slice(0, limit);
 
   if (limitedHits.length === 0) return null;
 
@@ -436,7 +446,7 @@ function TourHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: 
             <Landmark className="w-3 h-3 text-white" />
           </div>
           <span className="text-xs font-bold text-blue-900 uppercase tracking-wider">
-            Tours ({hits.length})
+            Tours ({tenantHits.length})
           </span>
         </div>
       </div>
@@ -506,6 +516,8 @@ function TourHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: 
 const MobileInlineSearch: FC<{ isOpen: boolean; onClose: () => void }> = React.memo(({ isOpen, onClose }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
+  const { tenant } = useTenant();
+  const tenantId = tenant?.tenantId || 'default';
 
   useOnClickOutside(containerRef, onClose);
 
@@ -584,7 +596,7 @@ const MobileInlineSearch: FC<{ isOpen: boolean; onClose: () => void }> = React.m
                     <CustomSearchBox searchQuery={searchQuery} onSearchChange={setSearchQuery} />
                     <Index indexName={INDEX_TOURS}>
                       <Configure hitsPerPage={10} />
-                      <TourHits onHitClick={onClose} limit={10} />
+                      <TourHits onHitClick={onClose} limit={10} tenantId={tenantId} />
                     </Index>
                   </InstantSearch>
                 </motion.div>
