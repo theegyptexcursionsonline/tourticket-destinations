@@ -33,6 +33,8 @@ import {
   getDestinationTrendingSearches,
 } from '@/lib/destinationPageSearch';
 
+const DESTINATION_HERO_FALLBACK_IMAGE = '/hero2.jpg';
+
 interface DestinationPageClientProps {
   destination: Destination;
   destinationTours: Tour[];
@@ -1652,7 +1654,7 @@ const BackgroundSlideshow = ({
   }
 
   return (
-    <div className="absolute inset-0 z-0 overflow-hidden">
+    <div className="absolute inset-0 z-0 overflow-hidden bg-slate-900">
       {slides.map((s, i) => {
         const visible = i === index;
         return (
@@ -1666,11 +1668,57 @@ const BackgroundSlideshow = ({
               transform: visible ? 'scale(1)' : 'scale(1.02)',
             }}
           >
-            <img src={s.src} alt={s.alt} className="w-full h-full object-cover" />
+            <BackgroundSlideImage src={s.src} alt={s.alt} />
           </div>
         );
       })}
     </div>
+  );
+};
+
+const BackgroundSlideImage = ({ src, alt }: { src: string; alt: string }) => {
+  const [resolvedSrc, setResolvedSrc] = useState(DESTINATION_HERO_FALLBACK_IMAGE);
+
+  useEffect(() => {
+    const candidateSrc = src || DESTINATION_HERO_FALLBACK_IMAGE;
+    if (candidateSrc === DESTINATION_HERO_FALLBACK_IMAGE) {
+      setResolvedSrc(DESTINATION_HERO_FALLBACK_IMAGE);
+      return;
+    }
+
+    let isMounted = true;
+    const image = new window.Image();
+
+    image.onload = () => {
+      if (isMounted) {
+        setResolvedSrc(candidateSrc);
+      }
+    };
+
+    image.onerror = () => {
+      if (isMounted) {
+        setResolvedSrc(DESTINATION_HERO_FALLBACK_IMAGE);
+      }
+    };
+
+    image.src = candidateSrc;
+
+    return () => {
+      isMounted = false;
+    };
+  }, [src]);
+
+  return (
+    <img
+      src={resolvedSrc}
+      alt={alt}
+      className="w-full h-full object-cover"
+      onError={() => {
+        if (resolvedSrc !== DESTINATION_HERO_FALLBACK_IMAGE) {
+          setResolvedSrc(DESTINATION_HERO_FALLBACK_IMAGE);
+        }
+      }}
+    />
   );
 };
 
@@ -1690,7 +1738,7 @@ const DestinationHeroSection = ({
   const { rtl, copy } = useDestinationPageLocale();
   const slides = destination.image
     ? [{ src: destination.image, alt: destination.name }]
-    : [{ src: '/hero2.png', alt: destination.name }];
+    : [{ src: DESTINATION_HERO_FALLBACK_IMAGE, alt: destination.name }];
 
   const searchSuggestions = [
     copy.exploreDestination(destination.name),
