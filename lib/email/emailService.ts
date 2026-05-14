@@ -13,6 +13,7 @@ import type {
   CancellationData,
   WelcomeEmailData,
   AdminAlertData,
+  AdminBookingStatusNotificationData,
   BookingStatusUpdateData,
   AdminInviteEmailData,
   AdminAccessUpdateEmailData,
@@ -38,23 +39,18 @@ export class EmailService {
 
   // Helper to extract branding data for templates
   private static getBrandingTemplateData(branding?: TenantEmailBranding) {
-    // Always use the main base URL for assets (logos, images) to ensure they load
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://egypt-excursionsonline.com';
     const website = branding?.website || baseUrl;
+    const assetBase = website.startsWith('http') ? website : `https://${website}`;
 
-    // Convert relative logo paths to absolute URLs using the main base URL
     let companyLogo = branding?.logo || '';
     if (companyLogo && companyLogo.startsWith('/')) {
-      // Relative path — always prepend the main base URL (not tenant domain)
-      // because static assets are served from the primary deployment
-      companyLogo = `${baseUrl.replace(/\/$/, '')}${companyLogo}`;
+      companyLogo = `${assetBase.replace(/\/$/, '')}${companyLogo}`;
     } else if (companyLogo && !companyLogo.startsWith('http')) {
-      // Missing protocol — add https://
       companyLogo = `https://${companyLogo}`;
     }
-    // If still empty or just a slash, don't show a broken image
     if (!companyLogo || companyLogo === '/' || companyLogo === 'https://') {
-      companyLogo = '';
+      companyLogo = `${baseUrl.replace(/\/$/, '')}/EEO-logo.png`;
     }
 
     return {
@@ -71,6 +67,15 @@ export class EmailService {
       instagramUrl: branding?.socialLinks?.instagram,
       twitterUrl: branding?.socialLinks?.twitter,
     };
+  }
+
+  private static escapeHtml(value: unknown): string {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
   private static async generateEmailTemplate(
@@ -342,6 +347,155 @@ export class EmailService {
       console.error(`❌ Failed to send admin alert for booking ${data.bookingId}:`, sendError);
       throw sendError;
     }
+  }
+
+  static async sendAdminBookingStatusUpdate(data: AdminBookingStatusNotificationData & { tenantBranding?: TenantEmailBranding }): Promise<void> {
+    const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL;
+    const branding = data.tenantBranding;
+
+    if (!adminEmail) {
+      console.error('⚠️ ADMIN_NOTIFICATION_EMAIL env var is not set. Admin/operator status notification for booking', data.bookingId, 'was NOT sent.');
+      return;
+    }
+
+    const brandingData = this.getBrandingTemplateData(branding);
+    const ccCandidates = [
+      data.adminCcEmail,
+      branding?.supportEmail,
+      branding?.contactEmail,
+    ].filter(Boolean) as string[];
+    const uniqueCc = Array.from(new Set(
+      ccCandidates.filter((email) => email.toLowerCase() !== adminEmail.toLowerCase())
+    ));
+
+    const esc = (value: unknown) => this.escapeHtml(value);
+    const subject = `[${brandingData.companyName}] Booking Status Updated - ${data.bookingId}`;
+    const adminDashboardLink = data.adminDashboardLink || (
+      data.baseUrl ? `${data.baseUrl.replace(/\/$/, '')}/admin/bookings/${data.bookingId}` : ''
+    );
+
+    const statusColor = data.newStatus === 'Cancelled'
+      ? '#991b1b'
+      : data.newStatus === 'Pending'
+        ? '#92400e'
+        : '#166534';
+    const statusBg = data.newStatus === 'Cancelled'
+      ? '#fee2e2'
+      : data.newStatus === 'Pending'
+        ? '#fef3c7'
+        : '#dcfce7';
+
+    const html = `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
+        <title>${esc(subject)}</title>
+      </head>
+      <body style="margin:0; padding:0; background:#f4f6f8; font-family:Arial, Helvetica, sans-serif; color:#172033;">
+        <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">
+          Booking ${esc(data.bookingId)} changed from ${esc(data.oldStatus)} to ${esc(data.newStatus)}.
+        </div>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f8;">
+          <tr>
+            <td align="center" style="padding:28px 12px;">
+              <table role="presentation" width="640" cellpadding="0" cellspacing="0" style="width:640px; max-width:640px; background:#ffffff; border-radius:10px; overflow:hidden; box-shadow:0 12px 30px rgba(15,23,42,0.08);">
+                <tr><td style="height:4px; background:${esc(brandingData.primaryColor)}; font-size:0; line-height:0;">&nbsp;</td></tr>
+                <tr>
+                  <td style="padding:24px 32px 18px;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="vertical-align:middle;">
+                          <table role="presentation" cellpadding="0" cellspacing="0">
+                            <tr>
+                              <td style="width:54px; vertical-align:middle;">
+                                <img src="${esc(brandingData.companyLogo)}" width="44" height="44" alt="${esc(brandingData.companyName)}" style="display:block; width:44px; height:44px; border-radius:10px; object-fit:contain; background:#ffffff; border:0;">
+                              </td>
+                              <td style="vertical-align:middle;">
+                                <div style="font-size:15px; line-height:20px; font-weight:700; color:#111827;">${esc(brandingData.companyName)}</div>
+                                <div style="font-size:12px; line-height:18px; color:#6b7280;">Admin notification</div>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                        <td align="right" style="vertical-align:middle;">
+                          <span style="display:inline-block; padding:8px 14px; border-radius:999px; background:${statusBg}; color:${statusColor}; font-size:12px; line-height:16px; font-weight:700; text-transform:uppercase;">${esc(data.newStatus)}</span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:0 32px;"><div style="height:1px; background:#edf0f3; line-height:1px;">&nbsp;</div></td>
+                </tr>
+                <tr>
+                  <td style="padding:28px 32px 8px;">
+                    <p style="margin:0 0 8px; font-size:13px; line-height:18px; color:#6b7280; font-weight:700; text-transform:uppercase; letter-spacing:0.6px;">Booking ${esc(data.bookingId)}</p>
+                    <h1 style="margin:0 0 12px; font-size:25px; line-height:32px; color:#111827; font-weight:800;">Booking status updated</h1>
+                    <p style="margin:0; font-size:15px; line-height:24px; color:#4b5563;">${esc(data.changedBy || 'Admin')} changed <strong style="color:#111827;">${esc(data.tourTitle)}</strong> from ${esc(data.oldStatus)} to ${esc(data.newStatus)}.</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:20px 32px 8px;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb; border:1px solid #e5e7eb; border-radius:10px;">
+                      <tr>
+                        <td style="padding:18px 20px;">
+                          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                            <tr>
+                              <td width="50%" style="padding-right:10px;">
+                                <div style="font-size:12px; color:#6b7280; font-weight:700; text-transform:uppercase;">Previous</div>
+                                <div style="margin-top:8px; font-size:18px; color:#111827; font-weight:800;">${esc(data.oldStatus)}</div>
+                              </td>
+                              <td width="50%" style="padding-left:10px;">
+                                <div style="font-size:12px; color:#6b7280; font-weight:700; text-transform:uppercase;">Current</div>
+                                <div style="margin-top:8px; font-size:18px; color:${statusColor}; font-weight:800;">${esc(data.newStatus)}</div>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:18px 32px 8px;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb; border-radius:10px; overflow:hidden;">
+                      <tr><td colspan="2" style="padding:14px 20px; background:#fbfcfd; border-bottom:1px solid #e5e7eb; font-size:12px; color:#6b7280; font-weight:700; text-transform:uppercase; letter-spacing:0.6px;">Booking details</td></tr>
+                      <tr><td style="padding:13px 20px; border-bottom:1px solid #f1f5f9; color:#6b7280; font-size:13px;">Customer</td><td align="right" style="padding:13px 20px; border-bottom:1px solid #f1f5f9; color:#111827; font-size:14px; font-weight:700;">${esc(data.customerName)}</td></tr>
+                      <tr><td style="padding:13px 20px; border-bottom:1px solid #f1f5f9; color:#6b7280; font-size:13px;">Email</td><td align="right" style="padding:13px 20px; border-bottom:1px solid #f1f5f9; color:#111827; font-size:14px; font-weight:700;"><a href="mailto:${esc(data.customerEmail)}" style="color:${esc(brandingData.primaryColor)}; text-decoration:none;">${esc(data.customerEmail)}</a></td></tr>
+                      ${data.customerPhone ? `<tr><td style="padding:13px 20px; border-bottom:1px solid #f1f5f9; color:#6b7280; font-size:13px;">Phone</td><td align="right" style="padding:13px 20px; border-bottom:1px solid #f1f5f9; color:#111827; font-size:14px; font-weight:700;">${esc(data.customerPhone)}</td></tr>` : ''}
+                      <tr><td style="padding:13px 20px; border-bottom:1px solid #f1f5f9; color:#6b7280; font-size:13px;">Tour</td><td align="right" style="padding:13px 20px; border-bottom:1px solid #f1f5f9; color:#111827; font-size:14px; font-weight:700;">${esc(data.tourTitle)}</td></tr>
+                      <tr><td style="padding:13px 20px; border-bottom:1px solid #f1f5f9; color:#6b7280; font-size:13px;">Date</td><td align="right" style="padding:13px 20px; border-bottom:1px solid #f1f5f9; color:#111827; font-size:14px; font-weight:700;">${esc(data.bookingDate)}${data.bookingTime ? ` at ${esc(data.bookingTime)}` : ''}</td></tr>
+                      ${data.totalPrice ? `<tr><td style="padding:13px 20px; border-bottom:1px solid #f1f5f9; color:#6b7280; font-size:13px;">Total</td><td align="right" style="padding:13px 20px; border-bottom:1px solid #f1f5f9; color:#111827; font-size:14px; font-weight:700;">${esc(data.totalPrice)}</td></tr>` : ''}
+                      ${data.paymentMethod ? `<tr><td style="padding:13px 20px; color:#6b7280; font-size:13px;">Payment</td><td align="right" style="padding:13px 20px; color:#111827; font-size:14px; font-weight:700;">${esc(data.paymentMethod)}</td></tr>` : ''}
+                    </table>
+                  </td>
+                </tr>
+                ${adminDashboardLink ? `<tr><td style="padding:24px 32px 30px;"><a href="${esc(adminDashboardLink)}" style="display:inline-block; background:${esc(brandingData.primaryColor)}; color:#ffffff; padding:13px 22px; border-radius:7px; font-size:14px; line-height:20px; font-weight:700; text-decoration:none;">Open booking</a></td></tr>` : ''}
+                <tr>
+                  <td style="padding:18px 32px; background:#f9fafb; border-top:1px solid #edf0f3; text-align:center;">
+                    <p style="margin:0; font-size:11px; line-height:17px; color:#9ca3af;">Sent by ${esc(brandingData.companyName)} admin system.</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `;
+
+    await sendEmail({
+      to: adminEmail,
+      cc: uniqueCc.length > 0 ? uniqueCc.join(',') : undefined,
+      subject,
+      html,
+      type: 'admin-booking-status-update',
+      fromName: branding?.companyName || 'Excursions Online',
+      fromEmail: branding?.fromEmail,
+    });
   }
 
   static async sendAdminInviteEmail(data: AdminInviteEmailData & { tenantBranding?: TenantEmailBranding }): Promise<void> {

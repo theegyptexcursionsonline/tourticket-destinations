@@ -1,160 +1,158 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="format-detection" content="telephone=no, email=no, address=no">
-    <title>Booking Status Update - {{companyName}}</title>
-    <style>
-        body { margin: 0; padding: 0; background: #eef2f7; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #0f172a; -webkit-font-smoothing: antialiased; }
-        img { border: none; display: block; max-width: 100%; }
-        table { border-collapse: collapse; width: 100%; }
-
-        .wrapper { width: 100%; padding: 32px 0; }
-        .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 25px 45px rgba(15,23,42,0.15); }
-
-        .hero { background: linear-gradient(120deg, {{secondaryColor}} 0%, {{primaryColor}} 100%); padding: 36px 40px; color: #f8fafc; }
-        .logo { max-width: 180px; max-height: 60px; margin-bottom: 20px; }
-        .hero-eyebrow { font-size: 12px; letter-spacing: 1px; text-transform: uppercase; opacity: 0.7; font-weight: 600; }
-        .hero-title { font-size: 28px; font-weight: 700; margin: 10px 0 6px; }
-        .hero-meta { font-size: 15px; color: rgba(255,255,255,0.85); }
-
-        .content { padding: 40px; }
-        .greeting { font-size: 20px; font-weight: 700; margin-bottom: 10px; letter-spacing: -0.2px; }
-        .intro { font-size: 15px; color: #475569; line-height: 1.7; margin-bottom: 28px; }
-
-        .status-pill { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 999px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; font-size: 13px; border: 1px solid #a5b4fc; background: #e0e7ff; color: #3730a3; }
-        .status-Confirmed, .status-confirmed { background: #d1fae5; color: #065f46; border-color: #34d399; }
-        .status-Pending, .status-pending { background: #fef3c7; color: #92400e; border-color: #fbbf24; }
-        .status-Cancelled, .status-cancelled { background: #fee2e2; color: #b91c1c; border-color: #f87171; }
-        .status-pill.default { background: #e0e7ff; color: #3730a3; border-color: #a5b4fc; }
-
-        .status-card { border: 1px solid #e2e8f0; border-radius: 18px; padding: 24px 28px; margin-bottom: 30px; background: #f8fafc; }
-        .status-message { font-size: 15px; color: #0f172a; font-weight: 600; margin-top: 14px; }
-
-        .info-card { border: 1px solid #e2e8f0; border-radius: 16px; margin-bottom: 28px; overflow: hidden; box-shadow: 0 10px 30px rgba(15,23,42,0.06); }
-        .info-header { background: #f8fafc; padding: 18px 28px; font-size: 12px; letter-spacing: 0.8px; text-transform: uppercase; color: #94a3b8; font-weight: 700; }
-        .info-body { padding: 24px 28px; }
-        .info-grid td { padding: 12px 0; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
-        .info-grid tr:last-child td { border-bottom: none; }
-        .info-label { color: #94a3b8; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 600; font-size: 12px; }
-        .info-value { color: #0f172a; font-weight: 600; font-size: 16px; }
-
-        .next-steps { border: 1px dashed #e2e8f0; border-radius: 14px; padding: 22px 24px; margin-bottom: 30px; }
-        .step { display: flex; gap: 12px; margin-bottom: 14px; }
-        .step:last-child { margin-bottom: 0; }
-        .step-index { width: 28px; height: 28px; border-radius: 50%; background: {{primaryColor}}; color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex-shrink: 0; }
-        .step-text { font-size: 14px; color: #1f2937; line-height: 1.5; }
-
-        .cta { text-align: center; margin: 32px 0; }
-        .cta-button { display: inline-block; padding: 16px 44px; border-radius: 10px; background: {{primaryColor}}; color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; box-shadow: 0 15px 30px rgba(0,0,0,0.15); }
-
-        .support { border: 1px solid #e2e8f0; border-radius: 16px; padding: 22px 24px; background: #f8fafc; display: flex; gap: 16px; align-items: center; }
-        .support-icon { font-size: 26px; }
-        .support-text strong { display: block; font-size: 15px; color: #0f172a; }
-        .support-text span { font-size: 14px; color: #475569; }
-        .support-text a { color: {{primaryColor}}; text-decoration: none; }
-
-        .footer { background: #f8fafc; padding: 28px 40px; text-align: center; border-top: 1px solid #e2e8f0; }
-        .footer-links a { color: #64748b; font-size: 13px; margin: 0 10px; text-decoration: none; font-weight: 600; }
-        .footer p { color: #94a3b8; font-size: 12px; margin: 10px 0; }
-
-        @media (max-width: 600px) {
-            .wrapper { padding: 0; }
-            .container { border-radius: 0; }
-            .hero, .content, .footer { padding-left: 24px !important; padding-right: 24px !important; }
-            .info-header, .info-body { padding-left: 20px; padding-right: 20px; }
-            .next-steps { padding: 18px; }
-            .step { flex-direction: column; }
-            .cta-button { width: 100%; }
-            .support { flex-direction: column; text-align: center; }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
+  <meta name="color-scheme" content="light">
+  <meta name="supported-color-schemes" content="light">
+  <title>Booking Status Update - {{companyName}}</title>
+  <style>
+    body, table, td, p, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+    table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+    img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; display: block; }
+    body { margin: 0; padding: 0; width: 100% !important; background: #f4f6f8; font-family: Arial, Helvetica, sans-serif; color: #172033; }
+    a { color: {{primaryColor}}; text-decoration: none; }
+    .status-pill { display: inline-block; padding: 8px 16px; border-radius: 999px; font-size: 12px; line-height: 16px; letter-spacing: 0.4px; text-transform: uppercase; font-weight: 700; border: 1px solid #c7d2fe; background: #eef2ff; color: #3730a3; }
+    .status-Confirmed, .status-confirmed { background: #dcfce7; color: #166534; border-color: #86efac; }
+    .status-Pending, .status-pending { background: #fef3c7; color: #92400e; border-color: #fcd34d; }
+    .status-Completed, .status-completed { background: #d1fae5; color: #065f46; border-color: #6ee7b7; }
+    .status-Cancelled, .status-cancelled { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
+    .status-Refunded, .status-refunded, .status-Partial, .status-partial { background: #dbeafe; color: #1e40af; border-color: #93c5fd; }
+    @media only screen and (max-width: 620px) {
+      .email-container { width: 100% !important; border-radius: 0 !important; }
+      .mobile-padding { padding-left: 20px !important; padding-right: 20px !important; }
+      .stack-column { display: block !important; width: 100% !important; padding-right: 0 !important; padding-bottom: 12px !important; }
+      .cta-button { display: block !important; text-align: center !important; }
+    }
+  </style>
 </head>
-<body>
-    <div class="wrapper">
-        <div class="container">
-            <div class="hero">
-                {{#if companyLogo}}
-                <img src="{{companyLogo}}" alt="{{companyName}}" class="logo">
-                {{else}}
-                <div style="font-size: 24px; font-weight: 800; margin-bottom: 20px; color: #fff;">{{companyName}}</div>
-                {{/if}}
-                <div class="hero-eyebrow">Booking {{bookingId}}</div>
-                <div class="hero-title">Status updated</div>
-                <div class="hero-meta">{{tourTitle}} · {{bookingDate}} · {{bookingTime}}</div>
-            </div>
+<body style="margin:0; padding:0; background:#f4f6f8;">
+  <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">
+    Your booking {{bookingId}} is now {{newStatus}}.
+  </div>
 
-            <div class="content">
-                <div class="greeting">Hi {{customerName}},</div>
-                <p class="intro">We wanted to let you know that your booking status has been updated. Here's what changed and what to do next.</p>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f8;">
+    <tr>
+      <td align="center" style="padding:28px 12px;">
+        <table role="presentation" class="email-container" width="600" cellpadding="0" cellspacing="0" style="width:600px; max-width:600px; background:#ffffff; border-radius:10px; overflow:hidden; box-shadow:0 12px 30px rgba(15,23,42,0.08);">
+          <tr>
+            <td style="height:4px; background:{{primaryColor}}; font-size:0; line-height:0;">&nbsp;</td>
+          </tr>
 
-                <div class="status-card">
-                    <div class="status-pill status-{{newStatus}}">
-                        <span>●</span> {{newStatus}}
-                    </div>
-                    <div class="status-message">{{statusMessage}}</div>
+          <tr>
+            <td class="mobile-padding" style="padding:24px 32px 20px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td class="stack-column" style="vertical-align:middle;">
+                    <table role="presentation" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="width:52px; vertical-align:middle;">
+                          <img src="{{companyLogo}}" width="44" height="44" alt="{{companyName}}" style="width:44px; height:44px; border-radius:10px; object-fit:contain; background:#ffffff;">
+                        </td>
+                        <td style="vertical-align:middle;">
+                          <div style="font-size:15px; line-height:20px; font-weight:700; color:#111827;">{{companyName}}</div>
+                          <div style="font-size:12px; line-height:18px; color:#6b7280;">Booking update</div>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                  <td class="stack-column" align="right" style="vertical-align:middle;">
+                    <span class="status-pill status-{{newStatus}}">{{newStatus}}</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <tr>
+            <td class="mobile-padding" style="padding:0 32px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr><td style="border-top:1px solid #edf0f3; font-size:0; line-height:0;">&nbsp;</td></tr>
+              </table>
+            </td>
+          </tr>
+
+          <tr>
+            <td class="mobile-padding" style="padding:28px 32px 8px;">
+              <p style="margin:0 0 8px; font-size:13px; line-height:18px; color:#6b7280; font-weight:700; text-transform:uppercase; letter-spacing:0.6px;">Booking {{bookingId}}</p>
+              <h1 style="margin:0 0 12px; font-size:26px; line-height:32px; color:#111827; font-weight:800;">Your booking status has been updated</h1>
+              <p style="margin:0; font-size:15px; line-height:24px; color:#4b5563;">Hi {{customerName}}, we updated your booking for <strong style="color:#111827;">{{tourTitle}}</strong>.</p>
+            </td>
+          </tr>
+
+          <tr>
+            <td class="mobile-padding" style="padding:20px 32px 8px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb; border:1px solid #e5e7eb; border-radius:10px;">
+                <tr>
+                  <td style="padding:20px 22px;">
+                    <div style="font-size:12px; line-height:18px; color:#6b7280; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">Current status</div>
+                    <div style="margin-top:10px;"><span class="status-pill status-{{newStatus}}">{{newStatus}}</span></div>
+                    <p style="margin:14px 0 0; font-size:15px; line-height:23px; color:#111827; font-weight:600;">{{statusMessage}}</p>
                     {{#if additionalInfo}}
-                    <p style="margin: 10px 0 0; font-size: 14px; color: #475569;">{{additionalInfo}}</p>
+                    <p style="margin:10px 0 0; font-size:14px; line-height:22px; color:#4b5563;">{{additionalInfo}}</p>
                     {{/if}}
-                </div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
 
-                <div class="info-card">
-                    <div class="info-header">Booking summary</div>
-                    <div class="info-body">
-                        <table class="info-grid">
-                            <tr>
-                                <td class="info-label">Tour</td>
-                                <td class="info-value">{{tourTitle}}</td>
-                            </tr>
-                            <tr>
-                                <td class="info-label">Date & Time</td>
-                                <td class="info-value">{{bookingDate}} · {{bookingTime}}</td>
-                            </tr>
-                            <tr>
-                                <td class="info-label">Reference</td>
-                                <td class="info-value" style="font-family: 'SFMono-Regular', Menlo, monospace;">{{bookingId}}</td>
-                            </tr>
-                        </table>
-                    </div>
-                </div>
+          <tr>
+            <td class="mobile-padding" style="padding:18px 32px 8px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb; border-radius:10px; overflow:hidden;">
+                <tr>
+                  <td colspan="2" style="padding:14px 20px; background:#fbfcfd; border-bottom:1px solid #e5e7eb; font-size:12px; line-height:18px; color:#6b7280; font-weight:700; text-transform:uppercase; letter-spacing:0.6px;">Booking details</td>
+                </tr>
+                <tr>
+                  <td style="padding:14px 20px; border-bottom:1px solid #f1f5f9; color:#6b7280; font-size:13px;">Tour</td>
+                  <td align="right" style="padding:14px 20px; border-bottom:1px solid #f1f5f9; color:#111827; font-size:14px; font-weight:700;">{{tourTitle}}</td>
+                </tr>
+                <tr>
+                  <td style="padding:14px 20px; border-bottom:1px solid #f1f5f9; color:#6b7280; font-size:13px;">Date</td>
+                  <td align="right" style="padding:14px 20px; border-bottom:1px solid #f1f5f9; color:#111827; font-size:14px; font-weight:700;">{{bookingDate}}</td>
+                </tr>
+                <tr>
+                  <td style="padding:14px 20px; border-bottom:1px solid #f1f5f9; color:#6b7280; font-size:13px;">Time</td>
+                  <td align="right" style="padding:14px 20px; border-bottom:1px solid #f1f5f9; color:#111827; font-size:14px; font-weight:700;">{{bookingTime}}</td>
+                </tr>
+                <tr>
+                  <td style="padding:14px 20px; color:#6b7280; font-size:13px;">Reference</td>
+                  <td align="right" style="padding:14px 20px; color:#111827; font-size:14px; font-weight:700; font-family:Menlo,Consolas,monospace;">{{bookingId}}</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
 
-                <div class="next-steps">
-                    <div class="step">
-                        <div class="step-index">1</div>
-                        <div class="step-text">Review the status change in your bookings dashboard.</div>
-                    </div>
-                    <div class="step">
-                        <div class="step-index">2</div>
-                        <div class="step-text">Reach out via WhatsApp or email if you need adjustments or have questions.</div>
-                    </div>
-                    <div class="step">
-                        <div class="step-index">3</div>
-                        <div class="step-text">Watch for follow-up emails with any required actions.</div>
-                    </div>
-                </div>
+          <tr>
+            <td class="mobile-padding" style="padding:24px 32px 10px;">
+              <a class="cta-button" href="{{baseUrl}}/user/bookings" style="display:inline-block; background:{{primaryColor}}; color:#ffffff; padding:13px 22px; border-radius:7px; font-size:14px; line-height:20px; font-weight:700; text-decoration:none;">View my bookings</a>
+            </td>
+          </tr>
 
-                <div class="cta">
-                    <a class="cta-button" href="{{baseUrl}}/user/bookings">View my bookings</a>
-                </div>
+          <tr>
+            <td class="mobile-padding" style="padding:14px 32px 30px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#fff7ed; border:1px solid #fed7aa; border-radius:10px;">
+                <tr>
+                  <td style="padding:16px 18px;">
+                    <p style="margin:0 0 6px; font-size:14px; line-height:20px; color:#111827; font-weight:700;">Need help?</p>
+                    <p style="margin:0; font-size:13px; line-height:21px; color:#4b5563;">Reply to this email or contact us at <a href="mailto:{{contactEmail}}" style="color:{{primaryColor}}; font-weight:700;">{{contactEmail}}</a>{{#if contactPhone}} or {{contactPhone}}{{/if}}.</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
 
-                <div class="support">
-                    <div class="support-icon">💬</div>
-                    <div class="support-text">
-                        <strong>Need help with this change?</strong>
-                        <span>Email <a href="mailto:{{contactEmail}}">{{contactEmail}}</a>{{#if contactPhone}} • WhatsApp <a href="https://wa.me/{{contactPhone}}">{{contactPhone}}</a>{{/if}}</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="footer">
-                <div class="footer-links">
-                    <a href="{{baseUrl}}/user/bookings">My Bookings</a>
-                    {{#if website}}<a href="{{website}}">Website</a>{{/if}}
-                </div>
-                <p>© {{year}} {{companyName}}</p>
-            </div>
-        </div>
-    </div>
+          <tr>
+            <td class="mobile-padding" style="padding:20px 32px; background:#f9fafb; border-top:1px solid #edf0f3; text-align:center;">
+              <p style="margin:0 0 6px; font-size:12px; line-height:18px; color:#6b7280;">{{companyName}}</p>
+              <p style="margin:0; font-size:11px; line-height:17px; color:#9ca3af;">This email was sent because your booking status changed.</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
 </body>
 </html>

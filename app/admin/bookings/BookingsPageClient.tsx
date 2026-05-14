@@ -336,15 +336,18 @@ const BookingsPage = () => {
         throw new Error('Failed to update booking status');
       }
 
+      const updatedBooking = await response.json();
+      const savedStatus = updatedBooking?.status || newStatus;
+
       setBookings(prevBookings =>
         prevBookings.map(booking =>
           booking._id === bookingId
-            ? { ...booking, status: newStatus }
+            ? { ...booking, status: savedStatus }
             : booking
         )
       );
 
-      toast.success(`Booking status updated to ${newStatus}`);
+      toast.success(`Booking status updated to ${savedStatus}`);
     } catch (error) {
       console.error('Error updating booking status:', error);
       toast.error('Failed to update booking status');

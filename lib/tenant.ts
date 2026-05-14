@@ -703,6 +703,10 @@ export function getTenantEmailBranding(tenantConfig: ITenant | null, baseUrl?: s
   if (!tenantConfig) return undefined;
 
   const branding = resolveTenantBranding(tenantConfig);
+  const tenantWebsite = tenantConfig.domain
+    ? tenantConfig.domain.replace(/^https?:\/\//, '')
+    : '';
+  const website = tenantWebsite ? `https://${tenantWebsite}` : baseUrl;
 
   return {
     tenantId: tenantConfig.tenantId,
@@ -713,7 +717,7 @@ export function getTenantEmailBranding(tenantConfig: ITenant | null, baseUrl?: s
     accentColor: branding.accentColor,
     contactEmail: tenantConfig.contact?.email || 'info@tours.com',
     contactPhone: tenantConfig.contact?.phone || '+20 000 000 0000',
-    website: baseUrl || tenantConfig.domain,
+    website,
     supportEmail: tenantConfig.contact?.supportEmail || tenantConfig.contact?.email,
     socialLinks: {
       facebook: tenantConfig.socialLinks?.facebook,

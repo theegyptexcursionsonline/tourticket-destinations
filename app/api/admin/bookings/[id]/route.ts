@@ -5,7 +5,7 @@ import Booking from '@/lib/models/Booking';
 import Tour from '@/lib/models/Tour';
 import User from '@/lib/models/user';
 import { EmailService } from '@/lib/email/emailService';
-import { BOOKING_STATUSES_DB, toBookingStatusDb } from '@/lib/constants/bookingStatus';
+import { BOOKING_STATUSES_DB, toBookingStatusCode, toBookingStatusDb } from '@/lib/constants/bookingStatus';
 import Tenant from '@/lib/models/Tenant';
 import { getTenantEmailBranding } from '@/lib/tenant';
 import { requireAdminAuth } from '@/lib/auth/adminAuth';
@@ -193,7 +193,7 @@ export async function PATCH(
       .populate({
         path: 'user',
         model: User,
-        select: 'firstName lastName email name',
+        select: 'firstName lastName email name phone',
       });
 
     if (!currentBooking) {
@@ -210,10 +210,9 @@ export async function PATCH(
       );
     }
 
-    // Store old status for comparison
     const oldStatus = currentBooking.status;
+    const statusChanged = toBookingStatusCode(String(oldStatus)) !== toBookingStatusCode(String(normalizedStatus));
 
-    // Update booking
     currentBooking.status = normalizedStatus as any;
     await currentBooking.save();
 
@@ -232,7 +231,7 @@ export async function PATCH(
       .populate({
         path: 'user',
         model: User,
-        select: 'firstName lastName email name',
+        select: 'firstName lastName email name phone',
       })
       .lean();
 
@@ -255,17 +254,21 @@ export async function PATCH(
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || '';
     const tenantBranding = getTenantEmailBranding(tenantConfig as any, baseUrl);
 
-    if (oldStatus !== status && updatedUser && updatedTour) {
-      try {
-        const customerName = updatedUser.name || 
-          `${updatedUser.firstName || ''} ${updatedUser.lastName || ''}`.trim() || 
-          'Valued Customer';
-        const customerEmail = updatedUser.email;
-        const tourTitle = updatedTour.title || 'Tour';
-        const bookingDate = formatBookingDate(updatedBooking.date);
-        const bookingTime = updatedBooking.time;
-        const bookingId = updatedBooking._id.toString();
+    if (statusChanged && updatedUser && updatedTour) {
+      const customerName = updatedUser.name ||
+        `${updatedUser.firstName || ''} ${updatedUser.lastName || ''}`.trim() ||
+        'Valued Customer';
+      const customerEmail = updatedUser.email || '';
+      const customerPhone = updatedBooking.customerPhone || updatedUser.phone;
+      const tourTitle = updatedTour.title || 'Tour';
+      const bookingDate = formatBookingDate(updatedBooking.dateString || updatedBooking.date);
+      const bookingTime = updatedBooking.time;
+      const bookingId = updatedBooking.bookingReference || updatedBooking._id.toString();
+      const adminDashboardLink = baseUrl
+        ? `${baseUrl.replace(/\/$/, '')}/admin/bookings/${updatedBooking._id.toString()}`
+        : undefined;
 
+      try {
         if (normalizedStatus === 'Cancelled') {
           // Calculate potential refund for cancellation email
           const bookingDateObj = new Date(updatedBooking.date);
@@ -323,9 +326,34 @@ export async function PATCH(
           console.log(`✅ Status update email sent to ${customerEmail} - Status: ${normalizedStatus}`);
         }
       } catch (emailError) {
-        console.error('❌ Failed to send email notification:', emailError);
+        console.error('❌ Failed to send customer email notification:', emailError);
         // Don't fail the request if email fails, just log it
         // This allows the status update to succeed even if email fails
+      }
+
+      try {
+        await EmailService.sendAdminBookingStatusUpdate({
+          bookingId,
+          tourTitle,
+          customerName,
+          customerEmail,
+          customerPhone,
+          bookingDate,
+          bookingTime,
+          oldStatus,
+          newStatus: normalizedStatus,
+          changedBy: auth.email || 'Admin',
+          changedAt: new Date().toISOString(),
+          totalPrice: `$${Number(updatedBooking.totalPrice || 0).toFixed(2)}`,
+          paymentMethod: updatedBooking.paymentMethod,
+          adminDashboardLink,
+          baseUrl,
+          adminCcEmail: tenantBranding?.contactEmail,
+          tenantBranding,
+        });
+        console.log(`✅ Admin/operator status notification sent for ${bookingId}: ${oldStatus} → ${normalizedStatus}`);
+      } catch (emailError) {
+        console.error('❌ Failed to send admin/operator status notification:', emailError);
       }
     }
 

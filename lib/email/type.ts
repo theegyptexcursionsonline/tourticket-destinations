@@ -214,6 +214,25 @@ export interface AdminAlertData {
   };
 }
 
+export interface AdminBookingStatusNotificationData {
+  bookingId: string;
+  tourTitle: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone?: string;
+  bookingDate: string;
+  bookingTime?: string;
+  oldStatus: string;
+  newStatus: string;
+  changedBy?: string;
+  changedAt: string;
+  totalPrice?: string;
+  paymentMethod?: string;
+  adminDashboardLink?: string;
+  baseUrl?: string;
+  adminCcEmail?: string;
+}
+
 export interface BookingStatusUpdateData extends BaseEmailData {
   tourTitle: string;
   bookingId: string;
