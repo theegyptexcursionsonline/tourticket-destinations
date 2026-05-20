@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx scripts/dev-with-port.ts",
     "dev:original": "next dev --turbopack",
-    "prebuild": "echo '🧪 Running pre-build checks...' && pnpm test:unit && echo '✅ All pre-build checks passed!'",
+    "prebuild": "if [ \"$SKIP_TESTS\" = \"1\" ]; then echo 'Skipping pre-build checks because SKIP_TESTS=1'; else echo 'Running pre-build checks...' && pnpm test:unit && echo 'All pre-build checks passed!'; fi",
     "build": "next build",
     "build:skip-tests": "SKIP_TESTS=1 next build",
     "typecheck": "tsc --noEmit",

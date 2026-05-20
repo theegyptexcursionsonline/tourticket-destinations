@@ -5,6 +5,10 @@
 [build.environment]
   NODE_VERSION = "20"
   PNPM_FLAGS = "--shamefully-hoist"
+  # Skip the prebuild Jest run on Netlify. The deploy cache can contain
+  # generated .netlify function package files, which collide with Jest's
+  # haste map before the production build starts.
+  SKIP_TESTS = "1"
 
 # Ensure environment variables are available in functions
 [[plugins]]
