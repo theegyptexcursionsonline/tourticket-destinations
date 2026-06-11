@@ -8,7 +8,7 @@ import Footer from '@/components/Footer';
 import AISearchWidget from '@/components/AISearchWidget';
 import InterestsClientPage from './InterestsClientPage';
 import { ICategory } from '@/lib/models/Category';
-import { getTenantFromRequest, getTenantPublicConfig } from '@/lib/tenant';
+import { buildStrictTenantQuery, getTenantFromRequest, getTenantPublicConfig } from '@/lib/tenant';
 
 // Enable ISR with 60 second revalidation for instant page loads
 export const dynamic = 'force-dynamic';
@@ -46,28 +46,35 @@ interface CategoryWithCount extends ICategory {
   tourCount: number;
 }
 
-// Server-side function to fetch all categories and their tour counts
-async function getCategoriesWithTourCounts(): Promise<CategoryWithCount[]> {
-  await dbConnect();
-  
-  // Fetch all published categories
-  const categories = await Category.find({ isPublished: true })
-    .sort({ order: 1, name: 1 })
-    .lean();
-  
-  // For each category, count the number of published tours
-  const categoriesWithCounts = await Promise.all(
-    categories.map(async (cat) => {
-      const tourCount = await Tour.countDocuments({
-        category: { $in: [cat._id] },
-        isPublished: true
-      });
-      return {
-        ...cat,
-        tourCount: tourCount,
-      };
-    })
+// Server-side function to fetch tenant categories and their tour counts
+async function getCategoriesWithTourCounts(tenantId: string): Promise<CategoryWithCount[]> {
+  await dbConnect(tenantId);
+
+  const categoryQuery = buildStrictTenantQuery({ isPublished: true }, tenantId);
+  const tourQuery = buildStrictTenantQuery({ isPublished: true }, tenantId);
+
+  const [categories, categoryCounts] = await Promise.all([
+    Category.find(categoryQuery)
+      .sort({ order: 1, name: 1 })
+      .lean(),
+    Tour.aggregate([
+      { $match: tourQuery },
+      { $unwind: '$category' },
+      { $group: { _id: '$category', count: { $sum: 1 } } },
+    ]),
+  ]);
+
+  const countMap = new Map(
+    categoryCounts.map((item: { _id: unknown; count: number }) => [
+      String(item._id),
+      Number(item.count) || 0,
+    ])
   );
+
+  const categoriesWithCounts = categories.map((cat) => ({
+    ...cat,
+    tourCount: countMap.get(String(cat._id)) || 0,
+  }));
 
   // Serialize the data to pass to the client component
   return JSON.parse(JSON.stringify(categoriesWithCounts));
@@ -75,7 +82,8 @@ async function getCategoriesWithTourCounts(): Promise<CategoryWithCount[]> {
 
 // The main server component for the /interests route
 export default async function InterestsIndexPage() {
-  const categories = await getCategoriesWithTourCounts();
+  const tenantId = await getTenantFromRequest();
+  const categories = await getCategoriesWithTourCounts(tenantId);
 
   return (
     <>
@@ -89,4 +97,3 @@ export default async function InterestsIndexPage() {
     </>
   );
 }
-
