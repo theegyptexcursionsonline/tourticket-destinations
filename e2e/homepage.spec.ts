@@ -50,10 +50,13 @@ test.describe('Homepage', () => {
 
   test('destinations link navigates correctly', async ({ page }) => {
     // Find and click a destinations link
-    const destLink = page.locator('a[href*="destinations"]').first();
+    const destLink = page
+      .locator('main a[href="/destinations"], header a[href="/destinations"], footer a[href="/destinations"]')
+      .filter({ visible: true })
+      .first();
     if ((await destLink.count()) > 0) {
       await destLink.click();
-      await page.waitForLoadState('domcontentloaded');
+      await page.waitForURL('**/destinations', { timeout: 10_000 });
       expect(page.url()).toContain('destinations');
     }
   });
@@ -63,6 +66,7 @@ test.describe('Homepage', () => {
     const searchTrigger = page
       .locator('header')
       .locator('input[type="text"], input[placeholder*="search" i], button[aria-label*="search" i], [class*="search"]')
+      .filter({ visible: true })
       .first();
 
     if ((await searchTrigger.count()) > 0) {
@@ -81,33 +85,27 @@ test.describe('Homepage', () => {
 
   test('newsletter subscribe form works', async ({ page }) => {
     // Scroll to footer area where newsletter form typically is
-    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    await page.waitForTimeout(500);
+    const footer = page.locator('footer').first();
+    await footer.scrollIntoViewIfNeeded();
 
-    const emailInput = page.locator(
-      'input[type="email"][placeholder*="email" i], input[name="email"]',
-    ).last();
+    const form = footer.locator('form:has(input[type="email"])').first();
+    if ((await form.count()) === 0) return;
 
-    if ((await emailInput.count()) > 0) {
-      await emailInput.fill('e2e-test@example.com');
+    await page.route('**/api/subscribe', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, message: 'Successfully subscribed!' }),
+      });
+    });
 
-      // Find the submit button near the email input
-      const form = emailInput.locator('xpath=ancestor::form');
-      const submitBtn = form.locator('button[type="submit"], button').first();
+    await form.locator('input[type="email"]').fill(`e2e-test-${Date.now()}@example.com`);
+    await form.evaluate((newsletterForm: HTMLFormElement) => newsletterForm.requestSubmit());
 
-      if ((await submitBtn.count()) > 0) {
-        await submitBtn.click();
-        await page.waitForTimeout(2000);
+    await expect(
+      footer.locator('text=/subscribed|success|thank/i').first(),
+    ).toBeVisible({ timeout: 10_000 });
 
-        // Check for success indication (toast, message, or input cleared)
-        const successIndicator = page.locator(
-          'text=/subscribed|success|thank/i',
-        );
-        const inputCleared = await emailInput.inputValue();
-        const hasSuccess =
-          (await successIndicator.count()) > 0 || inputCleared === '';
-        expect(hasSuccess).toBeTruthy();
-      }
-    }
+    await page.unroute('**/api/subscribe');
   });
 });

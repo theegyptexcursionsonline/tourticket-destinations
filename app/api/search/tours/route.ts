@@ -213,14 +213,16 @@ export async function GET(request: Request) {
         }
 
         console.log(`Final result count: ${tours.length}`);
-        return NextResponse.json(tours);
+        return NextResponse.json({ success: true, data: tours, tours });
 
     } catch (error) {
         console.error('Error fetching tours:', error);
         const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
         return NextResponse.json({ 
+            success: false,
             message: 'Internal Server Error', 
             error: errorMessage,
+            data: [],
             tours: [] // Return empty array as fallback
         }, { status: 500 });
     }

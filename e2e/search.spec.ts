@@ -63,6 +63,7 @@ test.describe('Search functionality', () => {
       .locator(
         'input[placeholder*="search" i], input[placeholder*="explore" i], button[aria-label*="search" i]',
       )
+      .filter({ visible: true })
       .first();
 
     if ((await searchTrigger.count()) === 0) {

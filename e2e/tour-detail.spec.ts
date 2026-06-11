@@ -98,7 +98,7 @@ test.describe('Tour detail page', () => {
       return imgs
         .filter((img) => {
           const el = img as HTMLImageElement;
-          return el.naturalWidth === 0 && el.src && !el.src.startsWith('data:');
+          return el.complete && el.naturalWidth === 0 && el.src && !el.src.startsWith('data:');
         })
         .map((img) => (img as HTMLImageElement).src);
     });

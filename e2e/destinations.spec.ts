@@ -29,11 +29,20 @@ test.describe('Destination pages', () => {
     await page.goto('/destinations', { waitUntil: 'domcontentloaded', timeout: 30_000 });
     await page.waitForTimeout(2000);
 
-    const firstCard = page.locator('a[href*="destinations/"]').first();
+    const firstCard = page
+      .locator('main a[href^="/destinations/"]')
+      .filter({ visible: true })
+      .first();
     if ((await firstCard.count()) > 0) {
+      const href = await firstCard.getAttribute('href');
       await firstCard.click();
-      await page.waitForLoadState('domcontentloaded');
-      expect(page.url()).toContain('destinations/');
+      if (href) {
+        await page.waitForURL(`**${href}`, { timeout: 10_000 });
+        expect(page.url()).toContain(href);
+      } else {
+        await page.waitForLoadState('domcontentloaded');
+        expect(page.url()).toContain('destinations/');
+      }
     }
   });
 

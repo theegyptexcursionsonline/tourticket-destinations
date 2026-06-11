@@ -4,7 +4,7 @@ import { useWishlist } from '@/contexts/WishlistContext';
 import toast from 'react-hot-toast';
 import { useState, useRef, useEffect } from 'react';
 import { Link } from '@/i18n/navigation';
-import Image from 'next/image';
+import SafeImage from '@/components/shared/SafeImage';
 import { AnimatePresence, motion, useInView } from 'framer-motion';
 import {
   ArrowLeft, Clock, Star, Users, ShoppingCart, Calendar, MapPin,
@@ -137,6 +137,23 @@ const extractEnhancementData = (tour: Tour): TourEnhancement => {
     ]
   };
 };
+
+const TOUR_IMAGE_FALLBACK = '/hero2.jpg';
+const BROKEN_TOUR_IMAGE_IDS = [
+  'stszvuu6u6hbqzw6crh4',
+  'puqu1zubrvy6p2zhekyv',
+  'srtr88zc2tmghtucmhms',
+];
+
+function getSafeTourImage(image?: string | null): string {
+  const candidate = typeof image === 'string' && image.trim() ? image.trim() : TOUR_IMAGE_FALLBACK;
+
+  if (BROKEN_TOUR_IMAGE_IDS.some((imageId) => candidate.includes(imageId))) {
+    return TOUR_IMAGE_FALLBACK;
+  }
+
+  return candidate;
+}
 
 // Enhanced Lightbox Component
 const Lightbox = ({ images, selectedIndex, onClose }: { images: string[], selectedIndex: number, onClose: () => void }) => {
@@ -963,7 +980,9 @@ export default function TourPageClient({ tour, relatedTours, initialReviews }: T
   // FIXED: Use real database data instead of mock data
   const enhancement = extractEnhancementData(tour);
 
-  const tourImages = [tour.image, ...(tour.images || [])].filter(Boolean);
+  const tourImages = Array.from(
+    new Set([tour.image, ...(tour.images || [])].map(getSafeTourImage))
+  );
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: Eye },
@@ -1085,8 +1104,9 @@ export default function TourPageClient({ tour, relatedTours, initialReviews }: T
                   className="relative rounded-xl overflow-hidden shadow-lg mb-6 group cursor-pointer"
                   onClick={() => openLightbox(selectedImageIndex)}
                 >
-                  <Image
+                  <SafeImage
                     src={tourImages[selectedImageIndex]}
+                    fallbackSrc={TOUR_IMAGE_FALLBACK}
                     alt={tour.title}
                     width={1200}
                     height={700}
@@ -1131,8 +1151,9 @@ export default function TourPageClient({ tour, relatedTours, initialReviews }: T
                         }`}
                         aria-label={`View image ${index + 1}`}
                       >
-                        <Image
+                        <SafeImage
                           src={image}
+                          fallbackSrc={TOUR_IMAGE_FALLBACK}
                           alt={`${tour.title} image ${index + 1}`}
                           width={80}
                           height={64}
@@ -1227,8 +1248,9 @@ export default function TourPageClient({ tour, relatedTours, initialReviews }: T
                       <Link key={relatedTour._id} href={`/${relatedTour.slug}`} className="group">
                         <div className="border border-slate-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
                           <div className="relative">
-                            <Image
-                              src={relatedTour.image}
+                            <SafeImage
+                              src={getSafeTourImage(relatedTour.image)}
+                              fallbackSrc={TOUR_IMAGE_FALLBACK}
                               alt={relatedTour.title}
                               width={300}
                               height={200}

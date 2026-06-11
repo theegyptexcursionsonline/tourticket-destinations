@@ -135,6 +135,13 @@ const SearchClient: React.FC<SearchClientProps> = ({ initialTours = [], categori
     setter((prev: any[]) => (prev.includes(value) ? prev.filter((p) => p !== value) : [...prev, value]));
   };
 
+  const normalizeToursResponse = (payload: any): TourType[] => {
+    if (Array.isArray(payload)) return payload;
+    if (Array.isArray(payload?.data)) return payload.data;
+    if (Array.isArray(payload?.tours)) return payload.tours;
+    return [];
+  };
+
   const clearAllFilters = useCallback(() => {
     setSearchQuery('');
     setSelectedCategories([]);
@@ -159,7 +166,7 @@ const SearchClient: React.FC<SearchClientProps> = ({ initialTours = [], categori
             const res = await fetch('/api/search/tours', { signal: controller.signal });
             if (!res.ok) throw new Error('Failed to fetch tours');
             const data = await res.json();
-            setTours(Array.isArray(data) ? data : []);
+            setTours(normalizeToursResponse(data));
           } catch (err: any) {
             if (err.name !== 'AbortError') {
               console.error('Initial tours fetch error:', err);
@@ -197,7 +204,7 @@ const SearchClient: React.FC<SearchClientProps> = ({ initialTours = [], categori
         const res = await fetch(`/api/search/tours?${newQuery}`, { signal: controller.signal });
         if (!res.ok) throw new Error('Failed to fetch tours');
         const data = await res.json();
-        setTours(Array.isArray(data) ? data : []);
+        setTours(normalizeToursResponse(data));
       } catch (err: any) {
         if (err.name !== 'AbortError') {
           console.error('Search fetch error:', err);

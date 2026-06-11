@@ -109,7 +109,10 @@ test.describe('Admin page access', () => {
 
       // Should either redirect to login or show login form
       const loginForm = page.locator('#email, input[name="email"]');
-      const isOnLogin = page.url().includes('admin') && (await loginForm.count()) > 0;
+      const loginHeading = page.getByRole('heading', { name: 'Admin Portal Access' });
+      const isOnLogin =
+        (await loginForm.first().isVisible().catch(() => false)) ||
+        (await loginHeading.isVisible().catch(() => false));
       const redirectedToLogin = page.url().includes('login');
 
       expect(

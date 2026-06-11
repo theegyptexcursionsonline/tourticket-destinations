@@ -55,12 +55,22 @@ test.describe('Contact form', () => {
     await emailInput.fill('e2e-test@example.com');
     await messageInput.fill('This is an automated E2E test message. Please ignore.');
 
+    // The contact API intentionally rejects submissions that arrive too quickly.
+    await page.waitForTimeout(3100);
+
     const submitBtn = page.locator(
       'button[type="submit"], button:has-text("Send"), button:has-text("Submit")',
     ).first();
+    const contactResponse = page
+      .waitForResponse(
+        (response) =>
+          response.url().includes('/api/contact') &&
+          response.request().method() === 'POST',
+        { timeout: 15_000 },
+      )
+      .catch(() => null);
     await submitBtn.click();
-
-    await page.waitForTimeout(3000);
+    const response = await contactResponse;
 
     // Check for success message (toast or inline)
     const successMsg = page.locator('text=/sent|success|thank|received/i');
@@ -71,7 +81,7 @@ test.describe('Contact form', () => {
     const formCleared = nameValue === '';
 
     expect(
-      hasSuccess || formCleared,
+      response?.ok() || hasSuccess || formCleared,
       'Expected success message or form cleared after submit',
     ).toBeTruthy();
   });

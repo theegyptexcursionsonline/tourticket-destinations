@@ -272,3 +272,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ message: 'Failed to fetch bookings' }, { status: 500 });
   }
 }
+
+export async function POST(request: NextRequest) {
+  const auth = await requireAdminAuth(request, { permissions: ['manageBookings'] });
+  if (auth instanceof NextResponse) return auth;
+
+  return NextResponse.json(
+    { success: false, error: 'Manual admin booking creation is not supported by this endpoint' },
+    { status: 405 }
+  );
+}

@@ -9,10 +9,12 @@ import {
   getDefaultPermissions,
 } from '@/lib/constants/adminPermissions';
 
-const INVALID_RESPONSE = NextResponse.json(
-  { success: false, error: 'Invalid credentials' },
-  { status: 401 },
-);
+function invalidCredentialsResponse() {
+  return NextResponse.json(
+    { success: false, error: 'Invalid credentials' },
+    { status: 401 },
+  );
+}
 
 function buildAdminUserPayload(user: any, permissions: AdminPermission[]) {
   return {
@@ -90,7 +92,7 @@ export async function POST(request: NextRequest) {
 
     const user = await User.findOne({ email: identifier }).select('+password');
     if (!user) {
-      return INVALID_RESPONSE;
+      return invalidCredentialsResponse();
     }
 
     if (!user.isActive) {
@@ -101,12 +103,12 @@ export async function POST(request: NextRequest) {
     }
 
     if (!user.password) {
-      return INVALID_RESPONSE;
+      return invalidCredentialsResponse();
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      return INVALID_RESPONSE;
+      return invalidCredentialsResponse();
     }
 
     if (!user.role || user.role === 'customer') {

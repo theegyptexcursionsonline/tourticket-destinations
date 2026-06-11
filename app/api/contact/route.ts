@@ -86,6 +86,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
     }
 
+    // --- Timing Check ---
+    if (submissionTime && submissionTime < 3000) {
+      console.log('Suspicious submission time:', submissionTime);
+      return NextResponse.json(
+        { error: 'Please wait a moment before submitting.' },
+        { status: 400 }
+      );
+    }
+
     // --- Rate Limiting ---
     const clientIP = getClientIP(request);
     if (!checkRateLimit(clientIP)) {
@@ -93,15 +102,6 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: 'Too many submissions. Please try again later.' },
         { status: 429 }
-      );
-    }
-
-    // --- Timing Check ---
-    if (submissionTime && submissionTime < 3000) {
-      console.log('Suspicious submission time:', submissionTime);
-      return NextResponse.json(
-        { error: 'Please wait a moment before submitting.' },
-        { status: 400 }
       );
     }
 
