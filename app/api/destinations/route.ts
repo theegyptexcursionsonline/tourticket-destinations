@@ -8,6 +8,39 @@ import { filterVisibleTaxonomyEntries } from '@/lib/utils/taxonomy';
 import { localizeEntityFields } from '@/lib/i18n/contentLocalization';
 import { destinationTranslationFields } from '@/lib/i18n/translationFields';
 
+const BROKEN_DESTINATION_IMAGE_IDS = ['photo-1565108941489-e2d8f69f15d8'];
+
+function getDestinationFallbackImage(destination: { name?: unknown; slug?: unknown }): string {
+  const label = `${destination.slug || ''} ${destination.name || ''}`.toLowerCase();
+
+  if (label.includes('beach') || label.includes('island') || label.includes('bay')) {
+    return 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80';
+  }
+
+  if (label.includes('desert') || label.includes('west-bank') || label.includes('valley')) {
+    return 'https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=800&q=80';
+  }
+
+  if (label.includes('temple') || label.includes('luxor') || label.includes('cairo') || label.includes('giza')) {
+    return 'https://images.unsplash.com/photo-1568322445389-f64ac2515020?w=800&q=80';
+  }
+
+  return '/hero2.jpg';
+}
+
+function getSafeDestinationImage(destination: { image?: unknown; name?: unknown; slug?: unknown }): string {
+  const fallbackImage = getDestinationFallbackImage(destination);
+  const image = typeof destination.image === 'string' && destination.image.trim()
+    ? destination.image
+    : fallbackImage;
+
+  if (BROKEN_DESTINATION_IMAGE_IDS.some((imageId) => image.includes(imageId))) {
+    return fallbackImage;
+  }
+
+  return image;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -32,18 +65,17 @@ export async function GET(request: NextRequest) {
       .sort({ featured: -1, tourCount: -1, name: 1 })
       .lean();
 
-    const tours = await Tour.find(tourQuery)
-      .select('destination')
-      .lean();
+    const destinationCounts = await Tour.aggregate([
+      { $match: tourQuery },
+      { $group: { _id: '$destination', count: { $sum: 1 } } },
+    ]);
 
-    // Count tours per destination
-    const tourCounts: Record<string, number> = {};
-    tours.forEach(tour => {
-      const destId = tour.destination?.toString();
-      if (destId) {
-        tourCounts[destId] = (tourCounts[destId] || 0) + 1;
-      }
-    });
+    const tourCounts = new Map(
+      destinationCounts.map((item: { _id: unknown; count: number }) => [
+        String(item._id),
+        Number(item.count) || 0,
+      ])
+    );
 
     const destFields = destinationTranslationFields.map((field) => field.key);
 
@@ -52,7 +84,8 @@ export async function GET(request: NextRequest) {
       localizeEntityFields(
         {
           ...dest,
-          tourCount: tourCounts[(dest._id as any).toString()] || 0,
+          image: getSafeDestinationImage(dest as any),
+          tourCount: tourCounts.get((dest._id as any).toString()) || 0,
         },
         locale,
         destFields

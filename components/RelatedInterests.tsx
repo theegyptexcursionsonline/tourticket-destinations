@@ -56,6 +56,11 @@ interface RelatedInterestsProps {
   subtitle?: string;
 }
 
+const BROKEN_INTEREST_IMAGE_IDS = [
+  'photo-1555881698-6bfe5f815071',
+  'photo-1565108941489-e2d8f69f15d8',
+];
+
 // Image mapping function
 const getInterestImage = (name: string): string => {
   const lowerName = name.toLowerCase();
@@ -63,7 +68,7 @@ const getInterestImage = (name: string): string => {
   const imageMap: { [key: string]: string } = {
     fun: 'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=600&h=400&fit=crop',
     family: 'https://images.unsplash.com/photo-1511895426328-dc8714191300?w=600&h=400&fit=crop',
-    sightseeing: 'https://images.unsplash.com/photo-1555881698-6bfe5f815071?w=600&h=400&fit=crop',
+    sightseeing: 'https://images.unsplash.com/photo-1539768942893-daf53e448371?w=600&h=400&fit=crop',
     historical: 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=600&h=400&fit=crop',
     bus: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=600&h=400&fit=crop',
     water: 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=600&h=400&fit=crop',
@@ -81,6 +86,16 @@ const getInterestImage = (name: string): string => {
 
   return 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=600&h=400&fit=crop';
 };
+
+function getSafeInterestImage(image: string | undefined, fallbackImage: string): string {
+  if (!image) return fallbackImage;
+
+  if (BROKEN_INTEREST_IMAGE_IDS.some((imageId) => image.includes(imageId))) {
+    return fallbackImage;
+  }
+
+  return image;
+}
 
 // Icon mapping function - matches categories with appropriate icons
 const getIconForInterest = (name: string, _slug: string) => {
@@ -137,8 +152,12 @@ const InterestCard = ({ interest }: { interest: Interest }) => {
   const linkUrl =
     interest.type === 'attraction' ? `/attraction/${interest.slug}` : `/interests/${interest.slug}`;
   const fallbackImageUrl = getInterestImage(interest.name);
-  const [imageUrl, setImageUrl] = useState(interest.image || fallbackImageUrl);
+  const [imageUrl, setImageUrl] = useState(getSafeInterestImage(interest.image, fallbackImageUrl));
   const { Icon, gradient } = getIconForInterest(interest.name, interest.slug);
+
+  useEffect(() => {
+    setImageUrl(getSafeInterestImage(interest.image, fallbackImageUrl));
+  }, [fallbackImageUrl, interest.image]);
 
   return (
     <Link

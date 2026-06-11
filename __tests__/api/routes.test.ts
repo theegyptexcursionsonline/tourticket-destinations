@@ -62,6 +62,7 @@ jest.mock('@/lib/models/Tour', () => {
   mock.find = jest.fn().mockReturnValue(tourChain);
   mock.findOne = jest.fn().mockReturnValue(tourChain);
   mock.findById = jest.fn().mockReturnValue(tourChain);
+  mock.aggregate = jest.fn().mockResolvedValue([]);
   mock.countDocuments = jest.fn().mockResolvedValue(0);
   return { __esModule: true, default: mock };
 });
@@ -124,7 +125,7 @@ function createRequest(method: string, url: string, body?: any) {
     url: `http://localhost:3000${url}`,
     nextUrl: new URL(`http://localhost:3000${url}`),
     json: async () => body || {},
-    headers: new Headers({}),
+    headers: new Headers({ 'x-tenant-id': 'default' }),
     cookies: { get: jest.fn().mockReturnValue(undefined) },
   } as any;
 }

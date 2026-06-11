@@ -11,6 +11,7 @@ import TourModel from '@/lib/models/Tour';
 import CategoryModel from '@/lib/models/Category';
 import EgyptHeroClient from './EgyptHeroClient';
 import EgyptToursClient from './EgyptToursClient';
+import { buildTenantQuery, getTenantFromRequest } from '@/lib/tenant';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,11 +39,11 @@ const FAQS = [
 ];
 
 /* ---------- Server-side Data Fetching ---------- */
-async function fetchTours(): Promise<Tour[]> {
+async function fetchTours(tenantId: string): Promise<Tour[]> {
   try {
-    await dbConnect();
+    await dbConnect(tenantId);
 
-    const tours = await TourModel.find({ isPublished: true })
+    const tours = await TourModel.find(buildTenantQuery({ isPublished: true }, tenantId))
       .sort({ createdAt: -1 })
       .limit(12)
       .lean()
@@ -56,33 +57,40 @@ async function fetchTours(): Promise<Tour[]> {
   }
 }
 
-async function fetchCategories(): Promise<Category[]> {
+async function fetchCategories(tenantId: string): Promise<Category[]> {
   try {
-    await dbConnect();
+    await dbConnect(tenantId);
 
-    const categories = await CategoryModel.find({})
-      .sort({ order: 1, name: 1 })
-      .lean()
-      .exec();
+    const categoryQuery = buildTenantQuery({ isPublished: true }, tenantId);
+    const tourQuery = buildTenantQuery({ isPublished: true }, tenantId);
 
-    // Add tour counts
-    const categoriesWithCounts = await Promise.all(
-      categories.map(async (category) => {
-        const tourCount = await TourModel.countDocuments({
-          category: { $in: [category._id] },
-          isPublished: true
-        });
+    const [categories, categoryCounts] = await Promise.all([
+      CategoryModel.find(categoryQuery)
+        .sort({ order: 1, name: 1 })
+        .lean()
+        .exec(),
+      TourModel.aggregate([
+        { $match: tourQuery },
+        { $unwind: '$category' },
+        { $group: { _id: '$category', count: { $sum: 1 } } },
+      ]),
+    ]);
 
-        return {
-          ...category,
-          tourCount
-        };
-      })
+    const countMap = new Map(
+      categoryCounts.map((item: { _id: unknown; count: number }) => [
+        String(item._id),
+        Number(item.count) || 0,
+      ])
     );
+
+    const categoriesWithCounts = categories.map((category) => ({
+      ...category,
+      tourCount: countMap.get(String(category._id)) || 0,
+    }));
 
     // Filter published categories with tours
     const publishedCategories = categoriesWithCounts.filter(
-      (c: any) => c.isPublished !== false && (c.tourCount || 0) > 0
+      (c: any) => (c.tourCount || 0) > 0
     );
 
     // Convert MongoDB documents to plain objects
@@ -95,10 +103,12 @@ async function fetchCategories(): Promise<Category[]> {
 
 /* ---------- Server Component (Main Page) ---------- */
 export default async function AboutEgyptLanding() {
+  const tenantId = await getTenantFromRequest();
+
   // Fetch data in parallel on the server
   const [tours, categories] = await Promise.all([
-    fetchTours(),
-    fetchCategories()
+    fetchTours(tenantId),
+    fetchCategories(tenantId)
   ]);
 
   return (

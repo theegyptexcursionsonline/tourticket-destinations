@@ -62,7 +62,7 @@ const tenantDestinationPresets: Record<string, TenantMenuDestination[]> = {
     { name: 'Orange Bay', slug: 'orange-bay', image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400&q=80', country: 'Red Sea' },
     { name: 'Mahmya Island', slug: 'mahmya-island', image: 'https://images.unsplash.com/photo-1559827291-72ee739d0d9a?w=400&q=80', country: 'Red Sea' },
     { name: 'Sahl Hasheesh', slug: 'sahl-hasheesh', image: 'https://images.unsplash.com/photo-1519046904884-53103b34b206?w=400&q=80', country: 'Red Sea' },
-    { name: 'El Dahar', slug: 'el-dahar', image: 'https://images.unsplash.com/photo-1539650116574-75c0c6d73f0e?w=400&q=80', country: 'Hurghada' },
+    { name: 'El Dahar', slug: 'el-dahar', image: 'https://images.unsplash.com/photo-1539768942893-daf53e448371?w=400&q=80', country: 'Hurghada' },
   ],
   speedboat: [
     { name: 'Giftun Island', slug: 'giftun-island', image: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400&q=80', country: 'Red Sea' },
@@ -73,7 +73,7 @@ const tenantDestinationPresets: Record<string, TenantMenuDestination[]> = {
     { name: 'Hurghada Marina', slug: 'hurghada-marina', image: 'https://images.unsplash.com/photo-1540541338287-41700207dee6?w=400&q=80', country: 'Red Sea' },
   ],
   cairo: [
-    { name: 'Giza Pyramids', slug: 'giza-pyramids', image: 'https://images.unsplash.com/photo-1539650116574-75c0c6d73f0e?w=400&q=80', country: 'Egypt' },
+    { name: 'Giza Pyramids', slug: 'giza-pyramids', image: 'https://images.unsplash.com/photo-1539768942893-daf53e448371?w=400&q=80', country: 'Egypt' },
     { name: 'Egyptian Museum', slug: 'egyptian-museum', image: 'https://images.unsplash.com/photo-1572252009286-268acec5ca0a?w=400&q=80', country: 'Cairo' },
     { name: 'Khan El Khalili', slug: 'khan-el-khalili', image: 'https://images.unsplash.com/photo-1591604466107-ec97de577aff?w=400&q=80', country: 'Old Cairo' },
     { name: 'Old Cairo', slug: 'old-cairo', image: 'https://images.unsplash.com/photo-1548013146-72479768bada?w=400&q=80', country: 'Cairo' },
@@ -142,7 +142,7 @@ const tenantDestinationPresets: Record<string, TenantMenuDestination[]> = {
     { name: 'Montaza Palace', slug: 'montaza-palace', image: 'https://images.unsplash.com/photo-1516426122078-c23e76319801?w=400&q=80', country: 'Alexandria' },
     { name: 'Catacombs', slug: 'catacombs-of-kom-el-shoqafa', image: 'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=400&q=80', country: 'Alexandria' },
     { name: 'Pompey Pillar', slug: 'pompey-pillar', image: 'https://images.unsplash.com/photo-1568322445389-f64ac2515020?w=400&q=80', country: 'Alexandria' },
-    { name: 'Corniche', slug: 'alexandria-corniche', image: 'https://images.unsplash.com/photo-1539650116574-75c0c6d73f0e?w=400&q=80', country: 'Mediterranean' },
+    { name: 'Corniche', slug: 'alexandria-corniche', image: 'https://images.unsplash.com/photo-1539768942893-daf53e448371?w=400&q=80', country: 'Mediterranean' },
   ],
 };
 

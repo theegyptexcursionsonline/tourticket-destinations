@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { MapPin, Search, Sparkles, X, Bot, Loader2, ChevronLeft, ChevronRight, DollarSign, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -12,6 +11,7 @@ import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import { IDestination } from '@/lib/models/Destination';
 import { useTranslations } from 'next-intl';
+import SafeImage from '@/components/shared/SafeImage';
 
 // Algolia Configuration for AI
 const ALGOLIA_APP_ID = process.env.NEXT_PUBLIC_ALGOLIA_APP_ID || 'WMDNV9WSOI';
@@ -26,6 +26,37 @@ interface DestinationsClientPageProps {
   destinations: DestinationWithCount[];
 }
 
+const BROKEN_DESTINATION_IMAGE_IDS = ['photo-1565108941489-e2d8f69f15d8'];
+
+function getDestinationFallbackImage(destination: DestinationWithCount): string {
+  const label = `${destination.slug || ''} ${destination.name || ''}`.toLowerCase();
+
+  if (label.includes('beach') || label.includes('island') || label.includes('bay')) {
+    return 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80';
+  }
+
+  if (label.includes('desert') || label.includes('west-bank') || label.includes('valley')) {
+    return 'https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=800&q=80';
+  }
+
+  if (label.includes('temple') || label.includes('luxor') || label.includes('cairo') || label.includes('giza')) {
+    return 'https://images.unsplash.com/photo-1568322445389-f64ac2515020?w=800&q=80';
+  }
+
+  return '/hero2.jpg';
+}
+
+function getDestinationImage(destination: DestinationWithCount): string {
+  const fallbackImage = getDestinationFallbackImage(destination);
+  const image = destination.image || fallbackImage;
+
+  if (BROKEN_DESTINATION_IMAGE_IDS.some((imageId) => image.includes(imageId))) {
+    return fallbackImage;
+  }
+
+  return image;
+}
+
 // Tour Card Component for AI Chat
 const TourCard = ({ tour }: { tour: any }) => (
   <motion.div whileHover={{ y: -4 }}>
@@ -35,10 +66,12 @@ const TourCard = ({ tour }: { tour: any }) => (
     >
     {tour.image && (
       <div className="relative h-32 bg-gradient-to-br from-blue-100 to-purple-100 overflow-hidden">
-        <img
+        <SafeImage
           src={tour.image}
+          fallbackSrc="/hero2.jpg"
           alt={tour.title}
-          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+          fill
+          className="object-cover group-hover:scale-110 transition-transform duration-300"
         />
         {tour.duration && (
           <div className="absolute top-2 end-2 bg-white/90 backdrop-blur-sm px-2 py-0.5 rounded-lg text-[10px] font-medium">
@@ -120,11 +153,15 @@ const TourSlider = ({ tours }: { tours: any[] }) => {
 
 const DestinationCard = ({ destination }: { destination: DestinationWithCount }) => {
   const t = useTranslations();
+  const fallbackImage = getDestinationFallbackImage(destination);
+  const image = getDestinationImage(destination);
+
   return (
     <Link href={`/destinations/${destination.slug}`} className="group block bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 overflow-hidden">
       <div className="relative h-48">
-        <Image
-          src={destination.image || '/hero2.jpg'}
+        <SafeImage
+          src={image}
+          fallbackSrc={fallbackImage}
           alt={`Image of ${destination.name}`}
           fill
           className="object-cover transition-transform duration-300 group-hover:scale-105"
