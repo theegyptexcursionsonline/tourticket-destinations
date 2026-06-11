@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { Tag, Search, Star } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { ICategory } from '@/lib/models/Category';
+import SafeImage from '@/components/shared/SafeImage';
 
 interface CategoryWithCount extends ICategory {
   tourCount: number;
@@ -15,43 +15,80 @@ interface InterestsClientPageProps {
   categories: CategoryWithCount[];
 }
 
-const CategoryCard = ({ category }: { category: CategoryWithCount }) => (
-  <Link href={`/interests/${category.slug}`} className="group block bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 overflow-hidden">
-    <div className="relative h-48">
-      <Image
-        src={category.heroImage || (category as any).image || '/hero2.jpg'}
-        alt={`Image of ${category.name}`}
-        fill
-        className="object-cover transition-transform duration-300 group-hover:scale-105"
-        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-      />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
-      {category.featured && (
-        <div className="absolute top-3 start-3 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 shadow-lg">
-          <Star size={12} className="fill-current" />
-          Featured
-        </div>
-      )}
-    </div>
-    <div className="p-4">
-      <div className="flex items-center gap-2 mb-2">
-        {category.icon && (
-          <span className="text-2xl" aria-hidden="true">
-            {category.icon}
-          </span>
+const BROKEN_IMAGE_IDS = ['photo-1548018560-c7196e91a1e5'];
+
+function getCategoryFallbackImage(category: CategoryWithCount): string {
+  const label = `${category.slug || ''} ${category.name || ''}`.toLowerCase();
+
+  if (label.includes('golf')) {
+    return 'https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=800&q=80';
+  }
+
+  if (label.includes('water') || label.includes('kite') || label.includes('surf')) {
+    return 'https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=800&q=80';
+  }
+
+  if (label.includes('spa') || label.includes('wellness') || label.includes('beach')) {
+    return 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80';
+  }
+
+  return 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800&q=80';
+}
+
+function getCategoryImage(category: CategoryWithCount): string {
+  const fallbackImage = getCategoryFallbackImage(category);
+  const image = category.heroImage || (category as any).image || fallbackImage;
+
+  if (BROKEN_IMAGE_IDS.some((imageId) => image.includes(imageId))) {
+    return fallbackImage;
+  }
+
+  return image;
+}
+
+const CategoryCard = ({ category }: { category: CategoryWithCount }) => {
+  const fallbackImage = getCategoryFallbackImage(category);
+  const image = getCategoryImage(category);
+
+  return (
+    <Link href={`/interests/${category.slug}`} className="group block bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 overflow-hidden">
+      <div className="relative h-48">
+        <SafeImage
+          src={image}
+          fallbackSrc={fallbackImage}
+          alt={`Image of ${category.name}`}
+          fill
+          className="object-cover transition-transform duration-300 group-hover:scale-105"
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+        {category.featured && (
+          <div className="absolute top-3 start-3 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 shadow-lg">
+            <Star size={12} className="fill-current" />
+            Featured
+          </div>
         )}
-        <h3 className="text-xl font-bold text-slate-800 group-hover:text-red-600 transition-colors">{category.name}</h3>
       </div>
-      {category.description && (
-        <p className="text-sm text-slate-600 mb-2 line-clamp-2">{category.description}</p>
-      )}
-      <div className="flex items-center text-sm text-slate-500 mt-2">
-        <Tag size={14} className="me-1.5" />
-        <span>{category.tourCount} {category.tourCount === 1 ? 'experience' : 'experiences'} available</span>
+      <div className="p-4">
+        <div className="flex items-center gap-2 mb-2">
+          {category.icon && (
+            <span className="text-2xl" aria-hidden="true">
+              {category.icon}
+            </span>
+          )}
+          <h3 className="text-xl font-bold text-slate-800 group-hover:text-red-600 transition-colors">{category.name}</h3>
+        </div>
+        {category.description && (
+          <p className="text-sm text-slate-600 mb-2 line-clamp-2">{category.description}</p>
+        )}
+        <div className="flex items-center text-sm text-slate-500 mt-2">
+          <Tag size={14} className="me-1.5" />
+          <span>{category.tourCount} {category.tourCount === 1 ? 'experience' : 'experiences'} available</span>
+        </div>
       </div>
-    </div>
-  </Link>
-);
+    </Link>
+  );
+};
 
 export default function InterestsClientPage({ categories }: InterestsClientPageProps) {
   const [query, setQuery] = useState('');
@@ -154,4 +191,3 @@ export default function InterestsClientPage({ categories }: InterestsClientPageP
     </div>
   );
 }
-
