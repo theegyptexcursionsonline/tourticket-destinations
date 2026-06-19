@@ -17,9 +17,13 @@ const nextConfig = {
     'stripe',
   ],
 
-  // Image optimization configuration - Fixed for Netlify
+  // Image optimization configuration - Fixed for Netlify.
+  // Custom Cloudinary loader instead of `unoptimized: true` — Netlify doesn't
+  // run Next's optimizer, so resizing/compression is offloaded to the
+  // Cloudinary CDN (lib/cloudinaryLoader.ts). Prevents full-res multi-MB
+  // originals shipping to phones (the iOS Safari memory crash).
   images: {
-    unoptimized: true, // Enable for Netlify deployment
+    loaderFile: './lib/cloudinaryLoader.ts',
     remotePatterns: [
       // Cloudinary
       {
