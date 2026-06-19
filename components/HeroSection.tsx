@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useEffect, useState, useRef, useCallback } from "react";
+import { cdnImg } from '@/utils/cloudinary';
 import { useTenant } from '@/contexts/TenantContext';
 import { Search, MapPin, Clock, Compass, Tag, X, Sparkles, ChevronUp, Bot, Loader2, ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, DollarSign, Star } from "lucide-react";
 import Image from "next/image";
@@ -233,7 +234,7 @@ function TourHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: 
                 {tour.image && (
                   <div className="relative h-40 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 overflow-hidden">
                     <img
-                      src={tour.image}
+                      src={cdnImg(tour.image)}
                       alt={tour.title}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     />
@@ -535,7 +536,7 @@ const TourCard = ({ tour }: { tour: any }) => {
     {tour.image && (
       <div className="relative h-36 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 overflow-hidden">
         <img
-          src={tour.image}
+          src={cdnImg(tour.image)}
           alt={tour.title}
           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
         />
@@ -744,7 +745,7 @@ const DestinationSlider = ({ destinations }: { destinations: any[] }) => {
             {destination.image && (
               <div className="relative h-40 bg-gradient-to-br from-emerald-100 to-teal-100 overflow-hidden">
                 <img
-                  src={destination.image}
+                  src={cdnImg(destination.image)}
                   alt={destination.name}
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                 />

@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
+import { cdnImg } from '@/utils/cloudinary';
 import { useTenant } from '@/contexts/TenantContext';
 import { Link } from '@/i18n/navigation';
 import { useLocale, useTranslations } from 'next-intl';
@@ -281,7 +282,7 @@ function TourHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: 
                 {tour.image && (
                   <div className="relative h-36 bg-gradient-to-br from-blue-100 to-purple-100 overflow-hidden">
                     <img
-                      src={tour.image}
+                      src={cdnImg(tour.image)}
                       alt={tour.title}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                     />
@@ -755,7 +756,7 @@ export default function InterestGridServer({ categories }: InterestGridServerPro
                   {tour.image && (
                     <div className="relative h-36 bg-gradient-to-br from-blue-100 to-purple-100 overflow-hidden">
                       <img
-                        src={tour.image}
+                        src={cdnImg(tour.image)}
                         alt={tour.title}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                       />

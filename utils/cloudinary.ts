@@ -48,3 +48,17 @@ export const preloadImage = (src: string): void => {
     document.head.appendChild(link);
   }
 };
+// Lightweight Cloudinary URL transformer for raw <img> tags (which bypass the
+// next/image loader). Caps delivered resolution so full-size originals are not
+// shipped to phones — full-res images decode to huge bitmaps and crash iOS
+// Safari ("A problem repeatedly occurred"). Non-Cloudinary URLs pass through.
+export const cdnImg = (url?: string | null, width = 600): string => {
+  if (!url) return url || "";
+  if (url.includes("res.cloudinary.com") && url.includes("/upload/")) {
+    const [base, rest] = url.split("/upload/");
+    const firstSeg = rest.split("/")[0];
+    if (/(^|,)(w|h|c|q|f|dpr|e|g|ar)_/.test(firstSeg)) return url;
+    return `${base}/upload/f_auto,q_auto,c_limit,w_${width}/${rest}`;
+  }
+  return url;
+};
