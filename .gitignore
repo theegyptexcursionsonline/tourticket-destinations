@@ -54,3 +54,19 @@ next-env.d.ts
 
 # Local Netlify folder
 .netlify
+
+# internal / AI-assistant docs — not for publication
+CLAUDE.md
+claude.md
+AGENTS.md
+.claude/
+AGENTS.md
+CLAUDE.md
+CONTACT_FORM_SECURITY_SETUP.md
+FIREBASE_MIGRATION_SUMMARY.md
+GETYOURGUIDE_STYLE_IMPLEMENTATION.md
+HOTEL_PICKUP_IMPLEMENTATION.md
+IMPLEMENTATION_SUMMARY.md
+MULTI_TENANT_GUIDE.md
+UPGRADE_SUMMARY.md
+docs/SPECIAL_OFFERS_GUIDE.md
