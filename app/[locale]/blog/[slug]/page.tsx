@@ -8,6 +8,7 @@ import BlogPostClient from './BlogPostClient';
 import type { IBlog } from '@/lib/models/Blog';
 import { getTenantFromRequest, getTenantPublicConfig } from '@/lib/tenant';
 import BlogPostSchema from '@/components/schema/BlogPostSchema';
+import FAQSchema from '@/components/schema/FAQSchema';
 
 type Params = { slug: string };
 
@@ -104,6 +105,7 @@ export default async function BlogPostPage({ params }: { params: Promise<Params>
         updatedAt={(blog as any).updatedAt}
         tags={(blog as any).tags}
       />
+      <FAQSchema items={((blog as any).faqs ?? []) as { question: string; answer: string }[]} />
       <Header startSolid />
       <main className="pt-20">
         <BlogPostClient blog={blog} relatedPosts={relatedPosts} />

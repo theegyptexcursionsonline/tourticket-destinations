@@ -453,8 +453,10 @@ export function middleware(request: NextRequest) {
   // API ROUTES — tenant only, no locale handling
   // ============================================
   if (pathname.startsWith('/api')) {
-    // Admin panel access restriction for API routes
-    if (pathname.startsWith('/api/admin')) {
+    // Admin panel access restriction for API routes. The content-engine adapter
+    // (/api/admin/content/*) is Bearer-token authed and domain-independent, so
+    // it's allowed on every tenant domain — the engine publishes per-tenant.
+    if (pathname.startsWith('/api/admin') && !pathname.startsWith('/api/admin/content')) {
       const ADMIN_ALLOWED_TENANTS = ['default'];
       if (!ADMIN_ALLOWED_TENANTS.includes(tenantId)) {
         return NextResponse.json({ error: 'Admin access not available on this domain' }, { status: 403 });

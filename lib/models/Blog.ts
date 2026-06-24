@@ -44,7 +44,10 @@ export interface IBlog extends Document {
   // Related Content
   relatedDestinations?: mongoose.Schema.Types.ObjectId[];
   relatedTours?: mongoose.Schema.Types.ObjectId[];
-  
+
+  // FAQ pairs (from the content engine) → FAQPage JSON-LD.
+  faqs?: { question: string; answer: string }[];
+
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
@@ -230,6 +233,14 @@ const BlogSchema: Schema<IBlog> = new Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Tour',
   }],
+  faqs: {
+    type: [{
+      question: { type: String, trim: true },
+      answer: { type: String, trim: true },
+      _id: false,
+    }],
+    default: [],
+  },
 }, {
   timestamps: true,
   toJSON: { virtuals: true },
