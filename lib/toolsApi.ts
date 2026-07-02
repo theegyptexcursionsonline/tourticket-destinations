@@ -28,10 +28,7 @@ export const FALLBACK_CONFIG: TripCostConfig = {
     luxury: { label: 'Luxury', hotel: 180, food: 60, transport: 40, activities: 80 },
   },
   visaPerPerson: 25,
-  links: [
-    { name: 'Hurghada Excursions Online', url: 'https://hurghadaexcursionsonline.com' },
-    { name: 'Cairo Excursions Online', url: 'https://cairoexcursionsonline.com' },
-  ],
+  links: [{ name: 'Hurghada Excursions Online', url: 'https://hurghadaexcursionsonline.com' }],
 };
 
 export async function getTripCostConfig(host: string): Promise<TripCostConfig> {
