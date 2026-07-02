@@ -35,19 +35,24 @@ export default function EmbedCode({ snippet, accent = '#E05D1A' }: { snippet: st
         </div>
       </div>
 
-      <div className="bg-slate-900 px-5 py-4 relative">
-        <code className="block font-mono text-[13px] leading-relaxed text-emerald-300 whitespace-pre-wrap break-all pr-24">
-          {snippet}
-        </code>
-        <button
-          type="button"
-          onClick={copy}
-          className="absolute top-3.5 right-4 inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90"
-          style={{ backgroundColor: copied ? '#059669' : accent }}
-        >
-          {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-          {copied ? 'Copied!' : 'Copy code'}
-        </button>
+      <div className="bg-slate-900">
+        <div className="flex items-center justify-between px-5 pt-3">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Embed code</span>
+          <button
+            type="button"
+            onClick={copy}
+            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+            style={{ backgroundColor: copied ? '#059669' : accent }}
+          >
+            {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+            {copied ? 'Copied!' : 'Copy code'}
+          </button>
+        </div>
+        <div className="overflow-x-auto px-5 pb-4 pt-2">
+          <code className="block w-max font-mono text-[13px] leading-relaxed text-emerald-300 whitespace-pre">
+            {snippet}
+          </code>
+        </div>
       </div>
 
       <ol className="px-6 py-5 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm text-slate-700">
