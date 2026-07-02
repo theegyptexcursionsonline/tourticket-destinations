@@ -1,22 +1,20 @@
 // lib/toolsApi.ts
 // Client for the central foxes-tools API. Every EEO network site renders the
-// free tools from this one source of truth (pricing + credit links). If the API
-// is unreachable the built-in fallback below keeps the page fully working —
-// a tools outage must never take a network site down with it.
+// free tools from this one source of truth (pricing model + credit links). If
+// the API is unreachable the built-in fallback keeps the page fully working.
 
 const TOOLS_API_URL = (process.env.TOOLS_API_URL || 'https://foxes-tools-api-production.up.railway.app').replace(/\/+$/, '');
 
-export interface TripStyleDef {
-  label: string;
-  hotel: number;
-  food: number;
-  transport: number;
-  activities: number;
-}
+export interface TripStyleDef { label: string; hotel: number; food: number; transport: number; activities: number }
+export interface RegionDef { label: string; hotel: number; food: number; transport: number; activities: number }
+export interface SeasonDef { label: string; mult: number }
 
 export interface TripCostConfig {
   styles: Record<string, TripStyleDef>;
+  regions: Record<string, RegionDef>;
+  seasons: Record<string, SeasonDef>;
   visaPerPerson: number;
+  flightAddon: number;
   links: { name: string; url: string }[];
   embedBase: string;
 }
@@ -28,7 +26,20 @@ export const FALLBACK_CONFIG: TripCostConfig = {
     comfort: { label: 'Comfort', hotel: 70, food: 25, transport: 15, activities: 35 },
     luxury: { label: 'Luxury', hotel: 180, food: 60, transport: 40, activities: 80 },
   },
+  regions: {
+    cairo: { label: 'Cairo & Giza', hotel: 1.1, food: 1.0, transport: 1.0, activities: 1.1 },
+    luxor: { label: 'Luxor & Aswan', hotel: 0.9, food: 0.9, transport: 1.0, activities: 1.3 },
+    redsea: { label: 'Hurghada / Red Sea', hotel: 0.85, food: 0.85, transport: 0.9, activities: 1.0 },
+    sinai: { label: 'Sharm & Sinai', hotel: 0.9, food: 0.9, transport: 0.9, activities: 1.05 },
+    combo: { label: 'Nile + Red Sea combo', hotel: 1.0, food: 0.95, transport: 1.25, activities: 1.15 },
+  },
+  seasons: {
+    peak: { label: 'Peak (Oct–Apr)', mult: 1.15 },
+    shoulder: { label: 'Shoulder (May & Sep)', mult: 1.0 },
+    summer: { label: 'Summer (Jun–Aug)', mult: 0.85 },
+  },
   visaPerPerson: 25,
+  flightAddon: 110,
   links: [{ name: 'Hurghada Excursions Online', url: 'https://hurghadaexcursionsonline.com' }],
   embedBase: 'https://eeo-free-tools.netlify.app',
 };
@@ -46,7 +57,10 @@ export async function getTripCostConfig(host: string): Promise<TripCostConfig> {
     }
     return {
       styles: data.styles,
+      regions: data.regions || FALLBACK_CONFIG.regions,
+      seasons: data.seasons || FALLBACK_CONFIG.seasons,
       visaPerPerson: data.visaPerPerson,
+      flightAddon: data.flightAddon ?? FALLBACK_CONFIG.flightAddon,
       links: data.links,
       embedBase: data.embedBase || FALLBACK_CONFIG.embedBase,
     };
@@ -56,38 +70,71 @@ export async function getTripCostConfig(host: string): Promise<TripCostConfig> {
 }
 
 // ── Local quote math (same model as the API) ─────────────────────────────────
-// The client computes locally from the fetched config so sliders react
-// instantly — no per-click API round-trips.
 export function clamp(n: unknown, min: number, max: number): number {
   const v = parseInt(String(n), 10);
   if (isNaN(v)) return min;
   return Math.min(max, Math.max(min, v));
 }
 
+export interface TripCostInput {
+  days?: number;
+  travelers?: number;
+  style?: string;
+  region?: string;
+  season?: string;
+  flight?: boolean;
+}
+
 export interface TripCostResult {
   days: number;
   travelers: number;
   style: string;
+  region: string;
+  season: string;
+  flight: boolean;
   perDay: number;
   breakdown: { hotel: number; food: number; transport: number; activities: number };
   visa: number;
+  flightAddon: number;
   perPerson: number;
   total: number;
+  range: { low: number; high: number };
 }
 
-export function computeTripCost(
-  config: TripCostConfig,
-  input: { days?: number; travelers?: number; style?: string } = {},
-): TripCostResult {
+const RANGE_PCT = 0.12;
+
+export function computeTripCost(config: TripCostConfig, input: TripCostInput = {}): TripCostResult {
   const days = clamp(input.days == null ? 7 : input.days, 1, 30);
   const travelers = clamp(input.travelers == null ? 2 : input.travelers, 1, 12);
   const style = input.style && config.styles[input.style] ? input.style : 'comfort';
+  const region = input.region && config.regions[input.region] ? input.region : 'cairo';
+  const season = input.season && config.seasons[input.season] ? input.season : 'peak';
+  const flight = !!input.flight;
+
   const s = config.styles[style];
-  const transport = s.transport * (travelers >= 3 ? 0.85 : 1);
-  const breakdown = { hotel: s.hotel, food: s.food, transport, activities: s.activities };
+  const r = config.regions[region];
+  const m = config.seasons[season].mult;
+
+  const transportBase = s.transport * r.transport * (travelers >= 3 ? 0.85 : 1);
+  const breakdown = {
+    hotel: s.hotel * r.hotel * m,
+    food: s.food * r.food,
+    transport: transportBase,
+    activities: s.activities * r.activities * m,
+  };
   const perDay = breakdown.hotel + breakdown.food + breakdown.transport + breakdown.activities;
-  const perPerson = Math.round(perDay * days + config.visaPerPerson);
-  return { days, travelers, style, perDay, breakdown, visa: config.visaPerPerson, perPerson, total: perPerson * travelers };
+  const extras = config.visaPerPerson + (flight ? config.flightAddon : 0);
+  const perPerson = Math.round(perDay * days + extras);
+  const total = perPerson * travelers;
+  const roundTo = (n: number, step: number) => Math.round(n / step) * step;
+  return {
+    days, travelers, style, region, season, flight,
+    perDay, breakdown,
+    visa: config.visaPerPerson,
+    flightAddon: flight ? config.flightAddon : 0,
+    perPerson, total,
+    range: { low: roundTo(total * (1 - RANGE_PCT), 10), high: roundTo(total * (1 + RANGE_PCT), 10) },
+  };
 }
 
 export function formatUsd(n: number): string {

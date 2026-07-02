@@ -72,7 +72,7 @@ export default async function TripCostCalculatorPage() {
           {/* the widget */}
           <div className="flex justify-center mt-10">
             <div className="flex flex-col items-center">
-              <TripCostCalculator accent={accent} />
+              <TripCostCalculator config={config} accent={accent} />
               <p className="text-xs text-slate-500 mt-3 text-center">
                 ⚡ Free tool by{' '}
                 {config.links.map((l, i) => (
