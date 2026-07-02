@@ -41,7 +41,7 @@ export const FALLBACK_CONFIG: TripCostConfig = {
   visaPerPerson: 25,
   flightAddon: 110,
   links: [{ name: 'Hurghada Excursions Online', url: 'https://hurghadaexcursionsonline.com' }],
-  embedBase: 'https://eeo-free-tools.netlify.app',
+  embedBase: 'https://egypt-excursionsonline.com',
 };
 
 export async function getTripCostConfig(host: string): Promise<TripCostConfig> {
