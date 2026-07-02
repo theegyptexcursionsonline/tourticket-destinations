@@ -6,10 +6,24 @@ import { Link } from '@/i18n/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import TripCostCalculator from '@/components/tools/TripCostCalculator';
-import { getTenantFromRequest, getTenantPublicConfig } from '@/lib/tenant';
+import { getTenantFromRequest, getTenantPublicConfig, getTenantDomainFromRequest } from '@/lib/tenant';
 import { TRIP_STYLES, computeTripCost, formatUsd } from '@/lib/tripCost';
 
 export const dynamic = 'force-dynamic';
+
+// Credit links shown right under the calculator — the first two network sites
+// that aren't the host domain, so every page cross-links two sister domains.
+const NETWORK_LINKS = [
+  { name: 'Egypt Excursions Online', url: 'https://egypt-excursionsonline.com', host: 'egypt-excursionsonline.com' },
+  { name: 'Hurghada Excursions Online', url: 'https://hurghadaexcursionsonline.com', host: 'hurghadaexcursionsonline.com' },
+  { name: 'Cairo Excursions Online', url: 'https://cairoexcursionsonline.com', host: 'cairoexcursionsonline.com' },
+  { name: 'Luxor Excursions', url: 'https://luxorexcursions.com', host: 'luxorexcursions.com' },
+];
+
+function creditLinks(currentHost: string) {
+  const host = currentHost.toLowerCase().replace(/^www\./, '');
+  return NETWORK_LINKS.filter((l) => l.host !== host).slice(0, 2);
+}
 
 // One page, every domain: the tool renders under each network site's own
 // /tools/ directory with that site's brand — the value stays on the domain.
@@ -41,6 +55,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function TripCostCalculatorPage() {
   let tenantName = 'Egypt Excursions Online';
   let accent = '#E05D1A';
+  let host = '';
   try {
     const tenantId = await getTenantFromRequest();
     const tenant = await getTenantPublicConfig(tenantId);
@@ -48,9 +63,11 @@ export default async function TripCostCalculatorPage() {
       tenantName = tenant.name;
       accent = tenant.branding.primaryColor || accent;
     }
+    host = await getTenantDomainFromRequest();
   } catch (error) {
     console.error('Error resolving tenant for trip-cost-calculator:', error);
   }
+  const credits = creditLinks(host);
 
   const sample = computeTripCost({ days: 7, travelers: 2, style: 'comfort' });
 
@@ -92,8 +109,24 @@ export default async function TripCostCalculatorPage() {
                   </li>
                 </ul>
               </div>
-              <div className="flex lg:justify-end justify-center">
+              <div className="flex flex-col items-center lg:items-end">
                 <TripCostCalculator accent={accent} />
+                {/* Credit sits RIGHT under the widget — two network domains, dofollow */}
+                <p className="text-xs text-slate-500 mt-3 max-w-md text-center">
+                  ⚡ Free tool by{' '}
+                  {credits.map((l, i) => (
+                    <React.Fragment key={l.host}>
+                      {i > 0 && ' · '}
+                      <a
+                        href={l.url}
+                        className="font-semibold underline decoration-2 underline-offset-2"
+                        style={{ color: accent }}
+                      >
+                        {l.name}
+                      </a>
+                    </React.Fragment>
+                  ))}
+                </p>
               </div>
             </div>
           </div>
@@ -138,22 +171,6 @@ export default async function TripCostCalculatorPage() {
           </div>
         </section>
 
-        {/* Network credit — the tool's home base */}
-        <section className="border-t border-slate-100">
-          <div className="container mx-auto px-4 py-8">
-            <p className="text-sm text-slate-500 text-center">
-              Free tool by{' '}
-              <a
-                href="https://egypt-excursionsonline.com"
-                className="font-semibold underline decoration-2 underline-offset-2"
-                style={{ color: accent }}
-              >
-                Egypt Excursions Online
-              </a>{' '}
-              — Egypt&apos;s local tours &amp; excursions network.
-            </p>
-          </div>
-        </section>
       </main>
 
       <Footer />
