@@ -3,8 +3,7 @@ import { Metadata } from 'next';
 import { Calculator, ArrowRight } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
+import { ToolsHeader, ToolsFooter } from '@/components/tools/ToolsChrome';
 import { getTenantFromRequest, getTenantPublicConfig } from '@/lib/tenant';
 
 export const dynamic = 'force-dynamic';
@@ -27,17 +26,23 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function ToolsIndexPage() {
   let accent = '#E05D1A';
+  let tenantName = 'Egypt Excursions Online';
+  let logoUrl = '/EEO-logo.png';
   try {
     const tenantId = await getTenantFromRequest();
     const tenant = await getTenantPublicConfig(tenantId);
-    if (tenant) accent = tenant.branding.primaryColor || accent;
+    if (tenant) {
+      accent = tenant.branding.primaryColor || accent;
+      tenantName = tenant.name;
+      logoUrl = tenant.branding.logo || logoUrl;
+    }
   } catch (error) {
     console.error('Error resolving tenant for tools index:', error);
   }
 
   return (
     <div className="bg-white text-slate-800 min-h-screen flex flex-col">
-      <Header />
+      <ToolsHeader name={tenantName} logoUrl={logoUrl} accent={accent} />
       <main className="container mx-auto px-4 py-12 flex-grow">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-4xl font-extrabold text-slate-900 mb-2">Free travel tools</h1>
@@ -62,7 +67,7 @@ export default async function ToolsIndexPage() {
           </Link>
         </div>
       </main>
-      <Footer />
+      <ToolsFooter name={tenantName} accent={accent} />
     </div>
   );
 }

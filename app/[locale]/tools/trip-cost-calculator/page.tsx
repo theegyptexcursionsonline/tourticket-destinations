@@ -3,8 +3,7 @@ import { Metadata } from 'next';
 import { Calculator, Wallet, MapPin, ShieldCheck } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
+import { ToolsHeader, ToolsFooter } from '@/components/tools/ToolsChrome';
 import TripCostCalculator from '@/components/tools/TripCostCalculator';
 import EmbedCode from '@/components/tools/EmbedCode';
 import { getTenantFromRequest, getTenantPublicConfig, getTenantDomainFromRequest } from '@/lib/tenant';
@@ -43,6 +42,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function TripCostCalculatorPage() {
   let tenantName = 'Egypt Excursions Online';
   let accent = '#E05D1A';
+  let logoUrl = '/EEO-logo.png';
   let host = '';
   try {
     const tenantId = await getTenantFromRequest();
@@ -50,6 +50,7 @@ export default async function TripCostCalculatorPage() {
     if (tenant) {
       tenantName = tenant.name;
       accent = tenant.branding.primaryColor || accent;
+      logoUrl = tenant.branding.logo || logoUrl;
     }
     host = await getTenantDomainFromRequest();
   } catch (error) {
@@ -64,7 +65,7 @@ export default async function TripCostCalculatorPage() {
 
   return (
     <div className="bg-white text-slate-800 min-h-screen flex flex-col">
-      <Header />
+      <ToolsHeader name={tenantName} logoUrl={logoUrl} accent={accent} />
 
       <main className="flex-grow">
         {/* Hero + tool */}
@@ -171,7 +172,7 @@ export default async function TripCostCalculatorPage() {
 
       </main>
 
-      <Footer />
+      <ToolsFooter name={tenantName} accent={accent} />
     </div>
   );
 }
