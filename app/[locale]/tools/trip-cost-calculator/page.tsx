@@ -6,6 +6,7 @@ import { Link } from '@/i18n/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import TripCostCalculator from '@/components/tools/TripCostCalculator';
+import EmbedCode from '@/components/tools/EmbedCode';
 import { getTenantFromRequest, getTenantPublicConfig, getTenantDomainFromRequest } from '@/lib/tenant';
 import { TRIP_STYLES, computeTripCost, formatUsd } from '@/lib/tripCost';
 import { getTripCostConfig } from '@/lib/toolsApi';
@@ -54,9 +55,10 @@ export default async function TripCostCalculatorPage() {
   } catch (error) {
     console.error('Error resolving tenant for trip-cost-calculator:', error);
   }
-  // Credit links come from the central tools API (host-aware, never links the
-  // page to itself); getTripCostConfig falls back to built-ins if the API is down.
-  const credits = (await getTripCostConfig(host)).links;
+  // Credit links + embed base come from the central tools API (host-aware);
+  // getTripCostConfig falls back to built-ins if the API is down.
+  const toolsConfig = await getTripCostConfig(host);
+  const credits = toolsConfig.links;
 
   const sample = computeTripCost({ days: 7, travelers: 2, style: 'comfort' });
 
@@ -156,6 +158,13 @@ export default async function TripCostCalculatorPage() {
               >
                 Browse {tenantName} tours &amp; day trips
               </Link>
+            </div>
+
+            <div className="mt-12">
+              <EmbedCode
+                accent={accent}
+                snippet={`<script src="${toolsConfig.embedBase}/embed.js" data-tool="trip-cost-calculator" async></script>`}
+              />
             </div>
           </div>
         </section>

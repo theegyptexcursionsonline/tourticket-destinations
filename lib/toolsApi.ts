@@ -18,6 +18,7 @@ export interface TripCostConfig {
   styles: Record<string, TripStyleDef>;
   visaPerPerson: number;
   links: { name: string; url: string }[];
+  embedBase: string;
 }
 
 // Mirrors the API defaults — used only when the API can't be reached.
@@ -29,6 +30,7 @@ export const FALLBACK_CONFIG: TripCostConfig = {
   },
   visaPerPerson: 25,
   links: [{ name: 'Hurghada Excursions Online', url: 'https://hurghadaexcursionsonline.com' }],
+  embedBase: 'https://eeo-free-tools.netlify.app',
 };
 
 export async function getTripCostConfig(host: string): Promise<TripCostConfig> {
@@ -42,7 +44,12 @@ export async function getTripCostConfig(host: string): Promise<TripCostConfig> {
     if (!data.styles || !data.visaPerPerson || !Array.isArray(data.links) || data.links.length === 0) {
       return FALLBACK_CONFIG;
     }
-    return { styles: data.styles, visaPerPerson: data.visaPerPerson, links: data.links };
+    return {
+      styles: data.styles,
+      visaPerPerson: data.visaPerPerson,
+      links: data.links,
+      embedBase: data.embedBase || FALLBACK_CONFIG.embedBase,
+    };
   } catch {
     return FALLBACK_CONFIG;
   }
