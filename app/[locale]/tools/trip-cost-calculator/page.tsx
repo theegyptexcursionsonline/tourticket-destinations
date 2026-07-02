@@ -8,22 +8,9 @@ import Footer from '@/components/Footer';
 import TripCostCalculator from '@/components/tools/TripCostCalculator';
 import { getTenantFromRequest, getTenantPublicConfig, getTenantDomainFromRequest } from '@/lib/tenant';
 import { TRIP_STYLES, computeTripCost, formatUsd } from '@/lib/tripCost';
+import { getTripCostConfig } from '@/lib/toolsApi';
 
 export const dynamic = 'force-dynamic';
-
-// Credit links shown right under the calculator — the first two network sites
-// that aren't the host domain, so every page cross-links two sister domains.
-const NETWORK_LINKS = [
-  { name: 'Egypt Excursions Online', url: 'https://egypt-excursionsonline.com', host: 'egypt-excursionsonline.com' },
-  { name: 'Hurghada Excursions Online', url: 'https://hurghadaexcursionsonline.com', host: 'hurghadaexcursionsonline.com' },
-  { name: 'Cairo Excursions Online', url: 'https://cairoexcursionsonline.com', host: 'cairoexcursionsonline.com' },
-  { name: 'Luxor Excursions', url: 'https://luxorexcursions.com', host: 'luxorexcursions.com' },
-];
-
-function creditLinks(currentHost: string) {
-  const host = currentHost.toLowerCase().replace(/^www\./, '');
-  return NETWORK_LINKS.filter((l) => l.host !== host).slice(0, 2);
-}
 
 // One page, every domain: the tool renders under each network site's own
 // /tools/ directory with that site's brand — the value stays on the domain.
@@ -67,7 +54,9 @@ export default async function TripCostCalculatorPage() {
   } catch (error) {
     console.error('Error resolving tenant for trip-cost-calculator:', error);
   }
-  const credits = creditLinks(host);
+  // Credit links come from the central tools API (host-aware, never links the
+  // page to itself); getTripCostConfig falls back to built-ins if the API is down.
+  const credits = (await getTripCostConfig(host)).links;
 
   const sample = computeTripCost({ days: 7, travelers: 2, style: 'comfort' });
 
@@ -115,7 +104,7 @@ export default async function TripCostCalculatorPage() {
                 <p className="text-xs text-slate-500 mt-3 max-w-md text-center">
                   ⚡ Free tool by{' '}
                   {credits.map((l, i) => (
-                    <React.Fragment key={l.host}>
+                    <React.Fragment key={l.url}>
                       {i > 0 && ' · '}
                       <a
                         href={l.url}
