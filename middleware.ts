@@ -233,6 +233,7 @@ const reservedPaths = [
   '/egypt',
   '/faqs',
   '/forgot',
+  '/tools',
   '/tours',
   '/tour',
   '/author',
