@@ -123,8 +123,12 @@ export async function GET(request: NextRequest) {
         { tenantId: tenantId },
         { tenantIds: tenantId },
       ];
+    } else {
+      // "All Brands" = real brands only. Never surface the EEO 'default'
+      // (main-site) tours on this brands admin.
+      filter.tenantId = { $exists: true, $nin: ['default', null, ''] };
     }
-    
+
     // Filter by published status if specified
     if (published === 'true') {
       filter.isPublished = true;

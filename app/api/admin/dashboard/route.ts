@@ -13,9 +13,9 @@ async function fetchDashboardStats(effectiveTenantId: string | undefined) {
   const tourTenantFilter: Record<string, unknown> = {};
   const bookingTenantFilter: Record<string, unknown> = {};
   if (effectiveTenantId) {
-    tourTenantFilter.tenantId = effectiveTenantId !== 'default'
-      ? { $in: [effectiveTenantId, 'default'] }
-      : effectiveTenantId;
+    // A specific brand: its OWN data only. Never fold in the EEO 'default'
+    // (main-site) tenant, even as a tour fallback, on this brands admin.
+    tourTenantFilter.tenantId = effectiveTenantId;
     bookingTenantFilter.tenantId = effectiveTenantId;
   } else {
     // "All Brands" = real brands only. Exclude the shared default/main-EEO and
