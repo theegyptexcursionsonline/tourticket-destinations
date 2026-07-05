@@ -250,7 +250,23 @@ const AdminDashboard = () => {
 
   // Memoized fetch function with retry logic
   const fetchDashboardData = useCallback(async (retryCount = 0) => {
-    setIsLoading(true);
+    const cacheKey = `admin-dashboard-cache:${selectedTenantId || 'all'}`;
+    // Stale-while-revalidate: on the first attempt, paint the last-known data
+    // instantly (no skeleton) and refresh in the background. This keeps the
+    // dashboard feeling instant even when the serverless function is cold.
+    let hasCached = false;
+    if (retryCount === 0 && typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem(cacheKey);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed.stats) setStats(parsed.stats);
+          if (parsed.report) setReportData(parsed.report);
+          hasCached = true;
+        }
+      } catch { /* ignore corrupt cache */ }
+    }
+    if (!hasCached) setIsLoading(true);
     setError(null);
 
     try {
@@ -330,13 +346,16 @@ const AdminDashboard = () => {
       }
 
       // Handle report data with fallback
-      if (reportData && reportData.monthlyRevenue) {
-        setReportData(reportData);
-      } else {
+      const reportToUse = (reportData && reportData.monthlyRevenue) ? reportData : { monthlyRevenue: [] };
+      if (!(reportData && reportData.monthlyRevenue)) {
         console.warn('Report data unavailable, using fallback');
-        // Use fallback empty data instead of failing
-        setReportData({ monthlyRevenue: [] });
       }
+      setReportData(reportToUse);
+
+      // Persist for an instant next load (stale-while-revalidate).
+      try {
+        sessionStorage.setItem(cacheKey, JSON.stringify({ stats: dashboardData.data || null, report: reportToUse }));
+      } catch { /* ignore storage quota */ }
 
     } catch (err) {
       console.error('Dashboard fetch error:', err);
