@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import withAuth from '@/components/admin/withAuth';
 import { useRouter } from 'next/navigation';
-import { Search, Calendar, Users, DollarSign, RefreshCw, Eye, Download, AlertTriangle, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Plus } from 'lucide-react';
+import { Search, Calendar, Users, DollarSign, RefreshCw, Eye, Download, AlertTriangle, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Plus, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAdminTenant } from '@/contexts/AdminTenantContext';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
@@ -133,6 +133,9 @@ const BookingsPage = () => {
   const { selectedTenantId, getSelectedTenant, isAllTenantsSelected, tenants } = useAdminTenant();
   const selectedTenant = getSelectedTenant();
   const tenantQuery = selectedTenantId && selectedTenantId !== 'all' ? `?tenantId=${encodeURIComponent(selectedTenantId)}` : '';
+
+  // Tracks which booking row is mid-delete (for the per-row spinner/disable).
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const fetchTourOptions = useCallback(async () => {
     if (!token) return;
@@ -351,6 +354,28 @@ const BookingsPage = () => {
     } catch (error) {
       console.error('Error updating booking status:', error);
       toast.error('Failed to update booking status');
+    }
+  };
+
+  const handleDeleteBooking = async (bookingId: string) => {
+    if (!window.confirm('Delete this booking permanently? This cannot be undone.')) return;
+    setDeletingId(bookingId);
+    try {
+      const response = await fetch(`/api/admin/bookings/${bookingId}${tenantQuery}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data?.success === false) {
+        throw new Error(data?.message || 'Failed to delete booking');
+      }
+      setBookings((prev) => prev.filter((b) => b._id !== bookingId));
+      setTotalBookings((prev) => Math.max(0, prev - 1));
+      toast.success('Booking deleted');
+    } catch (error) {
+      toast.error((error as Error).message || 'Failed to delete booking');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -696,13 +721,24 @@ const BookingsPage = () => {
                         )}
                       </td>
                       <td className="px-6 py-4">
-                        <button
-                          onClick={() => handleRowClick(booking._id)}
-                          className="flex items-center gap-1 px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded-full hover:bg-blue-100 transition-colors"
-                        >
-                          <Eye size={12} />
-                          View
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleRowClick(booking._id)}
+                            className="flex items-center gap-1 px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded-full hover:bg-blue-100 transition-colors"
+                          >
+                            <Eye size={12} />
+                            View
+                          </button>
+                          <button
+                            onClick={() => handleDeleteBooking(booking._id)}
+                            disabled={deletingId === booking._id}
+                            title="Delete booking"
+                            className="flex items-center gap-1 px-3 py-1 text-xs font-medium text-red-600 bg-red-50 rounded-full hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {deletingId === booking._id ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                            Delete
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
