@@ -17,7 +17,20 @@ async function fetchDashboardStats(effectiveTenantId: string | undefined) {
       ? { $in: [effectiveTenantId, 'default'] }
       : effectiveTenantId;
     bookingTenantFilter.tenantId = effectiveTenantId;
+  } else {
+    // "All Brands" = real brands only. Exclude the shared default/main-EEO and
+    // no-brand data so the dashboard matches the bookings list's definition
+    // (otherwise it counts the whole shared database and inflates every card).
+    const brandedOnly = { $exists: true, $nin: ['default', null, ''] };
+    tourTenantFilter.tenantId = brandedOnly;
+    bookingTenantFilter.tenantId = brandedOnly;
   }
+
+  // Revenue = collected money only; cancelled/refunded bookings are excluded.
+  const revenueMatch: Record<string, unknown> = {
+    ...bookingTenantFilter,
+    status: { $nin: ['cancelled', 'Cancelled', 'refunded', 'Refunded', 'partial_refunded'] },
+  };
 
   await Promise.race([
     dbConnect(effectiveTenantId || undefined),
@@ -34,9 +47,15 @@ async function fetchDashboardStats(effectiveTenantId: string | undefined) {
   ] = await Promise.allSettled([
     Tour.countDocuments({ isPublished: true, ...tourTenantFilter }),
     Booking.countDocuments(bookingTenantFilter),
-    User.countDocuments(bookingTenantFilter.tenantId ? bookingTenantFilter : {}),
+    // Customers aren't tenant-tagged (User has no tenantId), so count distinct
+    // customers who have a booking in scope — the meaningful per-brand figure.
     Booking.aggregate([
       { $match: bookingTenantFilter },
+      { $group: { _id: '$user' } },
+      { $count: 'count' },
+    ]),
+    Booking.aggregate([
+      { $match: revenueMatch },
       { $group: { _id: null, totalRevenue: { $sum: '$totalPrice' } } },
     ]),
     (async () => {
@@ -58,7 +77,9 @@ async function fetchDashboardStats(effectiveTenantId: string | undefined) {
   const stats = {
     totalTours: totalTours.status === 'fulfilled' ? totalTours.value : 0,
     totalBookings: totalBookings.status === 'fulfilled' ? totalBookings.value : 0,
-    totalUsers: totalUsers.status === 'fulfilled' ? totalUsers.value : 0,
+    totalUsers: totalUsers.status === 'fulfilled' && totalUsers.value.length > 0
+      ? (totalUsers.value[0].count || 0)
+      : 0,
     totalRevenue: revenueResult.status === 'fulfilled' && revenueResult.value.length > 0
       ? revenueResult.value[0].totalRevenue || 0
       : 0,
