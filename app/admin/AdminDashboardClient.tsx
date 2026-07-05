@@ -53,6 +53,8 @@ const CartesianGrid = dynamic(() => import('recharts').then(mod => mod.Cartesian
 const Tooltip = dynamic(() => import('recharts').then(mod => mod.Tooltip), { ssr: false });
 const ResponsiveContainer = dynamic(() => import('recharts').then(mod => mod.ResponsiveContainer), { ssr: false });
 
+interface TrendValue { value: number; isPositive: boolean }
+
 interface DashboardStats {
   totalBookings: number;
   totalRevenue: number;
@@ -60,6 +62,12 @@ interface DashboardStats {
   totalUsers: number;
   recentBookingsCount: number;
   recentActivities: { id: string; text: string; createdAt?: string }[];
+  trends?: {
+    bookings: TrendValue;
+    revenue: TrendValue;
+    tours: TrendValue;
+    users: TrendValue;
+  };
 }
 
 interface MonthlyRevenue {
@@ -426,28 +434,28 @@ const AdminDashboard = () => {
           value={stats.totalBookings.toLocaleString()}
           icon={BookOpen}
           color="blue"
-          trend={{ value: 12, isPositive: true }}
+          trend={stats.trends?.bookings}
         />
         <StatCard
           title="Total Revenue"
           value={new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(stats.totalRevenue)}
           icon={DollarSign}
           color="green"
-          trend={{ value: 8, isPositive: true }}
+          trend={stats.trends?.revenue}
         />
         <StatCard
           title="Active Tours"
           value={stats.totalTours.toLocaleString()}
           icon={List}
           color="purple"
-          trend={{ value: 5, isPositive: true }}
+          trend={stats.trends?.tours}
         />
         <StatCard
           title="Total Users"
           value={stats.totalUsers.toLocaleString()}
           icon={Users}
           color="orange"
-          trend={{ value: 15, isPositive: true }}
+          trend={stats.trends?.users}
         />
       </div>
 

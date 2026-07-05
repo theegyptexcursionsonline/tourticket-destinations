@@ -1,5 +1,6 @@
 // app/api/admin/dashboard/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import dbConnect from '@/lib/dbConnect';
 import { cacheIfAvailable } from '@/lib/cache';
 import Tour from '@/lib/models/Tour';
@@ -110,7 +111,32 @@ async function fetchDashboardStats(effectiveTenantId: string | undefined) {
         })
     : [];
 
-  return { ...stats, recentActivities };
+  // Real month-over-month trends (tenant-scoped), comparing each total now vs.
+  // its value one month ago (docs are dated by their _id timestamp).
+  const oneMonthAgo = new Date();
+  oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+  const cutoffId = mongoose.Types.ObjectId.createFromTime(Math.floor(oneMonthAgo.getTime() / 1000));
+  const revStatus = { $nin: ['cancelled', 'Cancelled', 'refunded', 'Refunded', 'partial_refunded'] };
+  const [pB, pRAgg, pT, pUAgg] = await Promise.all([
+    Booking.countDocuments({ ...bookingTenantFilter, _id: { $lt: cutoffId } }),
+    Booking.aggregate([{ $match: { ...bookingTenantFilter, status: revStatus, _id: { $lt: cutoffId } } }, { $group: { _id: null, s: { $sum: '$totalPrice' } } }]),
+    Tour.countDocuments({ isPublished: true, ...tourTenantFilter, _id: { $lt: cutoffId } }),
+    Booking.aggregate([{ $match: { ...bookingTenantFilter, _id: { $lt: cutoffId } } }, { $group: { _id: '$user' } }, { $count: 'count' }]),
+  ]).catch(() => [0, [] as any[], 0, [] as any[]] as const);
+  const prevRevenue = Array.isArray(pRAgg) && pRAgg[0] ? (pRAgg[0].s || 0) : 0;
+  const prevUsers = Array.isArray(pUAgg) && pUAgg[0] ? (pUAgg[0].count || 0) : 0;
+  const trendOf = (cur: number, prev: number) => ({
+    value: Math.round(prev > 0 ? ((cur - prev) / prev) * 100 : (cur > 0 ? 100 : 0)),
+    isPositive: cur >= prev,
+  });
+  const trends = {
+    bookings: trendOf(stats.totalBookings, pB as number),
+    revenue: trendOf(stats.totalRevenue, prevRevenue),
+    tours: trendOf(stats.totalTours, pT as number),
+    users: trendOf(stats.totalUsers, prevUsers),
+  };
+
+  return { ...stats, trends, recentActivities };
 }
 
 function getCachedDashboardStats(tenantKey: string) {
