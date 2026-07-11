@@ -14,27 +14,14 @@ interface BookingDetails {
     image?: string;
     duration?: string;
   };
-  user: {
-    firstName: string;
-    lastName: string;
-    email: string;
-  };
   date: string;
   dateString?: string; // YYYY-MM-DD format - timezone-safe
   time: string;
   guests: number;
-  adultGuests?: number;
-  childGuests?: number;
-  infantGuests?: number;
-  totalPrice: number;
   status: string;
   selectedBookingOption?: {
     title: string;
-    price: number;
   };
-  specialRequests?: string;
-  emergencyContact?: string;
-  createdAt: string;
 }
 
 export default function BookingVerificationPage() {
@@ -120,27 +107,6 @@ export default function BookingVerificationPage() {
     });
   };
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(price);
-  };
-
-  const getGuestBreakdown = () => {
-    const parts = [];
-    if (booking.adultGuests && booking.adultGuests > 0) {
-      parts.push(`${booking.adultGuests} Adult${booking.adultGuests > 1 ? 's' : ''}`);
-    }
-    if (booking.childGuests && booking.childGuests > 0) {
-      parts.push(`${booking.childGuests} Child${booking.childGuests > 1 ? 'ren' : ''}`);
-    }
-    if (booking.infantGuests && booking.infantGuests > 0) {
-      parts.push(`${booking.infantGuests} Infant${booking.infantGuests > 1 ? 's' : ''}`);
-    }
-    return parts.length > 0 ? parts.join(', ') : `${booking.guests} Guest${booking.guests > 1 ? 's' : ''}`;
-  };
-
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case 'confirmed':
@@ -216,40 +182,13 @@ export default function BookingVerificationPage() {
               {/* Guests */}
               <div className="bg-gray-50 rounded-xl p-4">
                 <div className="text-sm text-gray-600 mb-1">Guests</div>
-                <div className="text-lg font-semibold text-gray-900">{getGuestBreakdown()}</div>
-              </div>
-
-              {/* Total Price */}
-              <div className="bg-gray-50 rounded-xl p-4">
-                <div className="text-sm text-gray-600 mb-1">Total Price</div>
-                <div className="text-2xl font-bold text-gray-900">{formatPrice(booking.totalPrice)}</div>
-              </div>
-
-              {/* Guest Details */}
-              <div className="bg-gray-50 rounded-xl p-4 md:col-span-2">
-                <div className="text-sm text-gray-600 mb-1">Guest Information</div>
-                <div className="text-lg font-semibold text-gray-900">
-                  {booking.user.firstName} {booking.user.lastName}
-                </div>
-                <div className="text-sm text-gray-600">{booking.user.email}</div>
+                <div className="text-lg font-semibold text-gray-900">{booking.guests} Guest{booking.guests === 1 ? '' : 's'}</div>
               </div>
             </div>
 
-            {/* Special Requests */}
-            {booking.specialRequests && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
-                <div className="text-sm font-semibold text-yellow-900 mb-2">Special Requests</div>
-                <p className="text-sm text-yellow-800">{booking.specialRequests}</p>
-              </div>
-            )}
-
-            {/* Emergency Contact */}
-            {booking.emergencyContact && (
-              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
-                <div className="text-sm font-semibold text-blue-900 mb-2">Emergency Contact</div>
-                <p className="text-sm text-blue-800">{booking.emergencyContact}</p>
-              </div>
-            )}
+            <p className="mb-6 text-sm text-gray-500">
+              Personal, contact, and payment details are hidden on public verification pages.
+            </p>
 
             {/* Important Information */}
             <div className="border-t border-gray-200 pt-6">
@@ -322,4 +261,3 @@ export default function BookingVerificationPage() {
     </div>
   );
 }
-

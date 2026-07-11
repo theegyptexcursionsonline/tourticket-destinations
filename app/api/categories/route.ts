@@ -7,6 +7,7 @@ import { buildStrictTenantQuery, getTenantFromRequest } from '@/lib/tenant';
 import { filterVisibleTaxonomyEntries } from '@/lib/utils/taxonomy';
 import { localizeEntityFields } from '@/lib/i18n/contentLocalization';
 import { categoryTranslationFields } from '@/lib/i18n/translationFields';
+import { requireAdminAuth } from '@/lib/auth/adminAuth';
 
 export async function GET(request: NextRequest) {
   try {
@@ -83,8 +84,13 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    const adminAuth = await requireAdminAuth(request, {
+      permissions: ['manageContent'],
+    });
+    if (adminAuth instanceof NextResponse) return adminAuth;
+
     await dbConnect();
     
     const body = await request.json();

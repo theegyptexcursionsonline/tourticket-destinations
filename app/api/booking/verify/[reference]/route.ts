@@ -3,14 +3,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Booking from '@/lib/models/Booking';
 import Tour from '@/lib/models/Tour';
-import User from '@/lib/models/user';
+import { buildStrictTenantQuery, getTenantFromRequest } from '@/lib/tenant';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ reference: string }> }
 ) {
   try {
-    await dbConnect();
     const { reference } = await params;
 
     if (!reference) {
@@ -20,17 +19,16 @@ export async function GET(
       );
     }
 
-    // Find booking by reference
-    const booking = await Booking.findOne({ bookingReference: reference })
+    const tenantId = await getTenantFromRequest();
+    await dbConnect(tenantId);
+
+    const booking = await Booking.findOne(
+      buildStrictTenantQuery({ bookingReference: reference }, tenantId),
+    )
       .populate({
         path: 'tour',
         model: Tour,
         select: 'title slug image duration rating',
-      })
-      .populate({
-        path: 'user',
-        model: User,
-        select: 'firstName lastName email',
       })
       .lean();
 
@@ -49,23 +47,13 @@ export async function GET(
         image: (booking.tour as any).image,
         duration: (booking.tour as any).duration,
       },
-      user: {
-        firstName: (booking.user as any).firstName,
-        lastName: (booking.user as any).lastName,
-        email: (booking.user as any).email,
-      },
       date: booking.date,
       time: booking.time,
       guests: booking.guests,
-      adultGuests: booking.adultGuests,
-      childGuests: booking.childGuests,
-      infantGuests: booking.infantGuests,
-      totalPrice: booking.totalPrice,
       status: booking.status,
-      selectedBookingOption: booking.selectedBookingOption,
-      specialRequests: booking.specialRequests,
-      emergencyContact: booking.emergencyContact,
-      createdAt: booking.createdAt,
+      selectedBookingOption: booking.selectedBookingOption
+        ? { title: booking.selectedBookingOption.title }
+        : undefined,
     };
 
     return NextResponse.json(
@@ -87,4 +75,3 @@ export async function GET(
     );
   }
 }
-

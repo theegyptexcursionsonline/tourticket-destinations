@@ -4,12 +4,18 @@ dotenv.config();
 
 import { algoliasearch } from 'algoliasearch';
 
-const ALGOLIA_APP_ID = process.env.NEXT_PUBLIC_ALGOLIA_APP_ID || 'WMDNV9WSOI';
-const ALGOLIA_ADMIN_KEY = process.env.ALGOLIA_ADMIN_API_KEY || '8c956f79a2cffa2ec8715a9ec2a5d7a3';
+const ALGOLIA_APP_ID = process.env.NEXT_PUBLIC_ALGOLIA_APP_ID;
+const ALGOLIA_ADMIN_KEY = process.env.ALGOLIA_ADMIN_API_KEY;
 const INDEX_NAME = process.env.NEXT_PUBLIC_ALGOLIA_INDEX_NAME || 'foxes_technology';
 
 async function checkStatus() {
   try {
+    if (!ALGOLIA_APP_ID || !ALGOLIA_ADMIN_KEY) {
+      throw new Error(
+        'NEXT_PUBLIC_ALGOLIA_APP_ID and ALGOLIA_ADMIN_API_KEY must be configured.',
+      );
+    }
+
     console.log('🔍 Checking Algolia Status...');
     console.log('App ID:', ALGOLIA_APP_ID);
     console.log('Index Name:', INDEX_NAME);

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Category from '@/lib/models/Category';
 import mongoose from 'mongoose';
+import { requireAdminAuth } from '@/lib/auth/adminAuth';
 
 export async function GET(
   request: NextRequest,
@@ -46,6 +47,11 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const adminAuth = await requireAdminAuth(request, {
+      permissions: ['manageContent'],
+    });
+    if (adminAuth instanceof NextResponse) return adminAuth;
+
     await dbConnect();
 
     const { id } = await params;
@@ -113,6 +119,11 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const adminAuth = await requireAdminAuth(request, {
+      permissions: ['manageContent'],
+    });
+    if (adminAuth instanceof NextResponse) return adminAuth;
+
     await dbConnect();
 
     const { id } = await params;

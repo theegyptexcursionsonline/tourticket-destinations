@@ -1,18 +1,26 @@
 // app/api/algolia/sync/route.ts
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Tour from '@/lib/models/Tour';
 import { syncToursToAlgolia, configureAlgoliaIndex } from '@/lib/algolia';
+import { requireAdminAuth } from '@/lib/auth/adminAuth';
+import { buildStrictTenantQuery, getTenantFromRequest } from '@/lib/tenant';
 
-export async function POST(_request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    await dbConnect();
+    const adminAuth = await requireAdminAuth(request, {
+      permissions: ['manageTours'],
+    });
+    if (adminAuth instanceof NextResponse) return adminAuth;
+
+    const tenantId = await getTenantFromRequest();
+    await dbConnect(tenantId);
 
     // Configure index settings
     await configureAlgoliaIndex();
 
     // Fetch all published tours
-    const tours = await Tour.find({ isPublished: true })
+    const tours = await Tour.find(buildStrictTenantQuery({ isPublished: true }, tenantId))
       .populate('category', 'name')
       .populate('destination', 'name')
       .lean();

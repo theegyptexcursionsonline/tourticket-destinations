@@ -1,9 +1,16 @@
 // Test Algolia connection with new credentials
+import 'dotenv/config';
 import { algoliasearch } from 'algoliasearch';
 
-const ALGOLIA_APP_ID = 'WMDNV9WSOI';
-const ALGOLIA_ADMIN_KEY = '8c956f79a2cffa2ec8715a9ec2a5d7a3';
-const INDEX_NAME = 'foxes_technology';
+const requireEnv = (name: string): string => {
+  const value = process.env[name];
+  if (!value) throw new Error(`${name} must be configured.`);
+  return value;
+};
+
+const ALGOLIA_APP_ID = requireEnv('NEXT_PUBLIC_ALGOLIA_APP_ID');
+const ALGOLIA_ADMIN_KEY = requireEnv('ALGOLIA_ADMIN_API_KEY');
+const INDEX_NAME = process.env.NEXT_PUBLIC_ALGOLIA_INDEX_NAME || 'foxes_technology';
 
 async function testConnection() {
   try {

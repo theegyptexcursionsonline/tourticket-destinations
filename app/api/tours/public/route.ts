@@ -11,7 +11,17 @@ export async function GET(request: NextRequest) {
     // `default`. See the list route for the full rationale — the short
     // version is that the old "skip filtering for default" shortcut caused
     // the main EEO English site to surface every brand's content.
-    let query: Record<string, unknown> = { isActive: true, isPublished: true };
+    let query: Record<string, unknown> = {
+      isPublished: true,
+      $and: [
+        {
+          $or: [
+            { isActive: true },
+            { isActive: { $exists: false } },
+          ],
+        },
+      ],
+    };
 
     const { searchParams } = new URL(request.url);
     const tenantId = searchParams.get('tenantId') || request.headers.get('x-tenant-id');

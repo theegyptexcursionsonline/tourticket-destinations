@@ -1,10 +1,17 @@
 // Sync ALL data to NEW Algolia account
+import 'dotenv/config';
 import { algoliasearch } from 'algoliasearch';
 import dbConnect from '../lib/dbConnect';
 import Tour from '../lib/models/Tour';
 
-const ALGOLIA_APP_ID = 'WMDNV9WSOI';
-const ALGOLIA_ADMIN_KEY = '8c956f79a2cffa2ec8715a9ec2a5d7a3';
+const requireEnv = (name: string): string => {
+  const value = process.env[name];
+  if (!value) throw new Error(`${name} must be configured.`);
+  return value;
+};
+
+const ALGOLIA_APP_ID = requireEnv('NEXT_PUBLIC_ALGOLIA_APP_ID');
+const ALGOLIA_ADMIN_KEY = requireEnv('ALGOLIA_ADMIN_API_KEY');
 
 const client = algoliasearch(ALGOLIA_APP_ID, ALGOLIA_ADMIN_KEY);
 

@@ -41,6 +41,11 @@ jest.mock('next/server', () => {
 // Mock database connection
 jest.mock('@/lib/dbConnect', () => jest.fn().mockResolvedValue(undefined));
 
+jest.mock('mongoose', () => ({
+  __esModule: true,
+  default: { Types: { ObjectId: { isValid: jest.fn().mockReturnValue(false) } } },
+}));
+
 // Chainable mock helper
 function chainable(resolveValue: any = []) {
   const chain: any = {};
@@ -95,11 +100,12 @@ jest.mock('@/lib/models/user', () => {
   return { __esModule: true, default: mock };
 });
 
+const bookingChain = chainable([]);
 jest.mock('@/lib/models/Booking', () => {
-  const chain = chainable([]);
-  const mock: any = jest.fn().mockReturnValue(chain);
-  Object.assign(mock, chain);
-  mock.find = jest.fn().mockReturnValue(chain);
+  const mock: any = jest.fn().mockReturnValue(bookingChain);
+  Object.assign(mock, bookingChain);
+  mock.find = jest.fn().mockReturnValue(bookingChain);
+  mock.findOne = jest.fn().mockReturnValue(bookingChain);
   mock.countDocuments = jest.fn().mockResolvedValue(0);
   return { __esModule: true, default: mock };
 });
@@ -189,6 +195,56 @@ describe('API Route Handlers', () => {
 
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
+    });
+  });
+
+  describe('critical route security', () => {
+    it('rejects unauthenticated catalogue and Algolia writes', async () => {
+      const categories = await import('@/app/api/categories/route');
+      const category = await import('@/app/api/categories/[id]/route');
+      const bookingOptions = await import('@/app/api/tours/[tourId]/booking-options/route');
+      const algolia = await import('@/app/api/algolia/sync/route');
+      const categoryContext = { params: Promise.resolve({ id: 'not-an-id' }) };
+
+      expect((await categories.POST(createRequest('POST', '/api/categories', {}))).status).toBe(401);
+      expect((await category.PUT(createRequest('PUT', '/api/categories/not-an-id', {}), categoryContext)).status).toBe(401);
+      expect((await category.DELETE(createRequest('DELETE', '/api/categories/not-an-id'), categoryContext)).status).toBe(401);
+      expect((await bookingOptions.PUT(
+        createRequest('PUT', '/api/tours/not-an-id/booking-options', {}),
+        { params: Promise.resolve({ tourId: 'not-an-id' }) },
+      )).status).toBe(401);
+      expect((await algolia.POST(createRequest('POST', '/api/algolia/sync'))).status).toBe(401);
+    });
+
+    it('returns only the public booking verification allowlist', async () => {
+      bookingChain.lean.mockResolvedValueOnce({
+        bookingReference: 'SAFE-REFERENCE',
+        tour: { title: 'Tour', image: 'image.jpg', duration: '2h' },
+        user: { firstName: 'Private', lastName: 'Guest', email: 'private@example.com' },
+        date: new Date('2026-07-20T00:00:00.000Z'),
+        time: '09:00',
+        guests: 2,
+        totalPrice: 200,
+        status: 'Confirmed',
+        selectedBookingOption: { title: 'Morning', price: 100 },
+        specialRequests: 'Private request',
+        emergencyContact: 'Private contact',
+      });
+      const { GET } = await import('@/app/api/booking/verify/[reference]/route');
+
+      const response = await GET(
+        createRequest('GET', '/api/booking/verify/SAFE-REFERENCE'),
+        { params: Promise.resolve({ reference: 'SAFE-REFERENCE' }) },
+      );
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(Object.keys(data.booking).sort()).toEqual([
+        'bookingReference', 'date', 'guests', 'selectedBookingOption', 'status', 'time', 'tour',
+      ]);
+      expect(data.booking).not.toHaveProperty('user');
+      expect(data.booking).not.toHaveProperty('totalPrice');
+      expect(data.booking.selectedBookingOption).toEqual({ title: 'Morning' });
     });
   });
 });
