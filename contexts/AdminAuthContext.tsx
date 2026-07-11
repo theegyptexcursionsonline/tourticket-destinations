@@ -28,7 +28,7 @@ interface AdminAuthContextValue {
 }
 
 const STORAGE_TOKEN_KEY = 'admin-auth-token';
-const STORAGE_USER_KEY = 'admin-user';
+const COOKIE_SESSION_SENTINEL = 'cookie-session';
 
 const AdminAuthContext = createContext<AdminAuthContextValue | undefined>(undefined);
 
@@ -38,52 +38,31 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const existingToken = localStorage.getItem(STORAGE_TOKEN_KEY);
-    const existingUser = localStorage.getItem(STORAGE_USER_KEY);
-
-    if (existingToken && existingUser) {
-      setToken(existingToken);
-      setUser(JSON.parse(existingUser));
-      // Sync cookie for existing sessions (cookie may be missing if login happened before cookie support)
-      document.cookie = `admin-auth-token=${existingToken}; path=/; max-age=${8 * 60 * 60}; samesite=lax${window.location.protocol === 'https:' ? '; secure' : ''}`;
-    }
-
-    if (existingToken) {
-      refreshUserWithToken(existingToken).finally(() => setIsLoading(false));
-    } else {
-      setIsLoading(false);
-    }
+    // Remove credentials written by versions that predated HTTP-only cookies.
+    localStorage.removeItem(STORAGE_TOKEN_KEY);
+    localStorage.removeItem('admin-user');
+    refreshUserWithToken().finally(() => setIsLoading(false));
   }, []);
 
-  const persistSession = useCallback((newToken: string, newUser: AdminUser) => {
-    setToken(newToken);
+  const persistSession = useCallback((newUser: AdminUser) => {
+    // This is deliberately not a credential. Existing admin components use
+    // `token` only as an authenticated-state sentinel while fetch sends the
+    // HTTP-only cookie automatically.
+    setToken(COOKIE_SESSION_SENTINEL);
     setUser(newUser);
-    localStorage.setItem(STORAGE_TOKEN_KEY, newToken);
-    localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(newUser));
   }, []);
 
   const clearSession = useCallback(() => {
     setToken(null);
     setUser(null);
     localStorage.removeItem(STORAGE_TOKEN_KEY);
-    localStorage.removeItem(STORAGE_USER_KEY);
-    // Clear the auth cookie
-    document.cookie = 'admin-auth-token=; path=/; max-age=0; samesite=lax';
+    localStorage.removeItem('admin-user');
   }, []);
 
   const refreshUserWithToken = useCallback(
-    async (activeToken?: string) => {
-      const authToken = activeToken || token;
-      if (!authToken) {
-        return;
-      }
-
+    async () => {
       try {
-        const response = await fetch('/api/admin/auth/me', {
-          headers: {
-            Authorization: `Bearer ${authToken}`,
-          },
-        });
+        const response = await fetch('/api/admin/auth/me', { credentials: 'same-origin' });
 
         if (!response.ok) {
           clearSession();
@@ -97,13 +76,13 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
             id: data.user.id || data.user._id,
             permissions: data.user.permissions || [],
           };
-          persistSession(authToken, normalizedUser);
+          persistSession(normalizedUser);
         }
       } catch (error) {
         console.error('Failed to refresh admin session', error);
       }
     },
-    [token, clearSession, persistSession],
+    [clearSession, persistSession],
   );
 
   const login = useCallback(
@@ -138,7 +117,7 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
           permissions: data.user.permissions || [],
         };
 
-        persistSession(data.token, normalizedUser);
+        persistSession(normalizedUser);
         toast.success('Welcome back!');
       } catch (error: any) {
         toast.error(error.message || 'Failed to log in');
@@ -153,7 +132,7 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
   const logout = useCallback(() => {
     clearSession();
     // Clear the HTTP-only auth cookie on the server
-    fetch('/api/admin/logout', { method: 'POST' }).catch(() => {});
+    fetch('/api/admin/logout', { method: 'POST', credentials: 'same-origin' }).catch(() => {});
     toast.success('You have been logged out.');
   }, [clearSession]);
 
@@ -202,4 +181,3 @@ export const useAdminAuth = () => {
   }
   return context;
 };
-

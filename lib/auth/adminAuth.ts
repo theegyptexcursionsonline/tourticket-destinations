@@ -37,18 +37,9 @@ export async function requireAdminAuth(
   request: NextRequest,
   options: RequireAdminOptions = {},
 ): Promise<AdminAuthContext | NextResponse> {
-  // Check Authorization header first, then fall back to cookie
-  const authHeader = request.headers.get('authorization');
-  let token = '';
-
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    token = authHeader.replace('Bearer ', '').trim();
-  }
-
-  // Fallback: check admin-auth-token cookie (auto-sent by browser)
-  if (!token) {
-    token = request.cookies.get('admin-auth-token')?.value || '';
-  }
+  // Admin browser sessions are cookie-only. Never accept a bearer token here:
+  // doing so encourages exposing the credential to JavaScript/localStorage.
+  const token = request.cookies.get('admin-auth-token')?.value || '';
 
   if (!token) {
     return unauthorizedResponse();

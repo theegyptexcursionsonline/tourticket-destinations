@@ -1,6 +1,7 @@
 // components/ReviewsStructuredData.tsx
 // Server component — outputs JSON-LD in initial HTML for best SEO
 import React from 'react';
+import { serializeJsonLd } from '@/lib/security/serializeJsonLd';
 
 const reviewsData = [
   {
@@ -72,7 +73,7 @@ export default function ReviewsStructuredData() {
     <script
       type="application/ld+json"
        
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(ld, null, 2) }}
+      dangerouslySetInnerHTML={{ __html: serializeJsonLd(ld) }}
     />
   );
 }

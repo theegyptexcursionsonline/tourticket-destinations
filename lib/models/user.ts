@@ -44,6 +44,8 @@ export interface IUser extends Document {
   permissions: AdminPermission[];
   isActive: boolean;
   lastLoginAt?: Date;
+  failedLoginAttempts?: number;
+  loginLockedUntil?: Date;
   invitationToken?: string;
   invitationExpires?: Date;
   requirePasswordChange?: boolean;
@@ -114,6 +116,16 @@ const UserSchema: Schema<IUser> = new Schema({
   },
   lastLoginAt: {
     type: Date,
+  },
+  failedLoginAttempts: {
+    type: Number,
+    default: 0,
+    min: 0,
+    select: false,
+  },
+  loginLockedUntil: {
+    type: Date,
+    select: false,
   },
   invitationToken: {
     type: String,

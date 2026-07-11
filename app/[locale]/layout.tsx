@@ -222,22 +222,39 @@ export default async function LocaleLayout({
   };
 
   // Generate CSS variables for tenant branding (including derived values)
-  const pc = tenantConfig?.branding?.primaryColor;
-  const sc = tenantConfig?.branding?.secondaryColor;
+  const safeColor = (value: unknown, fallback: string): string =>
+    typeof value === 'string' && /^#[0-9a-f]{3,8}$/i.test(value) ? value : fallback;
+  const safeFont = (value: unknown, fallback: string): string =>
+    typeof value === 'string' && value.length <= 80 && /^[a-z0-9 ,"'-]+$/i.test(value)
+      ? value
+      : fallback;
+  const safeRadius = (value: unknown): string =>
+    typeof value === 'string' && /^\d{1,2}(?:\.\d+)?(?:px|rem|em|%)$/.test(value)
+      ? value
+      : '8px';
+
+  const pc = safeColor(tenantConfig?.branding?.primaryColor, '#dc2626');
+  const sc = safeColor(tenantConfig?.branding?.secondaryColor, '#1f2937');
+  const accent = safeColor(tenantConfig?.branding?.accentColor, pc);
+  const background = safeColor(tenantConfig?.branding?.backgroundColor, '#FFFFFF');
+  const text = safeColor(tenantConfig?.branding?.textColor, '#1F2937');
+  const bodyFont = safeFont(tenantConfig?.branding?.fontFamily, 'Inter');
+  const headingFont = safeFont(tenantConfig?.branding?.fontFamilyHeading, bodyFont);
+  const borderRadius = safeRadius(tenantConfig?.branding?.borderRadius);
   const brandingStyles = tenantConfig ? `
     :root {
       --primary-color: ${pc};
       --secondary-color: ${sc};
-      --accent-color: ${tenantConfig.branding.accentColor};
-      --background-color: ${tenantConfig.branding.backgroundColor || '#FFFFFF'};
-      --text-color: ${tenantConfig.branding.textColor || '#1F2937'};
-      --font-family: ${tenantConfig.branding.fontFamily}, system-ui, sans-serif;
-      --font-family-heading: ${tenantConfig.branding.fontFamilyHeading || tenantConfig.branding.fontFamily}, system-ui, sans-serif;
-      --border-radius: ${tenantConfig.branding.borderRadius || '8px'};
-      --primary-hover: ${pc ? adjustColor(pc, -10) : '#b91c1c'};
-      --primary-light: ${pc ? adjustColor(pc, 90) : '#fef2f2'};
-      --gradient-primary: linear-gradient(135deg, ${pc} 0%, ${pc ? adjustColor(pc, -10) : '#b91c1c'} 100%);
-      --gradient-secondary: linear-gradient(135deg, ${sc} 0%, ${sc ? adjustColor(sc, 20) : '#374151'} 100%);
+      --accent-color: ${accent};
+      --background-color: ${background};
+      --text-color: ${text};
+      --font-family: ${bodyFont}, system-ui, sans-serif;
+      --font-family-heading: ${headingFont}, system-ui, sans-serif;
+      --border-radius: ${borderRadius};
+      --primary-hover: ${adjustColor(pc, -10)};
+      --primary-light: ${adjustColor(pc, 90)};
+      --gradient-primary: linear-gradient(135deg, ${pc} 0%, ${adjustColor(pc, -10)} 100%);
+      --gradient-secondary: linear-gradient(135deg, ${sc} 0%, ${adjustColor(sc, 20)} 100%);
       --shadow-primary: 0 4px 14px 0 ${pc}40;
     }
   ` : '';
@@ -249,7 +266,7 @@ export default async function LocaleLayout({
 
   return (
     <html lang={locale} dir={dir} suppressHydrationWarning>
-      <head>{brandingStyles ? <style dangerouslySetInnerHTML={{ __html: brandingStyles }} /> : null}</head>
+      <head>{brandingStyles ? <style>{brandingStyles}</style> : null}</head>
       <body className={fontClass} suppressHydrationWarning>
         <NextIntlClientProvider messages={messages}>
           {/* TenantProvider wraps all other providers */}

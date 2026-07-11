@@ -21,6 +21,7 @@ import {
   Star,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { sanitizeRichHtml } from '@/lib/security/sanitizeRichHtml';
 
 type IBlog = any;
 type ITour = any;
@@ -344,7 +345,7 @@ export default function BlogPostClient({ blog, relatedPosts }: Props) {
             */}
             <div
               className="bg-white rounded-2xl shadow p-6 md:p-8 lg:p-10 prose prose-lg max-w-none"
-              dangerouslySetInnerHTML={{ __html: blog.content }}
+              dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(blog.content) }}
             />
 
             {/* Tags */}

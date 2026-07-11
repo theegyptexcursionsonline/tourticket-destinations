@@ -1,5 +1,6 @@
 // Organization + LocalBusiness + TravelAgency schema for homepage
 import React from 'react';
+import { serializeJsonLd } from '@/lib/security/serializeJsonLd';
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://egypt-excursionsonline.com';
 
@@ -92,7 +93,7 @@ export default function OrganizationSchema() {
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }}
+      dangerouslySetInnerHTML={{ __html: serializeJsonLd(ld) }}
     />
   );
 }

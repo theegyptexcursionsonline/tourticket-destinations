@@ -1,5 +1,6 @@
 // BlogPosting + Article schema for blog detail pages
 import React from 'react';
+import { serializeJsonLd } from '@/lib/security/serializeJsonLd';
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://egypt-excursionsonline.com';
 
@@ -56,7 +57,7 @@ export default function BlogPostSchema({ title, slug, description, excerpt, imag
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }}
+      dangerouslySetInnerHTML={{ __html: serializeJsonLd(ld) }}
     />
   );
 }

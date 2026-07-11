@@ -1,5 +1,6 @@
 // FAQPage schema — renders JSON-LD for FAQ sections
 import React from 'react';
+import { serializeJsonLd } from '@/lib/security/serializeJsonLd';
 
 interface FAQItem {
   question: string;
@@ -33,7 +34,7 @@ export default function FAQSchema({ items }: Props) {
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }}
+      dangerouslySetInnerHTML={{ __html: serializeJsonLd(ld) }}
     />
   );
 }

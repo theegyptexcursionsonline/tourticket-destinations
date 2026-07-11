@@ -32,6 +32,7 @@ import { useSettings } from '@/hooks/useSettings';
 import { useCart } from '@/hooks/useCart';
 import { Tour, CartItem, Review as ReviewType } from '@/types';
 import { toDateOnlyString } from '@/utils/date';
+import { sanitizeRichHtml } from '@/lib/security/sanitizeRichHtml';
 
 // Enhanced interfaces for additional tour data
 interface ItineraryItem {
@@ -808,7 +809,7 @@ const OverviewSection = ({ tour, sectionRef }: { tour: Tour, sectionRef: React.R
       <h2 className="text-2xl md:text-3xl font-bold text-slate-800 mb-6 pb-4 border-b border-slate-200">About this experience</h2>
       <div
         className="prose prose-slate max-w-none mb-8 text-slate-700 leading-relaxed"
-        dangerouslySetInnerHTML={{ __html: tour.longDescription || tour.description }}
+        dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(tour.longDescription || tour.description) }}
       />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {tour.includes && tour.includes.length > 0 && (

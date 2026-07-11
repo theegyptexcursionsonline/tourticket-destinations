@@ -178,6 +178,40 @@ describe('API Route Handlers', () => {
       expect(response.status).toBe(401);
       expect(data.success).toBe(false);
     });
+
+    it('uses an HTTP-only cookie and never returns the admin token to JavaScript', async () => {
+      const oldUsername = process.env.ADMIN_USERNAME;
+      const oldPassword = process.env.ADMIN_PASSWORD;
+      const oldAllow = process.env.ALLOW_ENV_ADMIN;
+      process.env.ADMIN_USERNAME = 'local-admin';
+      process.env.ADMIN_PASSWORD = 'local-password';
+      process.env.ALLOW_ENV_ADMIN = 'true';
+
+      try {
+        const request = createRequest('POST', '/api/admin/login', {
+          email: 'local-admin',
+          password: 'local-password',
+        });
+        const response = await POST(request);
+        const data = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(data.success).toBe(true);
+        expect(data.token).toBeUndefined();
+        expect(response.cookies.set).toHaveBeenCalledWith(
+          'admin-auth-token',
+          'mock-jwt-token',
+          expect.objectContaining({ httpOnly: true, sameSite: 'lax' }),
+        );
+      } finally {
+        if (oldUsername === undefined) delete process.env.ADMIN_USERNAME;
+        else process.env.ADMIN_USERNAME = oldUsername;
+        if (oldPassword === undefined) delete process.env.ADMIN_PASSWORD;
+        else process.env.ADMIN_PASSWORD = oldPassword;
+        if (oldAllow === undefined) delete process.env.ALLOW_ENV_ADMIN;
+        else process.env.ALLOW_ENV_ADMIN = oldAllow;
+      }
+    });
   });
 
   describe('GET /api/destinations', () => {

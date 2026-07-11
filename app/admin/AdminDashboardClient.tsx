@@ -270,15 +270,7 @@ const AdminDashboard = () => {
     setError(null);
 
     try {
-      const token = localStorage.getItem('admin-auth-token');
-      if (!token) {
-        setError('Authentication required. Please log in.');
-        setIsLoading(false);
-        return;
-      }
-
       const headers = {
-        'Authorization': `Bearer ${token}`,
         'Cache-Control': 'no-cache'
       };
 

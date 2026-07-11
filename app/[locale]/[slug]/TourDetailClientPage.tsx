@@ -32,6 +32,7 @@ import { useTranslations } from 'next-intl';
 import type { CartItem, Review, Tour } from '@/types';
 import toast from 'react-hot-toast';
 import { toDateOnlyString } from '@/utils/date';
+import { sanitizeRichHtml } from '@/lib/security/sanitizeRichHtml';
 
 // Enhanced interfaces for additional tour data
 interface ItineraryItem {
@@ -923,7 +924,7 @@ const OverviewSection = ({ tour, sectionRef }: { tour: Tour, sectionRef: React.R
       <h2 className="text-2xl md:text-3xl font-bold text-slate-800 mb-4">{t('aboutExperience')}</h2>
       <div
         className="prose prose-slate max-w-none mb-6"
-        dangerouslySetInnerHTML={{ __html: tour.longDescription || tour.description }}
+        dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(tour.longDescription || tour.description) }}
       />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {tour.includes && tour.includes.length > 0 && (

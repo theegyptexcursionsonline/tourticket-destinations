@@ -8,6 +8,10 @@ import {
   AdminPermission,
   getDefaultPermissions,
 } from '@/lib/constants/adminPermissions';
+import {
+  failedAdminLoginUpdate,
+  loginRetryAfterSeconds,
+} from '@/lib/security/adminLoginProtection';
 
 function invalidCredentialsResponse() {
   return NextResponse.json(
@@ -47,6 +51,8 @@ export async function POST(request: NextRequest) {
     const envPassword = process.env.ADMIN_PASSWORD;
 
     if (
+      process.env.NODE_ENV !== 'production' &&
+      process.env.ALLOW_ENV_ADMIN === 'true' &&
       envUsername &&
       envPassword &&
       identifier === envUsername &&
@@ -77,12 +83,11 @@ export async function POST(request: NextRequest) {
 
       const response = NextResponse.json({
         success: true,
-        token,
         user: buildAdminUserPayload(pseudoUser, permissions),
       });
       response.cookies.set('admin-auth-token', token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: false,
         sameSite: 'lax',
         path: '/',
         maxAge: 8 * 60 * 60,
@@ -92,9 +97,22 @@ export async function POST(request: NextRequest) {
 
     await dbConnect();
 
-    const user = await User.findOne({ email: identifier }).select('+password');
+    const user = await User.findOne({ email: identifier }).select(
+      '+password +failedLoginAttempts +loginLockedUntil',
+    );
     if (!user) {
+      // Keep nonexistent-account timing close to a real password comparison.
+      await bcrypt.compare(password, '$2b$10$C6UzMDM.H6dfI/f/IKcEe.3u5W4WcXHfsvhQ4FZ9DqI7I7M.JxH1K');
       return invalidCredentialsResponse();
+    }
+
+    const now = new Date();
+    if (user.loginLockedUntil && user.loginLockedUntil > now) {
+      const retryAfter = loginRetryAfterSeconds(user.loginLockedUntil, now.getTime());
+      return NextResponse.json(
+        { success: false, error: 'Too many login attempts. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': String(retryAfter) } },
+      );
     }
 
     if (!user.isActive) {
@@ -110,6 +128,22 @@ export async function POST(request: NextRequest) {
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
+      // `$inc` is atomic, so parallel serverless invocations cannot overwrite
+      // one another with a smaller counter and bypass the lockout threshold.
+      const updatedUser = await User.findOneAndUpdate(
+        { _id: user._id },
+        { $inc: { failedLoginAttempts: 1 } },
+        { new: true, select: '+failedLoginAttempts' },
+      );
+      const updatedAttempts = updatedUser?.failedLoginAttempts
+        ?? (user.failedLoginAttempts || 0) + 1;
+      const protection = failedAdminLoginUpdate(updatedAttempts - 1);
+      if (protection.loginLockedUntil) {
+        await User.updateOne(
+          { _id: user._id },
+          { $set: { loginLockedUntil: protection.loginLockedUntil } },
+        );
+      }
       return invalidCredentialsResponse();
     }
 
@@ -126,11 +160,17 @@ export async function POST(request: NextRequest) {
         : getDefaultPermissions(user.role);
 
     user.lastLoginAt = new Date();
+    user.failedLoginAttempts = 0;
+    user.loginLockedUntil = undefined;
     if (!user.permissions || user.permissions.length === 0) {
       user.permissions = permissions;
     }
 
     await user.save({ validateBeforeSave: false });
+    await User.updateOne(
+      { _id: user._id },
+      { $set: { failedLoginAttempts: 0 }, $unset: { loginLockedUntil: 1 } },
+    );
 
     const token = await signToken(
       {
@@ -148,7 +188,6 @@ export async function POST(request: NextRequest) {
 
     const response = NextResponse.json({
       success: true,
-      token,
       user: buildAdminUserPayload(user, permissions),
     });
     response.cookies.set('admin-auth-token', token, {
