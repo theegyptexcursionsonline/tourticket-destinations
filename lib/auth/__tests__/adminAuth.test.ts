@@ -1,4 +1,18 @@
 jest.mock('@/lib/jwt', () => ({ verifyToken: jest.fn() }));
+jest.mock('@/lib/dbConnect', () => ({ __esModule: true, default: jest.fn().mockResolvedValue(undefined) }));
+jest.mock('@/lib/models/user', () => ({
+  __esModule: true,
+  default: {
+    findById: jest.fn(() => ({
+      select: jest.fn(() => ({
+        lean: jest.fn().mockResolvedValue({
+          _id: 'admin-id', email: 'admin@example.com', role: 'admin',
+          permissions: ['manageDashboard'], tenantIds: ['tenant-a'], isActive: true,
+        }),
+      })),
+    })),
+  },
+}));
 
 jest.mock('next/server', () => {
   class MockNextResponse {

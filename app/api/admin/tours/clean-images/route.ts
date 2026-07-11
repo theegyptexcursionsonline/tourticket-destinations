@@ -19,8 +19,9 @@ const _isPlaceholderUrl = (url: string) => {
 };
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAdminAuth(request, { permissions: ['manageTours'] });
+  const auth = await requireAdminAuth(request, { permissions: ['manageTenants'] });
   if (auth instanceof NextResponse) return auth;
+  if (auth.role !== 'super_admin') return NextResponse.json({ success: false, error: 'Super admin required' }, { status: 403 });
 
   try {
     await dbConnect();
@@ -215,8 +216,9 @@ export async function POST(request: NextRequest) {
 
 // GET endpoint to check how many items have placeholder images
 export async function GET(request: NextRequest) {
-  const auth = await requireAdminAuth(request, { permissions: ['manageTours'] });
+  const auth = await requireAdminAuth(request, { permissions: ['manageTenants'] });
   if (auth instanceof NextResponse) return auth;
+  if (auth.role !== 'super_admin') return NextResponse.json({ success: false, error: 'Super admin required' }, { status: 403 });
 
   try {
     await dbConnect();

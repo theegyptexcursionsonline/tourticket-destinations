@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import HeroSettings from '@/lib/models/HeroSettings';
-import { requireAdminAuth } from '@/lib/auth/adminAuth';
+import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 
 export async function GET(request: NextRequest) {
   const auth = await requireAdminAuth(request, { permissions: ['manageContent'] });
@@ -12,6 +12,8 @@ export async function GET(request: NextRequest) {
     await dbConnect();
     const { searchParams } = new URL(request.url);
     const tenantId = searchParams.get('tenantId');
+    if (tenantId && tenantId !== 'all' && !canAccessTenant(auth, tenantId)) return tenantForbiddenResponse();
+    if ((!tenantId || tenantId === 'all') && auth.role !== 'super_admin') return tenantForbiddenResponse();
     const filter: Record<string, unknown> = { isActive: true };
     if (tenantId && tenantId !== 'all') {
       filter.tenantId = tenantId;
@@ -110,6 +112,7 @@ export async function PUT(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const body = await request.json();
     const tenantId = (body?.tenantId as string | undefined) ?? searchParams.get('tenantId');
+    if (!tenantId || tenantId === 'all' || !canAccessTenant(auth, tenantId)) return tenantForbiddenResponse();
     const updateFilter: Record<string, unknown> = { isActive: true };
     if (tenantId && tenantId !== 'all') {
       updateFilter.tenantId = tenantId;

@@ -4,7 +4,7 @@ import Destination from '@/lib/models/Destination';
 import { NextRequest, NextResponse } from 'next/server';
 import { MongoError } from 'mongodb';
 import { getTenantFromRequest, buildTenantQuery } from '@/lib/tenant';
-import { requireAdminAuth } from '@/lib/auth/adminAuth';
+import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 
 export async function GET(request: NextRequest) {
   const auth = await requireAdminAuth(request, { permissions: ['manageTours'] });
@@ -13,11 +13,13 @@ export async function GET(request: NextRequest) {
   try {
     // Get tenant from request
     const tenantId = await getTenantFromRequest();
+    if (!canAccessTenant(auth, tenantId)) return tenantForbiddenResponse();
     await dbConnect(tenantId);
     
     // Check if admin wants all destinations (for admin panel)
     const { searchParams } = new URL(request.url);
     const showAll = searchParams.get('all') === 'true';
+    if (showAll && auth.role !== 'super_admin') return tenantForbiddenResponse();
     
     // Build query - admin can see all, frontend gets tenant-filtered
     let query;
@@ -45,6 +47,9 @@ export async function POST(request: NextRequest) {
   await dbConnect();
   try {
     const body = await request.json();
+    const tenantId = typeof body.tenantId === 'string' ? body.tenantId : await getTenantFromRequest();
+    if (!canAccessTenant(auth, tenantId)) return tenantForbiddenResponse();
+    body.tenantId = tenantId;
    
     // Only name and description are required
     const requiredFields = ['name', 'description'];

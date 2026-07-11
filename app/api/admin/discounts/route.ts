@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Discount from '@/lib/models/Discount';
-import { requireAdminAuth } from '@/lib/auth/adminAuth';
+import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 
 export async function GET(request: NextRequest) {
   const auth = await requireAdminAuth(request, { permissions: ['manageDiscounts'] });
@@ -13,6 +13,8 @@ export async function GET(request: NextRequest) {
     // Support optional tenant filtering for multi-tenant admin
     const { searchParams } = new URL(request.url);
     const tenantId = searchParams.get('tenantId');
+    if (tenantId && tenantId !== 'all' && !canAccessTenant(auth, tenantId)) return tenantForbiddenResponse();
+    if ((!tenantId || tenantId === 'all') && auth.role !== 'super_admin') return tenantForbiddenResponse();
     
     // Build query with optional tenant filter
     const query: Record<string, unknown> = {};
@@ -44,6 +46,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+    if (!canAccessTenant(auth, body.tenantId)) return tenantForbiddenResponse();
     
     const newDiscount = await Discount.create(body);
     return NextResponse.json({ success: true, data: newDiscount }, { status: 201 });

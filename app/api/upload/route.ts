@@ -4,6 +4,7 @@ import { v2 as cloudinary } from 'cloudinary';
 import { NextRequest, NextResponse } from 'next/server';
 import { Readable } from 'stream';
 import { requireAdminAuth } from '@/lib/auth/adminAuth';
+import { validateImageUpload } from '@/lib/security/imageUpload';
 
 // Configure Cloudinary with credentials from .env.local
 cloudinary.config({
@@ -33,6 +34,14 @@ export async function POST(request: NextRequest) {
     }
 
     const fileBuffer = Buffer.from(await file.arrayBuffer());
+    try {
+      validateImageUpload(file, fileBuffer);
+    } catch (error) {
+      return NextResponse.json(
+        { success: false, error: error instanceof Error ? error.message : 'Invalid image.' },
+        { status: 400 },
+      );
+    }
 
     const result: any = await new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
@@ -41,6 +50,7 @@ export async function POST(request: NextRequest) {
           // Add the upload_preset from your environment variables
           upload_preset: process.env.CLOUDINARY_UPLOAD_PRESET,
           folder: 'tours', // Optional: organize uploads in a folder
+          resource_type: 'image',
         },
         (error, result) => {
           if (error) {

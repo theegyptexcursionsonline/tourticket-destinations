@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import StopSaleLog from '@/lib/models/StopSaleLog';
 import Tour from '@/lib/models/Tour';
-import { requireAdminAuth } from '@/lib/auth/adminAuth';
+import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,6 +22,8 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const tenantId = searchParams.get('tenantId');
+    if (tenantId && tenantId !== 'all' && !canAccessTenant(authResult, tenantId)) return tenantForbiddenResponse();
+    if ((!tenantId || tenantId === 'all') && authResult.role !== 'super_admin') return tenantForbiddenResponse();
     const tourId = searchParams.get('tourId');
     const status = searchParams.get('status'); // 'active', 'removed', or 'all'
     const startDate = searchParams.get('startDate');
@@ -157,6 +159,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const { logId, tourId, date, tenantId } = body;
+    if (tenantId && tenantId !== 'all' && !canAccessTenant(authResult, tenantId)) return tenantForbiddenResponse();
 
     // Option 1: Fetch by logId
     if (logId) {
@@ -172,6 +175,7 @@ export async function POST(request: NextRequest) {
           { status: 404 }
         );
       }
+      if (!canAccessTenant(authResult, String(log.tenantId))) return tenantForbiddenResponse();
 
       // Get option title
       const tour = log.tourId as any;
@@ -201,6 +205,7 @@ export async function POST(request: NextRequest) {
 
     // Option 2: Fetch active logs for a specific date and tour
     if (tourId && date) {
+      if (!tenantId || tenantId === 'all') return tenantForbiddenResponse();
       const targetDate = new Date(date);
       targetDate.setHours(0, 0, 0, 0);
 

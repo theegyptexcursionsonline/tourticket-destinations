@@ -1,7 +1,7 @@
 // app/api/admin/tours/translate-all/route.ts
 // Bulk translation endpoint for all published tours
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdminAuth } from '@/lib/auth/adminAuth';
+import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 import { translateAllTours } from '@/lib/translation/translateService';
 // Note: For individual entity translation (tour/destination/category),
 // use the new /api/admin/translate endpoint which leverages lib/i18n/autoTranslate.ts
@@ -20,6 +20,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}));
     const { tenantId, force = false, batchSize = 5 } = body;
+    if (!tenantId || tenantId === 'all' || !canAccessTenant(auth, tenantId)) return tenantForbiddenResponse();
 
     const result = await translateAllTours({ tenantId, force, batchSize });
 

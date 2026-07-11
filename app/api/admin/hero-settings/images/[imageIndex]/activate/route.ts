@@ -1,6 +1,6 @@
 // app/api/admin/hero-settings/images/[imageIndex]/activate/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdminAuth } from '@/lib/auth/adminAuth';
+import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 import dbConnect from '@/lib/dbConnect';
 import HeroSettings from '@/lib/models/HeroSettings';
 
@@ -14,7 +14,9 @@ export async function PUT(
     await dbConnect();
     
     const { imageIndex: imageIndexStr } = await params;
-    const heroSettings = await HeroSettings.findOne({ isActive: true });
+    const tenantId = new URL(request.url).searchParams.get('tenantId');
+    if (!tenantId || tenantId === 'all' || !canAccessTenant(auth, tenantId)) return tenantForbiddenResponse();
+    const heroSettings = await HeroSettings.findOne({ isActive: true, tenantId });
     
     if (!heroSettings) {
       return NextResponse.json(

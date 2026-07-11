@@ -1,6 +1,6 @@
 // app/api/admin/hero-settings/images/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdminAuth } from '@/lib/auth/adminAuth';
+import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 import dbConnect from '@/lib/dbConnect';
 import HeroSettings from '@/lib/models/HeroSettings';
 
@@ -9,7 +9,8 @@ export async function POST(request: NextRequest) {
   if (auth instanceof NextResponse) return auth;
   try {
     await dbConnect();
-    const { imageData } = await request.json();
+    const { imageData, tenantId } = await request.json();
+    if (!tenantId || tenantId === 'all' || !canAccessTenant(auth, tenantId)) return tenantForbiddenResponse();
     
     if (!imageData.desktop || !imageData.alt) {
       return NextResponse.json(
@@ -18,7 +19,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const heroSettings = await HeroSettings.findOne({ isActive: true });
+    const heroSettings = await HeroSettings.findOne({ isActive: true, tenantId });
     
     if (!heroSettings) {
       return NextResponse.json(

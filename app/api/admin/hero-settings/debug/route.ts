@@ -7,6 +7,9 @@ import HeroSettings from '@/lib/models/HeroSettings';
 export async function GET(request: NextRequest) {
   const auth = await requireAdminAuth(request, { permissions: ['manageContent'] });
   if (auth instanceof NextResponse) return auth;
+  if (auth.role !== 'super_admin') {
+    return NextResponse.json({ success: false, error: 'Super admin required' }, { status: 403 });
+  }
 
   try {
     await dbConnect();

@@ -37,6 +37,7 @@ export interface IBooking extends Document {
     | 'refunded'
     | 'partial_refunded';
   paymentId?: string;
+  checkoutItemKey?: string;
   paymentMethod?: string;
   paymentStatus?: 'paid' | 'pending' | 'pay_on_arrival';
   amountPaid?: number;
@@ -200,6 +201,12 @@ const BookingSchema: Schema<IBooking> = new Schema({
   
   paymentId: {
     type: String,
+  },
+  checkoutItemKey: {
+    type: String,
+    unique: true,
+    sparse: true,
+    index: true,
   },
   
   paymentMethod: {

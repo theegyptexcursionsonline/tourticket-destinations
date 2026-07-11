@@ -5,7 +5,7 @@ import Destination from "@/lib/models/Destination";
 import Category from "@/lib/models/Category";
 import mongoose from "mongoose";
 import { syncTourToAlgolia, deleteTourFromAlgolia } from "@/lib/algolia";
-import { requireAdminAuth } from "@/lib/auth/adminAuth";
+import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from "@/lib/auth/adminAuth";
 import { translateTourInBackground } from '@/lib/translation/translateService';
 
 function generateOptionId() {
@@ -26,7 +26,6 @@ async function findTour(identifier: string) {
         if (!tour) {
             return null;
         }
-
         // Manually populate to avoid potential circular reference issues
         if (tour.category) {
             try {
@@ -147,6 +146,8 @@ export async function GET(
             console.log('Tour not found for ID:', id);
             return NextResponse.json({ success: false, message: "Tour not found" }, { status: 404 });
         }
+        const targetTenantIds = [String(tour.tenantId || 'default'), ...(tour.tenantIds || []).map(String)];
+        if (!targetTenantIds.some((tenantId) => canAccessTenant(auth, tenantId))) return tenantForbiddenResponse();
 
         console.log('Tour found successfully');
         console.log('Tour attractions:', tour.attractions);
@@ -184,6 +185,12 @@ export async function PUT(
         const tenantIdParam = searchParams.get('tenantId');
         const effectiveTenantId =
             tenantIdParam && tenantIdParam !== 'all' ? tenantIdParam : undefined;
+        const currentTour = await findTour(id);
+        if (!currentTour) return NextResponse.json({ success: false, error: 'Tour not found' }, { status: 404 });
+        const currentTenantIds = [String(currentTour.tenantId || 'default'), ...(currentTour.tenantIds || []).map(String)];
+        if (!currentTenantIds.some((tenantId) => canAccessTenant(auth, tenantId))) return tenantForbiddenResponse();
+        if (effectiveTenantId && !canAccessTenant(auth, effectiveTenantId)) return tenantForbiddenResponse();
+        if (body.tenantId && body.tenantId !== currentTour.tenantId && auth.role !== 'super_admin') return tenantForbiddenResponse();
 
         console.log('Updating tour with ID:', id);
         console.log('Validated tour update request');
@@ -401,6 +408,11 @@ export async function DELETE(
         const tenantIdParam = searchParams.get('tenantId');
         const effectiveTenantId =
             tenantIdParam && tenantIdParam !== 'all' ? tenantIdParam : undefined;
+        const currentTour = await findTour(id);
+        if (!currentTour) return NextResponse.json({ success: false, error: 'Tour not found' }, { status: 404 });
+        const currentTenantIds = [String(currentTour.tenantId || 'default'), ...(currentTour.tenantIds || []).map(String)];
+        if (!currentTenantIds.some((tenantId) => canAccessTenant(auth, tenantId))) return tenantForbiddenResponse();
+        if (effectiveTenantId && !canAccessTenant(auth, effectiveTenantId)) return tenantForbiddenResponse();
 
         const deleteFilter: Record<string, unknown> = mongoose.Types.ObjectId.isValid(id)
             ? { _id: id }

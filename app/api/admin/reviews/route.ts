@@ -4,7 +4,7 @@ import dbConnect from '@/lib/dbConnect';
 import Review from '@/lib/models/Review';
 import User from '@/lib/models/user';
 import Tour from '@/lib/models/Tour';
-import { requireAdminAuth } from '@/lib/auth/adminAuth';
+import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 
 // GET all reviews for the admin panel
 export async function GET(request: NextRequest) {
@@ -16,6 +16,8 @@ export async function GET(request: NextRequest) {
     // Get tenant filter from query params
     const { searchParams } = new URL(request.url);
     const tenantId = searchParams.get('tenantId');
+    if (tenantId && tenantId !== 'all' && !canAccessTenant(auth, tenantId)) return tenantForbiddenResponse();
+    if ((!tenantId || tenantId === 'all') && auth.role !== 'super_admin') return tenantForbiddenResponse();
     
     // Build filter for tenant-specific queries
     const filter: Record<string, unknown> = {};

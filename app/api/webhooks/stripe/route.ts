@@ -710,9 +710,13 @@ export async function POST(request: Request) {
         try {
           const result = await processSuccessfulPayment(paymentIntent);
           console.log(`[Webhook] Process result for ${paymentIntent.id}:`, result);
+          if (result && result.created === false && ['missing_customer_data', 'invalid_cart_data'].includes(String(result.reason))) {
+            throw new Error(`Payment recovery data is invalid: ${result.reason}`);
+          }
         } catch (processError: any) {
           console.error(`[Webhook] Failed to process payment ${paymentIntent.id}:`, processError);
-          // Still return 200 to acknowledge the webhook, but log the error
+          // Acknowledge only after durable processing. Stripe will retry 5xx.
+          return NextResponse.json({ error: 'Payment processing will be retried' }, { status: 503 });
         }
         break;
 

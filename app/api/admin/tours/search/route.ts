@@ -2,7 +2,7 @@
 import dbConnect from '@/lib/dbConnect';
 import Tour from '@/lib/models/Tour';
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdminAuth } from '@/lib/auth/adminAuth';
+import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 
 export async function GET(request: NextRequest) {
   const auth = await requireAdminAuth(request, { permissions: ['manageTours'] });
@@ -14,6 +14,10 @@ export async function GET(request: NextRequest) {
     // Extract the search parameters from the request URL
     const { searchParams } = new URL(request.url);
     const slug = searchParams.get('slug');
+    const tenantId = searchParams.get('tenantId');
+    const effectiveTenantId = tenantId && tenantId !== 'all' ? tenantId : undefined;
+    if (effectiveTenantId && !canAccessTenant(auth, effectiveTenantId)) return tenantForbiddenResponse();
+    if (!effectiveTenantId && auth.role !== 'super_admin') return tenantForbiddenResponse();
 
     // If no slug is provided, return a bad request error
     if (!slug) {
@@ -25,7 +29,10 @@ export async function GET(request: NextRequest) {
 
     // Find tours that match the slug. Using find() instead of findOne()
     // to match the structure your front-end expects ([data])
-    const tours = await Tour.find({ slug: slug })
+    const tours = await Tour.find({
+      slug,
+      ...(effectiveTenantId ? { $or: [{ tenantId: effectiveTenantId }, { tenantIds: effectiveTenantId }] } : {}),
+    })
       .populate('destination')
       .populate('categories');
 

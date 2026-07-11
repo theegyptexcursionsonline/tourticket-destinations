@@ -2,7 +2,7 @@
 import dbConnect from '@/lib/dbConnect';
 import Tour from '@/lib/models/Tour';
 import { NextRequest, NextResponse } from 'next/server';
-import { buildStrictTenantQuery } from '@/lib/tenant';
+import { buildStrictTenantQuery, getTenantFromRequest } from '@/lib/tenant';
 
 export async function GET(request: NextRequest) {
   await dbConnect();
@@ -23,11 +23,10 @@ export async function GET(request: NextRequest) {
       ],
     };
 
-    const { searchParams } = new URL(request.url);
-    const tenantId = searchParams.get('tenantId') || request.headers.get('x-tenant-id');
-    if (tenantId && tenantId !== 'all') {
-      query = buildStrictTenantQuery(query, tenantId);
-    }
+    // Public callers cannot choose `all` or another tenant. Tenant identity is
+    // derived from the trusted host/middleware only.
+    const tenantId = await getTenantFromRequest();
+    query = buildStrictTenantQuery(query, tenantId);
     
     // Return public tour data with fields needed by DayTrips component
     const tours = await Tour.find(query)

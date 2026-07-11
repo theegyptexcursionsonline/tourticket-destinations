@@ -3,7 +3,7 @@ import dbConnect from '@/lib/dbConnect';
 import Destination from '@/lib/models/Destination';
 import { NextRequest, NextResponse } from 'next/server';
 import { MongoError } from 'mongodb';
-import { requireAdminAuth } from '@/lib/auth/adminAuth';
+import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 
 export async function GET(request: NextRequest) {
   const auth = await requireAdminAuth(request, { permissions: ['manageContent'] });
@@ -12,6 +12,8 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const tenantId = searchParams.get('tenantId');
+    if (tenantId && tenantId !== 'all' && !canAccessTenant(auth, tenantId)) return tenantForbiddenResponse();
+    if ((!tenantId || tenantId === 'all') && auth.role !== 'super_admin') return tenantForbiddenResponse();
     const filter: Record<string, unknown> = {};
     if (tenantId && tenantId !== 'all') {
       filter.tenantId = tenantId;
@@ -36,6 +38,9 @@ export async function POST(request: NextRequest) {
     const tenantIdParam = new URL(request.url).searchParams.get('tenantId');
     const effectiveTenantId =
       tenantIdParam && tenantIdParam !== 'all' ? tenantIdParam : undefined;
+    const targetTenantId = effectiveTenantId || body.tenantId;
+    if (!targetTenantId || !canAccessTenant(auth, targetTenantId)) return tenantForbiddenResponse();
+    body.tenantId = targetTenantId;
     if (effectiveTenantId) {
       if (body.tenantId && body.tenantId !== effectiveTenantId) {
         return NextResponse.json(

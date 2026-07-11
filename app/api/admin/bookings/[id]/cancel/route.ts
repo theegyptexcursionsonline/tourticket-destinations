@@ -4,7 +4,7 @@ import dbConnect from '@/lib/dbConnect';
 import Booking from '@/lib/models/Booking';
 import Tour from '@/lib/models/Tour';
 import User from '@/lib/models/user';
-import { requireAdminAuth } from '@/lib/auth/adminAuth';
+import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 import { EmailService } from '@/lib/email/emailService';
 import Tenant from '@/lib/models/Tenant';
 import { getTenantEmailBranding } from '@/lib/tenant';
@@ -58,6 +58,7 @@ export async function POST(
     if (!booking) {
       return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
     }
+    if (!canAccessTenant(auth, String(booking.tenantId || 'default'))) return tenantForbiddenResponse();
 
     // Check if already cancelled
     if (booking.status === 'Cancelled') {

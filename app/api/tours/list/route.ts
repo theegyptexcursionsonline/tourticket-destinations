@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Tour from '@/lib/models/Tour';
 import { buildStrictTenantQuery } from '@/lib/tenant';
+import { getTenantFromRequest } from '@/lib/tenant';
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,12 +14,8 @@ export async function GET(request: NextRequest) {
     // filtered for non-default tenants, which meant egypt-excursionsonline.com
     // (tenant=`default`) returned tours from every brand in the system and
     // mixed in German/Arabic content on the English main site.
-    const query: Record<string, unknown> = {};
-    const { searchParams } = new URL(request.url);
-    const tenantId = searchParams.get('tenantId') || request.headers.get('x-tenant-id');
-    if (tenantId && tenantId !== 'all') {
-      Object.assign(query, buildStrictTenantQuery({}, tenantId));
-    }
+    const tenantId = await getTenantFromRequest();
+    const query: Record<string, unknown> = buildStrictTenantQuery({ isPublished: true }, tenantId);
 
     // Fetch tours with populated destination and category
     const tours = await Tour.find(query)
@@ -38,7 +35,6 @@ export async function GET(request: NextRequest) {
       discountPrice: tour.discountPrice,
       duration: tour.duration,
       difficulty: tour.difficulty,
-      isPublished: tour.isPublished,
       isFeatured: tour.isFeatured,
       image: tour.image,
       destination: tour.destination ? {

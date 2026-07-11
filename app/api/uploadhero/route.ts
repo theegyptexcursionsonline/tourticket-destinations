@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { writeFile } from 'fs/promises';
 import path from 'path';
 import { requireAdminAuth } from '@/lib/auth/adminAuth';
+import { extensionForImageType, validateImageUpload } from '@/lib/security/imageUpload';
 
 export async function POST(request: NextRequest) {
   const auth = await requireAdminAuth(request, { permissions: ['manageContent'] });
@@ -16,38 +17,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'No file received' }, { status: 400 });
     }
 
-    // Validate file type
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/avif'];
-    if (!validTypes.includes(file.type)) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid file type. Only JPEG, PNG, WebP, and AVIF are allowed.' },
-        { status: 400 }
-      );
-    }
-
-    // Validate file size (max 5MB)
-    const maxSize = 5 * 1024 * 1024;
-    if (file.size > maxSize) {
-      return NextResponse.json(
-        { success: false, error: 'File too large. Maximum size is 5MB.' },
-        { status: 400 }
-      );
-    }
-
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
+    let detectedType;
+    try {
+      detectedType = validateImageUpload(file, buffer);
+    } catch (error) {
+      return NextResponse.json(
+        { success: false, error: error instanceof Error ? error.message : 'Invalid image.' },
+        { status: 400 },
+      );
+    }
 
     // Generate unique filename
     const timestamp = Date.now();
     const randomStr = Math.random().toString(36).substring(2, 15);
-    const extensionByType: Record<string, string> = {
-      'image/jpeg': '.jpg',
-      'image/jpg': '.jpg',
-      'image/png': '.png',
-      'image/webp': '.webp',
-      'image/avif': '.avif',
-    };
-    const extension = extensionByType[file.type];
+    const extension = extensionForImageType(detectedType);
     const filename = `hero-${timestamp}-${randomStr}${extension}`;
 
     // Save to public directory

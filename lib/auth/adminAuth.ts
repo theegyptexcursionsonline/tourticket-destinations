@@ -50,18 +50,33 @@ export async function requireAdminAuth(
     return unauthorizedResponse();
   }
 
-  const role = (payload.role as AdminRole) || 'customer';
-  const permissionsFromToken = Array.isArray(payload.permissions)
-    ? (payload.permissions as AdminPermission[])
+  // JWT claims are only a session pointer. Re-read mutable authorization state
+  // so disabling/demoting an admin takes effect immediately instead of waiting
+  // for the eight-hour cookie to expire.
+  const [{ default: dbConnect }, { default: User }] = await Promise.all([
+    import('@/lib/dbConnect'),
+    import('@/lib/models/user'),
+  ]);
+  await dbConnect();
+  const user = await User.findById(String(payload.sub))
+    .select('email role permissions tenantIds isActive')
+    .lean<any>();
+  if (!user || !user.isActive || !user.role || user.role === 'customer') {
+    return unauthorizedResponse();
+  }
+
+  const role = user.role as AdminRole;
+  const permissionsFromToken = Array.isArray(user.permissions) && user.permissions.length > 0
+    ? (user.permissions as AdminPermission[])
     : getDefaultPermissions(role);
 
   const authContext: AdminAuthContext = {
     userId: String(payload.sub),
-    email: typeof payload.email === 'string' ? payload.email : undefined,
+    email: typeof user.email === 'string' ? user.email : undefined,
     role,
     permissions: permissionsFromToken,
-    tenantIds: Array.isArray(payload.tenantIds)
-      ? payload.tenantIds.filter((id): id is string => typeof id === 'string' && id.length > 0)
+    tenantIds: Array.isArray(user.tenantIds)
+      ? user.tenantIds.filter((id: unknown): id is string => typeof id === 'string' && id.length > 0)
       : [],
   };
 

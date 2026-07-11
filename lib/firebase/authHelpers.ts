@@ -120,18 +120,17 @@ export async function syncFirebaseUserToMongo(firebaseUser: {
     user.lastLoginAt = new Date();
     await user.save();
   } else {
-    // Check if user exists by email (migration case or different auth method)
-    user = await User.findOne({ email: firebaseUser.email });
+    if (!firebaseUser.emailVerified || !firebaseUser.email) {
+      throw new Error('A verified Firebase email is required');
+    }
 
-    if (user) {
-      // Link existing user to Firebase (user had account via different method)
-      user.firebaseUid = firebaseUser.uid;
-      user.authProvider = authProvider;
-      user.emailVerified = firebaseUser.emailVerified;
-      user.photoURL = firebaseUser.photoURL || user.photoURL;
-      user.lastLoginAt = new Date();
-      await user.save();
-      // Not marking as new user since they already had an account
+    // Never attach a newly-seen Firebase UID to an existing local account by
+    // email alone. Account linking needs a separate flow authenticated by both
+    // accounts; otherwise any compromised/misconfigured identity provider can
+    // take over a privileged local account.
+    const existingEmailUser = await User.findOne({ email: firebaseUser.email }).select('_id');
+    if (existingEmailUser) {
+      throw new Error('An account already exists for this email. Sign in with the original method to link it.');
     } else {
       // Create new user
       user = await User.create({

@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import dbConnect from '@/lib/dbConnect';
 import { getTenantConfigCached, getTenantFromRequest } from '@/lib/tenant';
-import { calculateCheckoutPricing } from '@/lib/security/checkoutPricing';
+import { calculateCheckoutPricing, checkoutCustomerRef, checkoutFingerprint } from '@/lib/security/checkoutPricing';
 
 // Lazy initialization to avoid build-time errors when env vars are missing
 let _stripe: Stripe | null = null;
@@ -65,6 +65,10 @@ export async function POST(request: Request) {
       ...validatedCheckout.pricing,
       currency: tenantConfig?.payments?.currency || 'USD',
     };
+    const normalizedEmail = String(customer.email).trim().toLowerCase();
+    const currency = String(pricing.currency || 'USD').toLowerCase();
+    const cartFingerprint = checkoutFingerprint(cart, tenantId, currency);
+    const customerRef = checkoutCustomerRef(normalizedEmail);
 
     // Build compact cart summary for Stripe metadata (500 char limit per value)
     const cartSummary = cart.map((item: any, index: number) => ({
@@ -94,31 +98,22 @@ export async function POST(request: Request) {
     const cartData = cartJson.substring(0, 500);
     const cartData2 = cartJson.length > 500 ? cartJson.substring(500) : '';
 
-    // Serialize hotel pickup location if present
-    let hotelPickupLocationStr = '';
-    if (customer.hotelPickupLocation) {
-      try {
-        hotelPickupLocationStr = JSON.stringify(customer.hotelPickupLocation);
-      } catch { /* ignore */ }
-    }
-
     // Use tenant-specific Stripe account if configured, otherwise use default
     // Note: For Stripe Connect, you would use stripeAccount parameter
     const stripeOptions: Stripe.PaymentIntentCreateParams = {
       amount: Math.round(pricing.total * 100), // Stripe expects amount in cents
-      currency: (pricing.currency || tenantConfig?.payments?.currency || 'USD').toLowerCase(),
+      currency,
       description: `Booking for ${cart.length} tour${cart.length > 1 ? 's' : ''} - ${tenantConfig?.name || 'Tour Booking'}`,
       metadata: {
         has_booking_data: 'true',
         tenant_id: tenantId,
-        tenant_name: tenantConfig?.name || 'Default',
-        customer_email: customer.email,
+        checkout_fingerprint: cartFingerprint,
+        customer_ref: customerRef,
+        // Name/email are retained only for Stripe's recovery webhook. Phone,
+        // pickup location and special requests are deliberately kept out.
+        customer_email: normalizedEmail,
         customer_first_name: customer.firstName,
         customer_last_name: customer.lastName,
-        customer_phone: customer.phone || '',
-        hotel_pickup_details: customer.hotelPickupDetails || '',
-        hotel_pickup_location: hotelPickupLocationStr,
-        special_requests: customer.specialRequests || '',
         cart_data: cartData,
         ...(cartData2 && { cart_data_2: cartData2 }),
         pricing_total: String(pricing.total),
@@ -137,7 +132,9 @@ export async function POST(request: Request) {
 
     // Create a PaymentIntent with Stripe
     const stripe = getStripe();
-    const paymentIntent = await stripe.paymentIntents.create(stripeOptions);
+    const paymentIntent = await stripe.paymentIntents.create(stripeOptions, {
+      idempotencyKey: `checkout-${customerRef.slice(0, 16)}-${cartFingerprint.slice(0, 16)}-${Math.round(pricing.total * 100)}`,
+    });
 
     return NextResponse.json({
       success: true,

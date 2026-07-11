@@ -15,6 +15,16 @@ jest.mock('@/lib/models/Discount', () => ({
   default: { findOne: jest.fn(() => ({ lean: discountLean })) },
 }));
 
+jest.mock('@/lib/models/Availability', () => ({
+  __esModule: true,
+  default: { findOne: jest.fn(() => ({ lean: jest.fn().mockResolvedValue(null) })) },
+}));
+
+jest.mock('@/lib/models/StopSale', () => ({
+  __esModule: true,
+  default: { exists: jest.fn().mockResolvedValue(null) },
+}));
+
 import { calculateCheckoutPricing } from '@/lib/security/checkoutPricing';
 
 describe('checkout pricing security', () => {
@@ -38,6 +48,7 @@ describe('checkout pricing security', () => {
       price: 0.01,
       discountPrice: 0.01,
       quantity: 2,
+      selectedDate: '2099-01-01',
       childQuantity: 1,
       selectedBookingOption: { id: 'private', title: 'Fake', price: 0.01 },
       selectedAddOns: { 'addon-1': 1 },
@@ -60,12 +71,14 @@ describe('checkout pricing security', () => {
     await expect(calculateCheckoutPricing([{
       id: '507f1f77bcf86cd799439011',
       quantity: 1,
+      selectedDate: '2099-01-01',
       selectedBookingOption: { id: 'forged', price: 0.01 },
     }], 'brand-a')).rejects.toThrow('Invalid booking option');
 
     await expect(calculateCheckoutPricing([{
       id: '507f1f77bcf86cd799439011',
       quantity: 1,
+      selectedDate: '2099-01-01',
       selectedAddOns: { forged: 1 },
     }], 'brand-a')).rejects.toThrow('Invalid add-on');
   });
@@ -75,6 +88,7 @@ describe('checkout pricing security', () => {
     await expect(calculateCheckoutPricing([{
       id: '507f1f77bcf86cd799439011',
       quantity: 1,
+      selectedDate: '2099-01-01',
     }], 'brand-b')).rejects.toThrow('Tour not found');
   });
 });

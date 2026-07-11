@@ -3,7 +3,7 @@ import dbConnect from '@/lib/dbConnect';
 import Tour from '@/lib/models/Tour';
 import { NextRequest, NextResponse } from 'next/server';
 import { syncTourToAlgolia } from '@/lib/algolia';
-import { requireAdminAuth } from '@/lib/auth/adminAuth';
+import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 import { translateTourInBackground } from '@/lib/translation/translateService';
 
 function generateOptionId() {
@@ -105,6 +105,8 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const tenantId = searchParams.get('tenantId');
   const effectiveTenantId = tenantId && tenantId !== 'all' ? tenantId : undefined;
+  if (effectiveTenantId && !canAccessTenant(auth, effectiveTenantId)) return tenantForbiddenResponse();
+  if (!effectiveTenantId && auth.role !== 'super_admin') return tenantForbiddenResponse();
   await dbConnect(effectiveTenantId || undefined);
 
   try {
@@ -175,6 +177,9 @@ export async function POST(request: NextRequest) {
     const tenantIdParam = new URL(request.url).searchParams.get('tenantId');
     const effectiveTenantId =
       tenantIdParam && tenantIdParam !== 'all' ? tenantIdParam : undefined;
+    const targetTenantId = effectiveTenantId || (typeof body.tenantId === 'string' ? body.tenantId : undefined);
+    if (!targetTenantId || !canAccessTenant(auth, targetTenantId)) return tenantForbiddenResponse();
+    body.tenantId = targetTenantId;
     if (effectiveTenantId) {
       if (body.tenantId && body.tenantId !== effectiveTenantId) {
         return NextResponse.json(

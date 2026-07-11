@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Tour from '@/lib/models/Tour';
-import { requireAdminAuth } from '@/lib/auth/adminAuth';
+import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 
 export async function GET(request: NextRequest) {
   const auth = await requireAdminAuth(request, { permissions: ['manageTours'] });
@@ -12,6 +12,8 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const tenantId = (searchParams.get('tenantId') || '').trim();
   const effectiveTenantId = tenantId && tenantId !== 'all' ? tenantId : undefined;
+  if (effectiveTenantId && !canAccessTenant(auth, effectiveTenantId)) return tenantForbiddenResponse();
+  if (!effectiveTenantId && auth.role !== 'super_admin') return tenantForbiddenResponse();
   await dbConnect(effectiveTenantId || undefined);
 
   try {
@@ -21,7 +23,7 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(200, Math.max(1, Number.parseInt(limitParam || '200', 10) || 200));
 
     const filter: Record<string, unknown> = {};
-    if (tenantId && tenantId !== 'all') filter.tenantId = tenantId;
+    if (effectiveTenantId) filter.$or = [{ tenantId: effectiveTenantId }, { tenantIds: effectiveTenantId }];
 
     if (q) {
       // Simple case-insensitive title match (fast enough for dropdown)
@@ -44,6 +46,5 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: false, error: 'Failed to fetch tour options' }, { status: 500 });
   }
 }
-
 
 

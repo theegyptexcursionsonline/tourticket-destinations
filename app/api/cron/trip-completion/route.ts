@@ -1,12 +1,11 @@
 // app/api/cron/trip-completion/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { sendTripCompletionEmails } from '@/lib/jobs/emailJobs';
+import { requireCronSecret } from '@/lib/security/cronAuth';
 
 export async function GET(request: NextRequest) {
-  const authHeader = request.headers.get('Authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const authError = requireCronSecret(request);
+  if (authError) return authError;
 
   try {
     const result = await sendTripCompletionEmails();

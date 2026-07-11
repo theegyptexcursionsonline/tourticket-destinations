@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     } catch (verifyError: any) {
       console.error('Firebase token verification error:', verifyError);
       return NextResponse.json(
-        { success: false, error: `Token verification failed: ${verifyError.message || 'Unknown error'}` },
+        { success: false, error: 'Token verification failed' },
         { status: 401 }
       );
     }
@@ -52,10 +52,10 @@ export async function POST(request: NextRequest) {
     }
 
     const verifiedEmail = verifyResult.email;
-    if (!verifiedEmail) {
+    if (!verifiedEmail || !verifyResult.emailVerified) {
       return NextResponse.json(
-        { success: false, error: 'Verified email is required' },
-        { status: 400 },
+        { success: false, error: 'A verified Firebase email is required' },
+        { status: 403 },
       );
     }
     const claims = verifyResult.decodedToken as any;
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
     } catch (syncError: any) {
       console.error('MongoDB sync error:', syncError);
       return NextResponse.json(
-        { success: false, error: `Database sync failed: ${syncError.message || 'Unknown error'}` },
+        { success: false, error: 'Unable to sign in with this Firebase account' },
         { status: 500 }
       );
     }
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Firebase sync error:', error);
     return NextResponse.json(
-      { success: false, error: `Internal server error: ${error.message || 'Unknown error'}` },
+      { success: false, error: 'Internal server error' },
       { status: 500 }
     );
   }

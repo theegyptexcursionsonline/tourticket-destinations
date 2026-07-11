@@ -4,6 +4,9 @@ import User from '@/lib/models/user';
 import { signToken } from '@/lib/jwt';
 import bcrypt from 'bcryptjs';
 import { getDefaultPermissions } from '@/lib/constants/adminPermissions';
+import { failedAdminLoginUpdate, loginRetryAfterSeconds } from '@/lib/security/adminLoginProtection';
+
+const invalidCredentials = () => NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
 
 export async function POST(request: NextRequest) {
   await dbConnect();
@@ -18,18 +21,47 @@ export async function POST(request: NextRequest) {
 
     // --- Find User in Local DB ---
     // Explicitly select the password field as it's excluded by default in the schema
-    const user = await User.findOne({ email }).select('+password');
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const user = await User.findOne({ email: normalizedEmail })
+      .select('+password +failedLoginAttempts +loginLockedUntil');
 
     if (!user || !user.password) {
-      return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+      await bcrypt.compare(password, '$2b$10$C6UzMDM.H6dfI/f/IKcEe.3u5W4WcXHfsvhQ4FZ9DqI7I7M.JxH1K');
+      return invalidCredentials();
+    }
+
+    const now = new Date();
+    if (user.loginLockedUntil && user.loginLockedUntil > now) {
+      return NextResponse.json(
+        { error: 'Too many login attempts. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': String(loginRetryAfterSeconds(user.loginLockedUntil)) } },
+      );
+    }
+    if (!user.isActive) {
+      return NextResponse.json({ error: 'This account has been deactivated.' }, { status: 403 });
     }
 
     // --- Compare Passwords ---
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
-      return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+      const updated = await User.findOneAndUpdate(
+        { _id: user._id },
+        { $inc: { failedLoginAttempts: 1 } },
+        { new: true, select: '+failedLoginAttempts' },
+      );
+      const attempts = updated?.failedLoginAttempts ?? (user.failedLoginAttempts || 0) + 1;
+      const protection = failedAdminLoginUpdate(attempts - 1);
+      if (protection.loginLockedUntil) {
+        await User.updateOne({ _id: user._id }, { $set: { loginLockedUntil: protection.loginLockedUntil } });
+      }
+      return invalidCredentials();
     }
+
+    await User.updateOne(
+      { _id: user._id },
+      { $set: { failedLoginAttempts: 0, lastLoginAt: now }, $unset: { loginLockedUntil: 1 } },
+    );
     
     // --- Prepare User Data for Token and Response ---
     const effectiveRole = (user as any).role || 'customer';

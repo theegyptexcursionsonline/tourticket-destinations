@@ -21,7 +21,7 @@ import Booking from '@/lib/models/Booking';
 import Tour from '@/lib/models/Tour';
 import User from '@/lib/models/user';
 import SpecialOffer from '@/lib/models/SpecialOffer';
-import { requireAdminAuth } from '@/lib/auth/adminAuth';
+import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 import { getTenantConfigCached } from '@/lib/tenant';
 import { ITenant } from '@/lib/models/Tenant';
 import { EmailService } from '@/lib/email/emailService';
@@ -152,6 +152,7 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
+    if (!canAccessTenant(auth, tenantId)) return tenantForbiddenResponse();
 
     if (!tourId || !bookingOptionType || !date || !time) {
       return NextResponse.json(
@@ -183,17 +184,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const tour = await Tour.findById(tourId).lean();
+    const tour = await Tour.findOne({
+      _id: tourId,
+      $or: [{ tenantId }, { tenantIds: tenantId }],
+    }).lean();
     if (!tour) {
       return NextResponse.json({ success: false, error: 'Tour not found.' }, { status: 404 });
-    }
-
-    // Allow tours that belong to the selected tenant OR are shared from 'default'
-    if (tour.tenantId !== tenantId && tour.tenantId !== 'default') {
-      return NextResponse.json(
-        { success: false, error: 'Selected tour does not belong to selected brand.' },
-        { status: 400 },
-      );
     }
 
     const bookingOptions = Array.isArray(tour.bookingOptions) ? tour.bookingOptions : [];
@@ -458,5 +454,4 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
 

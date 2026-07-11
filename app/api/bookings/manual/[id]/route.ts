@@ -12,7 +12,7 @@ import dbConnect from '@/lib/dbConnect';
 import Booking from '@/lib/models/Booking';
 import Tour from '@/lib/models/Tour';
 import SpecialOffer from '@/lib/models/SpecialOffer';
-import { requireAdminAuth } from '@/lib/auth/adminAuth';
+import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 import {
   getBestOffer,
   isOfferApplicableByTravelDate,
@@ -47,6 +47,7 @@ export async function PUT(
     if (!booking) {
       return NextResponse.json({ success: false, error: 'Booking not found' }, { status: 404 });
     }
+    if (!canAccessTenant(auth, String(booking.tenantId))) return tenantForbiddenResponse();
 
     if (booking.source !== 'manual') {
       return NextResponse.json(
@@ -73,7 +74,10 @@ export async function PUT(
       internalNotes,
     } = body || {};
 
-    const tour = await Tour.findById(booking.tour).lean();
+    const tour = await Tour.findOne({
+      _id: booking.tour,
+      $or: [{ tenantId: booking.tenantId }, { tenantIds: booking.tenantId }],
+    }).lean();
     if (!tour) {
       return NextResponse.json({ success: false, error: 'Tour not found' }, { status: 404 });
     }
@@ -210,5 +214,4 @@ export async function PUT(
     );
   }
 }
-
 

@@ -6,7 +6,7 @@ import dbConnect from '@/lib/dbConnect';
 import Tour from '@/lib/models/Tour';
 import Tenant from '@/lib/models/Tenant';
 import mongoose from 'mongoose';
-import { requireAdminAuth } from '@/lib/auth/adminAuth';
+import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,6 +45,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+    if (!canAccessTenant(auth, tenantId)) return tenantForbiddenResponse();
 
     // Tenant guard: if a tenantId scope is passed (from AdminTenantContext),
     // restrict bulk reassignment to within that tenant only — both the
@@ -85,9 +86,9 @@ export async function POST(request: NextRequest) {
     // Build the update filter; if scoped, require source tours to already
     // belong to this tenant — prevents pulling tours from other tenants.
     const updateFilter: Record<string, unknown> = { _id: { $in: validObjectIds } };
-    if (effectiveScope) {
-      updateFilter.tenantId = effectiveScope;
-    }
+    if (auth.role !== 'super_admin') {
+      updateFilter.$or = [{ tenantId: { $in: auth.tenantIds } }, { tenantIds: { $in: auth.tenantIds } }];
+    } else if (effectiveScope) updateFilter.tenantId = effectiveScope;
 
     // Update tours
     const updateResult = await Tour.updateMany(
@@ -164,6 +165,7 @@ export async function GET(request: NextRequest) {
         { status: 400 }
       );
     }
+    if (!canAccessTenant(auth, tenantId)) return tenantForbiddenResponse();
     
     // Get tenant
     const tenant = await Tenant.findOne({ tenantId }).lean();

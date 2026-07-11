@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Discount from '@/lib/models/Discount';
-import { requireAdminAuth } from '@/lib/auth/adminAuth';
+import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 
 // Defensive helper: when an admin is scoped to a single tenant via the
 // AdminTenantContext, every write must include `?tenantId=xxx`. We use that
@@ -21,6 +21,10 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   try {
     const { id } = await params;
     const body = await request.json();
+    const existing = await Discount.findById(id).select('tenantId').lean<any>();
+    if (!existing) return NextResponse.json({ success: false, error: 'Discount not found' }, { status: 404 });
+    if (!canAccessTenant(auth, String(existing.tenantId))) return tenantForbiddenResponse();
+    if (body.tenantId && body.tenantId !== existing.tenantId && auth.role !== 'super_admin') return tenantForbiddenResponse();
 
     const filter: Record<string, unknown> = { _id: id };
     const tenantId = getTenantScope(request);
@@ -50,6 +54,9 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
   try {
     const { id } = await params;
+    const existing = await Discount.findById(id).select('tenantId').lean<any>();
+    if (!existing) return NextResponse.json({ success: false, error: 'Discount not found' }, { status: 404 });
+    if (!canAccessTenant(auth, String(existing.tenantId))) return tenantForbiddenResponse();
 
     const filter: Record<string, unknown> = { _id: id };
     const tenantId = getTenantScope(request);

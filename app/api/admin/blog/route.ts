@@ -1,6 +1,6 @@
 // app/api/admin/blog/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdminAuth } from '@/lib/auth/adminAuth';
+import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 import dbConnect from '@/lib/dbConnect';
 import Blog from '@/lib/models/Blog';
 
@@ -12,6 +12,8 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const tenantId = searchParams.get('tenantId');
+    if (tenantId && tenantId !== 'all' && !canAccessTenant(auth, tenantId)) return tenantForbiddenResponse();
+    if ((!tenantId || tenantId === 'all') && auth.role !== 'super_admin') return tenantForbiddenResponse();
     const filter: Record<string, unknown> = {};
     if (tenantId && tenantId !== 'all') {
       filter.tenantId = tenantId;
@@ -41,6 +43,9 @@ export async function POST(request: NextRequest) {
     const tenantIdParam = new URL(request.url).searchParams.get('tenantId');
     const effectiveTenantId =
       tenantIdParam && tenantIdParam !== 'all' ? tenantIdParam : undefined;
+    const targetTenantId = effectiveTenantId || data.tenantId;
+    if (!targetTenantId || !canAccessTenant(auth, targetTenantId)) return tenantForbiddenResponse();
+    data.tenantId = targetTenantId;
     if (effectiveTenantId) {
       if (data.tenantId && data.tenantId !== effectiveTenantId) {
         return NextResponse.json(

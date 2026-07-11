@@ -12,8 +12,11 @@ import { buildGoogleMapsLink, buildStaticMapImageUrl } from '@/lib/utils/mapImag
 import { getTenantConfigCached, getTenantFromRequest } from '@/lib/tenant';
 import { ITenant } from '@/lib/models/Tenant';
 import { TenantEmailBranding } from '@/lib/email/type';
-import { calculateCheckoutPricing } from '@/lib/security/checkoutPricing';
+import { calculateCheckoutPricing, checkoutCustomerRef, checkoutFingerprint } from '@/lib/security/checkoutPricing';
 import { signToken } from '@/lib/jwt';
+import mongoose from 'mongoose';
+import Availability from '@/lib/models/Availability';
+import StopSale from '@/lib/models/StopSale';
 
 // Helper to convert tenant config to email branding
 function getTenantEmailBranding(tenantConfig: ITenant | null, baseUrl: string): TenantEmailBranding | undefined {
@@ -132,6 +135,36 @@ const computeTimeUntilTour = (dateValue?: string | Date, timeValue?: string) => 
 
   return { days, hours, minutes };
 };
+
+async function reserveAvailability(
+  tenantId: string,
+  tourId: string,
+  dateText: string,
+  time: string,
+  optionId: string | undefined,
+  guests: number,
+  session: mongoose.ClientSession,
+) {
+  const start = new Date(`${dateText}T00:00:00.000Z`);
+  const end = new Date(`${dateText}T23:59:59.999Z`);
+  const stopped = await StopSale.exists({
+    tenantId, tourId, startDate: { $lte: end }, endDate: { $gte: start },
+    $or: [{ optionIds: { $size: 0 } }, ...(optionId ? [{ optionIds: optionId }] : [])],
+  }).session(session);
+  if (stopped) throw new Error('Selected tour is unavailable for this date');
+
+  const availability: any = await Availability.findOne({
+    tenantId, tour: tourId, date: { $gte: start, $lte: end },
+  }).session(session);
+  if (!availability) return;
+  if (availability.stopSale) throw new Error('Selected tour is unavailable for this date');
+  const slot = availability.slots.find((candidate: any) => candidate.time === time);
+  if (!slot || slot.blocked) throw new Error('Selected time is unavailable');
+  const remaining = Number(slot.capacity || 0) + Number(slot.extraCapacity || 0) - Number(slot.booked || 0);
+  if (remaining < guests) throw new Error('Not enough availability for the selected participants');
+  slot.booked = Number(slot.booked || 0) + guests;
+  await availability.save({ session });
+}
 
 export async function POST(request: Request) {
   try {
@@ -318,7 +351,9 @@ export async function POST(request: Request) {
           if (
             paymentIntent.metadata?.has_booking_data !== 'true' ||
             paymentIntent.metadata?.tenant_id !== tenantId ||
-            paymentIntent.metadata?.customer_email?.toLowerCase() !== String(customer.email).trim().toLowerCase()
+            paymentIntent.metadata?.customer_ref !== checkoutCustomerRef(String(customer.email)) ||
+            paymentIntent.metadata?.checkout_fingerprint !== checkoutFingerprint(cart, tenantId, String(pricing.currency)) ||
+            paymentIntent.currency.toLowerCase() !== String(pricing.currency).toLowerCase()
           ) {
             throw new Error('Payment does not match this checkout.');
           }
@@ -416,22 +451,6 @@ export async function POST(request: Request) {
       }
     }
 
-    // Increment discount usage counter if a discount was applied (tenant-specific)
-    if (discountCode) {
-      try {
-        await Discount.findOneAndUpdate(
-          { 
-            code: discountCode.toUpperCase(),
-            tenantId: tenantId // Filter by tenant to ensure discount belongs to this tenant
-          },
-          { $inc: { timesUsed: 1 } }
-        );
-      } catch (discountError) {
-        console.error('Error updating discount usage:', discountError);
-        // Don't fail the booking if discount update fails
-      }
-    }
-
     // Send Payment Confirmation or Bank Transfer Instructions or Pay Later Instructions
     try {
       if (isBankTransfer) {
@@ -478,13 +497,19 @@ export async function POST(request: Request) {
       // Don't fail the booking if email fails
     }
 
-    // Create bookings with generated references
+    // Create every item atomically. A paid multi-item order must never leave a
+    // partial set of bookings if one item fails validation or persistence.
     const createdBookings = [];
-    
+    const bookingSession = await mongoose.startSession();
+    bookingSession.startTransaction();
+    try {
     for (let i = 0; i < cart.length; i++) {
       const cartItem = cart[i];
       try {
-        const tour = await Tour.findById(cartItem._id || cartItem.id);
+        const tour = await Tour.findOne({
+          _id: cartItem._id || cartItem.id,
+          $or: [{ tenantId }, { tenantIds: tenantId }],
+        }).session(bookingSession);
         if (!tour) {
           throw new Error(`Tour not found: ${cartItem.title}`);
         }
@@ -495,6 +520,15 @@ export async function POST(request: Request) {
         const bookingDateString = ensureDateOnlyString(cartItem.selectedDate);
         const bookingTime = cartItem.selectedTime || '10:00';
         const totalGuests = (cartItem.quantity || 1) + (cartItem.childQuantity || 0) + (cartItem.infantQuantity || 0);
+        await reserveAvailability(
+          tenantId,
+          String(tour._id),
+          bookingDateString,
+          bookingTime,
+          cartItem.selectedBookingOption?.id,
+          totalGuests,
+          bookingSession,
+        );
 
         // Calculate the correct total price including add-ons and fees
         const calculateItemTotal = () => {
@@ -527,7 +561,7 @@ export async function POST(request: Request) {
         // Generate unique booking reference with tenant-specific prefix
         const bookingReference = await generateUniqueBookingReference(tenantId, tenantConfig);
 
-        const booking = await Booking.create({
+        const [booking] = await Booking.create([{
           tenantId, // Use the resolved tenant (from request domain, not tour)
           bookingReference, // Provide the reference explicitly
           tour: tour._id,
@@ -539,6 +573,7 @@ export async function POST(request: Request) {
           totalPrice: itemTotalPrice,
           status: (isBankTransfer || isPayLater) ? 'Pending' : 'Confirmed',
           paymentId: paymentResult.paymentId,
+          checkoutItemKey: `${tenantId}:${paymentResult.paymentId}:${i}`,
           paymentMethod,
           specialRequests: customer.specialRequests,
           emergencyContact: customer.emergencyContact,
@@ -550,7 +585,7 @@ export async function POST(request: Request) {
           selectedAddOns: cartItem.selectedAddOns || {},
           selectedBookingOption: cartItem.selectedBookingOption,
           selectedAddOnDetails: cartItem.selectedAddOnDetails || {},
-        });
+        }], { session: bookingSession });
 
         createdBookings.push(booking);
         
@@ -563,6 +598,22 @@ export async function POST(request: Request) {
         console.error('Error creating booking:', bookingError);
         throw new Error(`Failed to create booking for ${cartItem.title}: ${bookingError.message}`);
       }
+    }
+    await bookingSession.commitTransaction();
+    } catch (error) {
+      await bookingSession.abortTransaction();
+      throw error;
+    } finally {
+      await bookingSession.endSession();
+    }
+
+    // Count usage only after the order transaction commits. Failed/rolled-back
+    // checkouts must not consume a limited discount.
+    if (discountCode) {
+      await Discount.findOneAndUpdate(
+        { code: String(discountCode).toUpperCase(), tenantId },
+        { $inc: { timesUsed: 1 } },
+      );
     }
 
     // Generate booking confirmation data
