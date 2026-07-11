@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import User from '@/lib/models/user';
 import Booking from '@/lib/models/Booking';
-import { requireAdminAuth } from '@/lib/auth/adminAuth';
+import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 
 export async function GET(request: NextRequest) {
   const auth = await requireAdminAuth(request, { permissions: ['manageUsers'] });
@@ -17,6 +17,12 @@ export async function GET(request: NextRequest) {
       searchParams.get('tenantId') ||
       searchParams.get('brandId') ||
       searchParams.get('brand_id');
+    if (tenantId && tenantId !== 'all' && !canAccessTenant(auth, tenantId)) {
+      return tenantForbiddenResponse();
+    }
+    if ((!tenantId || tenantId === 'all') && auth.role !== 'super_admin') {
+      return tenantForbiddenResponse();
+    }
 
     // Build booking tenant filter
     const bookingTenantFilter: Record<string, unknown> = {};

@@ -23,7 +23,6 @@ export async function GET(
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
 
-    console.log('Looking for interest:', interestName, 'with slug:', slug);
 
     // Find the category by name or slug
     const category = await Category.findOne({
@@ -33,7 +32,6 @@ export async function GET(
       ]
     }).lean();
 
-    console.log('Found category:', category);
 
     let tours: any[] = [];
     let totalTours = 0;
@@ -104,7 +102,6 @@ export async function GET(
       }
     }
 
-    console.log('Found tours:', tours.length);
 
     // Fetch reviews for these tours (optimized with limit)
     const tourIds = tours.slice(0, 20).map(tour => tour._id); // Limit to first 20 tours for reviews

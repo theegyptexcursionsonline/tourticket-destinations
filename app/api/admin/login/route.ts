@@ -26,6 +26,7 @@ function buildAdminUserPayload(user: any, permissions: AdminPermission[]) {
     name: `${user.firstName} ${user.lastName}`.trim(),
     role: user.role,
     permissions,
+    tenantIds: user.tenantIds || [],
   };
 }
 
@@ -68,6 +69,7 @@ export async function POST(request: NextRequest) {
           family_name: pseudoUser.lastName,
           role: pseudoUser.role,
           permissions,
+          tenantIds: [],
           scope: 'admin',
         },
         { expiresIn: '8h' },
@@ -138,6 +140,7 @@ export async function POST(request: NextRequest) {
         family_name: user.lastName,
         role: user.role,
         permissions,
+        tenantIds: user.tenantIds || [],
         scope: 'admin',
       },
       { expiresIn: '8h' },

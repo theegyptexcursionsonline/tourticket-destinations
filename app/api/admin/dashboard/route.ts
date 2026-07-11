@@ -6,7 +6,7 @@ import { cacheIfAvailable } from '@/lib/cache';
 import Tour from '@/lib/models/Tour';
 import Booking from '@/lib/models/Booking';
 import User from '@/lib/models/user';
-import { requireAdminAuth } from '@/lib/auth/adminAuth';
+import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 
 export const dynamic = 'force-dynamic';
 
@@ -165,6 +165,8 @@ export async function GET(request: NextRequest) {
       searchParams.get('brandId') ||
       searchParams.get('brand_id');
     const tenantKey = tenantId && tenantId !== 'all' ? tenantId : 'all';
+    if (tenantKey !== 'all' && !canAccessTenant(authResult, tenantKey)) return tenantForbiddenResponse();
+    if (tenantKey === 'all' && authResult.role !== 'super_admin') return tenantForbiddenResponse();
 
     const responseData = await getCachedDashboardStats(tenantKey);
 

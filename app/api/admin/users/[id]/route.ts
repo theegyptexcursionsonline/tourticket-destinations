@@ -15,6 +15,12 @@ export async function DELETE(
     if (auth instanceof NextResponse) {
       return auth;
     }
+    if (auth.role !== 'super_admin') {
+      return NextResponse.json(
+        { success: false, error: 'Only super administrators can delete customer accounts.' },
+        { status: 403 },
+      );
+    }
 
     await dbConnect();
 

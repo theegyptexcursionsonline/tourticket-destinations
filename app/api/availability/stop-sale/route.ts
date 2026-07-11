@@ -5,7 +5,7 @@ import StopSale from '@/lib/models/StopSale';
 import StopSaleLog from '@/lib/models/StopSaleLog';
 import Tour from '@/lib/models/Tour';
 import { getTenantFromRequest } from '@/lib/tenant';
-import { requireAdminAuth, AdminAuthContext } from '@/lib/auth/adminAuth';
+import { canAccessTenant, requireAdminAuth, AdminAuthContext, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,9 +30,9 @@ function normalizeOptionIds(optionIds?: string[]) {
   return unique;
 }
 
-async function ensureTourOptionIds(tourId: string) {
+async function ensureTourOptionIds(tourId: string, tenantId: string) {
   // Ensures tour.bookingOptions[].id exists (so stop-sale references are stable).
-  const tour = await Tour.findById(tourId);
+  const tour = await Tour.findOne({ _id: tourId, $or: [{ tenantId }, { tenantIds: tenantId }] });
   if (!tour) return null;
 
   let changed = false;
@@ -165,6 +165,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const tenantId = (body.tenantId || (await getTenantFromRequest()) || 'default').trim();
+    if (!canAccessTenant(auth, tenantId)) return tenantForbiddenResponse();
     const startDate = toDateOnly(new Date(body.startDate));
     const endDate = toDateOnly(new Date(body.endDate));
 
@@ -175,7 +176,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'endDate must be >= startDate' }, { status: 400 });
     }
 
-    const tour = await ensureTourOptionIds(tourId);
+    const tour = await ensureTourOptionIds(tourId, tenantId);
     if (!tour) {
       return NextResponse.json({ success: false, error: 'Tour not found' }, { status: 404 });
     }
@@ -248,6 +249,9 @@ export async function DELETE(request: NextRequest) {
     }
 
     const tenantId = (body.tenantId || (await getTenantFromRequest()) || 'default').trim();
+    if (!canAccessTenant(auth, tenantId)) return tenantForbiddenResponse();
+    const tour = await Tour.findOne({ _id: tourId, $or: [{ tenantId }, { tenantIds: tenantId }] }).select('_id').lean();
+    if (!tour) return NextResponse.json({ success: false, error: 'Tour not found' }, { status: 404 });
     const startDate = toDateOnly(new Date(body.startDate));
     const endDate = toDateOnly(new Date(body.endDate));
 

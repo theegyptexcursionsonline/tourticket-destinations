@@ -39,6 +39,12 @@ export async function POST(
       { status: 404 },
     );
   }
+  if (
+    (user.role === 'super_admin' && auth.role !== 'super_admin') ||
+    (auth.role !== 'super_admin' && !(user.tenantIds || []).some((id) => auth.tenantIds.includes(id)))
+  ) {
+    return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+  }
 
   // Check if user is already active
   if (user.isActive) {
@@ -92,4 +98,3 @@ export async function POST(
     );
   }
 }
-

@@ -12,6 +12,8 @@ import { buildGoogleMapsLink, buildStaticMapImageUrl } from '@/lib/utils/mapImag
 import { getTenantConfigCached, getTenantFromRequest } from '@/lib/tenant';
 import { ITenant } from '@/lib/models/Tenant';
 import { TenantEmailBranding } from '@/lib/email/type';
+import { calculateCheckoutPricing } from '@/lib/security/checkoutPricing';
+import { signToken } from '@/lib/jwt';
 
 // Helper to convert tenant config to email branding
 function getTenantEmailBranding(tenantConfig: ITenant | null, baseUrl: string): TenantEmailBranding | undefined {
@@ -138,15 +140,14 @@ export async function POST(request: Request) {
     const body = await request.json();
     const {
       customer,
-      cart,
-      pricing,
+      cart: submittedCart,
+      pricing: _submittedPricing,
       paymentMethod = 'card',
       paymentDetails,
-      userId,
       isGuest = false,
       discountCode = null,
-      tenantId: requestTenantId // Optional: can be passed from frontend
     } = body;
+    let cart = submittedCart;
 
     // Validation
     if (!customer || !cart || cart.length === 0) {
@@ -163,7 +164,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Resolve tenantId: request domain (middleware) > frontend payload > tour > default
+    // Resolve tenantId exclusively from the trusted request host/middleware.
     // The middleware sets x-tenant-id based on the domain the customer is browsing,
     // which is the correct tenant for the booking even when tours are shared.
     let tenantId = 'default';
@@ -172,23 +173,24 @@ export async function POST(request: Request) {
     } catch {
       // Fallback if headers aren't available
     }
-    if (!tenantId || tenantId === 'default') {
-      tenantId = requestTenantId || 'default';
-    }
-    if (!tenantId || tenantId === 'default') {
-      const firstTour = await Tour.findById(cart[0]._id || cart[0].id).select('tenantId').lean();
-      tenantId = firstTour?.tenantId || 'default';
-    }
     
     // Get tenant configuration for tenant-specific settings
     const tenantConfig = await getTenantConfigCached(tenantId);
+    const validatedCheckout = await calculateCheckoutPricing(cart, tenantId, discountCode);
+    cart = validatedCheckout.cart;
+    const pricing = {
+      ...validatedCheckout.pricing,
+      currency: tenantConfig?.payments?.currency || 'USD',
+      symbol: tenantConfig?.payments?.currencySymbol || '$',
+    };
     const supportedPaymentMethods = tenantConfig?.payments?.supportedPaymentMethods;
 
     let user = null;
 
-    // Handle user creation
-    if (isGuest) {
-      const existingUser = await User.findOne({ email: customer.email });
+    // Associate checkout by normalized email; never trust a client-supplied user id.
+    {
+      const normalizedCustomerEmail = String(customer.email).trim().toLowerCase();
+      const existingUser = await User.findOne({ email: normalizedCustomerEmail });
       
       if (existingUser) {
         user = existingUser;
@@ -197,7 +199,7 @@ export async function POST(request: Request) {
           user = await User.create({
             firstName: customer.firstName,
             lastName: customer.lastName,
-            email: customer.email,
+            email: normalizedCustomerEmail,
             password: 'guest-' + Math.random().toString(36).substring(2, 15),
           });
           
@@ -253,14 +255,6 @@ export async function POST(request: Request) {
           }
         }
       }
-    } else if (userId) {
-      user = await User.findById(userId);
-      if (!user) {
-        return NextResponse.json(
-          { success: false, message: 'User not found' },
-          { status: 404 }
-        );
-      }
     }
 
     if (!user) {
@@ -309,6 +303,9 @@ export async function POST(request: Request) {
     } else {
       // Process payment with Stripe for card payments
       try {
+        if (!paymentDetails?.paymentIntentId) {
+          throw new Error('A verified payment intent is required.');
+        }
         // If paymentIntentId is provided, verify the payment
         if (paymentDetails?.paymentIntentId) {
           const stripe = getStripe();
@@ -316,6 +313,14 @@ export async function POST(request: Request) {
 
           if (paymentIntent.status !== 'succeeded') {
             throw new Error('Payment has not been completed. Please complete the payment and try again.');
+          }
+
+          if (
+            paymentIntent.metadata?.has_booking_data !== 'true' ||
+            paymentIntent.metadata?.tenant_id !== tenantId ||
+            paymentIntent.metadata?.customer_email?.toLowerCase() !== String(customer.email).trim().toLowerCase()
+          ) {
+            throw new Error('Payment does not match this checkout.');
           }
 
           // Verify the amount matches
@@ -377,10 +382,28 @@ export async function POST(request: Request) {
       }).lean();
 
       if (existingBookings.length > 0) {
+        const duplicateOrderId = existingBookings.length === 1
+          ? existingBookings[0].bookingReference
+          : `MULTI-${String(paymentResult.paymentId).replace(/[^a-zA-Z0-9_-]/g, '').slice(-40)}`;
+        const receiptToken = await signToken({
+          scope: 'receipt',
+          tenantId,
+          orderId: duplicateOrderId,
+          bookingIds: existingBookings.map((booking) => String(booking._id)),
+          pricing: {
+            subtotal: pricing.subtotal,
+            serviceFee: pricing.serviceFee,
+            tax: pricing.tax,
+            discount: pricing.discount,
+            total: pricing.total,
+            currency: pricing.currency,
+            symbol: pricing.symbol,
+          },
+        }, { expiresIn: '24h' });
         return NextResponse.json({
           success: true,
           message: 'Booking already processed for this payment.',
-          bookingId: existingBookings[0].bookingReference,
+          bookingId: duplicateOrderId,
           bookings: existingBookings.map(booking => booking._id),
           paymentId: paymentResult.paymentId,
           customer: {
@@ -388,6 +411,7 @@ export async function POST(request: Request) {
             email: customer.email,
           },
           duplicate: true,
+          receiptToken,
         });
       }
     }
@@ -730,7 +754,7 @@ export async function POST(request: Request) {
       const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || '';
 
       const operatorEmail = tenantConfig?.contact?.email || process.env.ADMIN_NOTIFICATION_EMAIL;
-      console.log(`📧 [Checkout] Sending operator notification for booking ${bookingId} to: ${operatorEmail || 'NOT CONFIGURED'}`);
+      console.log(`📧 [Checkout] Sending operator notification for booking ${bookingId}`);
 
       await EmailService.sendAdminBookingAlert({
         customerName: `${customer.firstName} ${customer.lastName}`,
@@ -766,12 +790,29 @@ export async function POST(request: Request) {
     }
 
     // Return success response
+    const receiptToken = await signToken({
+      scope: 'receipt',
+      tenantId,
+      orderId: bookingId,
+      bookingIds: createdBookings.map((booking) => String(booking._id)),
+      pricing: {
+        subtotal: pricing.subtotal,
+        serviceFee: pricing.serviceFee,
+        tax: pricing.tax,
+        discount: pricing.discount,
+        total: pricing.total,
+        currency: pricing.currency,
+        symbol: pricing.symbol,
+      },
+    }, { expiresIn: '24h' });
+
     return NextResponse.json({
       success: true,
       message: 'Booking completed successfully!',
       bookingId: bookingId,
       bookings: createdBookings.map(booking => booking._id),
       paymentId: paymentResult.paymentId,
+      receiptToken,
       customer: {
         name: `${customer.firstName} ${customer.lastName}`,
         email: customer.email,

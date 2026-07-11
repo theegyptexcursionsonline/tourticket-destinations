@@ -1,7 +1,7 @@
 // app/api/admin/destinations/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
-import { requireAdminAuth } from '@/lib/auth/adminAuth';
+import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 import Destination from '@/lib/models/Destination';
 import Tour from '@/lib/models/Tour';
 import mongoose from 'mongoose';
@@ -46,6 +46,9 @@ export async function PUT(
         error: 'Destination not found'
       }, { status: 404 });
     }
+    const targetTenantId = String(existingDestination.tenantId || 'default');
+    if (!canAccessTenant(auth, targetTenantId)) return tenantForbiddenResponse();
+    if (tenantId && tenantId !== targetTenantId) return tenantForbiddenResponse();
     
     // Validate required fields - only name and description are required
     const requiredFields = ['name', 'description'];
@@ -211,12 +214,16 @@ export async function DELETE(
     }
 
     // Tenant guard for delete
+    const existingDestination = await Destination.findById(id).select('tenantId').lean();
+    if (!existingDestination) return NextResponse.json({ success: false, error: 'Destination not found' }, { status: 404 });
+    const targetTenantId = String((existingDestination as any).tenantId || 'default');
+    if (!canAccessTenant(auth, targetTenantId)) return tenantForbiddenResponse();
     const tenantId = getTenantScope(request);
-    const deleteFilter: Record<string, unknown> = { _id: id };
-    if (tenantId) deleteFilter.tenantId = tenantId;
+    if (tenantId && tenantId !== targetTenantId) return tenantForbiddenResponse();
+    const deleteFilter: Record<string, unknown> = { _id: id, tenantId: targetTenantId };
 
     // Check if destination has tours
-    const tourCount = await Tour.countDocuments({ destination: id });
+    const tourCount = await Tour.countDocuments({ destination: id, $or: [{ tenantId: targetTenantId }, { tenantIds: targetTenantId }] });
     if (tourCount > 0) {
       if (!force) {
         return NextResponse.json({
@@ -228,7 +235,7 @@ export async function DELETE(
 
       // If force delete, unlink tours from this destination
       await Tour.updateMany(
-        { destination: id },
+        { destination: id, $or: [{ tenantId: targetTenantId }, { tenantIds: targetTenantId }] },
         { $unset: { destination: "" } }
       );
     }

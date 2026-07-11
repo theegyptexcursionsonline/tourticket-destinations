@@ -152,7 +152,7 @@ async function processSuccessfulPayment(paymentIntent: Stripe.PaymentIntent) {
   const metadata = paymentIntent.metadata;
 
   console.log(`[Webhook] Processing payment ${paymentId}`);
-  console.log(`[Webhook] Metadata:`, JSON.stringify(metadata));
+  console.log(`[Webhook] Metadata received for tenant ${metadata.tenant_id || 'default'}`);
 
   // Check if booking data is available in metadata
   if (metadata.has_booking_data !== 'true') {
@@ -347,7 +347,7 @@ async function processSuccessfulPayment(paymentIntent: Stripe.PaymentIntent) {
         email: customerEmail,
         password: 'guest-' + Math.random().toString(36).substring(2, 15),
       });
-      console.log(`[Webhook] Created guest user ${customerEmail}`);
+      console.log('[Webhook] Created guest user');
     } catch (userError: any) {
       if (userError.code === 11000) {
         user = await User.findOne({ email: customerEmail });
@@ -358,7 +358,7 @@ async function processSuccessfulPayment(paymentIntent: Stripe.PaymentIntent) {
   }
 
   if (!user) {
-    console.error(`[Webhook] Could not find or create user for ${customerEmail}`);
+    console.error('[Webhook] Could not find or create customer account');
     return { created: false, reason: 'user_creation_failed' };
   }
 
@@ -598,7 +598,7 @@ async function processSuccessfulPayment(paymentIntent: Stripe.PaymentIntent) {
       tenantBranding,
     });
 
-    console.log(`[Webhook] Sent booking confirmation to ${customerEmail} - tenant: ${tenantId}`);
+    console.log(`[Webhook] Sent booking confirmation - tenant: ${tenantId}`);
 
     // ── Admin alert email ───────────────────────────────────────────────────
     const tourDetails = await Promise.all(createdBookings.map(async (item: any) => {

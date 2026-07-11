@@ -140,7 +140,17 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
+  // Direct booking creation trusted client-provided prices and marked records
+  // confirmed without payment verification. All new bookings must use checkout,
+  // which verifies the payment provider before confirming a booking.
+  return NextResponse.json(
+    { success: false, error: 'Direct booking creation is disabled. Use checkout.' },
+    { status: 410 },
+  );
+}
+
+async function legacyDirectBookingCreation(request: NextRequest) {
   await dbConnect();
 
   try {

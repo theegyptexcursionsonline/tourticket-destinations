@@ -11,6 +11,7 @@ export interface AdminAuthContext {
   email?: string;
   role: AdminRole;
   permissions: AdminPermission[];
+  tenantIds: string[];
 }
 
 interface RequireAdminOptions {
@@ -68,6 +69,9 @@ export async function requireAdminAuth(
     email: typeof payload.email === 'string' ? payload.email : undefined,
     role,
     permissions: permissionsFromToken,
+    tenantIds: Array.isArray(payload.tenantIds)
+      ? payload.tenantIds.filter((id): id is string => typeof id === 'string' && id.length > 0)
+      : [],
   };
 
   const { permissions = [], requireAll = true } = options;
@@ -86,3 +90,13 @@ export async function requireAdminAuth(
   return authContext;
 }
 
+export function canAccessTenant(auth: AdminAuthContext, tenantId: string): boolean {
+  return auth.role === 'super_admin' || auth.tenantIds.includes(tenantId);
+}
+
+export function tenantForbiddenResponse() {
+  return NextResponse.json(
+    { success: false, error: 'You do not have access to this tenant.' },
+    { status: 403 },
+  );
+}

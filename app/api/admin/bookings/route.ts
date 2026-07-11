@@ -4,7 +4,7 @@ import dbConnect from '@/lib/dbConnect';
 import Booking from '@/lib/models/Booking';
 import mongoose from 'mongoose';
 import { toBookingStatusDb } from '@/lib/constants/bookingStatus';
-import { requireAdminAuth } from '@/lib/auth/adminAuth';
+import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 
 // Never edge/CDN-cache the admin bookings list — it must reflect deletes/edits
 // immediately (a cached page was making just-deleted bookings reappear).
@@ -22,6 +22,12 @@ export async function GET(request: NextRequest) {
       searchParams.get('brandId') ||
       searchParams.get('brand_id');
     const effectiveTenantId = tenantId && tenantId !== 'all' ? tenantId : undefined;
+    if (effectiveTenantId && !canAccessTenant(auth, effectiveTenantId)) {
+      return tenantForbiddenResponse();
+    }
+    if (auth.role !== 'super_admin' && auth.tenantIds.length === 0) {
+      return tenantForbiddenResponse();
+    }
 
     // IMPORTANT: connect to tenant-specific DB when a specific brand is selected
     await dbConnect(effectiveTenantId || undefined);
@@ -50,6 +56,8 @@ export async function GET(request: NextRequest) {
     // Hurghada booking for a shared/copied tour title.
     if (effectiveTenantId) {
       baseMatch.tenantId = effectiveTenantId;
+    } else if (auth.role !== 'super_admin') {
+      baseMatch.tenantId = { $in: auth.tenantIds };
     } else {
       // "All brands" — exclude default, null, undefined, empty, and missing tenantId
       baseMatch.tenantId = { $exists: true, $nin: ['default', null, undefined, ''] };

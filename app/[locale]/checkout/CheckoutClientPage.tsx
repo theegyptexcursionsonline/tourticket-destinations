@@ -694,11 +694,13 @@ const ThankYouPage = ({
   pricing,
   customer,
   lastOrderId,
+  receiptToken,
 }: {
   orderedItems: CartItem[];
   pricing: any;
   customer: FormDataShape | null;
   lastOrderId?: string;
+  receiptToken?: string;
   discount?: number;
 }) => {
   const { formatPrice } = useSettings();
@@ -807,20 +809,12 @@ const handleDownloadReceipt = async () => {
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://egypt-excursionsonline.com';
     const qrData = `${baseUrl}/booking/verify/${orderId}`;
 
-    const payload = {
-      orderId,
-      customer: customerForPdf,
-      orderedItems: orderedItemsForPdf,
-      pricing: pricingForPdf,
-      booking: bookingForPdf,
-      qrData,
-      notes: customer?.specialRequests || 'Receipt requested from Thank You page',
-    };
+    if (!receiptToken) throw new Error('Receipt authorization is unavailable');
 
     const res = await fetch('/api/checkout/receipt', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ receiptToken }),
     });
 
     if (!res.ok) {
@@ -1235,6 +1229,7 @@ export default function CheckoutPage() {
   const [promoCode, setPromoCode] = useState('');
   const [discount, setDiscount] = useState(0);
   const [lastOrderId, setLastOrderId] = useState<string | undefined>(undefined);
+  const [receiptToken, setReceiptToken] = useState<string | undefined>(undefined);
 
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   const [couponMessage, setCouponMessage] = useState('');
@@ -1438,6 +1433,7 @@ export default function CheckoutPage() {
         setFinalPricing(pricing);
         setFinalCustomer(formData);
         setLastOrderId(result.bookingId || `ORD-${Date.now()}`);
+        setReceiptToken(result.receiptToken);
 
         clearCart();
         setIsConfirmed(true);
@@ -1507,6 +1503,7 @@ export default function CheckoutPage() {
                   pricing={finalPricing} 
                   customer={finalCustomer} 
                   lastOrderId={lastOrderId} 
+                  receiptToken={receiptToken}
                   discount={discount} 
                 />
               ) : (

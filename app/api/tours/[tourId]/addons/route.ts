@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Tour from '@/lib/models/Tour';
+import { buildStrictTenantQuery, getTenantFromRequest } from '@/lib/tenant';
 
 export async function GET(
   request: Request,
@@ -14,8 +15,11 @@ export async function GET(
 
   try {
     await dbConnect();
+    const tenantId = await getTenantFromRequest();
 
-    const tour = await Tour.findById(tourId).lean();
+    const tour = await Tour.findOne(
+      buildStrictTenantQuery({ _id: tourId, isPublished: true }, tenantId),
+    ).lean();
 
     if (!tour) {
       return NextResponse.json({ message: 'Tour not found' }, { status: 404 });

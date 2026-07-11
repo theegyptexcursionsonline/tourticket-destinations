@@ -2,8 +2,8 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import dbConnect from '@/lib/dbConnect';
-import Tour from '@/lib/models/Tour';
-import { getTenantConfigCached } from '@/lib/tenant';
+import { getTenantConfigCached, getTenantFromRequest } from '@/lib/tenant';
+import { calculateCheckoutPricing } from '@/lib/security/checkoutPricing';
 
 // Lazy initialization to avoid build-time errors when env vars are missing
 let _stripe: Stripe | null = null;
@@ -25,22 +25,17 @@ export async function POST(request: Request) {
     await dbConnect();
     
     const body = await request.json();
-    const { customer, pricing, cart, discountCode, tenantId: requestTenantId } = body;
+    const { customer, cart: submittedCart, discountCode } = body;
+    let cart = submittedCart;
     
     // Get tenantId from first cart item's tour
-    let tenantId = requestTenantId || 'default';
-    if (cart && cart.length > 0 && (cart[0]._id || cart[0].id)) {
-      const firstTour = await Tour.findById(cart[0]._id || cart[0].id).select('tenantId').lean();
-      if (firstTour?.tenantId) {
-        tenantId = firstTour.tenantId;
-      }
-    }
+    const tenantId = await getTenantFromRequest();
     
     // Get tenant config for potential tenant-specific Stripe account
     const tenantConfig = await getTenantConfigCached(tenantId);
 
     // Validate required fields
-    if (!customer || !pricing || !cart || cart.length === 0) {
+    if (!customer || !cart || cart.length === 0) {
       return NextResponse.json(
         { success: false, message: 'Missing required payment information' },
         { status: 400 }
@@ -64,13 +59,12 @@ export async function POST(request: Request) {
       );
     }
 
-    // Validate pricing
-    if (!pricing.total || pricing.total <= 0) {
-      return NextResponse.json(
-        { success: false, message: 'Invalid payment amount' },
-        { status: 400 }
-      );
-    }
+    const validatedCheckout = await calculateCheckoutPricing(cart, tenantId, discountCode);
+    cart = validatedCheckout.cart;
+    const pricing = {
+      ...validatedCheckout.pricing,
+      currency: tenantConfig?.payments?.currency || 'USD',
+    };
 
     // Build compact cart summary for Stripe metadata (500 char limit per value)
     const cartSummary = cart.map((item: any, index: number) => ({
@@ -132,7 +126,7 @@ export async function POST(request: Request) {
         pricing_service_fee: String(pricing.serviceFee || 0),
         pricing_tax: String(pricing.tax || 0),
         pricing_discount: String(pricing.discount || 0),
-        pricing_currency: pricing.currency || tenantConfig?.payments?.currency || 'USD',
+        pricing_currency: pricing.currency,
         discount_code: discountCode || 'none',
       },
       // receipt_email removed - we send our own booking confirmation email

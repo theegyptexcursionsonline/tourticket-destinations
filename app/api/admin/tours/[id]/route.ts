@@ -186,7 +186,7 @@ export async function PUT(
             tenantIdParam && tenantIdParam !== 'all' ? tenantIdParam : undefined;
 
         console.log('Updating tour with ID:', id);
-        console.log('Request body:', body);
+        console.log('Validated tour update request');
 
         // Map 'faqs' from form to 'faq' in the database model
         if (body.faqs) {

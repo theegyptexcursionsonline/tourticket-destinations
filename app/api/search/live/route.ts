@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
     try {
         const { searchParams } = new URL(req.url);
         const searchQuery = searchParams.get('q');
-        const tenantFilter = buildStrictTenantQuery({}, tenantId);
+        const tenantFilter = buildStrictTenantQuery({ isPublished: true }, tenantId);
 
         if (!searchQuery) {
             // Return tours based on filters when no search query

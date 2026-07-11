@@ -3,34 +3,29 @@ import dbConnect from '@/lib/dbConnect';
 import Booking from '@/lib/models/Booking';
 import User from '@/lib/models/user';
 import Tour from '@/lib/models/Tour';
-import { verifyToken } from '@/lib/jwt';
+import { requireAdminAuth } from '@/lib/auth/adminAuth';
+import { buildStrictTenantQuery, getTenantFromRequest } from '@/lib/tenant';
 
 export async function POST(request: NextRequest) {
   try {
+    if (process.env.NODE_ENV === 'production') {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
+
+    const auth = await requireAdminAuth(request, { permissions: ['manageBookings'] });
+    if (auth instanceof NextResponse) return auth;
+
     await dbConnect();
 
-    // Get user from token
-    const authHeader = request.headers.get('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-    }
-
-    const token = authHeader.split(' ')[1];
-    const decodedPayload = await verifyToken(token);
-
-    if (!decodedPayload || !decodedPayload.sub) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-    }
-
-    const userId = decodedPayload.sub as string;
-    const user = await User.findById(userId);
+    const user = await User.findById(auth.userId);
     
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     // Get first available tour
-    const tour = await Tour.findOne({});
+    const tenantId = await getTenantFromRequest();
+    const tour = await Tour.findOne(buildStrictTenantQuery({ isPublished: true }, tenantId));
     if (!tour) {
       return NextResponse.json({ error: 'No tours available' }, { status: 404 });
     }
@@ -39,6 +34,7 @@ export async function POST(request: NextRequest) {
     const sampleBooking = new Booking({
       tour: tour._id,
       user: user._id,
+      tenantId,
       date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
       time: '10:00',
       guests: 2,

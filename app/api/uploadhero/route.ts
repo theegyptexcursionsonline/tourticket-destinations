@@ -2,8 +2,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { writeFile } from 'fs/promises';
 import path from 'path';
+import { requireAdminAuth } from '@/lib/auth/adminAuth';
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAdminAuth(request, { permissions: ['manageContent'] });
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const data = await request.formData();
     const file: File | null = data.get('file') as unknown as File;
@@ -36,7 +40,14 @@ export async function POST(request: NextRequest) {
     // Generate unique filename
     const timestamp = Date.now();
     const randomStr = Math.random().toString(36).substring(2, 15);
-    const extension = path.extname(file.name);
+    const extensionByType: Record<string, string> = {
+      'image/jpeg': '.jpg',
+      'image/jpg': '.jpg',
+      'image/png': '.png',
+      'image/webp': '.webp',
+      'image/avif': '.avif',
+    };
+    const extension = extensionByType[file.type];
     const filename = `hero-${timestamp}-${randomStr}${extension}`;
 
     // Save to public directory

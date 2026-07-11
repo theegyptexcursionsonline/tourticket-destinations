@@ -4,7 +4,7 @@ import dbConnect from '@/lib/dbConnect';
 import Booking from '@/lib/models/Booking';
 import Tour from '@/lib/models/Tour';
 import User from '@/lib/models/user';
-import { requireAdminAuth } from '@/lib/auth/adminAuth';
+import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 
 export async function GET(request: NextRequest) {
   const auth = await requireAdminAuth(request, { permissions: ['manageBookings'] });
@@ -12,6 +12,9 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const tenantId = searchParams.get('tenantId') || searchParams.get('brandId') || searchParams.get('brand_id');
   const effectiveTenantId = tenantId && tenantId !== 'all' ? tenantId : undefined;
+  if (!effectiveTenantId || !canAccessTenant(auth, effectiveTenantId)) {
+    return tenantForbiddenResponse();
+  }
 
   await dbConnect(effectiveTenantId || undefined);
 

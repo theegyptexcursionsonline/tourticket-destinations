@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('[ACCEPT-INVITATION] Step 4: User found:', user.email);
+    console.log('[ACCEPT-INVITATION] Step 4: User found');
     console.log('[ACCEPT-INVITATION] Current isActive:', user.isActive);
     console.log('[ACCEPT-INVITATION] Current role:', user.role);
     console.log('[ACCEPT-INVITATION] Has password:', !!user.password);
@@ -140,4 +140,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-

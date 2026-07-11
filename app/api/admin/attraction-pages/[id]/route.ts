@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdminAuth } from '@/lib/auth/adminAuth';
+import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 import dbConnect from '@/lib/dbConnect';
 import AttractionPage from '@/lib/models/AttractionPage';
 import Category from '@/lib/models/Category';
@@ -46,6 +46,7 @@ export async function GET(
         error: 'Page not found'
       }, { status: 404 });
     }
+    if (!canAccessTenant(auth, String((page as any).tenantId || 'default'))) return tenantForbiddenResponse();
 
     return NextResponse.json({
       success: true,
@@ -79,17 +80,19 @@ export async function PUT(
     }
 
     const body = await request.json();
+    const existingTarget = await AttractionPage.findById(id).select('tenantId').lean();
+    if (!existingTarget) return NextResponse.json({ success: false, error: 'Page not found' }, { status: 404 });
+    const targetTenantId = String((existingTarget as any).tenantId || 'default');
+    if (!canAccessTenant(auth, targetTenantId)) return tenantForbiddenResponse();
+    delete body.tenantId;
     
-    // ADD DEBUGGING
-    console.log('🔍 Raw request body:', JSON.stringify(body, null, 2));
-    console.log('📸 Images field received:', body.images);
-    console.log('📸 Images type:', typeof body.images, Array.isArray(body.images));
     
     // Check if slug is being changed and if it conflicts
     if (body.slug) {
       const existingPage = await AttractionPage.findOne({ 
         slug: body.slug,
-        _id: { $ne: id }
+        _id: { $ne: id },
+        tenantId: targetTenantId,
       });
       
       if (existingPage) {
@@ -102,7 +105,7 @@ export async function PUT(
 
     // Validate categoryId if pageType is category
     if (body.pageType === 'category' && body.categoryId) {
-      const category = await Category.findById(body.categoryId);
+      const category = await Category.findOne({ _id: body.categoryId, tenantId: targetTenantId });
       if (!category) {
         return NextResponse.json({
           success: false,
@@ -121,11 +124,10 @@ export async function PUT(
       keywords: Array.isArray(body.keywords) ? body.keywords : (body.keywords ? [body.keywords] : []),
     };
 
-    console.log('💾 Final update data:', JSON.stringify(updateData, null, 2));
 
     const tenantId = getTenantScope(request);
-    const updateFilter: Record<string, unknown> = { _id: id };
-    if (tenantId) updateFilter.tenantId = tenantId;
+    if (tenantId && tenantId !== targetTenantId) return tenantForbiddenResponse();
+    const updateFilter: Record<string, unknown> = { _id: id, tenantId: targetTenantId };
 
     const page = await AttractionPage.findOneAndUpdate(
       updateFilter,
@@ -146,7 +148,6 @@ export async function PUT(
     }
 
     console.log('✅ Page updated successfully');
-    console.log('✅ Final saved images:', page.images);
 
     return NextResponse.json({
       success: true,
@@ -190,9 +191,13 @@ export async function DELETE(
       }, { status: 400 });
     }
 
+    const existingTarget = await AttractionPage.findById(id).select('tenantId').lean();
+    if (!existingTarget) return NextResponse.json({ success: false, error: 'Page not found' }, { status: 404 });
+    const targetTenantId = String((existingTarget as any).tenantId || 'default');
+    if (!canAccessTenant(auth, targetTenantId)) return tenantForbiddenResponse();
     const tenantId = getTenantScope(request);
-    const deleteFilter: Record<string, unknown> = { _id: id };
-    if (tenantId) deleteFilter.tenantId = tenantId;
+    if (tenantId && tenantId !== targetTenantId) return tenantForbiddenResponse();
+    const deleteFilter: Record<string, unknown> = { _id: id, tenantId: targetTenantId };
 
     const page = await AttractionPage.findOneAndDelete(deleteFilter);
 

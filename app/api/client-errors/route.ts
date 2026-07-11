@@ -23,14 +23,26 @@ export async function POST(request: Request) {
     }
 
     // Log to stdout — appears in Netlify function logs
+    const sanitizeText = (value: unknown, max: number) =>
+      typeof value === 'string' ? value.replace(/[\r\n\t]/g, ' ').slice(0, max) : undefined;
+    const sanitizeUrl = (value: unknown) => {
+      if (typeof value !== 'string') return undefined;
+      try {
+        const url = new URL(value);
+        return `${url.origin}${url.pathname}`.slice(0, 500);
+      } catch {
+        return sanitizeText(value.split('?')[0], 500);
+      }
+    };
+
     console.error('[CLIENT ERROR]', JSON.stringify({
       type: body.type || 'react_error',
-      message: body.message,
-      url: body.url,
-      filename: body.filename,
+      message: sanitizeText(body.message, 1000),
+      url: sanitizeUrl(body.url),
+      filename: sanitizeUrl(body.filename),
       lineno: body.lineno,
-      stack: body.stack?.split('\n').slice(0, 5).join('\n'),
-      componentStack: body.componentStack?.split('\n').slice(0, 5).join('\n'),
+      stack: sanitizeText(body.stack, 3000),
+      componentStack: sanitizeText(body.componentStack, 3000),
       userAgent: body.userAgent?.slice(0, 200),
       timestamp: body.timestamp || new Date().toISOString(),
     }, null, 0));

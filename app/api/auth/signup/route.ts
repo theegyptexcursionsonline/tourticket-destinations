@@ -7,7 +7,7 @@ import bcrypt from 'bcryptjs';
 import { EmailService } from '@/lib/email/emailService'; // 🆕 Add this import
 import { getDefaultPermissions } from '@/lib/constants/adminPermissions';
 import Tenant from '@/lib/models/Tenant';
-import { getTenantFromRequest, getTenantEmailBranding } from '@/lib/tenant';
+import { buildStrictTenantQuery, getTenantFromRequest, getTenantEmailBranding } from '@/lib/tenant';
 
 export async function POST(request: NextRequest) {
   await dbConnect();
@@ -19,12 +19,16 @@ export async function POST(request: NextRequest) {
     if (!firstName || !lastName || !email || !password) {
       return NextResponse.json({ error: 'All fields are required' }, { status: 400 });
     }
-    if (password.length < 8) {
+    if (password.length < 8 || password.length > 128) {
       return NextResponse.json({ error: 'Password must be at least 8 characters long' }, { status: 400 });
     }
 
     // Check if user exists (keep existing)
-    const existingUser = await User.findOne({ email });
+    const normalizedEmail = String(email).trim().toLowerCase();
+    if (normalizedEmail.length > 254 || String(firstName).length > 100 || String(lastName).length > 100) {
+      return NextResponse.json({ error: 'Invalid account details' }, { status: 400 });
+    }
+    const existingUser = await User.findOne({ email: normalizedEmail });
     if (existingUser) {
       return NextResponse.json(
         { error: 'An account with this email already exists' },
@@ -39,7 +43,7 @@ export async function POST(request: NextRequest) {
     const newUser = await User.create({
       firstName,
       lastName,
-      email,
+      email: normalizedEmail,
       password: hashedPassword,
     });
 
@@ -76,7 +80,8 @@ export async function POST(request: NextRequest) {
     try {
       // Fetch recommended tours from database
       const Tour = (await import('@/lib/models/Tour')).default;
-      const recommendedTours = await Tour.find({})
+      const tenantId = await getTenantFromRequest();
+      const recommendedTours = await Tour.find(buildStrictTenantQuery({ isPublished: true }, tenantId))
         .select('title slug images pricing')
         .limit(3)
         .lean();
@@ -112,7 +117,7 @@ export async function POST(request: NextRequest) {
 
       await EmailService.sendWelcomeEmail({
         customerName: `${firstName} ${lastName}`,
-        customerEmail: email,
+        customerEmail: normalizedEmail,
         dashboardLink: `${baseUrl}/user/dashboard`,
         recommendedTours: tourRecommendations,
         baseUrl,

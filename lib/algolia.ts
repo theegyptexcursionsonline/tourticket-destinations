@@ -59,6 +59,8 @@ export const formatTourForAlgolia = (tour: any) => {
     } : null,
     isPublished: tour.isPublished || false,
     isFeatured: tour.isFeatured || false,
+    tenantId: tour.tenantId || 'default',
+    tenantIds: Array.isArray(tour.tenantIds) ? tour.tenantIds : [tour.tenantId || 'default'],
     bookings: tour.bookings || 0,
     highlights: tour.highlights || [],
     included: tour.included || [],

@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import dbConnect from '@/lib/dbConnect';
 import User from '@/lib/models/user';
-import { requireAdminAuth } from '@/lib/auth/adminAuth';
+import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 import {
   ADMIN_PERMISSIONS,
   ADMIN_ROLES,
@@ -72,6 +72,8 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = new URL(request.url);
   const tenantId = searchParams.get('tenantId') || searchParams.get('brandId');
+  if (tenantId && tenantId !== 'all' && !canAccessTenant(auth, tenantId)) return tenantForbiddenResponse();
+  if ((!tenantId || tenantId === 'all') && auth.role !== 'super_admin') return tenantForbiddenResponse();
 
   const filter: Record<string, unknown> = { role: { $ne: 'customer' } };
   if (tenantId && tenantId !== 'all') {
@@ -125,6 +127,15 @@ export async function POST(request: NextRequest) {
 
   const normalizedRole = normalizeRole(role);
   const effectivePermissions = normalizePermissions(permissions, normalizedRole);
+  if (
+    auth.role !== 'super_admin' &&
+    (normalizedRole === 'super_admin' || effectivePermissions.includes('manageTenants'))
+  ) {
+    return NextResponse.json(
+      { success: false, error: 'Only super administrators can grant global tenant access.' },
+      { status: 403 },
+    );
+  }
 
   // Generate invitation token
   const invitationToken = crypto.randomBytes(32).toString('hex');
@@ -142,6 +153,12 @@ export async function POST(request: NextRequest) {
     assignedTenantIds = body.tenantIds.filter((id: string) => id && id !== 'all');
   } else if (body.tenantId && body.tenantId !== 'all') {
     assignedTenantIds = [body.tenantId];
+  }
+  if (
+    assignedTenantIds.length === 0 ||
+    (auth.role !== 'super_admin' && assignedTenantIds.some((id) => !auth.tenantIds.includes(id)))
+  ) {
+    return tenantForbiddenResponse();
   }
 
   const user = await User.create({
@@ -206,4 +223,3 @@ export async function POST(request: NextRequest) {
     { status: 201 },
   );
 }
-

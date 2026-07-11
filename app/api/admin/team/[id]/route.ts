@@ -81,6 +81,16 @@ export async function PATCH(
   }
 
   const updates = await request.json();
+  if (
+    auth.role !== 'super_admin' &&
+    (updates.role === 'super_admin' ||
+      (Array.isArray(updates.permissions) && updates.permissions.includes('manageTenants')))
+  ) {
+    return NextResponse.json(
+      { success: false, error: 'Only super administrators can grant global tenant access.' },
+      { status: 403 },
+    );
+  }
   
   // NOTE: Using findById + save pattern for email notification logic.
   // While this has a theoretical race condition risk, it's acceptable for this use case
@@ -93,6 +103,15 @@ export async function PATCH(
       { success: false, error: 'Team member not found' },
       { status: 404 },
     );
+  }
+  if (user.role === 'super_admin' && auth.role !== 'super_admin') {
+    return NextResponse.json(
+      { success: false, error: 'Only super administrators can modify this account.' },
+      { status: 403 },
+    );
+  }
+  if (auth.role !== 'super_admin' && !(user.tenantIds || []).some((tenantId) => auth.tenantIds.includes(tenantId))) {
+    return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
   }
 
   if (updates.firstName) user.firstName = updates.firstName;
@@ -183,6 +202,15 @@ export async function DELETE(
       { status: 404 },
     );
   }
+  if (user.role === 'super_admin' && auth.role !== 'super_admin') {
+    return NextResponse.json(
+      { success: false, error: 'Only super administrators can delete this account.' },
+      { status: 403 },
+    );
+  }
+  if (auth.role !== 'super_admin' && !(user.tenantIds || []).some((tenantId) => auth.tenantIds.includes(tenantId))) {
+    return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+  }
 
   // Send notification email before deleting
   EmailService.sendAdminAccessUpdateEmail({
@@ -205,4 +233,3 @@ export async function DELETE(
     message: 'Team member permanently deleted.',
   });
 }
-

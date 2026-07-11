@@ -8,14 +8,14 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { code, tenantId: requestTenantId } = body;
+    const { code } = body;
 
     if (!code) {
       return NextResponse.json({ success: false, error: 'Coupon code is required' }, { status: 400 });
     }
 
     // Get tenantId from request body or headers
-    const tenantId = requestTenantId || await getTenantFromRequest();
+    const tenantId = await getTenantFromRequest();
 
     // Find the discount code (case-insensitive, tenant-specific)
     const discount = await Discount.findOne({ 
@@ -44,7 +44,14 @@ export async function POST(request: Request) {
     }
 
     // If all checks pass, return the discount data
-    return NextResponse.json({ success: true, data: discount });
+    return NextResponse.json({
+      success: true,
+      data: {
+        code: discount.code,
+        discountType: discount.discountType,
+        value: discount.value,
+      },
+    });
 
   } catch (error) {
     console.error('Error verifying discount:', error);

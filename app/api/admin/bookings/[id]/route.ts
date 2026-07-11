@@ -8,7 +8,7 @@ import { EmailService } from '@/lib/email/emailService';
 import { BOOKING_STATUSES_DB, toBookingStatusCode, toBookingStatusDb } from '@/lib/constants/bookingStatus';
 import Tenant from '@/lib/models/Tenant';
 import { getTenantEmailBranding } from '@/lib/tenant';
-import { requireAdminAuth } from '@/lib/auth/adminAuth';
+import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 
 // Helper to format dates consistently and avoid timezone issues
 function formatBookingDate(dateString: string | Date | undefined): string {
@@ -66,6 +66,8 @@ export async function GET(
     searchParams.get('brandId') ||
     searchParams.get('brand_id');
   const effectiveTenantId = tenantId && tenantId !== 'all' ? tenantId : undefined;
+  if (effectiveTenantId && !canAccessTenant(auth, effectiveTenantId)) return tenantForbiddenResponse();
+  if (!effectiveTenantId && auth.role !== 'super_admin') return tenantForbiddenResponse();
 
   await dbConnect(effectiveTenantId || undefined);
 
@@ -157,6 +159,8 @@ export async function PATCH(
     searchParams.get('brandId') ||
     searchParams.get('brand_id');
   const effectiveTenantId = tenantId && tenantId !== 'all' ? tenantId : undefined;
+  if (effectiveTenantId && !canAccessTenant(auth, effectiveTenantId)) return tenantForbiddenResponse();
+  if (!effectiveTenantId && auth.role !== 'super_admin') return tenantForbiddenResponse();
 
   await dbConnect(effectiveTenantId || undefined);
 
@@ -296,7 +300,7 @@ export async function PATCH(
             tenantBranding,
           });
 
-          console.log(`✅ Cancellation email sent to ${customerEmail}`);
+          console.log('✅ Cancellation email sent');
         } else {
           // Send status update email for other status changes
           const statusMessages = {
@@ -323,7 +327,7 @@ export async function PATCH(
             tenantBranding,
           });
 
-          console.log(`✅ Status update email sent to ${customerEmail} - Status: ${normalizedStatus}`);
+          console.log(`✅ Status update email sent - Status: ${normalizedStatus}`);
         }
       } catch (emailError) {
         console.error('❌ Failed to send customer email notification:', emailError);
@@ -406,13 +410,17 @@ export async function DELETE(
     searchParams.get('brandId') ||
     searchParams.get('brand_id');
   const effectiveTenantId = tenantId && tenantId !== 'all' ? tenantId : undefined;
+  if (effectiveTenantId && !canAccessTenant(auth, effectiveTenantId)) return tenantForbiddenResponse();
+  if (!effectiveTenantId && auth.role !== 'super_admin') return tenantForbiddenResponse();
 
   await dbConnect(effectiveTenantId || undefined);
 
   try {
     const { id } = await params;
 
-    const deletedBooking = await Booking.findByIdAndDelete(id);
+    const deletedBooking = await Booking.findOneAndDelete(
+      effectiveTenantId ? { _id: id, tenantId: effectiveTenantId } : { _id: id },
+    );
 
     if (!deletedBooking) {
       return NextResponse.json(

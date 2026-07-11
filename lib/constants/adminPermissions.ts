@@ -18,13 +18,14 @@ export const ADMIN_PERMISSIONS = [
   'manageDiscounts',
   'manageUsers',
   'manageReports',
+  'manageTenants',
 ] as const;
 
 export type AdminPermission = (typeof ADMIN_PERMISSIONS)[number];
 
 export const ROLE_PERMISSION_MAP: Record<AdminRole, AdminPermission[]> = {
   customer: [],
-  admin: [...ADMIN_PERMISSIONS],
+  admin: ADMIN_PERMISSIONS.filter((permission) => permission !== 'manageTenants'),
   super_admin: [...ADMIN_PERMISSIONS],
   operations: ['manageDashboard', 'manageBookings', 'manageReports'],
   content: ['manageDashboard', 'manageTours', 'managePricing', 'manageContent'],
@@ -42,4 +43,3 @@ export function getDefaultPermissions(role: AdminRole | undefined | null): Admin
 
   return ROLE_PERMISSION_MAP[role] || [];
 }
-

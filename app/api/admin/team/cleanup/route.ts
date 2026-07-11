@@ -12,6 +12,9 @@ export async function POST(request: NextRequest) {
   if (auth instanceof NextResponse) {
     return auth;
   }
+  if (auth.role !== 'super_admin') {
+    return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+  }
 
   await dbConnect();
 
@@ -98,4 +101,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

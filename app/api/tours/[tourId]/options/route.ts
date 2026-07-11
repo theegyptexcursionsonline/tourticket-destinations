@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Tour from '@/lib/models/Tour';
+import { buildStrictTenantQuery, getTenantFromRequest } from '@/lib/tenant';
 
 // Helper function to check if string is a valid MongoDB ObjectId
 const isValidObjectId = (id: string): boolean => {
@@ -20,14 +21,15 @@ export async function GET(
 
   try {
     await dbConnect();
+    const tenantId = await getTenantFromRequest();
 
     let tour: any = null;
 
     // Check if tourId is an ObjectId or a slug
     if (isValidObjectId(tourId)) {
-      tour = await Tour.findById(tourId);
+      tour = await Tour.findOne(buildStrictTenantQuery({ _id: tourId, isPublished: true }, tenantId));
     } else {
-      tour = await Tour.findOne({ slug: tourId });
+      tour = await Tour.findOne(buildStrictTenantQuery({ slug: tourId, isPublished: true }, tenantId));
     }
 
     if (!tour) {
@@ -38,20 +40,6 @@ export async function GET(
     let tourOptions;
 
     if (tour.bookingOptions && tour.bookingOptions.length > 0) {
-      // Ensure stable ids exist (bookingOptions[].id)
-      let changed = false;
-      tour.bookingOptions = tour.bookingOptions.map((opt: any) => {
-        if (!opt) return opt;
-        if (!opt.id) {
-          changed = true;
-          return { ...opt, id: globalThis.crypto?.randomUUID?.() || `opt-${Date.now()}-${Math.random().toString(16).slice(2)}` };
-        }
-        return opt;
-      });
-      if (changed) {
-        await tour.save();
-      }
-
       // Use real booking options from database
       tourOptions = tour.bookingOptions.map((option: any, index: number) => ({
         id: option.id || `option-${index}`,

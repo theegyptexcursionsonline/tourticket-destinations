@@ -8,6 +8,7 @@ import { NextResponse, NextRequest } from 'next/server';
 import { verifyToken } from '@/lib/jwt';
 import { verifyFirebaseToken } from '@/lib/firebase/admin';
 import mongoose from 'mongoose';
+import { buildStrictTenantQuery, getTenantFromRequest } from '@/lib/tenant';
 
 interface Params {
   tourId: string;
@@ -75,7 +76,8 @@ export async function POST(
     }
 
     // Check if tour exists
-    const tour = await Tour.findById(tourId);
+    const tenantId = await getTenantFromRequest();
+    const tour = await Tour.findOne(buildStrictTenantQuery({ _id: tourId, isPublished: true }, tenantId));
     if (!tour) {
       return NextResponse.json({ error: 'Tour not found' }, { status: 404 });
     }
@@ -138,7 +140,7 @@ export async function POST(
       .populate({
         path: 'user',
         model: 'User',
-        select: 'firstName lastName email'
+        select: 'firstName lastName'
       });
 
     // Update tour's average rating (optional - you might want to do this in background)
@@ -174,7 +176,6 @@ export async function POST(
         user: {
           _id: (populatedReview.user as any)?._id,
           name: populatedReview.userName,
-          email: populatedReview.userEmail
         }
       } : null
     }, { status: 201 });
@@ -217,11 +218,14 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid Tour ID' }, { status: 400 });
     }
 
-    const reviews = await Review.find({ tour: tourId })
+    const tenantId = await getTenantFromRequest();
+    const tour = await Tour.findOne(buildStrictTenantQuery({ _id: tourId, isPublished: true }, tenantId)).select('_id').lean();
+    if (!tour) return NextResponse.json({ error: 'Tour not found' }, { status: 404 });
+    const reviews = await Review.find({ tour: tourId, tenantId })
       .populate({
         path: 'user',
         model: 'User',
-        select: 'firstName lastName email'
+        select: 'firstName lastName'
       })
       .sort({ createdAt: -1 })
       .lean();
@@ -236,7 +240,6 @@ export async function GET(
       user: {
         _id: (review.user as any)?._id,
         name: review.userName,
-        email: review.userEmail
       }
     }));
 

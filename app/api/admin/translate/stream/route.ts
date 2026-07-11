@@ -1,4 +1,4 @@
-import { requireAdminAuth } from '@/lib/auth/adminAuth';
+import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Tour from '@/lib/models/Tour';
@@ -43,6 +43,13 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
   }
+
+  await dbConnect();
+  const model: any = modelType === 'tour' ? Tour : modelType === 'destination' ? Destination : Category;
+  const target = await model.findById(id).select('tenantId').lean() as { tenantId?: string } | null;
+  if (!target) return NextResponse.json({ success: false, error: `${modelType} not found` }, { status: 404 });
+  const targetTenantId = String(target.tenantId || 'default');
+  if (!canAccessTenant(auth, targetTenantId)) return tenantForbiddenResponse();
 
   const fieldDefsMap = {
     tour: tourTranslationFields,
@@ -150,11 +157,11 @@ export async function POST(request: NextRequest) {
           send('saving', { message: 'Saving translations to database...' });
 
           if (modelType === 'tour') {
-            await Tour.findByIdAndUpdate(id, { $set: { translations: allTranslations } });
+            await Tour.findOneAndUpdate({ _id: id, tenantId: targetTenantId }, { $set: { translations: allTranslations } });
           } else if (modelType === 'destination') {
-            await Destination.findByIdAndUpdate(id, { $set: { translations: allTranslations } });
+            await Destination.findOneAndUpdate({ _id: id, tenantId: targetTenantId }, { $set: { translations: allTranslations } });
           } else if (modelType === 'category') {
-            await Category.findByIdAndUpdate(id, { $set: { translations: allTranslations } });
+            await Category.findOneAndUpdate({ _id: id, tenantId: targetTenantId }, { $set: { translations: allTranslations } });
           }
         }
 

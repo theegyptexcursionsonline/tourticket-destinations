@@ -17,10 +17,9 @@ function getSecretBuffer() {
       '[JWT] JWT_SECRET is missing or shorter than 32 characters. Using fallback development secret. Set JWT_SECRET in your environment variables.';
 
     if (process.env.NODE_ENV === 'production') {
-      console.error(`${warningMessage} (NODE_ENV=production)`); // highlight seriousness
-    } else {
-      console.warn(warningMessage);
+      throw new Error('JWT_SECRET must be configured with at least 32 characters in production.');
     }
+    console.warn(warningMessage);
 
     secret = new TextEncoder().encode(DEFAULT_DEV_SECRET);
     return secret;

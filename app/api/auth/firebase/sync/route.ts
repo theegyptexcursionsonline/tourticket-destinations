@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
 
     // Get Firebase user data from request body
     const body = await request.json();
-    const { uid, email, displayName, photoURL, emailVerified, providerData } = body;
+    const { uid } = body;
 
     // Validate Firebase UID matches token
     if (uid !== verifyResult.uid) {
@@ -51,16 +51,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Sync user with MongoDB
+    const verifiedEmail = verifyResult.email;
+    if (!verifiedEmail) {
+      return NextResponse.json(
+        { success: false, error: 'Verified email is required' },
+        { status: 400 },
+      );
+    }
+    const claims = verifyResult.decodedToken as any;
+
+    // Sync only identity attributes signed by Firebase, never client body values.
     let result;
     try {
       result = await syncFirebaseUserToMongo({
         uid,
-        email,
-        displayName,
-        photoURL,
-        emailVerified,
-        providerData,
+        email: verifiedEmail,
+        displayName: typeof claims.name === 'string' ? claims.name : null,
+        photoURL: typeof claims.picture === 'string' ? claims.picture : null,
+        emailVerified: Boolean(verifyResult.emailVerified),
+        providerData: claims.firebase?.sign_in_provider
+          ? [{ providerId: claims.firebase.sign_in_provider }]
+          : [],
       });
     } catch (syncError: any) {
       console.error('MongoDB sync error:', syncError);

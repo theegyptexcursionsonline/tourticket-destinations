@@ -35,6 +35,9 @@ export async function GET(request: NextRequest) {
     
     // Build query
     const query: Record<string, unknown> = {};
+    if (auth.role !== 'super_admin') {
+      query.tenantId = { $in: auth.tenantIds };
+    }
     
     if (activeFilter !== null) {
       query.isActive = activeFilter === 'true';
@@ -84,7 +87,7 @@ export async function GET(request: NextRequest) {
  * Create a new tenant
  */
 export async function POST(request: NextRequest) {
-  const auth = await requireAdminAuth(request, { permissions: ['manageUsers'] });
+  const auth = await requireAdminAuth(request, { permissions: ['manageTenants'] });
   if (auth instanceof NextResponse) return auth;
   try {
     await dbConnect();
@@ -180,4 +183,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

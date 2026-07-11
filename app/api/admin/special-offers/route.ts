@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import SpecialOffer from '@/lib/models/SpecialOffer';
-import { requireAdminAuth } from '@/lib/auth/adminAuth';
+import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,7 +23,10 @@ export async function GET(request: NextRequest) {
     const query: Record<string, unknown> = {};
     
     if (tenantId && tenantId !== 'all') {
+      if (!canAccessTenant(auth, tenantId)) return tenantForbiddenResponse();
       query.tenantId = tenantId;
+    } else if (auth.role !== 'super_admin') {
+      query.tenantId = { $in: auth.tenantIds };
     }
     
     if (isActive !== null && isActive !== '') {
@@ -126,6 +129,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+    if (!canAccessTenant(auth, tenantId)) return tenantForbiddenResponse();
 
     // Validate dates
     const start = new Date(startDate);
@@ -228,6 +232,12 @@ export async function PUT(request: NextRequest) {
         { status: 400 }
       );
     }
+    const existingOffer = await SpecialOffer.findById(_id);
+    if (!existingOffer) {
+      return NextResponse.json({ success: false, error: 'Offer not found' }, { status: 404 });
+    }
+    if (!canAccessTenant(auth, String(existingOffer.tenantId))) return tenantForbiddenResponse();
+    delete updateData.tenantId;
 
     // Handle date conversions
     if (updateData.startDate) updateData.startDate = new Date(updateData.startDate);
@@ -256,7 +266,6 @@ export async function PUT(request: NextRequest) {
 
     // Check for duplicate code if updating code
     if (updateData.code) {
-      const existingOffer = await SpecialOffer.findById(_id);
       if (existingOffer) {
         const duplicateCode = await SpecialOffer.findOne({
           _id: { $ne: _id },
@@ -272,8 +281,8 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    const offer = await SpecialOffer.findByIdAndUpdate(
-      _id,
+    const offer = await SpecialOffer.findOneAndUpdate(
+      { _id, tenantId: existingOffer.tenantId },
       { $set: updateData },
       { new: true, runValidators: true }
     )
@@ -320,7 +329,13 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const offer = await SpecialOffer.findByIdAndDelete(id);
+    const existingOffer = await SpecialOffer.findById(id).select('tenantId').lean();
+    if (!existingOffer) {
+      return NextResponse.json({ success: false, error: 'Offer not found' }, { status: 404 });
+    }
+    const tenantId = String((existingOffer as any).tenantId);
+    if (!canAccessTenant(auth, tenantId)) return tenantForbiddenResponse();
+    const offer = await SpecialOffer.findOneAndDelete({ _id: id, tenantId });
 
     if (!offer) {
       return NextResponse.json(
@@ -341,4 +356,3 @@ export async function DELETE(request: NextRequest) {
     );
   }
 }
-

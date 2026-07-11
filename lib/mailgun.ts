@@ -25,6 +25,15 @@ function getMg() {
 function getDomain() { return process.env.MAILGUN_DOMAIN || ''; }
 function getFromEmail() { return process.env.MAILGUN_FROM_EMAIL || 'booking@egypt-excursionsonline.com'; }
 
+function escapeHtml(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 interface InlineAttachment {
   filename: string;
   data: Buffer;
@@ -64,7 +73,7 @@ export async function sendEmail(options: EmailOptions): Promise<void> {
       throw new Error('MAILGUN_DOMAIN environment variable is not set');
     }
 
-    console.log(`📧 [Mailgun] Preparing email: type=${options.type}, to=${options.to}, from=${senderName} <${senderEmail}>, domain=${domain}${options.cc ? `, cc=${options.cc}` : ''}`);
+    console.log(`📧 [Mailgun] Preparing email: type=${options.type}, domain=${domain}`);
 
     const messageData: any = {
       from: `${senderName} <${senderEmail}>`,
@@ -109,7 +118,7 @@ export async function sendEmail(options: EmailOptions): Promise<void> {
     const result = await mg.messages.create(domain, messageData);
     console.log(`📮 Mailgun response ID: ${result.id}`);
 
-    console.log(`✅ Email sent successfully: ${options.type} to ${options.to}`);
+    console.log(`✅ Email sent successfully: ${options.type}`);
   } catch (error) {
     console.error(`❌ Failed to send email: ${options.type}`, error);
     throw error;
@@ -127,7 +136,7 @@ interface ContactFormData {
 export async function sendContactFormEmail(data: ContactFormData) {
   await sendEmail({
     to: process.env.ADMIN_NOTIFICATION_EMAIL!,
-    subject: `New Contact Message from ${data.name}`,
+    subject: `New Contact Message from ${String(data.name).replace(/[\r\n]/g, ' ').slice(0, 120)}`,
     html: generateContactFormHTML(data),
     type: 'contact-form',
     replyTo: data.fromEmail
@@ -147,11 +156,11 @@ function generateContactFormHTML(data: ContactFormData): string {
   return `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <h2>New Contact Form Submission</h2>
-      <p><strong>Name:</strong> ${data.name}</p>
-      <p><strong>Email:</strong> ${data.fromEmail}</p>
+      <p><strong>Name:</strong> ${escapeHtml(data.name)}</p>
+      <p><strong>Email:</strong> ${escapeHtml(data.fromEmail)}</p>
       <p><strong>Message:</strong></p>
       <div style="background: #f5f5f5; padding: 15px; border-radius: 5px;">
-        ${data.message?.replace(/\n/g, '<br>') || ''}
+        ${escapeHtml(data.message).replace(/\n/g, '<br>')}
       </div>
     </div>
   `;

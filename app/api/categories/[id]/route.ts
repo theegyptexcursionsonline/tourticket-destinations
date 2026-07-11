@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Category from '@/lib/models/Category';
 import mongoose from 'mongoose';
-import { requireAdminAuth } from '@/lib/auth/adminAuth';
+import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
+import { buildStrictTenantQuery, getTenantFromRequest } from '@/lib/tenant';
 
 export async function GET(
   request: NextRequest,
@@ -20,7 +21,10 @@ export async function GET(
       }, { status: 400 });
     }
 
-    const category = await Category.findById(id).lean();
+    const tenantId = await getTenantFromRequest();
+    const category = await Category.findOne(
+      buildStrictTenantQuery({ _id: id, isPublished: true }, tenantId),
+    ).lean();
 
     if (!category) {
       return NextResponse.json({
@@ -63,12 +67,18 @@ export async function PUT(
     }
 
     const body = await request.json();
+    const existing = await Category.findById(id).select('tenantId').lean();
+    if (!existing) return NextResponse.json({ success: false, error: 'Category not found' }, { status: 404 });
+    const tenantId = String((existing as any).tenantId || 'default');
+    if (!canAccessTenant(adminAuth, tenantId)) return tenantForbiddenResponse();
+    delete body.tenantId;
     
     // Check if slug is being changed and if it conflicts
     if (body.slug) {
       const existingCategory = await Category.findOne({ 
         slug: body.slug,
-        _id: { $ne: id }
+        _id: { $ne: id },
+        tenantId,
       });
       
       if (existingCategory) {
@@ -79,8 +89,8 @@ export async function PUT(
       }
     }
 
-    const category = await Category.findByIdAndUpdate(
-      id,
+    const category = await Category.findOneAndUpdate(
+      { _id: id, tenantId },
       body,
       { new: true, runValidators: true }
     );
@@ -134,7 +144,11 @@ export async function DELETE(
       }, { status: 400 });
     }
 
-    const category = await Category.findByIdAndDelete(id);
+    const existing = await Category.findById(id).select('tenantId').lean();
+    if (!existing) return NextResponse.json({ success: false, error: 'Category not found' }, { status: 404 });
+    const tenantId = String((existing as any).tenantId || 'default');
+    if (!canAccessTenant(adminAuth, tenantId)) return tenantForbiddenResponse();
+    const category = await Category.findOneAndDelete({ _id: id, tenantId });
 
     if (!category) {
       return NextResponse.json({

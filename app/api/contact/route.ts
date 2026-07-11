@@ -86,6 +86,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
     }
 
+    if (typeof name !== 'string' || typeof email !== 'string' || typeof message !== 'string' ||
+        name.length > 120 || email.length > 254 || message.length > 5000) {
+      return NextResponse.json({ error: 'Invalid form data' }, { status: 400 });
+    }
+
     // --- Timing Check ---
     if (submissionTime && submissionTime < 3000) {
       console.log('Suspicious submission time:', submissionTime);
@@ -106,7 +111,7 @@ export async function POST(request: Request) {
     }
 
     // --- reCAPTCHA Verification ---
-    if (process.env.RECAPTCHA_SECRET_KEY && recaptchaToken) {
+    if (process.env.RECAPTCHA_SECRET_KEY) {
       const isValid = await verifyRecaptcha(recaptchaToken);
       if (!isValid) {
         console.log('reCAPTCHA verification failed');

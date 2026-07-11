@@ -15,7 +15,7 @@ import {
 } from 'date-fns';
 import dbConnect from '@/lib/dbConnect';
 import { cacheIfAvailable } from '@/lib/cache';
-import { requireAdminAuth } from '@/lib/auth/adminAuth';
+import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 import Booking from '@/lib/models/Booking';
 import Review from '@/lib/models/Review';
 import Tour from '@/lib/models/Tour';
@@ -498,6 +498,8 @@ export async function GET(request: NextRequest) {
       searchParams.get('brandId') ||
       searchParams.get('brand_id');
     const tenantKey = tenantId && tenantId !== 'all' ? tenantId : 'all';
+    if (tenantKey !== 'all' && !canAccessTenant(auth, tenantKey)) return tenantForbiddenResponse();
+    if (tenantKey === 'all' && auth.role !== 'super_admin') return tenantForbiddenResponse();
     const selection = buildDateSelection(searchParams);
     const data = await getCachedReportData(tenantKey, selection.rangeKey, selection);
 

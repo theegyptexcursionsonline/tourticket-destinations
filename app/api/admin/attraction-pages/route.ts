@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdminAuth } from '@/lib/auth/adminAuth';
+import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 import dbConnect from '@/lib/dbConnect';
 import AttractionPage from '@/lib/models/AttractionPage';
 import Tour from '@/lib/models/Tour';
@@ -17,7 +17,10 @@ export async function GET(request: NextRequest) {
     const tenantId = searchParams.get('tenantId');
     const filter: Record<string, unknown> = {};
     if (tenantId && tenantId !== 'all') {
+      if (!canAccessTenant(auth, tenantId)) return tenantForbiddenResponse();
       filter.tenantId = tenantId;
+    } else if (auth.role !== 'super_admin') {
+      filter.tenantId = { $in: auth.tenantIds };
     }
 
     // First, get all pages without population
@@ -58,7 +61,8 @@ export async function GET(request: NextRequest) {
             const categoryId = typeof page.categoryId === 'object' ? (page.categoryId as any)._id : page.categoryId;
             tourCount = await Tour.countDocuments({
               category: categoryId,
-              isPublished: true
+              isPublished: true,
+              tenantId: page.tenantId,
             });
           } else if (page.pageType === 'attraction') {
             // Count tours that match this attraction
@@ -85,6 +89,7 @@ export async function GET(request: NextRequest) {
               tourCount = await Tour.countDocuments({
                 $and: [
                   { isPublished: true },
+                  { tenantId: page.tenantId },
                   { $or: searchQueries }
                 ]
               });
@@ -125,7 +130,6 @@ export async function POST(request: NextRequest) {
     await dbConnect();
 
     const body = await request.json();
-    console.log('Creating attraction page with data:', body);
 
     // Tenant guard: if a tenantId scope is passed (from AdminTenantContext),
     // require body.tenantId to match — or set it from the scope if missing.
@@ -142,6 +146,8 @@ export async function POST(request: NextRequest) {
       }
       body.tenantId = effectiveTenantId;
     }
+    const targetTenantId = String(body.tenantId || '');
+    if (!targetTenantId || !canAccessTenant(auth, targetTenantId)) return tenantForbiddenResponse();
 
     // Validate required fields
     const requiredFields = ['title', 'slug', 'description', 'heroImage', 'gridTitle', 'pageType'];
@@ -155,7 +161,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if slug already exists
-    const existingPage = await AttractionPage.findOne({ slug: body.slug });
+    const existingPage = await AttractionPage.findOne({ slug: body.slug, tenantId: targetTenantId });
     if (existingPage) {
       return NextResponse.json({
         success: false,
@@ -173,7 +179,7 @@ export async function POST(request: NextRequest) {
       }
       
       // Check if category exists
-      const category = await Category.findById(body.categoryId);
+      const category = await Category.findOne({ _id: body.categoryId, tenantId: targetTenantId });
       if (!category) {
         return NextResponse.json({
           success: false,

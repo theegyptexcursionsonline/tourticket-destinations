@@ -22,6 +22,7 @@ export async function GET(request: NextRequest) {
         name: 'Super Admin',
         role: 'super_admin',
         permissions: auth.permissions,
+        tenantIds: [],
       },
     });
   }
@@ -52,9 +53,9 @@ export async function GET(request: NextRequest) {
       name: `${user.firstName} ${user.lastName}`.trim(),
       role: user.role,
       permissions,
+      tenantIds: user.tenantIds || [],
       isActive: user.isActive,
       lastLoginAt: user.lastLoginAt,
     },
   });
 }
-

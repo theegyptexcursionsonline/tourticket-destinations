@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Tour from '@/lib/models/Tour';
-import { requireAdminAuth } from '@/lib/auth/adminAuth';
+import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 
 function generateOptionId() {
   return globalThis.crypto?.randomUUID?.() || `opt-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -26,6 +26,7 @@ export async function PUT(
     if (!tour) {
       return NextResponse.json({ error: 'Tour not found' }, { status: 404 });
     }
+    if (!canAccessTenant(adminAuth, String(tour.tenantId || 'default'))) return tenantForbiddenResponse();
 
     // Ensure bookingOptions array exists
     if (!tour.bookingOptions) {

@@ -3,7 +3,7 @@ import dbConnect from '@/lib/dbConnect';
 import Destination from '@/lib/models/Destination';
 import Tour from '@/lib/models/Tour';
 import mongoose from 'mongoose';
-import { requireAdminAuth } from '@/lib/auth/adminAuth';
+import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 
 export async function PUT(
   request: NextRequest,
@@ -25,8 +25,13 @@ export async function PUT(
       }, { status: 400 });
     }
     
-    const destination = await Destination.findByIdAndUpdate(
-      id, 
+    const existing = await Destination.findById(id).select('tenantId').lean();
+    if (!existing) return NextResponse.json({ success: false, error: 'Destination not found' }, { status: 404 });
+    const tenantId = String((existing as any).tenantId || 'default');
+    if (!canAccessTenant(auth, tenantId)) return tenantForbiddenResponse();
+    delete data.tenantId;
+    const destination = await Destination.findOneAndUpdate(
+      { _id: id, tenantId },
       data, 
       { 
         new: true, 
@@ -93,8 +98,14 @@ export async function DELETE(
       }, { status: 400 });
     }
 
+    const existing = await Destination.findById(id).select('tenantId').lean();
+    if (!existing) return NextResponse.json({ success: false, error: 'Destination not found' }, { status: 404 });
+    const tenantId = String((existing as any).tenantId || 'default');
+    if (!canAccessTenant(auth, tenantId)) return tenantForbiddenResponse();
+
     // Check if destination has tours
-    const tourCount = await Tour.countDocuments({ destination: id });
+    const tourFilter = { destination: id, $or: [{ tenantId }, { tenantIds: tenantId }] };
+    const tourCount = await Tour.countDocuments(tourFilter);
     if (tourCount > 0) {
       if (!force) {
         return NextResponse.json({
@@ -106,12 +117,12 @@ export async function DELETE(
 
       // If force delete, unlink tours from this destination
       await Tour.updateMany(
-        { destination: id },
+        tourFilter,
         { $unset: { destination: "" } }
       );
     }
 
-    const destination = await Destination.findByIdAndDelete(id);
+    const destination = await Destination.findOneAndDelete({ _id: id, tenantId });
 
     if (!destination) {
       return NextResponse.json({

@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Review from '@/lib/models/Review';
-import { requireAdminAuth } from '@/lib/auth/adminAuth';
+import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 
 // Defensive helper: when an admin is scoped to a single tenant via the
 // AdminTenantContext, every write must include `?tenantId=xxx`. We use that
@@ -27,10 +27,14 @@ export async function PATCH(
   try {
     const body = await request.json();
     const { verified } = body; // Expecting { verified: true }
+    const existing = await Review.findById(id).select('tenantId').lean();
+    if (!existing) return NextResponse.json({ message: 'Review not found' }, { status: 404 });
+    const targetTenantId = String((existing as any).tenantId || 'default');
+    if (!canAccessTenant(auth, targetTenantId)) return tenantForbiddenResponse();
 
     const tenantId = getTenantScope(request);
-    const updateFilter: Record<string, unknown> = { _id: id };
-    if (tenantId) updateFilter.tenantId = tenantId;
+    if (tenantId && tenantId !== targetTenantId) return tenantForbiddenResponse();
+    const updateFilter: Record<string, unknown> = { _id: id, tenantId: targetTenantId };
 
     const updatedReview = await Review.findOneAndUpdate(
       updateFilter,
@@ -60,9 +64,13 @@ export async function DELETE(
   await dbConnect();
 
   try {
+    const existing = await Review.findById(id).select('tenantId').lean();
+    if (!existing) return NextResponse.json({ message: 'Review not found' }, { status: 404 });
+    const targetTenantId = String((existing as any).tenantId || 'default');
+    if (!canAccessTenant(auth, targetTenantId)) return tenantForbiddenResponse();
     const tenantId = getTenantScope(request);
-    const deleteFilter: Record<string, unknown> = { _id: id };
-    if (tenantId) deleteFilter.tenantId = tenantId;
+    if (tenantId && tenantId !== targetTenantId) return tenantForbiddenResponse();
+    const deleteFilter: Record<string, unknown> = { _id: id, tenantId: targetTenantId };
 
     const deletedReview = await Review.findOneAndDelete(deleteFilter);
 

@@ -15,7 +15,9 @@ export async function GET(request: Request, { params }: { params: Promise<Params
   try {
     const { id } = await params;
     
-    const review = await Review.findById(id).populate('user', 'firstName lastName name picture');
+    const review = await Review.findById(id)
+      .select('rating title comment userName verified helpful createdAt date user')
+      .populate('user', 'firstName lastName name picture');
     if (!review) {
       return NextResponse.json({ success: false, message: 'Review not found' }, { status: 404 });
     }

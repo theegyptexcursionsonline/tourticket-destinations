@@ -5,7 +5,7 @@ import dbConnect from '@/lib/dbConnect';
 import Availability from '@/lib/models/Availability';
 import Tour from '@/lib/models/Tour';
 import StopSale from '@/lib/models/StopSale';
-import { requireAdminAuth } from '@/lib/auth/adminAuth';
+import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,6 +36,10 @@ export async function GET(request: NextRequest) {
     const month = parseInt(searchParams.get('month') || String(new Date().getMonth() + 1));
     const year = parseInt(searchParams.get('year') || String(new Date().getFullYear()));
     const tenantId = searchParams.get('tenantId');
+    if (tenantId && tenantId !== 'all' && !canAccessTenant(auth, tenantId)) return tenantForbiddenResponse();
+    if ((!tenantId || tenantId === 'all') && auth.role !== 'super_admin') {
+      if (auth.tenantIds.length !== 1) return tenantForbiddenResponse();
+    }
 
     // Build query
     const query: Record<string, unknown> = {};
@@ -44,8 +48,13 @@ export async function GET(request: NextRequest) {
       query.tour = tourId;
     }
     
-    if (tenantId && tenantId !== 'all') {
-      query.tenantId = tenantId;
+    const effectiveRequestTenantId = tenantId && tenantId !== 'all'
+      ? tenantId
+      : auth.role !== 'super_admin'
+        ? auth.tenantIds[0]
+        : undefined;
+    if (effectiveRequestTenantId) {
+      query.tenantId = effectiveRequestTenantId;
     }
 
     // Date range for the month
@@ -75,11 +84,15 @@ export async function GET(request: NextRequest) {
       // Determine tenant for stop-sale lookups:
       // - If explicitly filtered by tenantId, use that
       // - Otherwise, use the tour's tenant (safer than cross-tenant mixing)
-      let effectiveTenantId = tenantId && tenantId !== 'all' ? tenantId : undefined;
+      let effectiveTenantId = effectiveRequestTenantId;
 
-      const tourDoc = await Tour.findById(tourId).select('tenantId title bookingOptions');
+      const tourDoc = await Tour.findById(tourId).select('tenantId tenantIds title bookingOptions');
       if (tourDoc) {
         if (!effectiveTenantId) effectiveTenantId = tourDoc.tenantId;
+        const tourTenantIds = [tourDoc.tenantId, ...((tourDoc as any).tenantIds || [])].map(String);
+        if (!canAccessTenant(auth, String(effectiveTenantId)) || !tourTenantIds.includes(String(effectiveTenantId))) {
+          return tenantForbiddenResponse();
+        }
 
         // Ensure bookingOptions[].id exists (needed for option-level stop-sale)
         let changed = false;
@@ -228,6 +241,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+    if (!canAccessTenant(auth, tenantId)) return tenantForbiddenResponse();
 
     // Verify tour exists
     const tour = await Tour.findById(tourId);
@@ -237,6 +251,8 @@ export async function POST(request: NextRequest) {
         { status: 404 }
       );
     }
+    const tourTenantIds = [tour.tenantId, ...((tour as any).tenantIds || [])].map(String);
+    if (!tourTenantIds.includes(String(tenantId))) return tenantForbiddenResponse();
 
     // Parse date
     const availabilityDate = new Date(date);
@@ -310,6 +326,9 @@ export async function PUT(request: NextRequest) {
         { status: 400 }
       );
     }
+    if (!canAccessTenant(auth, tenantId)) return tenantForbiddenResponse();
+    const tour = await Tour.findOne({ _id: tourId, $or: [{ tenantId }, { tenantIds: tenantId }] }).select('_id').lean();
+    if (!tour) return NextResponse.json({ success: false, error: 'Tour not found' }, { status: 404 });
 
     // Dedupe dates at midnight-local precision. Without this, a dates array that
     // repeats the same day (common when admin selects overlapping ranges) produces
@@ -461,4 +480,3 @@ export async function PUT(request: NextRequest) {
     );
   }
 }
-

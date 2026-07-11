@@ -525,10 +525,19 @@ export async function canAccessTenant(
     return true;
   }
   
-  // TODO: Implement team/organization-based access control
-  // For now, regular admins can only access their assigned tenant
-  
-  return true; // Placeholder - implement proper access control
+  try {
+    await dbConnect();
+    const User = (await import('@/lib/models/user')).default;
+    const user = await User.findOne({
+      _id: userId,
+      isActive: true,
+      role: { $ne: 'customer' },
+      tenantIds: tenantId,
+    }).select('_id').lean();
+    return Boolean(user);
+  } catch {
+    return false;
+  }
 }
 
 // ============================================

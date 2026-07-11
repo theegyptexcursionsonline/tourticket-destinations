@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdminAuth } from '@/lib/auth/adminAuth';
+import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 import dbConnect from '@/lib/dbConnect';
 import Blog from '@/lib/models/Blog';
 import mongoose from 'mongoose';
@@ -31,10 +31,15 @@ export async function PUT(
         error: 'Invalid blog post ID' 
       }, { status: 400 });
     }
+    const existing = await Blog.findById(id).select('tenantId').lean();
+    if (!existing) return NextResponse.json({ success: false, error: 'Blog post not found' }, { status: 404 });
+    const targetTenantId = String((existing as any).tenantId || 'default');
+    if (!canAccessTenant(auth, targetTenantId)) return tenantForbiddenResponse();
+    delete data.tenantId;
     
     const tenantId = getTenantScope(request);
-    const updateFilter: Record<string, unknown> = { _id: id };
-    if (tenantId) updateFilter.tenantId = tenantId;
+    if (tenantId && tenantId !== targetTenantId) return tenantForbiddenResponse();
+    const updateFilter: Record<string, unknown> = { _id: id, tenantId: targetTenantId };
 
     const blog = await Blog.findOneAndUpdate(
       updateFilter,
@@ -101,9 +106,13 @@ export async function DELETE(
       }, { status: 400 });
     }
     
+    const existing = await Blog.findById(id).select('tenantId').lean();
+    if (!existing) return NextResponse.json({ success: false, error: 'Blog post not found' }, { status: 404 });
+    const targetTenantId = String((existing as any).tenantId || 'default');
+    if (!canAccessTenant(auth, targetTenantId)) return tenantForbiddenResponse();
     const tenantId = getTenantScope(request);
-    const deleteFilter: Record<string, unknown> = { _id: id };
-    if (tenantId) deleteFilter.tenantId = tenantId;
+    if (tenantId && tenantId !== targetTenantId) return tenantForbiddenResponse();
+    const deleteFilter: Record<string, unknown> = { _id: id, tenantId: targetTenantId };
 
     const blog = await Blog.findOneAndDelete(deleteFilter);
 

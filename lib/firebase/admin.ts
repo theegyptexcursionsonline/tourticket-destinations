@@ -111,39 +111,10 @@ async function ensureInitialized() {
       }
     }
 
-    // Strategy 3: Fetch from public remote URL (DEPRECATED - less secure)
-    if (!initialized) {
-      const remoteJsonUrl = process.env.FIREBASE_SERVICE_ACCOUNT_URL;
+    // Public URL credential loading is intentionally unsupported. Service-account
+    // material must come from an environment secret or authenticated storage.
 
-      if (remoteJsonUrl) {
-        try {
-          console.log('⚠️  Using public URL (deprecated - consider using private Cloudinary resource)');
-          console.log('🔄 Fetching Firebase service account from remote URL...');
-
-          const response = await fetch(remoteJsonUrl, {
-            headers: {
-              'Cache-Control': 'max-age=3600', // Cache for 1 hour
-            },
-          });
-
-          if (!response.ok) {
-            throw new Error(`Failed to fetch service account: ${response.status} ${response.statusText}`);
-          }
-
-          const serviceAccountJSON = await response.json();
-
-          admin.initializeApp({
-            credential: admin.credential.cert(serviceAccountJSON),
-          });
-          console.log('✅ Firebase Admin initialized from remote URL');
-          initialized = true;
-        } catch (error) {
-          console.error('❌ Error fetching remote service account:', error);
-        }
-      }
-    }
-
-    // Strategy 4: Try individual environment variables (fallback)
+    // Strategy 3: Try individual environment variables (fallback)
     if (!initialized) {
       const projectId = process.env.FIREBASE_PROJECT_ID;
       const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
@@ -166,7 +137,7 @@ async function ensureInitialized() {
       }
     }
 
-    // Strategy 5: Try loading from file (for local development)
+    // Strategy 4: Try loading from file (for local development)
     if (!initialized) {
       try {
         const path = await import('path');

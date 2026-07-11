@@ -7,7 +7,7 @@ import { buildStrictTenantQuery, getTenantFromRequest } from '@/lib/tenant';
 import { filterVisibleTaxonomyEntries } from '@/lib/utils/taxonomy';
 import { localizeEntityFields } from '@/lib/i18n/contentLocalization';
 import { categoryTranslationFields } from '@/lib/i18n/translationFields';
-import { requireAdminAuth } from '@/lib/auth/adminAuth';
+import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 
 export async function GET(request: NextRequest) {
   try {
@@ -91,9 +91,18 @@ export async function POST(request: NextRequest) {
     });
     if (adminAuth instanceof NextResponse) return adminAuth;
 
-    await dbConnect();
-    
     const body = await request.json();
+    const requestedTenantId = new URL(request.url).searchParams.get('tenantId');
+    const tenantId = requestedTenantId && requestedTenantId !== 'all'
+      ? requestedTenantId
+      : adminAuth.role === 'super_admin'
+        ? String(body.tenantId || await getTenantFromRequest())
+        : adminAuth.tenantIds.length === 1
+          ? adminAuth.tenantIds[0]
+          : '';
+    if (!tenantId || !canAccessTenant(adminAuth, tenantId)) return tenantForbiddenResponse();
+    await dbConnect(tenantId);
+    body.tenantId = tenantId;
     
     // Validate required fields
     if (!body.name || !body.slug) {
@@ -104,7 +113,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if slug already exists
-    const existingCategory = await Category.findOne({ slug: body.slug });
+    const existingCategory = await Category.findOne({ slug: body.slug, tenantId });
     if (existingCategory) {
       return NextResponse.json({
         success: false,

@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     // In a real application, you would add the email to your mailing list here
     // (e.g., Mailchimp, SendGrid, or your own database).
     
-    console.log(`New subscription from: ${email}`);
+    console.log('New newsletter subscription received');
 
     // Simulate a short delay
     await new Promise(resolve => setTimeout(resolve, 500));
