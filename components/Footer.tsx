@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from "react";
-import { ArrowUpRight, BellRing, Facebook, Instagram, Twitter, Youtube, Phone, Mail, MessageSquare, Loader2, ScanLine, Smartphone, Sparkles, X } from "lucide-react";
+import { ArrowUpRight, Facebook, Instagram, Twitter, Youtube, Phone, Mail, MessageSquare, Loader2, ScanLine, Smartphone, Sparkles, X } from "lucide-react";
 import Image from "next/image";
 import QRCode from "qrcode";
 import { Link } from '@/i18n/navigation';
@@ -352,15 +352,6 @@ export default function Footer() {
                   <ScanLine size={17} className="text-rose-300" />
                   <span>{t('footer.scanToDownload')}</span>
                 </button>
-              </div>
-
-              <div className="mt-7 hidden max-w-2xl border-s border-white/15 ps-4 sm:block sm:ps-5">
-                <div className="flex items-start gap-3">
-                  <BellRing size={17} className="mt-1 shrink-0 text-rose-300" />
-                  <p className="text-sm leading-6 text-slate-400 sm:text-[15px] sm:leading-7">
-                    {t('footer.comingSoonDesc')}
-                  </p>
-                </div>
               </div>
 
               <div className="mt-7 grid w-full max-w-xl grid-cols-2 gap-2.5 sm:mt-8 sm:gap-3">
