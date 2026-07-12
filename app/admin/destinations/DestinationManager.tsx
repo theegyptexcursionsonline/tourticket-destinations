@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { 
@@ -531,7 +532,7 @@ setTimeout(() => router.refresh(), 0);
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {destinations.map((dest, index) => (
           <motion.div
-            key={dest._id as string}
+            key={String(dest._id)}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
@@ -540,10 +541,12 @@ setTimeout(() => router.refresh(), 0);
             {/* Image Container */}
             <div className="relative h-56 overflow-hidden">
               {dest.image ? (
-                <img 
+                <Image
                   src={dest.image} 
                   alt={dest.name} 
-                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" 
+                  fill
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 33vw, 25vw"
+                  className="object-cover transition-transform duration-500 group-hover:scale-110"
                 />
               ) : (
                 <div className="h-full w-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
@@ -564,7 +567,7 @@ setTimeout(() => router.refresh(), 0);
                   <Edit size={16} />
                 </button>
                 <button
-                  onClick={() => handleDelete(dest._id as string, dest.name)} 
+                  onClick={() => handleDelete(String(dest._id), dest.name)}
                   className="flex items-center justify-center w-10 h-10 bg-white/90 backdrop-blur-sm rounded-xl text-slate-700 hover:bg-white hover:text-red-600 shadow-lg transition-all duration-200 transform hover:scale-110"
                   title="Delete destination"
                 >
@@ -728,11 +731,14 @@ setTimeout(() => router.refresh(), 0);
                       
                       <div className="relative">
                         {formData.image ? (
-                          <div className="group relative overflow-hidden rounded-2xl border-2 border-slate-200">
-                            <img 
+                          <div className="group relative h-64 overflow-hidden rounded-2xl border-2 border-slate-200">
+                            <Image
                               src={formData.image} 
                               alt="Preview" 
-                              className="w-full h-64 object-cover" 
+                              fill
+                              sizes="(max-width: 768px) 100vw, 70vw"
+                              unoptimized={formData.image.startsWith('blob:') || formData.image.startsWith('data:')}
+                              className="object-cover"
                             />
                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
                               <button 

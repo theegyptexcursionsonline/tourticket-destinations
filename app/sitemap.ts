@@ -10,6 +10,10 @@ import Blog from '@/lib/models/Blog';
 import AttractionPage from '@/lib/models/AttractionPage';
 import { getTenantFromRequest, getTenantConfig } from '@/lib/tenant';
 
+// The sitemap is tenant/domain-specific and therefore depends on request
+// headers. Declare that explicitly so Next.js does not attempt static output.
+export const dynamic = 'force-dynamic';
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     await dbConnect();
@@ -186,4 +190,3 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ];
   }
 }
-

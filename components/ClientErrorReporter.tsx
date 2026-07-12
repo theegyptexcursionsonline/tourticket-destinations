@@ -11,6 +11,11 @@ import { useEffect } from 'react';
  */
 export default function ClientErrorReporter() {
   useEffect(() => {
+    const benignResizeObserverMessages = new Set([
+      'ResizeObserver loop completed with undelivered notifications.',
+      'ResizeObserver loop limit exceeded',
+    ]);
+
     const report = (payload: Record<string, unknown>) => {
       // Always log to browser console
       console.error('[ClientError]', payload);
@@ -34,6 +39,14 @@ export default function ClientErrorReporter() {
     };
 
     const handleError = (event: ErrorEvent) => {
+      // Chrome reports transient ResizeObserver scheduling pressure as a
+      // window error. Elfsight can trigger it while resizing its embedded
+      // review widget, but it does not represent an application failure.
+      if (benignResizeObserverMessages.has(event.message)) {
+        event.preventDefault();
+        return;
+      }
+
       report({
         type: 'unhandled_error',
         message: event.message,

@@ -5,7 +5,6 @@ import dbConnect from '@/lib/dbConnect';
 import Tour from '@/lib/models/Tour';
 import Review from '@/lib/models/Review';
 import User from '@/lib/models/user';
-import mongoose from 'mongoose';
 
 const reviewerNames = [
   { firstName: "Sarah", lastName: "Johnson" },
@@ -132,7 +131,7 @@ async function addStarReviewsToAllTours() {
       // Update tour rating
       try {
         const reviewStats = await Review.aggregate([
-          { $match: { tour: new mongoose.Types.ObjectId(tour._id as string) } },
+          { $match: { tour: tour._id } },
           {
             $group: {
               _id: null,

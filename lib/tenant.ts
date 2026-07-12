@@ -373,7 +373,7 @@ export async function getAllActiveTenants(): Promise<ITenant[]> {
     
     const tenants = await Tenant.find({ isActive: true })
       .sort({ name: 1 })
-      .lean() as ITenant[];
+      .lean<ITenant[]>();
     
     return tenants;
   } catch (error) {

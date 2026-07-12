@@ -323,12 +323,12 @@ export default function CategoryManager({ initialCategories }: { initialCategori
                                                     <Edit size={20} />
                                                 </button>
                                                 <button 
-                                                    onClick={() => handleDelete(cat._id as any, cat.name)} 
-                                                    disabled={isDeleting === cat._id}
+                                                    onClick={() => handleDelete(String(cat._id), cat.name)}
+                                                    disabled={isDeleting === String(cat._id)}
                                                     className="p-2 text-slate-500 hover:text-red-600 transition-colors rounded-lg hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
                                                     aria-label={`Delete ${cat.name}`}
                                                 >
-                                                    {isDeleting === cat._id ? (
+                                                    {isDeleting === String(cat._id) ? (
                                                         <Loader2 size={20} className="animate-spin" />
                                                     ) : (
                                                         <Trash2 size={20} />

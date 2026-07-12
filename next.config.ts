@@ -12,13 +12,13 @@ const contentSecurityPolicy = [
   "object-src 'none'",
   "frame-ancestors 'none'",
   "form-action 'self' https://checkout.stripe.com",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://maps.googleapis.com https://www.googletagmanager.com https://www.google-analytics.com https://connect.facebook.net https://static.elfsight.com https://elfsightcdn.com https://*.elfsightcdn.com https://*.intercom.io https://*.intercomcdn.com",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://maps.googleapis.com https://apis.google.com https://www.googletagmanager.com https://www.google-analytics.com https://connect.facebook.net https://static.elfsight.com https://elfsightcdn.com https://*.elfsightcdn.com https://*.intercom.io https://*.intercomcdn.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' data: https://fonts.gstatic.com https://*.intercomcdn.com",
   "img-src 'self' data: blob: https:",
   "media-src 'self' blob: https:",
   "connect-src 'self' https: wss:",
-  "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://www.google.com https://www.youtube.com https://static.elfsight.com https://*.intercom.io",
+  "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://www.google.com https://www.youtube.com https://egypt-excursionsonline.firebaseapp.com https://static.elfsight.com https://*.intercom.io",
   "worker-src 'self' blob:",
   "manifest-src 'self'",
   ...(process.env.NODE_ENV === 'production' ? ['upgrade-insecure-requests'] : []),
@@ -181,13 +181,6 @@ const nextConfig = {
       {
         // Static assets - long-term caching
         source: '/images/(.*)',
-        headers: [
-          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
-        ],
-      },
-      {
-        // Next.js static files - long-term caching
-        source: '/_next/static/(.*)',
         headers: [
           { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
         ],
