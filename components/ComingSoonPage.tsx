@@ -153,7 +153,7 @@ export default function ComingSoonPage({ tenant }: ComingSoonPageProps) {
   }, []);
 
   useEffect(() => {
-    const launchDate = new Date('2026-04-20T00:00:00').getTime();
+    const launchDate = new Date('2026-07-30T00:00:00').getTime();
 
     const calculateTimeLeft = () => {
       const now = new Date().getTime();
