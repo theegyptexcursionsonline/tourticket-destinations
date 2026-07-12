@@ -121,12 +121,15 @@
   },
   "pnpm": {
     "overrides": {
+      "@babel/core": "7.29.6",
+      "@tootallnate/once": "2.0.1",
       "@types/react": "19.0.10",
       "@types/react-dom": "19.0.4",
       "@types/request>form-data": "2.5.6",
       "baseline-browser-mapping": "2.10.43",
       "@grpc/grpc-js": "1.14.4",
       "axios": "1.18.1",
+      "diff": "4.0.4",
       "fast-xml-parser": "5.10.0",
       "glob": "10.5.0",
       "glob@10.5.0>minimatch": "9.0.7",
