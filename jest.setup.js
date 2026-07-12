@@ -1,6 +1,11 @@
 // Learn more: https://github.com/testing-library/jest-dom
 import '@testing-library/jest-dom'
 
+// Polyfill the Encoding API used by QR-code generation in jsdom.
+const { TextEncoder, TextDecoder } = require('util')
+if (!globalThis.TextEncoder) globalThis.TextEncoder = TextEncoder
+if (!globalThis.TextDecoder) globalThis.TextDecoder = TextDecoder
+
 // Polyfill Web Streams API (required by ai SDK / react-instantsearch)
 const { TransformStream, ReadableStream, WritableStream } = require('stream/web')
 if (!globalThis.TransformStream) globalThis.TransformStream = TransformStream

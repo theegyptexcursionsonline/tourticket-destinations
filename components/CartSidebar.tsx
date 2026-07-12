@@ -135,7 +135,7 @@ const CartSidebar: FC = () => {
                                     <AnimatePresence>
                                         {cart.map((item) => (
                                             <motion.li
-                                                key={item.uniqueId}
+                                                key={item.uniqueId || item.id || item._id}
                                                 layout
                                                 initial={{ opacity: 0, y: 20 }}
                                                 animate={{ opacity: 1, y: 0 }}

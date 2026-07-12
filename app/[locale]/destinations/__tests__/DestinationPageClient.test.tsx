@@ -35,6 +35,12 @@ jest.mock('@/components/Footer', () => {
   }
 })
 
+jest.mock('@/components/AISearchWidget', () => {
+  return function MockAISearchWidget() {
+    return <div data-testid="ai-search-widget" />
+  }
+})
+
 jest.mock('@/components/BookingSidebar', () => {
   return function MockBookingSidebar({ isOpen, onClose }: any) {
     if (!isOpen) return null
@@ -157,6 +163,7 @@ describe('DestinationPageClient', () => {
 
       expect(screen.getByTestId('header')).toBeInTheDocument()
       expect(screen.getByTestId('footer')).toBeInTheDocument()
+      expect(screen.getByTestId('ai-search-widget')).toBeInTheDocument()
     })
 
     it('should render destination name in hero', () => {

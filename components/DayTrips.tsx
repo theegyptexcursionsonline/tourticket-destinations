@@ -200,23 +200,13 @@ export default function DayTripsSection({ initialTours }: DayTripsSectionProps =
         };
 
         const url = '/api/tours/public';
-        console.info('[DayTrips] fetching', url);
         const response = await fetch(url, { headers, signal: controller.signal });
 
         const bodyText = await response.text();
 
-        // Always log raw body for debugging
-        console.debug('[DayTrips] raw response body:', bodyText);
-
         if (!response.ok) {
           let parsedBody: any = bodyText;
           try { parsedBody = JSON.parse(bodyText); } catch (_e) { /* keep text */ }
-          console.error('API call failed', {
-            url,
-            status: response.status,
-            statusText: response.statusText,
-            body: parsedBody,
-          });
           const shortBody = typeof parsedBody === 'string' ? parsedBody : JSON.stringify(parsedBody).slice(0, 300);
           setFetchError(`Server returned ${response.status} ${response.statusText}: ${shortBody}`);
           setTours([]);
@@ -226,7 +216,6 @@ export default function DayTripsSection({ initialTours }: DayTripsSectionProps =
         const data = bodyText ? JSON.parse(bodyText) : null;
         if (!data) {
           setFetchError('API returned no data.');
-          console.error('API returned empty response body for', url);
           setTours([]);
           return;
         }
@@ -272,16 +261,13 @@ export default function DayTripsSection({ initialTours }: DayTripsSectionProps =
           }
         } else {
           const errMsg = data?.error || 'API returned unexpected shape.';
-          console.error('[DayTrips] unexpected API shape', data);
           setFetchError(String(errMsg));
           setTours([]);
         }
       } catch (error: any) {
         if (error.name === 'AbortError') {
-          console.warn('[DayTrips] fetch aborted');
           return;
         }
-        console.error('Failed to fetch tours:', error);
         setFetchError(error?.message ? String(error.message) : 'Unknown error while fetching tours.');
         setTours([]);
       } finally {

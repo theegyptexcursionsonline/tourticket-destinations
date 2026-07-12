@@ -38,6 +38,12 @@ jest.mock('next/server', () => {
   };
 });
 
+// Route handlers normally receive these request-scoped helpers from Next.js.
+jest.mock('next/headers', () => ({
+  headers: jest.fn(async () => ({ get: jest.fn(() => null) })),
+  cookies: jest.fn(async () => ({ get: jest.fn(() => undefined) })),
+}));
+
 // Mock database connection
 jest.mock('@/lib/dbConnect', () => jest.fn().mockResolvedValue(undefined));
 

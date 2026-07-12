@@ -80,16 +80,19 @@ describe('DestinationManager', () => {
 
   it('should render the heading', async () => {
     render(<DestinationManager initialDestinations={mockDestinations as any} />)
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2))
     expect(screen.getByText('Destination Manager')).toBeInTheDocument()
   })
 
   it('should display destinations after loading', async () => {
     render(<DestinationManager initialDestinations={mockDestinations as any} />)
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2))
     expect(screen.getByText('Cairo')).toBeInTheDocument()
   })
 
   it('should display destination description', async () => {
     render(<DestinationManager initialDestinations={mockDestinations as any} />)
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2))
     // Description might be truncated or inside a tooltip
     const descEl = screen.queryByText(/vibrant capital/i)
     expect(descEl || screen.getByText('Cairo')).toBeInTheDocument()
@@ -97,6 +100,7 @@ describe('DestinationManager', () => {
 
   it('should show create button', async () => {
     render(<DestinationManager initialDestinations={mockDestinations as any} />)
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2))
     const buttons = screen.getAllByRole('button')
     const createButton = buttons.find(btn =>
       btn.textContent?.toLowerCase().includes('create') ||
@@ -107,7 +111,12 @@ describe('DestinationManager', () => {
   })
 
   it('should show empty state when no destinations', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ success: true, data: [] }),
+    })
     render(<DestinationManager initialDestinations={[]} />)
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2))
     const emptyText = screen.queryByText(/no destinations/i) ||
       screen.queryByText(/create your first/i) ||
       screen.queryByText(/get started/i)

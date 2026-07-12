@@ -259,7 +259,6 @@ export default function FeaturedTours() {
           setTours(validatedTours);
         } else throw new Error(data.error || 'API returned success: false');
       } catch (error: any) {
-        console.error('Failed to fetch tours:', error);
         setFetchError(error.message || 'Failed to fetch tours');
       } finally {
         setIsLoading(false);
