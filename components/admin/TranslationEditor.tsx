@@ -57,7 +57,7 @@ export default function TranslationEditor({
   const [activeLocale, setActiveLocale] = useState(translatableLocales[0]);
   const [isTranslating, setIsTranslating] = useState(false);
   const [localeStatuses, setLocaleStatuses] = useState<Record<string, LocaleStatus>>({});
-  const [currentLocale, setCurrentLocale] = useState('');
+  const [_currentLocale, setCurrentLocale] = useState('');
   const translationsRef = useRef<Record<string, Record<string, unknown>>>({});
 
   // Keep a stable ref to onChange so the streaming callback always uses the latest version

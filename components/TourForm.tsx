@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { useSettings } from '@/hooks/useSettings';
@@ -369,12 +370,12 @@ export default function TourForm({ tourToEdit, onSave, fullPage = false }: { tou
     //     handler accepts the form (see `handleSubmit`), so an empty default
     //     forces a conscious choice in "All Brands" mode instead of a silent
     //     assignment.
-    const getDefaultTenantId = () => {
+    const getDefaultTenantId = useCallback(() => {
         if (!isAllTenantsSelected() && selectedTenantId) {
             return selectedTenantId;
         }
         return '';
-    };
+    }, [isAllTenantsSelected, selectedTenantId]);
 
     const [formData, setFormData] = useState<TourFormData>(() => {
         const initial = getDefaultTenantId();
@@ -423,7 +424,7 @@ export default function TourForm({ tourToEdit, onSave, fullPage = false }: { tou
             const next = getDefaultTenantId();
             setFormData(prev => ({ ...prev, tenantId: next, tenantIds: [next] }));
         }
-    }, [tenants, selectedTenantId]);
+    }, [formData.tenantId, getDefaultTenantId, tenants, tourToEdit]);
 
     const [destinations, setDestinations] = useState<Destination[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
@@ -578,7 +579,7 @@ export default function TourForm({ tourToEdit, onSave, fullPage = false }: { tou
             }
         };
         fetchData();
-    }, [tourToEdit]);
+    }, [getDefaultTenantId, tourToEdit]);
 
     // Debug logging for attractions/interests
     useEffect(() => {
@@ -1552,11 +1553,14 @@ const addItineraryItem = () => {
                                             <FormLabel icon={ImageIcon}>Main Image</FormLabel>
                                             
                                             {formData.image ? (
-                                                <div className="group relative overflow-hidden rounded-2xl border-2 border-slate-200">
-                                                    <img 
+                                                <div className="group relative h-64 overflow-hidden rounded-2xl border-2 border-slate-200">
+                                                    <Image
                                                         src={formData.image} 
                                                         alt="Main tour preview" 
-                                                        className="w-full h-64 object-cover" 
+                                                        fill
+                                                        unoptimized
+                                                        sizes="(max-width: 768px) 100vw, 768px"
+                                                        className="object-cover"
                                                     />
                                                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
                                                         <button 
@@ -1631,11 +1635,14 @@ const addItineraryItem = () => {
                                             {formData.images.length > 0 ? (
                                                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                                                     {formData.images.map((img: string, i: number) => (
-                                                        <div key={i} className="relative group">
-                                                            <img 
+                                                        <div key={i} className="relative group h-32">
+                                                            <Image
                                                                 src={img} 
                                                                 alt={`Gallery ${i}`} 
-                                                                className="w-full h-32 object-cover rounded-xl border-2 border-slate-200 shadow-sm group-hover:shadow-md transition-all" 
+                                                                fill
+                                                                unoptimized
+                                                                sizes="(max-width: 768px) 50vw, 25vw"
+                                                                className="object-cover rounded-xl border-2 border-slate-200 shadow-sm group-hover:shadow-md transition-all"
                                                             />
                                                             <button 
                                                                 type="button" 

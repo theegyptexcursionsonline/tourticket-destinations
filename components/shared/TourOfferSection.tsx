@@ -140,7 +140,7 @@ const TourOfferSection: React.FC<TourOfferSectionProps> = ({
     };
     
     fetchOffers();
-  }, [tourId, travelDate, groupSize]);
+  }, [groupSize, onOfferApplied, tourId, travelDate]);
 
   if (loading) {
     return (
@@ -298,4 +298,3 @@ const TourOfferSection: React.FC<TourOfferSectionProps> = ({
 };
 
 export default TourOfferSection;
-

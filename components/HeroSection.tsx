@@ -233,10 +233,13 @@ function TourHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: 
               >
                 {tour.image && (
                   <div className="relative h-40 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 overflow-hidden">
-                    <img
+                    <Image
                       src={cdnImg(tour.image)}
                       alt={tour.title}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      fill
+                      unoptimized
+                      sizes="270px"
+                      className="object-cover group-hover:scale-110 transition-transform duration-500"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                     {tour.isFeatured && (
@@ -535,10 +538,13 @@ const TourCard = ({ tour }: { tour: any }) => {
   >
     {tour.image && (
       <div className="relative h-36 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 overflow-hidden">
-        <img
+        <Image
           src={cdnImg(tour.image)}
           alt={tour.title}
-          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+          fill
+          unoptimized
+          sizes="260px"
+          className="object-cover group-hover:scale-110 transition-transform duration-500"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         {tour.duration && (
@@ -744,10 +750,13 @@ const DestinationSlider = ({ destinations }: { destinations: any[] }) => {
           >
             {destination.image && (
               <div className="relative h-40 bg-gradient-to-br from-emerald-100 to-teal-100 overflow-hidden">
-                <img
+                <Image
                   src={cdnImg(destination.image)}
                   alt={destination.name}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                  fill
+                  unoptimized
+                  sizes="280px"
+                  className="object-cover group-hover:scale-110 transition-transform duration-300"
                 />
                 {destination.isFeatured && (
                   <div className="absolute top-3 start-3 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 shadow-md">
@@ -1249,7 +1258,7 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
       }
       return null;
     }).filter(Boolean);
-  }, [renderToolOutput, detectedToursByMessage, detectedDestinationsByMessage]);
+  }, [renderToolOutput, detectedToursByMessage, detectedDestinationsByMessage, t]);
 
   return (
     <div className="mt-8 lg:mt-10 w-full flex justify-center md:justify-start pointer-events-auto" ref={containerRef} style={{ position: 'relative', zIndex: 1000 }}>

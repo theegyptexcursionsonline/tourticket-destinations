@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation';
 import { Link } from '@/i18n/navigation';
 import { parseLocalDate } from '@/utils/date';
 import { useTenant } from '@/contexts/TenantContext';
+import Image from 'next/image';
 
 interface BookingDetails {
   bookingReference: string;
@@ -139,10 +140,13 @@ export default function BookingVerificationPage() {
           {/* Tour Image */}
           {booking.tour.image && (
             <div className="h-48 bg-gradient-to-r from-blue-600 to-purple-600 relative overflow-hidden">
-              <img 
+              <Image
                 src={booking.tour.image} 
                 alt={booking.tour.title}
-                className="w-full h-full object-cover opacity-80"
+                fill
+                unoptimized
+                sizes="(max-width: 768px) 100vw, 768px"
+                className="object-cover opacity-80"
               />
             </div>
           )}

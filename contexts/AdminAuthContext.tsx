@@ -37,13 +37,6 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    // Remove credentials written by versions that predated HTTP-only cookies.
-    localStorage.removeItem(STORAGE_TOKEN_KEY);
-    localStorage.removeItem('admin-user');
-    refreshUserWithToken().finally(() => setIsLoading(false));
-  }, []);
-
   const persistSession = useCallback((newUser: AdminUser) => {
     // This is deliberately not a credential. Existing admin components use
     // `token` only as an authenticated-state sentinel while fetch sends the
@@ -84,6 +77,13 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
     },
     [clearSession, persistSession],
   );
+
+  useEffect(() => {
+    // Remove credentials written by versions that predated HTTP-only cookies.
+    localStorage.removeItem(STORAGE_TOKEN_KEY);
+    localStorage.removeItem('admin-user');
+    refreshUserWithToken().finally(() => setIsLoading(false));
+  }, [refreshUserWithToken]);
 
   const login = useCallback(
     async (email: string, password: string) => {

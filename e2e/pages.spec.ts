@@ -40,7 +40,7 @@ test.describe('Full site page crawl', () => {
     expect(text).toContain('<loc>');
   });
 
-  test('sitemap pages all return 2xx', async ({ page, request }) => {
+  test('sitemap pages all return 2xx', async ({ request }) => {
     const sitemapRes = await request.get('/sitemap.xml');
     if (!sitemapRes.ok()) {
       test.skip();
@@ -64,7 +64,7 @@ test.describe('Full site page crawl', () => {
         if (res.status() >= 400) {
           failures.push(`[${res.status()}] ${url}`);
         }
-      } catch (err) {
+      } catch (_err) {
         failures.push(`[TIMEOUT] ${url}`);
       }
     }

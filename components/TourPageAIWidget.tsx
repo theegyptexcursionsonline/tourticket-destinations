@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, X, Search, MapPin, Clock, Compass, MessageCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { liteClient as algoliasearch } from 'algoliasearch/lite';
 import { InstantSearch, Index, useSearchBox, useHits, Configure } from 'react-instantsearch';
+import Image from 'next/image';
 import 'instantsearch.css/themes/satellite.css';
 
 // Algolia Config
@@ -70,10 +71,13 @@ function TourHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: 
             >
               {(hit.image || hit.images?.[0] || hit.primaryImage) && (
                 <div className="relative w-full h-32 overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-50">
-                  <img
+                  <Image
                     src={hit.image || hit.images?.[0] || hit.primaryImage}
                     alt={hit.title || 'Tour'}
-                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                    fill
+                    unoptimized
+                    sizes="240px"
+                    className="object-cover hover:scale-105 transition-transform duration-300"
                   />
                 </div>
               )}
@@ -274,7 +278,6 @@ export default function TourPageAIWidget() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search tours, destinations..."
-                    autoFocus
                     className="w-full ps-10 pe-4 py-2.5 text-sm font-medium text-gray-900 placeholder-gray-400 bg-white/90 outline-none rounded-xl border border-gray-200 focus:border-blue-400 transition-colors"
                   />
                   <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />

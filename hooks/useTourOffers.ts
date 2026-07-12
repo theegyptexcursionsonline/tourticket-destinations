@@ -139,9 +139,11 @@ export function useTourOffersBatch(
   const [error, setError] = useState<string | null>(null);
   
   const { enabled = true } = options;
+  const serializedTourIds = JSON.stringify(tourIds);
   
   const fetchOffers = useCallback(async () => {
-    if (!tourIds.length || !tenantId || !enabled) return;
+    const requestedTourIds = JSON.parse(serializedTourIds) as string[];
+    if (!requestedTourIds.length || !tenantId || !enabled) return;
     
     setLoading(true);
     setError(null);
@@ -150,7 +152,7 @@ export function useTourOffersBatch(
       const response = await fetch('/api/offers/batch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tourIds, tenantId }),
+        body: JSON.stringify({ tourIds: requestedTourIds, tenantId }),
       });
       
       const result = await response.json();
@@ -170,7 +172,7 @@ export function useTourOffersBatch(
     } finally {
       setLoading(false);
     }
-  }, [tourIds.join(','), tenantId, enabled]);
+  }, [enabled, serializedTourIds, tenantId]);
   
   useEffect(() => {
     fetchOffers();
@@ -198,4 +200,3 @@ export function useTourOffersBatch(
 
 // Default export
 export default useTourOffer;
-

@@ -115,7 +115,7 @@ function loadModels() {
     if (!mongoose.models[name]) {
       try {
         require(path);
-      } catch (e) {
+      } catch (_e) {
         // Model may already be registered by import
       }
     }

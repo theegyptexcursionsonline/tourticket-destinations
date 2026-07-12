@@ -19,10 +19,6 @@ test.describe('Homepage', () => {
     // Wait for tours to load
     await page.waitForTimeout(2000);
 
-    // Look for tour cards by common patterns
-    const tourCards = page.locator(
-      'a[href*="/"] >> .tour-card, [class*="tour-card"], [class*="TourCard"], [class*="card"]',
-    );
     const cardLinks = page.locator('a[href]:has(img)');
 
     const count = await cardLinks.count();

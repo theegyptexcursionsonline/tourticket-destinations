@@ -4,6 +4,7 @@
 // Admin page for managing tenants (brands/websites)
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import Image from 'next/image';
 import {
   Plus,
   Search,
@@ -394,9 +395,12 @@ function TenantsPage() {
                   <div className="flex items-center gap-4">
                     {tenant.branding?.logo ? (
                       <div className="h-14 w-14 rounded-2xl bg-white shadow ring-1 ring-slate-100 flex items-center justify-center overflow-hidden">
-                        <img
+                        <Image
                           src={tenant.branding.logo}
                           alt={tenant.name}
+                          width={48}
+                          height={48}
+                          unoptimized
                           className="h-12 w-12 object-contain"
                         />
                       </div>
@@ -798,4 +802,3 @@ function CreateTenantModal({ onClose, onSuccess }: { onClose: () => void; onSucc
     </div>
   );
 }
-

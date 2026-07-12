@@ -14,6 +14,7 @@ import { Sparkles, MapPin, Clock, Star } from 'lucide-react';
 import 'instantsearch.css/themes/satellite.css';
 import { Link } from '@/i18n/navigation';
 import { useTranslations } from 'next-intl';
+import Image from 'next/image';
 
 const ALGOLIA_APP_ID = process.env.NEXT_PUBLIC_ALGOLIA_APP_ID || '1F31U1NOMS';
 const ALGOLIA_SEARCH_KEY = process.env.NEXT_PUBLIC_ALGOLIA_SEARCH_API_KEY || '90dc77f33842e5ca1ad27ba3e42bbc50';
@@ -34,10 +35,13 @@ function TourHit({ hit }: { hit: any }) {
         {/* Tour Image */}
         {hit.image && (
           <div className="relative w-full h-48 rounded-lg overflow-hidden mb-4">
-            <img
+            <Image
               src={hit.image}
               alt={hit.title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              fill
+              unoptimized
+              sizes="(max-width: 768px) 100vw, 33vw"
+              className="object-cover group-hover:scale-105 transition-transform duration-300"
             />
             {hit.isFeatured && (
               <div className="absolute top-3 end-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-3 py-1 rounded-full text-xs font-bold">

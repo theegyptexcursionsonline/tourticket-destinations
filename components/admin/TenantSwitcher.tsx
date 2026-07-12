@@ -6,6 +6,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ChevronDown, Globe, Check, Search, Plus, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 interface Tenant {
   tenantId: string;
@@ -121,9 +122,12 @@ export default function TenantSwitcher({
       >
         {/* Icon/Logo */}
         {selectedTenant?.branding?.logo ? (
-          <img 
+          <Image
             src={selectedTenant.branding.logo} 
             alt="" 
+            width={24}
+            height={24}
+            unoptimized
             className="w-6 h-6 rounded object-contain"
           />
         ) : selectedTenant ? (
@@ -161,7 +165,6 @@ export default function TenantSwitcher({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full ps-9 pe-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                autoFocus
               />
             </div>
           </div>
@@ -218,9 +221,12 @@ export default function TenantSwitcher({
                     >
                       {/* Logo/Avatar */}
                       {tenant.branding?.logo ? (
-                        <img 
+                        <Image
                           src={tenant.branding.logo} 
                           alt="" 
+                          width={32}
+                          height={32}
+                          unoptimized
                           className="w-8 h-8 rounded-lg object-contain border border-gray-100"
                         />
                       ) : (
@@ -308,4 +314,3 @@ export function useAdminTenant() {
   
   return { tenantId, changeTenant };
 }
-

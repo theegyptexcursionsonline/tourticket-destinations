@@ -654,7 +654,6 @@ const TeamPage = () => {
                   className="w-full px-4 py-3 pe-12 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
                   placeholder="Enter new password (min 8 characters)"
                   disabled={passwordResetModal.isResetting}
-                  autoFocus
                 />
                 <button
                   type="button"
@@ -718,4 +717,3 @@ const TeamPage = () => {
 };
 
 export default withAuth(TeamPage, { permissions: ['manageUsers'] });
-

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -10,6 +10,7 @@ import {
     ArrowLeft, Edit, PlusCircle, Minus, HelpCircle
 } from 'lucide-react';
 import { AttractionPageFormData, Category } from '@/types';
+import Image from 'next/image';
 
 interface AttractionPageFormProps {
   pageId?: string;
@@ -80,16 +81,6 @@ export default function AttractionPageForm({ pageId }: AttractionPageFormProps) 
   const [error, setError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
-  useEffect(() => {
-    fetchCategories();
-    fetchTours();
-    if (pageId) {
-      fetchPageData();
-    } else {
-      setIsPanelOpen(true); // Auto-open for new pages
-    }
-  }, [pageId]);
-
   const fetchTours = async () => {
     try {
       const response = await fetch('/api/admin/tours');
@@ -118,7 +109,7 @@ export default function AttractionPageForm({ pageId }: AttractionPageFormProps) 
     }
   };
 
-  const fetchPageData = async () => {
+  const fetchPageData = useCallback(async () => {
     if (!pageId) return;
     
     setLoading(true);
@@ -164,7 +155,17 @@ export default function AttractionPageForm({ pageId }: AttractionPageFormProps) 
     } finally {
       setLoading(false);
     }
-  };
+  }, [pageId]);
+
+  useEffect(() => {
+    fetchCategories();
+    fetchTours();
+    if (pageId) {
+      fetchPageData();
+    } else {
+      setIsPanelOpen(true); // Auto-open for new pages
+    }
+  }, [fetchPageData, pageId]);
 
   const generateSlug = (title: string) => {
     return title
@@ -585,11 +586,14 @@ export default function AttractionPageForm({ pageId }: AttractionPageFormProps) 
                           <FormLabel icon={Camera} required>Hero Image</FormLabel>
                           
                           {formData.heroImage ? (
-                            <div className="group relative overflow-hidden rounded-2xl border-2 border-slate-200">
-                              <img 
+                            <div className="group relative h-64 overflow-hidden rounded-2xl border-2 border-slate-200">
+                              <Image
                                 src={formData.heroImage} 
                                 alt="Hero preview" 
-                                className="w-full h-64 object-cover" 
+                                fill
+                                unoptimized
+                                sizes="(max-width: 768px) 100vw, 768px"
+                                className="object-cover"
                               />
                               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
                                 <button 
@@ -663,11 +667,14 @@ export default function AttractionPageForm({ pageId }: AttractionPageFormProps) 
                           {formData.images.length > 0 ? (
                             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                               {formData.images.map((img, i) => (
-                                <div key={i} className="relative group">
-                                  <img 
+                                <div key={i} className="relative group h-32">
+                                  <Image
                                     src={img} 
                                     alt={`Gallery ${i}`} 
-                                    className="w-full h-32 object-cover rounded-xl border-2 border-slate-200 shadow-sm group-hover:shadow-md transition-all" 
+                                    fill
+                                    unoptimized
+                                    sizes="(max-width: 768px) 50vw, 25vw"
+                                    className="object-cover rounded-xl border-2 border-slate-200 shadow-sm group-hover:shadow-md transition-all"
                                   />
                                   <button 
                                     type="button" 

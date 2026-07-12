@@ -1,8 +1,8 @@
 'use client';
 
-import { useLocale, useTranslations } from 'next-intl';
+import { useLocale } from 'next-intl';
 import { useRouter, usePathname } from '@/i18n/navigation';
-import { routing, type Locale } from '@/i18n/routing';
+import { type Locale } from '@/i18n/routing';
 import { useState, useRef, useEffect } from 'react';
 
 interface LanguageOption {

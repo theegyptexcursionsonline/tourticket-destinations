@@ -750,65 +750,6 @@ const handleDownloadReceipt = async () => {
 
   try {
     const orderId = lastOrderId ?? `ORD-${Date.now()}`;
-
-    const pricingForPdf = {
-      subtotal: pricing.subtotal,
-      serviceFee: pricing.serviceFee,
-      tax: pricing.tax,
-      discount: pricing.discount,
-      total: pricing.total,
-      currency: pricing.currency,
-      symbol: pricing.symbol,
-    };
-
-    const orderedItemsForPdf = orderedItems.map((item) => {
-      const getItemTotal = (item: CartItem) => {
-        const basePrice = item.selectedBookingOption?.price || item.discountPrice || item.price || 0;
-        const adultPrice = basePrice * (item.quantity || 1);
-        const childPrice = (basePrice / 2) * (item.childQuantity || 0);
-        let tourTotal = adultPrice + childPrice;
-
-        let addOnsTotal = 0;
-        if (item.selectedAddOns && item.selectedAddOnDetails) {
-          Object.entries(item.selectedAddOns).forEach(([addOnId, quantity]) => {
-            const addOnDetail = item.selectedAddOnDetails?.[addOnId];
-            if (addOnDetail && quantity > 0) {
-              const totalGuests = (item.quantity || 0) + (item.childQuantity || 0);
-              const addOnQuantity = addOnDetail.perGuest ? totalGuests : 1;
-              addOnsTotal += addOnDetail.price * addOnQuantity;
-            }
-          });
-        }
-
-        return tourTotal + addOnsTotal;
-      };
-
-      return {
-        ...item,
-        totalPrice: getItemTotal(item),
-        finalPrice: getItemTotal(item),
-      };
-    });
-
-    const customerForPdf = {
-      name: customer ? `${customer.firstName ?? ''} ${customer.lastName ?? ''}`.trim() : 'Guest',
-      email: customer?.email,
-      phone: customer?.phone,
-    };
-
-    const firstItem = orderedItems[0];
-    const bookingForPdf = {
-      date: formatBookingDate(firstItem?.selectedDate),
-      time: firstItem?.selectedTime,
-      guests: orderedItems.reduce((sum, item) =>
-        sum + (item.quantity || 0) + (item.childQuantity || 0) + (item.infantQuantity || 0), 0
-      ),
-      specialRequests: customer?.specialRequests ?? '',
-    };
-
-    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://egypt-excursionsonline.com';
-    const qrData = `${baseUrl}/booking/verify/${orderId}`;
-
     if (!receiptToken) throw new Error('Receipt authorization is unavailable');
 
     const res = await fetch('/api/checkout/receipt', {

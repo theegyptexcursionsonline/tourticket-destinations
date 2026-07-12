@@ -109,8 +109,8 @@ const AvailabilityPage = () => {
         const data = await response.json();
         if (data.success) {
           setTours(data.data || []);
-          if (data.data?.length > 0 && !selectedTour) {
-            setSelectedTour(data.data[0]._id);
+          if (data.data?.length > 0) {
+            setSelectedTour((currentTour) => currentTour || data.data[0]._id);
           }
         }
       } catch (error) {

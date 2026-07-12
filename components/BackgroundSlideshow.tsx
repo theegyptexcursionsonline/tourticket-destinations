@@ -1,5 +1,6 @@
 // components/BackgroundSlideshow.tsx (Updated version)
 import React, { useState, useRef, useEffect } from 'react';
+import Image from 'next/image';
 
 const BackgroundSlideshow = ({ 
   slides = [], 
@@ -60,7 +61,7 @@ const BackgroundSlideshow = ({
               transform: visible ? 'scale(1)' : 'scale(1.02)',
             }}
           >
-            <img src={s.src} alt={s.alt} className="w-full h-full object-cover" />
+            <Image src={s.src} alt={s.alt} fill unoptimized sizes="100vw" className="object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent pointer-events-none" />
           </div>
         );

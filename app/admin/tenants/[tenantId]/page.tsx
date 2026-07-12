@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
+import Image from 'next/image';
 import { 
   ArrowLeft, Save, Globe, Palette, Mail, Phone, 
   Facebook, Twitter, Instagram, Youtube, Linkedin,
@@ -807,7 +808,7 @@ function BrandingTab({ tenant, updateField }: { tenant: TenantData; updateField:
             <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Preview</div>
             <div className="mt-3 flex items-center gap-3">
               {tenant.branding?.logo ? (
-                <img src={tenant.branding.logo} alt="Logo preview" className="h-10 w-auto object-contain" />
+                <Image src={tenant.branding.logo} alt="Logo preview" width={160} height={40} unoptimized className="h-10 w-auto object-contain" />
               ) : (
                 <div className="h-10 w-10 rounded-2xl bg-slate-100 border border-slate-200" />
               )}
@@ -1602,4 +1603,3 @@ function HomepageTab({ tenant, updateField }: { tenant: TenantData; updateField:
     </div>
   );
 }
-

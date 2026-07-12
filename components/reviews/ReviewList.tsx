@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Review } from '@/types';
 import toast from 'react-hot-toast';
 import { useTranslations } from 'next-intl';
+import Image from 'next/image';
 
 interface ReviewListProps {
   reviews: Review[];
@@ -153,10 +154,13 @@ const ReviewList: React.FC<ReviewListProps> = ({ reviews, onReviewUpdated, onRev
             <div className="flex items-start gap-4">
               <div className="flex-shrink-0">
                 {(review.user as any)?.picture ? (
-                  <img
+                  <Image
                     className="h-10 w-10 rounded-full object-cover ring-1 ring-gray-200"
                     src={(review.user as any).picture}
                     alt={(review.user as any).name || 'Reviewer avatar'}
+                    width={40}
+                    height={40}
+                    unoptimized
                   />
                 ) : (
                   <div className="h-10 w-10 rounded-full bg-white flex items-center justify-center ring-1 ring-gray-200">

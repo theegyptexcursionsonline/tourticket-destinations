@@ -6,6 +6,7 @@
 import React from 'react';
 import { Globe, ChevronDown } from 'lucide-react';
 import { useAdminTenant, ALL_TENANTS_VALUE } from '@/contexts/AdminTenantContext';
+import Image from 'next/image';
 
 interface TenantSelectorProps {
   variant?: 'header' | 'sidebar' | 'compact';
@@ -102,9 +103,12 @@ export default function TenantSelector({ variant = 'header', className = '' }: T
       {selectedTenant && (
         <div className="hidden xl:flex items-center gap-2 px-3 py-2 bg-white rounded-2xl border border-slate-200 max-w-[220px] min-w-0">
           {selectedTenant.branding?.logo ? (
-            <img
+            <Image
               src={selectedTenant.branding.logo}
               alt={selectedTenant.name}
+              width={24}
+              height={24}
+              unoptimized
               className="w-6 h-6 object-contain"
             />
           ) : (

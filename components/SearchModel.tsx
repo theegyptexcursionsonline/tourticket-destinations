@@ -195,7 +195,6 @@ const SearchModal: FC<{ onClose: () => void; onSearch: (term: string) => void; }
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
                                         placeholder="Ask me anything... e.g., 'Find romantic sunset cruises in Cairo'"
-                                        autoFocus
                                         className="w-full text-sm sm:text-base md:text-lg ps-12 sm:ps-16 pe-12 sm:pe-6 py-4 sm:py-5 bg-white/80 backdrop-blur-sm border-2 border-slate-200 rounded-xl sm:rounded-2xl focus:outline-none focus:border-red-500 focus:bg-white focus:shadow-xl transition-all placeholder:text-slate-400"
                                     />
                                     {searchQuery && (

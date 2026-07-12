@@ -9,7 +9,7 @@ jest.mock('@/contexts/TenantContext', () => ({
 }))
 
 jest.mock('next/image', () => {
-  return function MockNextImage({ alt, src, fill, priority, ...props }: any) {
+  return function MockNextImage({ alt, src, fill: _fill, priority: _priority, unoptimized: _unoptimized, ...props }: any) {
     return <img alt={alt} src={src} {...props} />
   }
 })

@@ -193,14 +193,18 @@ const Lightbox = ({ images, selectedIndex, onClose }: { images: string[], select
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowRight') nextImage();
-      if (e.key === 'ArrowLeft') prevImage();
+      if (e.key === 'ArrowRight') {
+        setCurrentIndex((prevIndex) => (prevIndex + 1) % images.length);
+      }
+      if (e.key === 'ArrowLeft') {
+        setCurrentIndex((prevIndex) => (prevIndex - 1 + images.length) % images.length);
+      }
       if (e.key === 'Escape') onClose();
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [images.length, onClose]);
 
   return (
     <motion.div
@@ -994,9 +998,7 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
   const { tenant } = useTenant();
   const t = useTranslations('tour');
   const tCommon = useTranslations('common');
-  const tPrice = useTranslations('price');
   const tWishlist = useTranslations('wishlist');
-  const tReviews = useTranslations('reviews');
   const [isBookingSidebarOpen, setBookingSidebarOpen] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const { addToWishlist, removeFromWishlist, isWishlisted } = useWishlist();

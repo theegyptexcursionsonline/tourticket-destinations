@@ -44,6 +44,46 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [isAuthenticated]);
 
+    // Sync to server helper
+    const syncToServer = useCallback(async (items: CartItem[]) => {
+        if (!isAuthenticated || !token) return;
+
+        try {
+            const serverCart = items.map(item => ({
+                id: item._id || item.id,
+                tourId: item._id || item.id,
+                tourSlug: item.slug,
+                tourTitle: item.title,
+                tourImage: (item.images?.[0] as any)?.url,
+                selectedDate: item.selectedDate,
+                selectedTime: item.selectedTime,
+                quantity: item.quantity,
+                childQuantity: item.childQuantity,
+                adultPrice: (item as any).pricing?.adult || 0,
+                childPrice: (item as any).pricing?.child || 0,
+                selectedAddOns: item.selectedAddOnDetails ?
+                    Object.values(item.selectedAddOnDetails).map(addon => ({
+                        id: addon.id,
+                        name: addon.title,
+                        price: addon.price,
+                        quantity: item.selectedAddOns?.[addon.id] || 1,
+                    })) : [],
+                uniqueId: item.uniqueId,
+            }));
+
+            await fetch('/api/user/cart', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify({ cart: serverCart }),
+            });
+        } catch (error) {
+            console.error('Failed to sync cart to server:', error);
+        }
+    }, [isAuthenticated, token]);
+
     // Sync cart from server when user logs in
     useEffect(() => {
         const syncFromServer = async () => {
@@ -105,48 +145,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         };
 
         syncFromServer();
-    }, [isAuthenticated, token, hasSyncedFromServer]);
-
-    // Sync to server helper
-    const syncToServer = useCallback(async (items: CartItem[]) => {
-        if (!isAuthenticated || !token) return;
-
-        try {
-            // Transform CartItem to server format
-            const serverCart = items.map(item => ({
-                id: item._id || item.id,
-                tourId: item._id || item.id,
-                tourSlug: item.slug,
-                tourTitle: item.title,
-                tourImage: (item.images?.[0] as any)?.url,
-                selectedDate: item.selectedDate,
-                selectedTime: item.selectedTime,
-                quantity: item.quantity,
-                childQuantity: item.childQuantity,
-                adultPrice: (item as any).pricing?.adult || 0,
-                childPrice: (item as any).pricing?.child || 0,
-                selectedAddOns: item.selectedAddOnDetails ?
-                    Object.values(item.selectedAddOnDetails).map(addon => ({
-                        id: addon.id,
-                        name: addon.title,
-                        price: addon.price,
-                        quantity: item.selectedAddOns?.[addon.id] || 1,
-                    })) : [],
-                uniqueId: item.uniqueId,
-            }));
-
-            await fetch('/api/user/cart', {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`,
-                },
-                body: JSON.stringify({ cart: serverCart }),
-            });
-        } catch (error) {
-            console.error('Failed to sync cart to server:', error);
-        }
-    }, [isAuthenticated, token]);
+    }, [hasSyncedFromServer, isAuthenticated, syncToServer, token]);
 
     // Save to localStorage (for guests) whenever cart changes
     useEffect(() => {

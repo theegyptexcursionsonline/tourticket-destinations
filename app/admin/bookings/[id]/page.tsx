@@ -1,7 +1,7 @@
 // app/admin/bookings/[id]/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useParams } from 'next/navigation';
 import withAuth from '@/components/admin/withAuth';
@@ -213,7 +213,7 @@ const BookingDetailPage = () => {
     }
   }, [booking]);
 
-  const fetchBooking = async () => {
+  const fetchBooking = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -237,13 +237,13 @@ const BookingDetailPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, tenantQuery, token]);
 
   useEffect(() => {
     if (id) {
       fetchBooking();
     }
-  }, [id]);
+  }, [fetchBooking, id]);
 
   // Initialize manual edit form when booking loads
   useEffect(() => {

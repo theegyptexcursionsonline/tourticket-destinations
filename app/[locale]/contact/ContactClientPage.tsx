@@ -12,6 +12,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useTenant } from '@/contexts/TenantContext';
 import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 
 // Extend Window interface for reCAPTCHA
 declare global {
@@ -536,9 +537,9 @@ export default function ContactClientPage() {
 
                     <p className="text-xs text-slate-500 text-center leading-relaxed">
                       {t('contact.privacyConsent')}{' '}
-                      <a href="/privacy" className="text-red-600 hover:text-red-700 font-medium underline">{t('contact.privacyPolicy')}</a>
+                      <Link href="/privacy" className="text-red-600 hover:text-red-700 font-medium underline">{t('contact.privacyPolicy')}</Link>
                       {' '}{t('common.and')}{' '}
-                      <a href="/terms" className="text-red-600 hover:text-red-700 font-medium underline">{t('contact.termsOfService')}</a>.
+                      <Link href="/terms" className="text-red-600 hover:text-red-700 font-medium underline">{t('contact.termsOfService')}</Link>.
                     </p>
 
                     {process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY && (
@@ -792,5 +793,4 @@ export default function ContactClientPage() {
     </div>
   );
 }
-
 

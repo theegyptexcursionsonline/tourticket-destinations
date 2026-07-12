@@ -318,6 +318,19 @@ function getTenantIdFromCookie(): string {
   return 'default';
 }
 
+function adjustColor(hex: string, percent: number): string {
+  const num = parseInt(hex.replace('#', ''), 16);
+  const amt = Math.round(2.55 * percent);
+  const red = (num >> 16) + amt;
+  const green = (num >> 8 & 0x00FF) + amt;
+  const blue = (num & 0x0000FF) + amt;
+  return '#' + (0x1000000 +
+    (red < 255 ? red < 0 ? 0 : red : 255) * 0x10000 +
+    (green < 255 ? green < 0 ? 0 : green : 255) * 0x100 +
+    (blue < 255 ? blue < 0 ? 0 : blue : 255)
+  ).toString(16).slice(1);
+}
+
 // ============================================
 // PROVIDER COMPONENT
 // ============================================
@@ -338,47 +351,8 @@ export const TenantProvider: React.FC<TenantProviderProps> = ({
   const [isLoading, setIsLoading] = useState(!initialTenant);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch tenant configuration from API
-  const fetchTenantConfig = useCallback(async (id: string) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      const response = await fetch(`/api/tenant/current?tenantId=${id}`);
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch tenant configuration');
-      }
-      
-      const data = await response.json();
-      
-      if (data.success && data.tenant) {
-        setTenant(data.tenant);
-        setTenantId(data.tenant.tenantId);
-        
-        // Apply CSS variables for branding and theme
-        applyBrandingStyles(data.tenant.branding, data.tenant.tenantId, data.tenant.theme);
-      } else {
-        // Use default config if tenant not found
-        setTenant(DEFAULT_TENANT_CONFIG);
-        setTenantId('default');
-        applyBrandingStyles(DEFAULT_TENANT_CONFIG.branding, 'default', DEFAULT_TENANT_CONFIG.theme);
-      }
-    } catch (err) {
-      console.error('Error fetching tenant config:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load tenant configuration');
-      
-      // Fall back to default config
-      setTenant(DEFAULT_TENANT_CONFIG);
-      setTenantId('default');
-      applyBrandingStyles(DEFAULT_TENANT_CONFIG.branding, 'default', DEFAULT_TENANT_CONFIG.theme);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
   // Apply branding styles as CSS variables
-  const applyBrandingStyles = (branding: TenantBranding, currentTenantId?: string, theme?: TenantThemeConfig) => {
+  const applyBrandingStyles = useCallback((branding: TenantBranding, currentTenantId?: string, theme?: TenantThemeConfig) => {
     if (typeof document === 'undefined') return;
     
     const root = document.documentElement;
@@ -552,21 +526,41 @@ export const TenantProvider: React.FC<TenantProviderProps> = ({
         favicon.href = branding.favicon;
       }
     }
-  };
-  
-  // Helper: Adjust color brightness
-  const adjustColor = (hex: string, percent: number): string => {
-    const num = parseInt(hex.replace('#', ''), 16);
-    const amt = Math.round(2.55 * percent);
-    const R = (num >> 16) + amt;
-    const G = (num >> 8 & 0x00FF) + amt;
-    const B = (num & 0x0000FF) + amt;
-    return '#' + (0x1000000 + 
-      (R < 255 ? R < 0 ? 0 : R : 255) * 0x10000 + 
-      (G < 255 ? G < 0 ? 0 : G : 255) * 0x100 + 
-      (B < 255 ? B < 0 ? 0 : B : 255)
-    ).toString(16).slice(1);
-  };
+  }, []);
+
+  // Fetch tenant configuration from API
+  const fetchTenantConfig = useCallback(async (id: string) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const response = await fetch(`/api/tenant/current?tenantId=${id}`);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch tenant configuration');
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.tenant) {
+        setTenant(data.tenant);
+        setTenantId(data.tenant.tenantId);
+        applyBrandingStyles(data.tenant.branding, data.tenant.tenantId, data.tenant.theme);
+      } else {
+        setTenant(DEFAULT_TENANT_CONFIG);
+        setTenantId('default');
+        applyBrandingStyles(DEFAULT_TENANT_CONFIG.branding, 'default', DEFAULT_TENANT_CONFIG.theme);
+      }
+    } catch (err) {
+      console.error('Error fetching tenant config:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load tenant configuration');
+      setTenant(DEFAULT_TENANT_CONFIG);
+      setTenantId('default');
+      applyBrandingStyles(DEFAULT_TENANT_CONFIG.branding, 'default', DEFAULT_TENANT_CONFIG.theme);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [applyBrandingStyles]);
 
   // Initialize tenant on mount
   useEffect(() => {
@@ -581,7 +575,7 @@ export const TenantProvider: React.FC<TenantProviderProps> = ({
     const effectiveTenantId = initialTenantId || cookieTenantId;
     
     fetchTenantConfig(effectiveTenantId);
-  }, [initialTenant, initialTenantId, fetchTenantConfig]);
+  }, [applyBrandingStyles, fetchTenantConfig, initialTenant, initialTenantId]);
 
   // Refresh tenant configuration
   const refreshTenant = useCallback(async () => {
@@ -763,4 +757,3 @@ export type {
   TenantContextType,
   TenantProviderProps,
 };
-

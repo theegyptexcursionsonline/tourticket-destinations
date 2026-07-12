@@ -169,8 +169,6 @@ const LanguageDropdown: React.FC<{
   const router = useRouter();
   const pathname = usePathname();
 
-  const currentLocaleData = LOCALE_DATA[locale] || LOCALE_DATA.en;
-
   // Close on click outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

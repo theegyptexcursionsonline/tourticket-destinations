@@ -238,12 +238,15 @@ function TourHits({
         >
           <div className="absolute inset-0 bg-gradient-to-r from-blue-500/0 via-indigo-500/0 to-purple-500/0 group-hover:from-blue-500/5 group-hover:via-indigo-500/5 group-hover:to-purple-500/5 transition-all duration-500" />
           <div className="flex items-center gap-2.5 md:gap-4 relative z-10">
-            <div className="w-14 md:w-20 h-14 md:h-20 rounded-xl md:rounded-2xl flex-shrink-0 overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-100 shadow-sm group-hover:shadow-xl group-hover:scale-105 transition-all duration-300 ring-1 ring-black/5">
+            <div className="relative w-14 md:w-20 h-14 md:h-20 rounded-xl md:rounded-2xl flex-shrink-0 overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-100 shadow-sm group-hover:shadow-xl group-hover:scale-105 transition-all duration-300 ring-1 ring-black/5">
               {(hit.image || hit.images?.[0] || hit.primaryImage) ? (
-                <img
+                <Image
                   src={hit.image || hit.images?.[0] || hit.primaryImage}
                   alt={hit.title || 'Tour'}
-                  className="w-full h-full object-cover"
+                  fill
+                  unoptimized
+                  sizes="(max-width: 768px) 56px, 80px"
+                  className="object-cover"
                   onError={(e) => {
                     e.currentTarget.style.display = 'none';
                     e.currentTarget.parentElement!.innerHTML = '<div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-100 to-indigo-200"><svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg></div>';
@@ -499,10 +502,13 @@ const TourCard = ({ tour }: { tour: any }) => (
   >
     {tour.image && (
       <div className="relative h-32 bg-gradient-to-br from-blue-100 to-purple-100 overflow-hidden">
-        <img
+        <Image
           src={tour.image}
           alt={tour.title}
-          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+          fill
+          unoptimized
+          sizes="240px"
+          className="object-cover group-hover:scale-110 transition-transform duration-300"
         />
         {tour.duration && (
           <div className="absolute top-2 end-2 bg-white/90 backdrop-blur-sm px-2 py-0.5 rounded-lg text-[10px] font-medium">
@@ -789,7 +795,6 @@ const MobileInlineSearch: FC<{ isOpen: boolean; onClose: () => void }> = React.m
                     placeholder={chatMode ? "Ask AI about tours..." : "Search tours, destinations..."}
                     className={`w-full ps-14 pe-32 py-4 text-base text-black placeholder:text-gray-500 placeholder:font-normal font-medium bg-transparent outline-none rounded-full ${rtl ? 'text-right' : 'text-left'}`}
                     style={{ color: '#111827', WebkitTextFillColor: '#111827', caretColor: '#111827' }}
-                    autoFocus
                     disabled={chatMode && isGenerating}
                   />
 

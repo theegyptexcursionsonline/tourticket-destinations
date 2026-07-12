@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
+import Image from 'next/image';
 import {
   PlusCircle,
   Edit,
@@ -615,10 +616,13 @@ export default function BlogManager({ initialBlogs }: { initialBlogs: IBlog[] })
           >
             {/* Image Container */}
             <div className="relative h-48 overflow-hidden">
-              <img
+              <Image
                 src={blog.featuredImage}
                 alt={blog.title}
-                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                fill
+                unoptimized
+                sizes="(max-width: 768px) 100vw, 33vw"
+                className="object-cover transition-transform duration-500 group-hover:scale-110"
               />
 
               {/* Gradient Overlay */}
@@ -993,11 +997,14 @@ export default function BlogManager({ initialBlogs }: { initialBlogs: IBlog[] })
 
                       <div className="relative">
                         {formData.featuredImage ? (
-                          <div className="group relative overflow-hidden rounded-2xl border-2 border-slate-200">
-                            <img
+                          <div className="group relative h-64 overflow-hidden rounded-2xl border-2 border-slate-200">
+                            <Image
                               src={formData.featuredImage}
                               alt="Featured image preview"
-                              className="w-full h-64 object-cover"
+                              fill
+                              unoptimized
+                              sizes="(max-width: 768px) 100vw, 768px"
+                              className="object-cover"
                             />
                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
                               <button
@@ -1076,11 +1083,14 @@ export default function BlogManager({ initialBlogs }: { initialBlogs: IBlog[] })
 
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         {formData.images.map((image, index) => (
-                          <div key={index} className="group relative overflow-hidden rounded-xl border-2 border-slate-200">
-                            <img
+                          <div key={index} className="group relative h-32 overflow-hidden rounded-xl border-2 border-slate-200">
+                            <Image
                               src={image}
                               alt={`Additional image ${index + 1}`}
-                              className="w-full h-32 object-cover"
+                              fill
+                              unoptimized
+                              sizes="(max-width: 768px) 50vw, 33vw"
+                              className="object-cover"
                             />
                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
                               <button

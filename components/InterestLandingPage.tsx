@@ -452,7 +452,7 @@ export default function InterestLandingPage({ interest }: InterestLandingPagePro
   const [selectedDuration, setSelectedDuration] = useState('');
   const [priceRange, setPriceRange] = useState('');
 
-  const availableTours = interest.tours || [];
+  const availableTours = React.useMemo(() => interest.tours || [], [interest.tours]);
 
   // Filter and sort tours
   const filteredAndSortedTours = React.useMemo(() => {

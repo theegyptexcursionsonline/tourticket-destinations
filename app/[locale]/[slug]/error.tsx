@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { Link } from '@/i18n/navigation';
 
 export default function TourDetailError({
   error,
@@ -38,12 +39,12 @@ export default function TourDetailError({
           >
             Try Again
           </button>
-          <a
+          <Link
             href="/"
             className="px-6 py-2.5 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
           >
             Go Home
-          </a>
+          </Link>
         </div>
         {error.digest && (
           <p className="mt-6 text-xs text-gray-400">Error ID: {error.digest}</p>

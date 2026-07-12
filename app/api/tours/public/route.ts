@@ -4,7 +4,7 @@ import Tour from '@/lib/models/Tour';
 import { NextRequest, NextResponse } from 'next/server';
 import { buildStrictTenantQuery, getTenantFromRequest } from '@/lib/tenant';
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   await dbConnect();
   try {
     // Per-brand isolation (Issue #8): always filter by tenant, including

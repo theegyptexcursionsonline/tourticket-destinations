@@ -5,6 +5,7 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import { cdnImg } from '@/utils/cloudinary';
 import { useTenant } from '@/contexts/TenantContext';
 import { Link } from '@/i18n/navigation';
+import Image from 'next/image';
 import { useLocale, useTranslations } from 'next-intl';
 import {
   ArrowRight,
@@ -281,10 +282,13 @@ function TourHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: 
               >
                 {tour.image && (
                   <div className="relative h-36 bg-gradient-to-br from-blue-100 to-purple-100 overflow-hidden">
-                    <img
+                    <Image
                       src={cdnImg(tour.image)}
                       alt={tour.title}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                      fill
+                      unoptimized
+                      sizes="260px"
+                      className="object-cover group-hover:scale-110 transition-transform duration-300"
                     />
                     {tour.isFeatured && (
                       <div className="absolute top-2 start-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-0.5 shadow-md">
@@ -755,10 +759,13 @@ export default function InterestGridServer({ categories }: InterestGridServerPro
                 >
                   {tour.image && (
                     <div className="relative h-36 bg-gradient-to-br from-blue-100 to-purple-100 overflow-hidden">
-                      <img
+                      <Image
                         src={cdnImg(tour.image)}
                         alt={tour.title}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                        fill
+                        unoptimized
+                        sizes="260px"
+                        className="object-cover group-hover:scale-110 transition-transform duration-300"
                       />
                       {tour.isFeatured && (
                         <div className="absolute top-2 start-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-0.5 shadow-md">

@@ -15,7 +15,7 @@ export async function POST(_request: NextRequest) {
   );
 }
 
-async function legacyReviewCreation(request: NextRequest) {
+async function _legacyReviewCreation(request: NextRequest) {
   try {
     // Verify authentication
     const authHeader = request.headers.get('Authorization');

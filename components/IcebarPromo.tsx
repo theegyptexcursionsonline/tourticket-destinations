@@ -6,6 +6,7 @@ import { useTenant } from '@/contexts/TenantContext';
 import type { IPromoContent } from '@/lib/models/Tenant';
 import { useLocale } from 'next-intl';
 import { isRTL } from '@/i18n/config';
+import Image from 'next/image';
 
 /**
  * EgyptPromo - Ultra Premium (parallax removed)
@@ -214,7 +215,7 @@ export default function EgyptPromo({ content: dbContent }: IcebarPromoProps) {
       {/* noscript fallback: static hero with LQ image + softer overlay */}
       <noscript>
         <div className="absolute inset-0">
-          <img src={imgMedium} alt={imageAlt} className="w-full h-full object-cover" />
+          <Image src={imgMedium} alt={imageAlt} fill unoptimized sizes="100vw" className="object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/15 to-transparent" />
         </div>
       </noscript>

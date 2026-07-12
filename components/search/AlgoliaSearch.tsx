@@ -6,6 +6,7 @@ import { AlertCircle, MapPin, Clock, DollarSign, Search as SearchIcon, Star, Spa
 import 'instantsearch.css/themes/satellite.css';
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
+import Image from 'next/image';
 
 const ALGOLIA_APP_ID = process.env.NEXT_PUBLIC_ALGOLIA_APP_ID || 'WMDNV9WSOI';
 const ALGOLIA_SEARCH_KEY = process.env.NEXT_PUBLIC_ALGOLIA_SEARCH_API_KEY || 'f485b4906072cedbd2f51a46e5ac2637';
@@ -76,10 +77,13 @@ export default function AlgoliaSearch() {
         {/* Image */}
         {hit.image && (
           <div className="relative w-full h-48 overflow-hidden bg-slate-100">
-            <img
+            <Image
               src={hit.image}
               alt={hit.title}
-              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+              fill
+              unoptimized
+              sizes="(max-width: 768px) 100vw, 33vw"
+              className="object-cover group-hover:scale-110 transition-transform duration-300"
             />
             {hit.isFeatured && (
               <div className="absolute top-3 start-3 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
@@ -184,7 +188,6 @@ export default function AlgoliaSearch() {
                 submitIcon: 'w-5 h-5',
                 resetIcon: 'w-4 h-4',
               }}
-              autoFocus
             />
             <p className="mt-2 text-xs text-slate-500 flex items-center gap-1">
               <Sparkles className="w-3.5 h-3.5 text-blue-500" />

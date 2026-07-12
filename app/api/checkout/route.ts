@@ -804,7 +804,6 @@ export async function POST(request: Request) {
 
       const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || '';
 
-      const operatorEmail = tenantConfig?.contact?.email || process.env.ADMIN_NOTIFICATION_EMAIL;
       console.log(`📧 [Checkout] Sending operator notification for booking ${bookingId}`);
 
       await EmailService.sendAdminBookingAlert({

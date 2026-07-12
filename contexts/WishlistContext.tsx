@@ -43,6 +43,24 @@ export const WishlistProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [isAuthenticated]);
 
+  // Sync to server helper
+  const syncToServer = useCallback(async (items: Tour[]) => {
+    if (!isAuthenticated || !token) return;
+
+    try {
+      await fetch('/api/user/wishlist', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ wishlist: items }),
+      });
+    } catch (error) {
+      console.error('Failed to sync wishlist to server:', error);
+    }
+  }, [isAuthenticated, token]);
+
   // Sync wishlist from server when user logs in
   useEffect(() => {
     const syncFromServer = async () => {
@@ -92,25 +110,7 @@ export const WishlistProvider = ({ children }: { children: ReactNode }) => {
     };
 
     syncFromServer();
-  }, [isAuthenticated, token, hasSyncedFromServer]);
-
-  // Sync to server helper
-  const syncToServer = useCallback(async (items: Tour[]) => {
-    if (!isAuthenticated || !token) return;
-
-    try {
-      await fetch('/api/user/wishlist', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ wishlist: items }),
-      });
-    } catch (error) {
-      console.error('Failed to sync wishlist to server:', error);
-    }
-  }, [isAuthenticated, token]);
+  }, [hasSyncedFromServer, isAuthenticated, syncToServer, token]);
 
   // Save to localStorage (for guests) whenever wishlist changes
   useEffect(() => {

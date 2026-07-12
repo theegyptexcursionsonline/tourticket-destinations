@@ -199,66 +199,6 @@ function getTenantFromQueryParam(request: NextRequest, hostname: string): string
 }
 
 // ============================================
-// RESERVED PATHS (Not tour slugs)
-// ============================================
-const reservedPaths = [
-  '/admin',
-  '/api',
-  '/auth',
-  '/login',
-  '/signup',
-  '/destinations',
-  '/categories',
-  '/blog',
-  '/about',
-  '/contact',
-  '/privacy',
-  '/terms',
-  '/cart',
-  '/checkout',
-  '/profile',
-  '/bookings',
-  '/wishlist',
-  '/search',
-  '/help',
-  '/support',
-  '/careers',
-  '/press',
-  '/partners',
-  '/user',
-  '/booking',
-  '/attraction',
-  '/category',
-  '/interests',
-  '/egypt',
-  '/faqs',
-  '/forgot',
-  '/tools',
-  '/tours',
-  '/tour',
-  '/author',
-  '/redirecting',
-  '/accept-invitation',
-  '/sentry-example-page',
-  '/_next',
-  '/favicon.ico',
-  '/images',
-  '/uploads',
-  '/static',
-  '/robots.txt',
-  '/sitemap.xml',
-  '/manifest.json',
-  '/payment',
-  '/public',
-  // Locale prefixes (prevent them from being treated as tour slugs)
-  '/ar',
-  '/es',
-  '/fr',
-  '/de',
-  '/ru',
-];
-
-// ============================================
 // HELPER FUNCTIONS
 // ============================================
 

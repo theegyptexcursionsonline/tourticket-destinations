@@ -150,7 +150,7 @@ export async function POST(_request: NextRequest) {
   );
 }
 
-async function legacyDirectBookingCreation(request: NextRequest) {
+async function _legacyDirectBookingCreation(request: NextRequest) {
   await dbConnect();
 
   try {

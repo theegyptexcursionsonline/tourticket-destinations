@@ -1,7 +1,7 @@
 // app/admin/hero-settings/page.tsx
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { 
@@ -77,11 +77,7 @@ const HeroSettingsPage = () => {
 
   const tenantQuery = selectedTenantId && selectedTenantId !== 'all' ? `?tenantId=${encodeURIComponent(selectedTenantId)}` : '';
 
-  useEffect(() => {
-    fetchHeroSettings();
-  }, [selectedTenantId]);
-
-const fetchHeroSettings = async () => {
+const fetchHeroSettings = useCallback(async () => {
   try {
     setIsLoading(true);
     const response = await fetch(`/api/admin/hero-settings${tenantQuery}`);
@@ -99,7 +95,11 @@ const fetchHeroSettings = async () => {
   } finally {
     setIsLoading(false);
   }
-};
+}, [tenantQuery]);
+
+  useEffect(() => {
+    fetchHeroSettings();
+  }, [fetchHeroSettings]);
 
 const handleAddBackgroundImage = async () => {
   if (!newImage.desktop || !newImage.alt) {

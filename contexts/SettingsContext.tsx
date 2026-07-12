@@ -211,7 +211,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [selectedCurrency, setSelectedCurrency] = usePersistentState<Currency>('selectedCurrency', currencies[1]); // Default to USD
   const [selectedLanguage, setSelectedLanguage] = usePersistentState<Language>('selectedLanguage', getPreferredLanguage()); // Use browser language
   const [exchangeRates, setExchangeRates] = useState<{ [key: string]: number }>(FALLBACK_EXCHANGE_RATES);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading] = useState(false);
 
   // Fetch exchange rates on mount and every hour
   useEffect(() => {

@@ -5,6 +5,7 @@ import { InstantSearch, Chat, SearchBox, Hits, useInstantSearch } from 'react-in
 import { Sparkles, MessageCircle, Zap, Shield, Globe2, AlertCircle, MapPin, Clock } from 'lucide-react';
 import 'instantsearch.css/themes/satellite.css';
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 
 const ALGOLIA_APP_ID = process.env.NEXT_PUBLIC_ALGOLIA_APP_ID || 'WMDNV9WSOI';
 const ALGOLIA_SEARCH_KEY = process.env.NEXT_PUBLIC_ALGOLIA_SEARCH_API_KEY || 'f485b4906072cedbd2f51a46e5ac2637';
@@ -51,11 +52,14 @@ const CompactHit = ({ hit }: any) => {
       <div className="flex items-start gap-3">
         {/* Tour Image */}
         {hit.image && (
-          <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-slate-100">
-            <img
+          <div className="relative w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-slate-100">
+            <Image
               src={hit.image}
               alt={hit.title}
-              className="w-full h-full object-cover"
+              fill
+              unoptimized
+              sizes="48px"
+              className="object-cover"
             />
           </div>
         )}
@@ -164,7 +168,6 @@ export default function AlgoliaChat({ initialQuery, minimal = false }: AlgoliaCh
                   submitIcon: 'w-4 h-4',
                   resetIcon: 'w-4 h-4',
                 }}
-                autoFocus
               />
             </div>
 

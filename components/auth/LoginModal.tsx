@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -256,9 +257,9 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignup, onSucces
                     {t('auth.signup')}
                   </button>
                 ) : (
-                  <a href="/signup" className="text-blue-600 hover:underline font-medium">
+                  <Link href="/signup" className="text-blue-600 hover:underline font-medium">
                     {t('auth.signup')}
-                  </a>
+                  </Link>
                 )}
               </p>
             </div>

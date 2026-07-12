@@ -23,7 +23,6 @@ test.describe('Tour detail page', () => {
     const tourLink = page.locator('a[href]:has(img)').first();
 
     if ((await tourLink.count()) > 0) {
-      const href = await tourLink.getAttribute('href');
       await tourLink.click();
       await page.waitForLoadState('domcontentloaded');
 

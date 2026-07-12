@@ -41,6 +41,7 @@ test.describe('Admin tour management', () => {
     const titleInput = page.locator(
       'input[name="title"], input[placeholder*="title" i], #title',
     ).first();
+    await expect(titleInput).toBeVisible();
 
     // At least a heading or form element should be visible
     const formArea = page.locator('form, [class*="form"]').first();

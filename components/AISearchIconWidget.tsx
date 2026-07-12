@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, X, Search, ChevronUp, MapPin, Clock, AlertCircle, Compass, Tag, FileText, MessageCircle } from 'lucide-react';
 import { liteClient as algoliasearch } from 'algoliasearch/lite';
 import { InstantSearch, Index, useSearchBox, useHits, Configure } from 'react-instantsearch';
+import Image from 'next/image';
 import 'instantsearch.css/themes/satellite.css';
 
 // --- Algolia Config ---
@@ -58,9 +59,9 @@ function TourHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: 
         >
           <div className="absolute inset-0 bg-gradient-to-r from-blue-500/0 via-indigo-500/0 to-purple-500/0 group-hover:from-blue-500/5 group-hover:via-indigo-500/5 group-hover:to-purple-500/5 transition-all duration-500" />
           <div className="flex items-center gap-2.5 md:gap-4 relative z-10">
-            <div className="w-14 md:w-20 h-14 md:h-20 rounded-xl md:rounded-2xl flex-shrink-0 overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-100 shadow-sm group-hover:shadow-xl group-hover:scale-105 transition-all duration-300 ring-1 ring-black/5">
+            <div className="relative w-14 md:w-20 h-14 md:h-20 rounded-xl md:rounded-2xl flex-shrink-0 overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-100 shadow-sm group-hover:shadow-xl group-hover:scale-105 transition-all duration-300 ring-1 ring-black/5">
               {(hit.image || hit.images?.[0] || hit.primaryImage) ? (
-                <img src={hit.image || hit.images?.[0] || hit.primaryImage} alt={hit.title || 'Tour'} className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement!.innerHTML = '<div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-100 to-indigo-200"><svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg></div>'; }} />
+                <Image src={hit.image || hit.images?.[0] || hit.primaryImage} alt={hit.title || 'Tour'} fill unoptimized sizes="(max-width: 768px) 56px, 80px" className="object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement!.innerHTML = '<div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-100 to-indigo-200"><svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg></div>'; }} />
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-100 to-indigo-200"><MapPin className="w-8 h-8 text-blue-600" strokeWidth={2.5} /></div>
               )}
@@ -331,7 +332,7 @@ export default function AISearchIconWidget() {
                   <div className="flex items-center gap-2"><Sparkles className="w-4 h-4 text-blue-500" /><span className="text-sm font-semibold text-gray-800">AI Search</span></div>
                   <button onClick={() => setIsExpanded(false)} className="text-gray-400 hover:text-gray-700 p-2 rounded-xl"><X className="w-4 h-4" /></button>
                 </div>
-                <div className="relative"><input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search tours, destinations..." autoFocus className="w-full ps-10 pe-4 py-2.5 text-sm font-medium text-gray-900 placeholder-gray-400 bg-white/90 outline-none rounded-xl border border-gray-200 focus:border-blue-400" style={{ color: '#111827', WebkitTextFillColor: '#111827', caretColor: '#111827' }} /><Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" /></div>
+                <div className="relative"><input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search tours, destinations..." className="w-full ps-10 pe-4 py-2.5 text-sm font-medium text-gray-900 placeholder-gray-400 bg-white/90 outline-none rounded-xl border border-gray-200 focus:border-blue-400" style={{ color: '#111827', WebkitTextFillColor: '#111827', caretColor: '#111827' }} /><Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" /></div>
               </div>
               <div className="max-h-[50vh] overflow-y-auto apple-scrollbar">
                 {searchQuery ? (

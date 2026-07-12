@@ -580,9 +580,13 @@ const ImageMasonryGallery = ({ images }: { images: string[] }) => (
         transition={{ delay: index * 0.1 }}
         className="break-inside-avoid relative group cursor-pointer overflow-hidden rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300"
       >
-        <img 
+        <Image
           src={image} 
           alt={`Gallery image ${index + 1}`}
+          width={800}
+          height={600}
+          unoptimized
+          sizes="(max-width: 768px) 100vw, 33vw"
           className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-110"
         />
         <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">

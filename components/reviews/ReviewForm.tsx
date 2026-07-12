@@ -7,6 +7,7 @@ import { Star, Loader2, User, Edit2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Link } from '@/i18n/navigation';
 import { useTranslations } from 'next-intl';
+import Image from 'next/image';
 
 interface ReviewFormProps {
   tourId: string;
@@ -328,12 +329,15 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ tourId, onReviewSubmitted, onBo
   return (
     <div className="mt-8 p-6 bg-white rounded-2xl shadow-lg border border-gray-100">
       <div className="flex items-center gap-3 mb-6">
-        <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
+        <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
           {user?.picture ? (
-            <img 
+            <Image
               src={user.picture} 
               alt={user.name || 'User'} 
-              className="w-full h-full object-cover"
+              fill
+              unoptimized
+              sizes="40px"
+              className="object-cover"
             />
           ) : (
             <User className="w-6 h-6 text-gray-400" />

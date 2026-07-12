@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from '@/i18n/navigation';
 import { useParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
@@ -172,7 +172,7 @@ const UserBookingDetailPage = () => {
     }
   }, [booking]);
 
-  const fetchBooking = async () => {
+  const fetchBooking = useCallback(async () => {
     if (!token) {
       router.push('/login?redirect=/user/bookings');
       return;
@@ -208,13 +208,13 @@ const UserBookingDetailPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, router, token]);
 
   useEffect(() => {
     if (id) {
       fetchBooking();
     }
-  }, [id, token]);
+  }, [fetchBooking, id]);
 
   const handleCancelBooking = async () => {
     if (!booking || !token) return;

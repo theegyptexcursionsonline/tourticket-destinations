@@ -101,74 +101,7 @@ export default function HotelPickupMap({ onLocationSelect, initialLocation, tour
     document.head.appendChild(script);
   }, [pickupOption, GOOGLE_MAPS_API_KEY]);
 
-  // Initialize map
-  const initializeMap = useCallback(() => {
-    if (!window.google || !mapRef.current || isInitializing.current) return;
-
-    isInitializing.current = true;
-
-    try {
-      const defaultCenter = { lat: 30.0444, lng: 31.2357 }; // Cairo
-
-      const map = new window.google.maps.Map(mapRef.current, {
-        center: initialLocation ? { lat: initialLocation.lat, lng: initialLocation.lng } : defaultCenter,
-        zoom: initialLocation ? 15 : 11,
-        mapTypeControl: false,
-        streetViewControl: false,
-        fullscreenControl: false,
-        zoomControl: true,
-        gestureHandling: 'greedy',
-        styles: [
-          { featureType: 'poi.business', stylers: [{ visibility: 'off' }] },
-          { featureType: 'poi.park', elementType: 'labels', stylers: [{ visibility: 'off' }] }
-        ]
-      });
-
-      mapInstanceRef.current = map;
-      autocompleteServiceRef.current = new window.google.maps.places.AutocompleteService();
-      placesServiceRef.current = new window.google.maps.places.PlacesService(map);
-      geocoderRef.current = new window.google.maps.Geocoder();
-
-      // Click listener for map
-      map.addListener('click', (event: any) => {
-        const lat = event.latLng.lat();
-        const lng = event.latLng.lng();
-
-        geocoderRef.current.geocode({ location: { lat, lng } }, (results: any[], status: string) => {
-          if (status === 'OK' && results[0]) {
-            const location: HotelPickupLocation = {
-              address: results[0].formatted_address,
-              lat,
-              lng,
-              placeId: results[0].place_id
-            };
-            handleLocationSelect(location);
-          }
-        });
-      });
-
-      if (initialLocation) {
-        placeMarker(initialLocation.lat, initialLocation.lng);
-      }
-
-      setIsMapLoaded(true);
-      isInitializing.current = false;
-    } catch (error) {
-      console.error('Error initializing map:', error);
-      isInitializing.current = false;
-      setMapError(true);
-    }
-  }, [initialLocation]);
-
-  // Initialize map when ready
-  useEffect(() => {
-    if (scriptLoaded && pickupOption === 'now' && !mapInstanceRef.current) {
-      const timer = setTimeout(initializeMap, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [scriptLoaded, pickupOption, initializeMap]);
-
-  const placeMarker = (lat: number, lng: number) => {
+  const placeMarker = useCallback((lat: number, lng: number) => {
     if (!mapInstanceRef.current || !window.google) return;
 
     if (markerRef.current) {
@@ -193,16 +126,81 @@ export default function HotelPickupMap({ onLocationSelect, initialLocation, tour
 
     mapInstanceRef.current.panTo({ lat, lng });
     mapInstanceRef.current.setZoom(16);
-  };
+  }, []);
 
-  const handleLocationSelect = (location: HotelPickupLocation) => {
+  const handleLocationSelect = useCallback((location: HotelPickupLocation) => {
     setSelectedLocation(location);
     setSearchQuery(location.name || location.address);
     onLocationSelect(location);
     placeMarker(location.lat, location.lng);
     setShowPredictions(false);
     setPredictions([]);
-  };
+  }, [onLocationSelect, placeMarker]);
+
+  // Initialize map
+  const initializeMap = useCallback(() => {
+    if (!window.google || !mapRef.current || isInitializing.current) return;
+
+    isInitializing.current = true;
+
+    try {
+      const defaultCenter = { lat: 30.0444, lng: 31.2357 };
+
+      const map = new window.google.maps.Map(mapRef.current, {
+        center: initialLocation ? { lat: initialLocation.lat, lng: initialLocation.lng } : defaultCenter,
+        zoom: initialLocation ? 15 : 11,
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: false,
+        zoomControl: true,
+        gestureHandling: 'greedy',
+        styles: [
+          { featureType: 'poi.business', stylers: [{ visibility: 'off' }] },
+          { featureType: 'poi.park', elementType: 'labels', stylers: [{ visibility: 'off' }] }
+        ]
+      });
+
+      mapInstanceRef.current = map;
+      autocompleteServiceRef.current = new window.google.maps.places.AutocompleteService();
+      placesServiceRef.current = new window.google.maps.places.PlacesService(map);
+      geocoderRef.current = new window.google.maps.Geocoder();
+
+      map.addListener('click', (event: any) => {
+        const lat = event.latLng.lat();
+        const lng = event.latLng.lng();
+
+        geocoderRef.current.geocode({ location: { lat, lng } }, (results: any[], status: string) => {
+          if (status === 'OK' && results[0]) {
+            handleLocationSelect({
+              address: results[0].formatted_address,
+              lat,
+              lng,
+              placeId: results[0].place_id
+            });
+          }
+        });
+      });
+
+      if (initialLocation) {
+        placeMarker(initialLocation.lat, initialLocation.lng);
+      }
+
+      setIsMapLoaded(true);
+      isInitializing.current = false;
+    } catch (error) {
+      console.error('Error initializing map:', error);
+      isInitializing.current = false;
+      setMapError(true);
+    }
+  }, [handleLocationSelect, initialLocation, placeMarker]);
+
+  // Initialize map when ready
+  useEffect(() => {
+    if (scriptLoaded && pickupOption === 'now' && !mapInstanceRef.current) {
+      const timer = setTimeout(initializeMap, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [initializeMap, pickupOption, scriptLoaded]);
 
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);

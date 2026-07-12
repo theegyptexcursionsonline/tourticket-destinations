@@ -1356,7 +1356,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
   }, [tour]);
 
   // Helper function to generate time slots from tour availability settings
-  const generateTimeSlotsFromAvailability = (price: number, optionIndex: number): TimeSlot[] => {
+  const generateTimeSlotsFromAvailability = useCallback((price: number, optionIndex: number): TimeSlot[] => {
     // Use actual slots from tour.availability if available
     if (tour?.availability?.slots && tour.availability.slots.length > 0) {
       return tour.availability.slots.map((slot, slotIndex) => ({
@@ -1374,10 +1374,10 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
       { id: `slot-${optionIndex}-1`, time: '09:00', available: 15, price: price, isPopular: false },
       { id: `slot-${optionIndex}-2`, time: '14:00', available: 15, price: price, isPopular: true },
     ];
-  };
+  }, [tour]);
 
   // OPTIMIZED: Use pre-fetched data from tour prop (SSR/ISR) instead of client-side API calls
-  const fetchAvailability = async (date: Date, _totalGuests: number) => {
+  const fetchAvailability = useCallback(async (date: Date, _totalGuests: number) => {
     setIsLoading(true);
     setError('');
 
@@ -1504,7 +1504,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [generateTimeSlotsFromAvailability, tour, tourDisplayData]);
 
   // Enhanced price calculations with savings
   const { subtotal, addOnsTotal, total, totalSavings } = useMemo(() => {
@@ -1607,7 +1607,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
       // Scroll to top after step change
       setTimeout(scrollToTop, 100);
     }
-  }, [currentStep, bookingData.selectedTimeSlot, scrollToTop]);
+  }, [currentStep, bookingData.selectedTimeSlot, scrollToTop, t]);
 
   const handleBack = useCallback(() => {
     if (currentStep > 1) {
@@ -1651,7 +1651,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
 
     setError('');
     fetchAvailability(bookingData.selectedDate, totalGuests);
-  }, [bookingData, tourDisplayData?.maxGroupSize, fetchAvailability]);
+  }, [bookingData, tourDisplayData?.maxGroupSize, fetchAvailability, t]);
 
   // Enhanced date selection
   const handleDateSelect = useCallback((date: Date) => {
@@ -1687,7 +1687,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
         icon: '📅'
       });
     }
-  }, [calendarAvailability]);
+  }, [calendarAvailability, t]);
 
   const handleTimeSlotSelect = useCallback((timeSlot: TimeSlot) => {
     if (timeSlot.available === 0) {
@@ -1711,7 +1711,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
         lastToastTimeSlotRef.current = null;
       }, 2100);
     }
-  }, []);
+  }, [t]);
 
   // Enhanced participant controls
   const handleParticipantChange = useCallback((type: 'adults' | 'children' | 'infants', increment: boolean) => {
@@ -1742,7 +1742,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
     if (bookingData.infants > 0) details.push(`${bookingData.infants} ${bookingData.infants > 1 ? t('booking.infants').toLowerCase() : t('booking.infant').toLowerCase()}`);
 
     return details.length > 0 ? `${text} (${details.join(', ')})` : text;
-  }, [bookingData]);
+  }, [bookingData, t]);
 
   // Enhanced add-on quantity management
   const handleAddOnQuantityChange = useCallback((addOnId: string, quantity: number) => {
@@ -1864,7 +1864,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
     } finally {
       setIsProcessing(false);
     }
-  }, [isProcessing, onClose, router, bookingData, availability, tourDisplayData, addToCart, total]);
+  }, [isProcessing, onClose, router, bookingData, availability, tourDisplayData, addToCart, t]);
 
   const formatDate = useCallback((date: Date) => {
     return date.toLocaleDateString('en-US', {
@@ -1891,7 +1891,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
         break;
     }
     setAnimationKey(prev => prev + 1);
-  }, []);
+  }, [t]);
 
   // Scrolling logic
   useEffect(() => {

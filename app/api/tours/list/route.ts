@@ -4,7 +4,7 @@ import Tour from '@/lib/models/Tour';
 import { buildStrictTenantQuery } from '@/lib/tenant';
 import { getTenantFromRequest } from '@/lib/tenant';
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     await dbConnect();
 

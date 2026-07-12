@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, FC, useCallback } from 'react';
 import { ChevronDown, Search, ShoppingCart, X, Landmark, Ticket, Star, Clock, Zap, Menu, User, LogOut, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
+import { Link } from '@/i18n/navigation';
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/contexts/AuthContext';
 import CurrencyLanguageSwitcher from '@/components/shared/CurrencyLanguageSwitcher';
@@ -142,7 +143,7 @@ const MegaMenu: FC<{ isOpen: boolean; onClose: () => void; destinations: Destina
                             <div className="bg-gray-50 rounded-lg p-6 flex flex-col justify-center items-center text-center">
                                 <Star size={32} className="text-yellow-500 mb-2" /><h3 className="font-bold text-lg text-gray-800">Special Offers</h3>
                                 <p className="text-sm text-gray-600 my-2">Save up to 20% on combi deals and city passes!</p>
-                                <a href="/search" className="mt-2 bg-red-500 text-white font-bold py-2 px-4 rounded-full hover:bg-red-600 text-sm">View Deals</a>
+                                <Link href="/search" className="mt-2 bg-red-500 text-white font-bold py-2 px-4 rounded-full hover:bg-red-600 text-sm">View Deals</Link>
                             </div>
                         </div>
                     </div>
@@ -196,27 +197,27 @@ const UserMenu: FC<{ user: any; onLogout: () => void; }> = ({ user, onLogout }) 
             </div>
 
             <div className="py-2">
-              <a
+              <Link
                 href="/user/profile"
                 className="flex items-center gap-3 px-4 py-2 text-slate-700 hover:bg-slate-50 transition-colors"
               >
                 <User size={16} />
                 <span>My Profile</span>
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/user/bookings"
                 className="flex items-center gap-3 px-4 py-2 text-slate-700 hover:bg-slate-50 transition-colors"
               >
                 <Calendar size={16} />
                 <span>My Bookings</span>
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/user/favorites"
                 className="flex items-center gap-3 px-4 py-2 text-slate-700 hover:bg-slate-50 transition-colors"
               >
                 <Star size={16} />
                 <span>Favorites</span>
-              </a>
+              </Link>
             </div>
 
             <div className="border-t py-2">
@@ -320,20 +321,20 @@ const MobileMenu: FC<{ isOpen: boolean; onClose: () => void; onOpenSearch: () =>
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <a
+                    <Link
                       href="/user/profile"
                       className="block py-2 text-slate-700 hover:text-red-500"
                       onClick={onClose}
                     >
                       My Profile
-                    </a>
-                    <a
+                    </Link>
+                    <Link
                       href="/user/bookings"
                       className="block py-2 text-slate-700 hover:text-red-500"
                       onClick={onClose}
                     >
                       My Bookings
-                    </a>
+                    </Link>
                     <button
                       onClick={() => { logout(); onClose(); }}
                       className="block py-2 text-red-600 hover:text-red-700 w-full text-start"
@@ -345,18 +346,18 @@ const MobileMenu: FC<{ isOpen: boolean; onClose: () => void; onOpenSearch: () =>
               ) : (
                <div className="p-6 border-b">
   <div className="space-y-3">
-    <a
+    <Link
       href="/login"
       className="block w-full bg-red-600 text-white text-center py-3 rounded-lg hover:bg-red-700 transition-colors"
     >
       Log In
-    </a>
-    <a
+    </Link>
+    <Link
       href="/signup"
       className="block w-full border border-red-600 text-red-600 text-center py-3 rounded-lg hover:bg-red-50 transition-colors"
     >
       Sign Up
-    </a>
+    </Link>
   </div>
 </div>
 
@@ -466,12 +467,15 @@ function TourHits({
           className="block px-5 py-3.5 hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-transparent transition-all duration-200 border-b border-gray-100/50 last:border-0 group"
         >
           <div className="flex items-center gap-3">
-            <div className="w-16 h-16 rounded-2xl flex-shrink-0 overflow-hidden border-2 border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-sm group-hover:shadow-md group-hover:scale-105 transition-all duration-200">
+            <div className="relative w-16 h-16 rounded-2xl flex-shrink-0 overflow-hidden border-2 border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-sm group-hover:shadow-md group-hover:scale-105 transition-all duration-200">
               {(hit.image || hit.images?.[0] || hit.primaryImage) ? (
-                <img
+                <Image
                   src={hit.image || hit.images?.[0] || hit.primaryImage}
                   alt={hit.title || 'Tour'}
-                  className="w-full h-full object-cover"
+                  fill
+                  unoptimized
+                  sizes="64px"
+                  className="object-cover"
                   onError={(e) => {
                     e.currentTarget.style.display = 'none';
                     e.currentTarget.parentElement!.innerHTML = '<div class="w-full h-full flex items-center justify-center"><svg class="w-7 h-7 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg></div>';
@@ -569,7 +573,6 @@ const MobileInlineSearch: FC<{ isOpen: boolean; onClose: () => void }> = React.m
                     placeholder="Search tours in Egypt..."
                     className="w-full ps-14 pe-16 py-4 text-base text-black placeholder-gray-500 font-medium bg-transparent outline-none rounded-full"
                     style={{ color: '#111827', WebkitTextFillColor: '#111827', caretColor: '#111827' }}
-                    autoFocus
                   />
 
                   {/* Left Icon */}
@@ -745,7 +748,7 @@ const linkHoverColor = 'hover:text-red-500';
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-16 md:h-20">
                 <div className="flex items-center gap-4 lg:gap-8">
-                    <a href="/" className="flex items-center h-full">
+                    <Link href="/" className="flex items-center h-full">
                         <Image
                           src={getLogo()}
                           alt={getSiteName()}
@@ -754,7 +757,7 @@ const linkHoverColor = 'hover:text-red-500';
                           priority
                           className="h-12 md:h-14 lg:h-16 w-auto object-contain transition-colors duration-300"
                         />
-                    </a>
+                    </Link>
                     <nav className="hidden md:flex items-center relative">
                         <button onClick={handleMegaMenuToggle} className={`${headerText} ${linkHoverColor} flex items-center gap-1 font-semibold group text-sm lg:text-base`}>
                             <span>EXPLORE</span>
@@ -792,18 +795,18 @@ const linkHoverColor = 'hover:text-red-500';
                       <UserMenu user={user} onLogout={logout} />
                     ) : (
                       <div className="hidden md:flex items-center gap-3">
-                        <a
+                        <Link
                           href="/login"
                           className={`${headerText} ${linkHoverColor} font-semibold text-sm`}
                         >
                           Log In
-                        </a>
-                        <a
+                        </Link>
+                        <Link
                           href="/signup"
                           className="bg-red-600 text-white px-4 py-2 rounded-full font-semibold text-sm hover:bg-red-700 transition-colors"
                         >
                           Sign Up
-                        </a>
+                        </Link>
                       </div>
                     )}
 

@@ -2,6 +2,23 @@
 
 import { useState, useEffect } from 'react';
 import { TenantPublicConfig } from '@/lib/tenant';
+import Image from 'next/image';
+import { Cinzel, Cormorant_Garamond } from 'next/font/google';
+
+const cinzel = Cinzel({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-cinzel',
+  display: 'swap',
+});
+
+const cormorantGaramond = Cormorant_Garamond({
+  subsets: ['latin'],
+  weight: ['400', '500', '600'],
+  style: ['normal', 'italic'],
+  variable: '--font-cormorant-garamond',
+  display: 'swap',
+});
 
 interface ComingSoonPageProps {
   tenant?: TenantPublicConfig | null;
@@ -220,7 +237,7 @@ export default function ComingSoonPage({ tenant }: ComingSoonPageProps) {
   const displaySocialLinks = socialLinksArray.length > 0 ? socialLinksArray : defaultSocialLinks;
 
   return (
-    <div style={{
+    <div className={`${cinzel.variable} ${cormorantGaramond.variable}`} style={{
       minHeight: '100vh',
       position: 'relative',
       overflow: 'hidden',
@@ -231,12 +248,6 @@ export default function ComingSoonPage({ tenant }: ComingSoonPageProps) {
       background,
       fontFamily: 'system-ui, -apple-system, sans-serif',
     }}>
-      {/* Google Fonts */}
-      <link 
-        href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" 
-        rel="stylesheet" 
-      />
-
       {/* Subtle dust particles */}
       {isMounted && (
         <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
@@ -312,11 +323,15 @@ export default function ComingSoonPage({ tenant }: ComingSoonPageProps) {
           justifyContent: 'center',
           marginBottom: '40px',
         }}>
-          <img 
+          <Image
             src={logo} 
             alt={brandName} 
+            width={320}
+            height={80}
+            unoptimized
             style={{ 
               height: '80px', 
+              width: 'auto',
               objectFit: 'contain',
               filter: `drop-shadow(0 0 20px ${primaryColor}4D)`,
             }} 
@@ -332,7 +347,7 @@ export default function ComingSoonPage({ tenant }: ComingSoonPageProps) {
           padding: '0 8px',
         }}>
           <span style={{
-            fontFamily: "'Cinzel', serif",
+            fontFamily: "var(--font-cinzel), serif",
             color: '#f5f5f4',
             fontSize: 'clamp(24px, 5vw, 48px)',
             fontWeight: 400,
@@ -341,7 +356,7 @@ export default function ComingSoonPage({ tenant }: ComingSoonPageProps) {
             {heading.top}
           </span>
           <span style={{
-            fontFamily: "'Cinzel', Georgia, serif",
+            fontFamily: "var(--font-cinzel), Georgia, serif",
             color: accentColor,
             fontSize: 'clamp(28px, 6vw, 56px)',
             fontWeight: 700,
@@ -352,7 +367,7 @@ export default function ComingSoonPage({ tenant }: ComingSoonPageProps) {
             {heading.middle}
           </span>
           <span style={{
-            fontFamily: "'Cinzel', serif",
+            fontFamily: "var(--font-cinzel), serif",
             color: '#f5f5f4',
             fontSize: 'clamp(24px, 5vw, 48px)',
             fontWeight: 400,
@@ -364,7 +379,7 @@ export default function ComingSoonPage({ tenant }: ComingSoonPageProps) {
 
         {/* Tagline - tenant specific */}
         <p style={{
-          fontFamily: "'Cormorant Garamond', serif",
+          fontFamily: "var(--font-cormorant-garamond), serif",
           fontStyle: 'italic',
           color: contentTone,
           fontSize: 'clamp(16px, 2.5vw, 20px)',
@@ -400,7 +415,7 @@ export default function ComingSoonPage({ tenant }: ComingSoonPageProps) {
               }}>
                 <div style={{ fontSize: '32px', marginBottom: '12px' }}>{feature.icon}</div>
                 <div style={{ 
-                  fontFamily: "'Cinzel', serif", 
+                  fontFamily: "var(--font-cinzel), serif",
                   color: accentColor, 
                   marginBottom: '8px', 
                   fontSize: '16px',
@@ -408,7 +423,7 @@ export default function ComingSoonPage({ tenant }: ComingSoonPageProps) {
                   letterSpacing: '0.02em',
                 }}>{feature.title}</div>
                 <div style={{ 
-                  fontFamily: "'Cormorant Garamond', serif", 
+                  fontFamily: "var(--font-cormorant-garamond), serif",
                   fontSize: '14px',
                   color: contentTone,
                   opacity: 0.9,
@@ -438,7 +453,7 @@ export default function ComingSoonPage({ tenant }: ComingSoonPageProps) {
             <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               {index > 0 && (
                 <span style={{
-                  fontFamily: "'Cinzel', serif",
+                  fontFamily: "var(--font-cinzel), serif",
                   color: primaryColor,
                   fontSize: '28px',
                   opacity: 0.4,
@@ -455,7 +470,7 @@ export default function ComingSoonPage({ tenant }: ComingSoonPageProps) {
                 border: `1px solid ${primaryColor}40`, // 25% opacity
               }}>
                 <span style={{
-                  fontFamily: "'Cinzel', serif",
+                  fontFamily: "var(--font-cinzel), serif",
                   color: primaryColor,
                   fontSize: 'clamp(24px, 4vw, 36px)',
                   fontWeight: 600,
@@ -463,7 +478,7 @@ export default function ComingSoonPage({ tenant }: ComingSoonPageProps) {
                   {isMounted ? String(item.value).padStart(2, '0') : '--'}
                 </span>
                 <span style={{
-                  fontFamily: "'Cormorant Garamond', serif",
+                  fontFamily: "var(--font-cormorant-garamond), serif",
                   color: '#78716c',
                   fontSize: '12px',
                   textTransform: 'uppercase',
@@ -507,7 +522,7 @@ export default function ComingSoonPage({ tenant }: ComingSoonPageProps) {
                   outline: 'none',
                   color: '#fafaf9',
                   fontSize: '16px',
-                  fontFamily: "'Cormorant Garamond', serif",
+                  fontFamily: "var(--font-cormorant-garamond), serif",
                 }}
               />
               <button 
@@ -529,7 +544,7 @@ export default function ComingSoonPage({ tenant }: ComingSoonPageProps) {
                   fontWeight: 600,
                   textTransform: 'uppercase',
                   letterSpacing: '0.05em',
-                  fontFamily: "'Cinzel', serif",
+                  fontFamily: "var(--font-cinzel), serif",
                   whiteSpace: 'nowrap',
                   transition: 'all 0.3s ease',
                 }}
@@ -570,7 +585,7 @@ export default function ComingSoonPage({ tenant }: ComingSoonPageProps) {
               margin: '0 auto',
               color: '#4ade80',
               fontSize: '16px',
-              fontFamily: "'Cormorant Garamond', serif",
+              fontFamily: "var(--font-cormorant-garamond), serif",
               background: 'rgba(34, 197, 94, 0.15)',
               border: '1px solid rgba(34, 197, 94, 0.4)',
             }}>
@@ -630,7 +645,7 @@ export default function ComingSoonPage({ tenant }: ComingSoonPageProps) {
             marginTop: '40px',
             color: '#78716c',
             fontSize: '14px',
-            fontFamily: "'Cormorant Garamond', serif",
+            fontFamily: "var(--font-cormorant-garamond), serif",
           }}>
             © {new Date().getFullYear()} {brandName}. All rights reserved.
           </div>

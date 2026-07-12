@@ -172,14 +172,18 @@ const Lightbox = ({ images, selectedIndex, onClose }: { images: string[], select
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowRight') nextImage();
-      if (e.key === 'ArrowLeft') prevImage();
+      if (e.key === 'ArrowRight') {
+        setCurrentIndex((prevIndex) => (prevIndex + 1) % images.length);
+      }
+      if (e.key === 'ArrowLeft') {
+        setCurrentIndex((prevIndex) => (prevIndex - 1 + images.length) % images.length);
+      }
       if (e.key === 'Escape') onClose();
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [images.length, onClose]);
 
   return (
     <motion.div

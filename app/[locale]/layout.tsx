@@ -64,7 +64,7 @@ export async function generateMetadata({
 }: {
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
-  const { locale } = await params;
+  await params;
   let comingSoonBypassed = false;
   let metadataBase = fallbackMetadataBase;
 

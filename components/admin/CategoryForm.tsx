@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -87,13 +87,7 @@ export default function CategoryForm({ categoryId }: CategoryFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
-  useEffect(() => {
-    if (categoryId) {
-      fetchCategoryData();
-    }
-  }, [categoryId]);
-
-  const fetchCategoryData = async () => {
+  const fetchCategoryData = useCallback(async () => {
     if (!categoryId) return;
     
     setLoading(true);
@@ -133,7 +127,13 @@ export default function CategoryForm({ categoryId }: CategoryFormProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [categoryId]);
+
+  useEffect(() => {
+    if (categoryId) {
+      fetchCategoryData();
+    }
+  }, [categoryId, fetchCategoryData]);
 
   const generateSlug = (name: string) => {
     return name

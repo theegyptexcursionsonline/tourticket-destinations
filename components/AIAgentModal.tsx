@@ -8,6 +8,7 @@ import { DefaultChatTransport } from 'ai';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
+import Image from 'next/image';
 import { liteClient as algoliasearch } from 'algoliasearch/lite';
 
 const ALGOLIA_APP_ID = process.env.NEXT_PUBLIC_ALGOLIA_APP_ID || 'WMDNV9WSOI';
@@ -177,10 +178,13 @@ export default function AIAgentModal() {
       {/* Image */}
       {tour.image && (
         <div className="relative h-40 bg-gradient-to-br from-blue-100 to-purple-100 overflow-hidden">
-          <img
+          <Image
             src={tour.image}
             alt={tour.title}
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+            fill
+            unoptimized
+            sizes="280px"
+            className="object-cover group-hover:scale-110 transition-transform duration-300"
           />
           {tour.duration && (
             <div className="absolute top-2 end-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg text-xs font-medium">

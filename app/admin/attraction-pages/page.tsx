@@ -6,6 +6,7 @@ import { Plus, Edit, Trash2, Eye, Search } from 'lucide-react';
 import { AttractionPage } from '@/types';
 import withAuth from '@/components/admin/withAuth';
 import { useAdminTenant } from '@/contexts/AdminTenantContext';
+import Image from 'next/image';
 
 function AttractionPagesAdmin() {
   const [pages, setPages] = useState<AttractionPage[]>([]);
@@ -184,10 +185,13 @@ function AttractionPagesAdmin() {
                   <tr key={page._id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <img
+                        <Image
                           className="h-12 w-12 rounded-lg object-cover"
                           src={page.heroImage}
                           alt={page.title}
+                          width={48}
+                          height={48}
+                          unoptimized
                         />
                         <div className="ms-4">
                           <div className="text-sm font-medium text-gray-900">

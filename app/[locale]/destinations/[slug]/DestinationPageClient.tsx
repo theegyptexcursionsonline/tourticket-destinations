@@ -423,7 +423,6 @@ const ALGOLIA_APP_ID = process.env.NEXT_PUBLIC_ALGOLIA_APP_ID || 'WMDNV9WSOI';
 const ALGOLIA_SEARCH_KEY = process.env.NEXT_PUBLIC_ALGOLIA_SEARCH_API_KEY || 'f485b4906072cedbd2f51a46e5ac2637';
 const INDEX_TOURS = process.env.NEXT_PUBLIC_ALGOLIA_INDEX_NAME || 'foxes_technology';
 const INDEX_DESTINATIONS = 'destinations';
-const INDEX_CATEGORIES = 'categories';
 const AGENT_ID = 'fb2ac93a-1b89-40e2-a9cb-c85c1bbd978e';
 
 const searchClient = algoliasearch(ALGOLIA_APP_ID, ALGOLIA_SEARCH_KEY);
@@ -466,10 +465,13 @@ const TourCard = ({ tour, onHitClick }: { tour: any; onHitClick?: () => void }) 
     >
     {tour.image && (
       <div className="relative h-32 bg-gradient-to-br from-blue-100 to-purple-100 overflow-hidden">
-        <img
+        <Image
           src={tour.image}
           alt={tour.title}
-          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+          fill
+          unoptimized
+          sizes="240px"
+          className="object-cover group-hover:scale-110 transition-transform duration-300"
         />
         {tour.duration && (
           <div className="absolute top-2 end-2 bg-white/90 backdrop-blur-sm px-2 py-0.5 rounded-lg text-[10px] font-medium">
@@ -606,10 +608,13 @@ const DestinationSlider = ({ destinations }: { destinations: any[] }) => {
           >
             {destination.image && (
               <div className="relative h-36 bg-gradient-to-br from-emerald-100 to-teal-100 overflow-hidden">
-                <img
+                <Image
                   src={destination.image}
                   alt={destination.name}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                  fill
+                  unoptimized
+                  sizes="260px"
+                  className="object-cover group-hover:scale-110 transition-transform duration-300"
                 />
                 {destination.isFeatured && (
                   <div className="absolute top-2 start-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-0.5 shadow-md">
@@ -935,11 +940,11 @@ const HeroSearchBar = ({
     };
   }, [chatMode]);
 
-  const handleCloseDropdown = () => {
+  const handleCloseDropdown = useCallback(() => {
     setIsExpanded(false);
     setIsSearchFocused(false);
     setChatMode(false);
-  };
+  }, []);
 
   const handleClearChat = () => {
     setDetectedToursByMessage({});
@@ -1308,7 +1313,7 @@ const HeroSearchBar = ({
       }
       return null;
     }).filter(Boolean);
-  }, [renderToolOutput, detectedToursByMessage, detectedDestinationsByMessage, handleCloseDropdown, copy.hereAreTours, copy.hereAreDestinations]);
+  }, [copy.hereAreDestinations, copy.hereAreTours, detectedToursByMessage, renderToolOutput]);
 
   return (
     <div className="mt-4 sm:mt-6 lg:mt-8 w-full flex justify-center md:justify-start px-2 sm:px-4 md:px-0" ref={containerRef}>
@@ -1725,10 +1730,13 @@ const BackgroundSlideImage = ({ src, alt }: { src: string; alt: string }) => {
   }, [src]);
 
   return (
-    <img
+    <Image
       src={resolvedSrc}
       alt={alt}
-      className="w-full h-full object-cover"
+      fill
+      unoptimized
+      sizes="100vw"
+      className="object-cover"
       onError={() => {
         if (resolvedSrc !== DESTINATION_HERO_FALLBACK_IMAGE) {
           setResolvedSrc(DESTINATION_HERO_FALLBACK_IMAGE);
