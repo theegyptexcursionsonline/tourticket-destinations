@@ -1,5 +1,5 @@
-// middleware.ts
-// Multi-tenant + multi-locale middleware
+// proxy.ts
+// Multi-tenant + multi-locale proxy
 // Composes domain-based tenant detection with next-intl locale routing
 import { NextResponse, NextRequest } from 'next/server';
 import createIntlMiddleware from 'next-intl/middleware';
@@ -438,7 +438,7 @@ function createTenantResponse(
 // MAIN MIDDLEWARE
 // ============================================
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const hostname = request.headers.get('host') || 'localhost:3000';
 
@@ -612,7 +612,7 @@ export function middleware(request: NextRequest) {
 }
 
 // ============================================
-// MIDDLEWARE CONFIG
+// PROXY CONFIG
 // ============================================
 
 export const config = {

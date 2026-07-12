@@ -293,7 +293,7 @@ const categories = [
     longDescription: 'End your day in paradise with a magical sunset cruise. Enjoy refreshments, music, and the spectacular colors of a Red Sea sunset.',
     icon: '🌅',
     color: '#FF6347',
-    heroImage: 'https://images.unsplash.com/photo-1476673160081-cf065bc4cecb?w=800&q=80',
+    heroImage: 'https://images.unsplash.com/photo-1559494007-9f5847c49d94?w=1600&q=80&auto=format',
     highlights: ['Romantic atmosphere', 'Drinks included', 'Live entertainment'],
     isPublished: true,
     featured: true,
@@ -603,10 +603,10 @@ This 2-hour cruise is the perfect way to celebrate a special occasion, create ro
     difficulty: 'Easy',
     maxGroupSize: 40,
     location: 'Hurghada Marina',
-    image: 'https://res.cloudinary.com/dvcfefmys/image/upload/v1734100000/sunset-cruise.jpg',
+    image: 'https://images.unsplash.com/photo-1559494007-9f5847c49d94?w=1600&q=80&auto=format',
     images: [
-      'https://res.cloudinary.com/dvcfefmys/image/upload/v1734100000/sunset-1.jpg',
-      'https://res.cloudinary.com/dvcfefmys/image/upload/v1734100000/sunset-2.jpg',
+      'https://images.unsplash.com/photo-1540946485063-a40da27545f8?w=1600&q=80&auto=format',
+      'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1600&q=80&auto=format',
     ],
     highlights: [
       'Spectacular Red Sea sunset views',
