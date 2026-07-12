@@ -313,94 +313,85 @@ export default function Footer() {
       <div className="container mx-auto px-4 py-12">
 
         {/* App Download Banner */}
-        <div className="relative mb-6 overflow-hidden rounded-[2rem] border border-rose-100/80 bg-[#fffaf7] shadow-[0_30px_80px_-40px_rgba(15,23,42,0.35)]">
-          <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.96)_0%,rgba(255,244,240,0.98)_36%,rgba(255,249,235,0.95)_100%)]" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(251,113,133,0.18),_transparent_34%)]" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_right,_rgba(251,191,36,0.2),_transparent_30%)]" />
-          <div className="absolute right-[-8%] top-[-12%] h-72 w-72 rounded-full bg-rose-200/40 blur-3xl" />
-          <div className="absolute bottom-[-18%] left-[18%] h-64 w-64 rounded-full bg-amber-200/50 blur-3xl" />
-          <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: 'linear-gradient(rgba(15,23,42,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(15,23,42,.05) 1px, transparent 1px)', backgroundSize: '34px 34px' }} />
+        <section aria-labelledby="app-launch-title" className="relative mb-8 overflow-hidden rounded-[2rem] border border-slate-800 bg-slate-950 text-white shadow-[0_32px_90px_-36px_rgba(15,23,42,0.75)] sm:rounded-[2.5rem]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_8%,rgba(244,63,94,0.2),transparent_30%),radial-gradient(circle_at_48%_100%,rgba(251,146,60,0.1),transparent_28%)]" />
+          <div className="absolute inset-y-0 right-0 hidden w-[46%] bg-[linear-gradient(145deg,#fb7185_0%,#ef4444_42%,#f97316_100%)] lg:block" />
+          <div className="absolute inset-0 opacity-[0.035]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.7) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.7) 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
 
-          <div className="relative grid gap-8 p-6 sm:p-8 lg:grid-cols-[minmax(0,1.08fr)_minmax(340px,0.92fr)] lg:items-center lg:gap-10 lg:px-10 lg:py-10 xl:px-12">
-            <div className="relative z-10">
-              <div className="mb-5 flex flex-wrap items-center gap-3">
-                <div className="inline-flex items-center gap-2 rounded-full border border-rose-200 bg-white/88 px-4 py-2 shadow-[0_12px_32px_-22px_rgba(244,63,94,0.45)] backdrop-blur">
+          <div className="relative grid lg:min-h-[610px] lg:grid-cols-[minmax(0,1.08fr)_minmax(380px,0.92fr)] lg:items-stretch">
+            <div className="relative z-10 flex flex-col justify-center px-5 py-9 sm:px-10 sm:py-12 lg:px-12 lg:py-14 xl:px-16">
+              <div className="mb-7 flex flex-wrap items-center gap-3">
+                <div className="inline-flex items-center gap-2.5 rounded-full border border-white/10 bg-white/[0.07] px-4 py-2.5 shadow-sm backdrop-blur">
                   <span className="relative flex h-2.5 w-2.5">
                     <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
                     <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400" />
                   </span>
-                  <span className="text-xs font-semibold uppercase tracking-[0.24em] text-rose-700">{t('footer.comingSoon')}</span>
-                </div>
-                <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-white/75 px-4 py-2 text-xs font-medium text-slate-600 shadow-sm backdrop-blur">
-                  <BellRing size={14} className="text-rose-500" />
-                  <span>{t('footer.launchingOn')}</span>
+                  <span className="text-[11px] font-bold uppercase tracking-[0.22em] text-white/85">{t('footer.comingSoon')}</span>
                 </div>
               </div>
 
               <div className="max-w-2xl">
-                <h3 className="max-w-xl text-4xl font-black leading-[0.98] tracking-[-0.04em] text-slate-950 sm:text-5xl xl:text-[3.6rem]">
+                <h3 id="app-launch-title" className="max-w-2xl text-[clamp(2.35rem,5vw,4.6rem)] font-black leading-[1.01] tracking-[-0.045em] text-white">
                   {t('footer.getTheApp')}
                 </h3>
-                <p className="mt-5 max-w-xl text-base leading-8 text-slate-600 sm:text-lg">
+                <p className="mt-6 max-w-2xl text-base leading-7 text-slate-300 sm:text-lg sm:leading-8">
                   {t('footer.getTheAppDesc')}
                 </p>
               </div>
 
-              <div className="mt-6 flex flex-wrap items-center gap-3">
-                <div className="inline-flex items-center gap-2 rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white shadow-[0_16px_32px_-20px_rgba(15,23,42,0.85)]">
-                  <Sparkles size={16} className="text-amber-300" />
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+                <div className="inline-flex min-h-12 items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-rose-500 to-red-500 px-5 py-3 text-sm font-bold text-white shadow-[0_18px_34px_-18px_rgba(244,63,94,0.8)]">
+                  <Sparkles size={17} className="text-amber-200" />
                   <span>{t('footer.launchingOn')}</span>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowAppModal(true)}
-                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/85 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition-all hover:-translate-y-0.5 hover:border-rose-200 hover:text-rose-700"
+                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/[0.07] px-5 py-3 text-sm font-semibold text-white transition-all duration-300 hover:-translate-y-0.5 hover:border-white/30 hover:bg-white/[0.12] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
                 >
-                  <ScanLine size={16} className="text-rose-500" />
+                  <ScanLine size={17} className="text-rose-300" />
                   <span>{t('footer.scanToDownload')}</span>
                 </button>
               </div>
 
-              <div className="mt-6 max-w-2xl rounded-[1.6rem] border border-white/70 bg-white/70 p-5 shadow-[0_22px_45px_-30px_rgba(15,23,42,0.28)] backdrop-blur-xl">
+              <div className="mt-7 hidden max-w-2xl border-s border-white/15 ps-4 sm:block sm:ps-5">
                 <div className="flex items-start gap-3">
-                  <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-rose-50 text-rose-600">
-                    <BellRing size={18} />
-                  </div>
-                  <p className="text-sm leading-7 text-slate-600 sm:text-[15px]">
+                  <BellRing size={17} className="mt-1 shrink-0 text-rose-300" />
+                  <p className="text-sm leading-6 text-slate-400 sm:text-[15px] sm:leading-7">
                     {t('footer.comingSoonDesc')}
                   </p>
                 </div>
               </div>
 
-              <div className="mt-6 grid w-full max-w-xl gap-3 sm:grid-cols-2">
+              <div className="mt-7 grid w-full max-w-xl grid-cols-2 gap-2.5 sm:mt-8 sm:gap-3">
                 <button
                   type="button"
                   onClick={() => setShowAppModal(true)}
-                  className="group relative overflow-hidden rounded-[1.6rem] border border-slate-200 bg-white/92 p-4 text-left shadow-[0_18px_40px_-24px_rgba(15,23,42,0.35)] transition-all duration-300 hover:-translate-y-1 hover:border-rose-200 hover:shadow-[0_24px_48px_-28px_rgba(244,63,94,0.35)]"
+                  className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.055] p-3 text-left transition-all duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.09] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 sm:p-3.5"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-white via-white to-rose-50/80 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                  <div className="relative flex items-center gap-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950 text-white shadow-lg shadow-slate-950/20">
+                  <div className="absolute inset-0 bg-gradient-to-r from-white/[0.04] to-rose-400/[0.08] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                  <div className="relative flex items-center gap-2.5 sm:gap-4">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-slate-950 shadow-lg shadow-black/20 sm:h-11 sm:w-11">
                       <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" className="shrink-0">
                         <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" />
                       </svg>
                     </div>
                     <div className="min-w-0 flex-1">
-                      <span className="block text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">{t('footer.downloadOn')}</span>
-                      <span className="mt-1 block text-xl font-black tracking-tight text-slate-950">App Store</span>
+                      <span className="block text-[10px] font-semibold uppercase tracking-[0.2em] text-white/45">{t('footer.downloadOn')}</span>
+                      <span className="mt-0.5 block text-lg font-bold tracking-tight text-white">App Store</span>
                     </div>
-                    <ArrowUpRight size={18} className="text-slate-300 transition-all group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-rose-500" />
+                    <ArrowUpRight size={17} className="hidden text-white/35 transition-all group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-white sm:block" />
                   </div>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setShowAppModal(true)}
-                  className="group relative overflow-hidden rounded-[1.6rem] border border-slate-200 bg-white/92 p-4 text-left shadow-[0_18px_40px_-24px_rgba(15,23,42,0.35)] transition-all duration-300 hover:-translate-y-1 hover:border-rose-200 hover:shadow-[0_24px_48px_-28px_rgba(244,63,94,0.35)]"
+                  className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.055] p-3 text-left transition-all duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.09] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 sm:p-3.5"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-white via-white to-amber-50/80 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                  <div className="relative flex items-center gap-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white shadow-lg ring-1 ring-slate-200">
+                  <div className="absolute inset-0 bg-gradient-to-r from-white/[0.04] to-amber-300/[0.08] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                  <div className="relative flex items-center gap-2.5 sm:gap-4">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white shadow-lg shadow-black/20 sm:h-11 sm:w-11">
                       <svg viewBox="0 0 24 24" width="24" height="24" className="shrink-0">
                         <path d="M3.18 23.67c-.38-.4-.56-.96-.56-1.68V2.01c0-.72.18-1.28.56-1.68l.1-.1L14.7 11.65v.26L3.28 23.57l-.1-.1z" fill="#4285F4" />
                         <path d="M18.54 15.79l-3.84-3.84v-.26l3.84-3.84.08.05 4.56 2.59c1.3.74 1.3 1.95 0 2.69l-4.56 2.59-.08.02z" fill="#FBBC04" />
@@ -409,30 +400,23 @@ export default function Footer() {
                       </svg>
                     </div>
                     <div className="min-w-0 flex-1">
-                      <span className="block text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">{t('footer.getItOn')}</span>
-                      <span className="mt-1 block text-xl font-black tracking-tight text-slate-950">Google Play</span>
+                      <span className="block text-[10px] font-semibold uppercase tracking-[0.2em] text-white/45">{t('footer.getItOn')}</span>
+                      <span className="mt-0.5 block text-lg font-bold tracking-tight text-white">Google Play</span>
                     </div>
-                    <ArrowUpRight size={18} className="text-slate-300 transition-all group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-rose-500" />
+                    <ArrowUpRight size={17} className="hidden text-white/35 transition-all group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-white sm:block" />
                   </div>
                 </button>
               </div>
             </div>
 
-            <div className="relative flex min-h-[420px] items-center justify-center lg:min-h-[470px]">
-              <div className="absolute inset-x-3 inset-y-2 rounded-[2rem] bg-slate-950 shadow-[0_32px_90px_-36px_rgba(15,23,42,0.85)]" />
-              <div className="absolute inset-x-4 inset-y-3 rounded-[1.9rem] border border-white/10 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.12),_transparent_36%),linear-gradient(180deg,#141b2f_0%,#0f172a_48%,#111827_100%)]" />
-              <div className="absolute left-4 top-5 hidden rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-white/80 shadow-lg backdrop-blur md:block">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-white/50">{t('footer.comingSoon')}</p>
-                <p className="mt-1 text-sm font-semibold text-white">{t('footer.launchingOn')}</p>
-              </div>
-              <div className="absolute right-8 top-10 h-20 w-20 rounded-full bg-rose-500/20 blur-2xl" />
-              <div className="absolute bottom-12 left-10 h-24 w-24 rounded-full bg-amber-400/15 blur-2xl" />
-
-              <div className="relative z-10 w-full px-4 py-6 sm:px-6">
-                <div className="mx-auto grid max-w-[420px] items-center gap-6 sm:grid-cols-[150px_minmax(0,1fr)]">
-                  <div className="order-2 sm:order-1">
-                    <div className="mx-auto w-fit rounded-[1.75rem] border border-white/12 bg-white/10 p-2 shadow-[0_20px_45px_-30px_rgba(15,23,42,0.85)] backdrop-blur">
-                      <div className="rounded-[1.3rem] bg-white p-3">
+            <div className="relative flex min-h-[390px] items-center justify-center overflow-hidden border-t border-white/10 bg-[linear-gradient(145deg,#fb7185_0%,#ef4444_46%,#f97316_100%)] lg:min-h-full lg:border-s lg:border-t-0 lg:bg-transparent">
+              <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full border-[52px] border-white/10" />
+              <div className="absolute -bottom-24 -left-20 h-72 w-72 rounded-full bg-slate-950/15 blur-2xl" />
+              <div className="relative z-10 w-full px-4 py-8 sm:px-6 sm:py-10">
+                <div className="mx-auto grid max-w-[440px] items-center gap-4 sm:grid-cols-[150px_minmax(0,1fr)]">
+                  <div className="order-2 hidden sm:order-1 sm:block">
+                    <div className="mx-auto w-fit rounded-[1.5rem] border border-white/25 bg-slate-950/15 p-2 shadow-[0_24px_55px_-24px_rgba(15,23,42,0.55)] backdrop-blur-md">
+                      <div className="rounded-[1.05rem] bg-white p-2.5">
                         {qrDataUrl ? (
                           <Image src={qrDataUrl} alt="Scan to download app" width={120} height={120} className="rounded-xl" />
                         ) : (
@@ -441,7 +425,7 @@ export default function Footer() {
                       </div>
                     </div>
                     <div className="mt-3 text-center">
-                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/55">{t('footer.scanToDownload')}</p>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/80">{t('footer.scanToDownload')}</p>
                       {appLandingLabel ? (
                         <p className="mt-2 truncate text-xs text-white/70">{appLandingLabel}</p>
                       ) : null}
@@ -449,10 +433,10 @@ export default function Footer() {
                   </div>
 
                   <div className="order-1 flex justify-center sm:order-2 sm:justify-end">
-                    <div className="relative h-[300px] w-[186px] sm:h-[360px] sm:w-[220px]">
-                      <div className="absolute inset-0 rounded-[2.3rem] bg-gradient-to-b from-slate-700 to-slate-900 shadow-[0_34px_70px_-30px_rgba(0,0,0,0.9)] ring-1 ring-white/10" />
+                    <div className="relative h-[300px] w-[184px] sm:h-[390px] sm:w-[232px]">
+                      <div className="absolute inset-0 rounded-[2.5rem] bg-gradient-to-b from-slate-700 to-slate-950 shadow-[0_38px_80px_-24px_rgba(15,23,42,0.8)] ring-1 ring-white/30" />
                       <div className="absolute left-1/2 top-0 z-20 h-7 w-24 -translate-x-1/2 rounded-b-3xl bg-slate-950" />
-                      <div className="absolute inset-[4px] overflow-hidden rounded-[2rem] bg-[linear-gradient(180deg,#ef4444_0%,#be123c_38%,#111827_100%)]">
+                      <div className="absolute inset-[5px] overflow-hidden rounded-[2.15rem] bg-[linear-gradient(180deg,#0f172a_0%,#1e293b_56%,#020617_100%)]">
                         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.16),_transparent_34%)]" />
                         <div className="flex items-center justify-between px-5 pb-3 pt-8">
                           <span className="text-[10px] font-semibold tracking-[0.18em] text-white/75">9:41</span>
@@ -497,7 +481,7 @@ export default function Footer() {
                         </div>
                       </div>
 
-                      <div className="absolute -left-6 bottom-16 rounded-2xl border border-white/10 bg-white/12 px-4 py-3 text-white shadow-xl backdrop-blur-md">
+                      <div className="absolute -left-6 bottom-14 rounded-2xl border border-white/20 bg-slate-950/35 px-4 py-3 text-white shadow-xl backdrop-blur-md">
                         <div className="flex items-center gap-2">
                           <Sparkles size={15} className="text-amber-300" />
                           <span className="text-xs font-semibold uppercase tracking-[0.22em] text-white/80">{t('footer.comingSoon')}</span>
@@ -509,7 +493,7 @@ export default function Footer() {
               </div>
             </div>
           </div>
-        </div>
+        </section>
 
         {/* Coming Soon Modal */}
         {showAppModal && (
