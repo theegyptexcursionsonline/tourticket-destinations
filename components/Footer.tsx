@@ -340,7 +340,7 @@ export default function Footer() {
               </div>
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-                <div className="inline-flex min-h-12 items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-rose-500 to-red-500 px-5 py-3 text-sm font-bold text-white shadow-[0_18px_34px_-18px_rgba(244,63,94,0.8)]">
+                <div className="inline-flex min-h-12 items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-rose-500 to-[#ef4444] px-5 py-3 text-sm font-bold text-white shadow-[0_18px_34px_-18px_rgba(244,63,94,0.8)]">
                   <Sparkles size={17} className="text-amber-200" />
                   <span>{t('footer.launchingOn')}</span>
                 </div>
