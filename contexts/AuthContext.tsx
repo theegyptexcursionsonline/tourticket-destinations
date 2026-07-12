@@ -7,7 +7,7 @@ import {
   createUserWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
-  signInWithPopup,
+  signInWithRedirect,
   updateProfile,
   User as FirebaseUser,
 } from 'firebase/auth';
@@ -324,20 +324,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     
     setIsLoading(true);
     try {
-      const _userCredential = await signInWithPopup(auth, googleProvider);
-      // User state will be updated by onAuthStateChanged listener
+      // Redirect avoids popup blockers and Chrome's cross-origin window.closed
+      // warnings. onAuthStateChanged restores the signed-in user on return.
+      await signInWithRedirect(auth, googleProvider);
     } catch (error: any) {
       console.error('Google login error:', error);
       let errorMessage = 'Failed to sign in with Google.';
 
-      if (error.code === 'auth/popup-closed-by-user') {
-        errorMessage = 'Sign-in popup was closed.';
-      } else if (error.code === 'auth/cancelled-popup-request') {
-        errorMessage = 'Sign-in was cancelled.';
-      } else if (error.code === 'auth/popup-blocked') {
-        errorMessage = 'Sign-in popup was blocked. Please allow popups and try again.';
-      } else if (error.code === 'auth/account-exists-with-different-credential') {
+      if (error.code === 'auth/account-exists-with-different-credential') {
         errorMessage = 'An account already exists with this email using a different sign-in method.';
+      } else if (error.code === 'auth/unauthorized-domain') {
+        errorMessage = 'Google sign-in is not authorized for this domain.';
       }
 
       throw new Error(errorMessage);
