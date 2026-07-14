@@ -314,17 +314,59 @@ function detectTenant(request: NextRequest, hostname: string): {
 // ============================================
 // APPLY TENANT CONTEXT TO A RESPONSE
 // ============================================
+
+// Paths that must never be edge-cached (auth, commerce, admin, status pages).
+// Everything else on the public storefront renders identical HTML for every
+// visitor of a domain (personalisation is client-side), so it is safe to
+// cache per host.
+const UNCACHEABLE_PREFIXES = [
+  '/api', '/admin', '/checkout', '/cart', '/user', '/account', '/booking',
+  '/payment', '/auth', '/login', '/signup', '/monitoring', '/wishlist',
+  '/profile', '/coming-soon', '/maintenance', '/offline',
+];
+
+function isCacheablePublicPage(request: NextRequest): boolean {
+  if (request.method !== 'GET') return false;
+  const pathname = request.nextUrl.pathname;
+  const withoutLocale = pathname.replace(/^\/[a-z]{2}(?:-[A-Z]{2})?(?=\/|$)/, '') || '/';
+  return !UNCACHEABLE_PREFIXES.some(
+    (prefix) => withoutLocale === prefix || withoutLocale.startsWith(`${prefix}/`),
+  );
+}
+
 function applyTenantToResponse(
   response: NextResponse,
   tenantId: string,
   hostname: string,
-  isPreviewMode: boolean
+  isPreviewMode: boolean,
+  request?: NextRequest
 ): NextResponse {
   // Set response headers
   response.headers.set('x-tenant-id', tenantId);
   response.headers.set('x-tenant-domain', hostname);
   if (isPreviewMode) {
     response.headers.set('x-tenant-preview', 'true');
+  }
+
+  // Host-keyed edge caching for public storefront pages. Netlify's cache key
+  // includes the domain, so every tenant caches its own HTML — cross-tenant
+  // isolation is structural. CDNs skip responses that set cookies, so this
+  // only applies when the visitor already carries the matching tenant cookie
+  // (any repeat visitor warms the cache for everyone on that domain).
+  if (
+    request &&
+    !isPreviewMode &&
+    response.status < 300 &&
+    request.cookies.get('tenantId')?.value === tenantId &&
+    !request.cookies.get('tenantPreview') &&
+    isCacheablePublicPage(request)
+  ) {
+    response.headers.set(
+      'Netlify-CDN-Cache-Control',
+      'public, durable, s-maxage=900, stale-while-revalidate=86400',
+    );
+    response.headers.set('Netlify-Vary', 'cookie=tenantId|NEXT_LOCALE');
+    return response;
   }
 
   // Set cookies
@@ -547,8 +589,10 @@ export function proxy(request: NextRequest) {
     intlResponse.headers.set('x-middleware-override-headers', overrides.join(','));
   }
 
-  // 4. Apply tenant cookies and response headers
-  return applyTenantToResponse(intlResponse, tenantId, hostname, isPreviewMode);
+  // 4. Apply tenant cookies and response headers (public pages are eligible
+  //    for host-keyed edge caching — pass the request so eligibility can be
+  //    checked; admin/API/status flows above intentionally never cache)
+  return applyTenantToResponse(intlResponse, tenantId, hostname, isPreviewMode, request);
 }
 
 // ============================================
