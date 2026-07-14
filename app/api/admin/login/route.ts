@@ -12,6 +12,7 @@ import {
   failedAdminLoginUpdate,
   loginRetryAfterSeconds,
 } from '@/lib/security/adminLoginProtection';
+import { serializeTenantIds } from '@/lib/auth/serializeAdminIdentity';
 
 function invalidCredentialsResponse() {
   return NextResponse.json(
@@ -30,7 +31,7 @@ function buildAdminUserPayload(user: any, permissions: AdminPermission[]) {
     name: `${user.firstName} ${user.lastName}`.trim(),
     role: user.role,
     permissions,
-    tenantIds: user.tenantIds || [],
+    tenantIds: serializeTenantIds(user.tenantIds),
   };
 }
 
@@ -158,6 +159,7 @@ export async function POST(request: NextRequest) {
       user.permissions && user.permissions.length > 0
         ? [...user.permissions]
         : getDefaultPermissions(user.role);
+    const tenantIds = serializeTenantIds(user.tenantIds);
 
     user.lastLoginAt = new Date();
     user.failedLoginAttempts = 0;
@@ -180,7 +182,7 @@ export async function POST(request: NextRequest) {
         family_name: user.lastName,
         role: user.role,
         permissions,
-        tenantIds: user.tenantIds || [],
+        tenantIds,
         scope: 'admin',
       },
       { expiresIn: '8h' },
