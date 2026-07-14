@@ -29,6 +29,22 @@ interface AdminAuthContextValue {
 
 const STORAGE_TOKEN_KEY = 'admin-auth-token';
 const COOKIE_SESSION_SENTINEL = 'cookie-session';
+// Display profile only (name/role/permissions) — never a credential. The
+// session credential stays in the httpOnly cookie; this just lets reloads
+// render the admin shell instantly while the cookie is re-validated in the
+// background. sessionStorage: per tab, gone when the browser closes.
+const SESSION_PROFILE_KEY = 'admin-session-profile';
+
+function readSessionProfile(): AdminUser | null {
+  try {
+    const raw = sessionStorage.getItem(SESSION_PROFILE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as AdminUser;
+    return parsed && parsed.id && parsed.role ? parsed : null;
+  } catch {
+    return null;
+  }
+}
 
 const AdminAuthContext = createContext<AdminAuthContextValue | undefined>(undefined);
 
@@ -43,6 +59,9 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
     // HTTP-only cookie automatically.
     setToken(COOKIE_SESSION_SENTINEL);
     setUser(newUser);
+    try {
+      sessionStorage.setItem(SESSION_PROFILE_KEY, JSON.stringify(newUser));
+    } catch { /* storage unavailable */ }
   }, []);
 
   const clearSession = useCallback(() => {
@@ -50,6 +69,20 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
     setUser(null);
     localStorage.removeItem(STORAGE_TOKEN_KEY);
     localStorage.removeItem('admin-user');
+    try {
+      sessionStorage.removeItem(SESSION_PROFILE_KEY);
+      // Cached admin lists/metrics must not outlive the session.
+      for (let i = sessionStorage.length - 1; i >= 0; i--) {
+        const key = sessionStorage.key(i);
+        if (key && (key.startsWith('admin-bookings-cache:') || key.startsWith('admin-reviews-cache:'))) {
+          sessionStorage.removeItem(key);
+        }
+      }
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('admin-dashboard-cache:')) localStorage.removeItem(key);
+      }
+    } catch { /* storage unavailable */ }
   }, []);
 
   const refreshUserWithToken = useCallback(
@@ -79,10 +112,24 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
   );
 
   useEffect(() => {
-    // Remove credentials written by versions that predated HTTP-only cookies.
-    localStorage.removeItem(STORAGE_TOKEN_KEY);
-    localStorage.removeItem('admin-user');
-    refreshUserWithToken().finally(() => setIsLoading(false));
+    const timeoutId = window.setTimeout(() => {
+      // Remove credentials written by versions that predated HTTP-only cookies.
+      localStorage.removeItem(STORAGE_TOKEN_KEY);
+      localStorage.removeItem('admin-user');
+
+      // Optimistic hydration: paint the shell from the per-tab profile right
+      // away; the cookie is still re-validated below and an invalid session
+      // clears state and lands on the login screen.
+      const cachedProfile = readSessionProfile();
+      if (cachedProfile) {
+        setToken(COOKIE_SESSION_SENTINEL);
+        setUser(cachedProfile);
+        setIsLoading(false);
+      }
+
+      void refreshUserWithToken().finally(() => setIsLoading(false));
+    }, 0);
+    return () => window.clearTimeout(timeoutId);
   }, [refreshUserWithToken]);
 
   const login = useCallback(

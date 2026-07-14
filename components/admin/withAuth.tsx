@@ -34,9 +34,18 @@ const withAuth = <P extends object>(
           : hasAnyPermission(permissions);
 
     if (isLoading) {
+      // Only reached on the first load of a fresh browser session — reloads
+      // and in-session navigations hydrate instantly from the cached profile.
       return (
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="animate-spin rounded-full h-20 w-20 border-b-2 border-red-600" />
+        <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 gap-5">
+          <div className="relative h-14 w-14">
+            <div className="absolute inset-0 rounded-full border-4 border-slate-200" />
+            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-red-600 animate-spin" />
+          </div>
+          <div className="text-center">
+            <p className="text-slate-800 font-semibold">Egypt Excursions Online Network</p>
+            <p className="text-slate-400 text-sm mt-1">Opening your admin panel…</p>
+          </div>
         </div>
       );
     }

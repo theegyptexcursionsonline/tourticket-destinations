@@ -208,5 +208,5 @@ export default async function TourDetailPage({ params }: PageProps) {
   }
 }
 
-export const revalidate = 60;
+export const revalidate = 900; // 15 min — per-domain edge cache; stale-while-revalidate keeps clicks instant
 export const dynamicParams = true;

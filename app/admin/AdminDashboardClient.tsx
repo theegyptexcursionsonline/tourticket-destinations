@@ -257,7 +257,9 @@ const AdminDashboard = () => {
     let hasCached = false;
     if (retryCount === 0 && typeof window !== 'undefined') {
       try {
-        const cached = sessionStorage.getItem(cacheKey);
+        // localStorage (not sessionStorage) so the instant paint also works
+        // on the first visit after reopening the browser.
+        const cached = localStorage.getItem(cacheKey);
         if (cached) {
           const parsed = JSON.parse(cached);
           if (parsed.stats) setStats(parsed.stats);
@@ -266,7 +268,14 @@ const AdminDashboard = () => {
         }
       } catch { /* ignore corrupt cache */ }
     }
-    if (!hasCached) setIsLoading(true);
+    if (!hasCached) {
+      setIsLoading(true);
+    } else {
+      // Cached paint must actually show: isLoading starts true on mount, and
+      // leaving it set kept the skeleton up until the network round trip
+      // finished — defeating the whole stale-while-revalidate intent.
+      setIsLoading(false);
+    }
     setError(null);
 
     try {
@@ -346,7 +355,7 @@ const AdminDashboard = () => {
 
       // Persist for an instant next load (stale-while-revalidate).
       try {
-        sessionStorage.setItem(cacheKey, JSON.stringify({ stats: dashboardData.data || null, report: reportToUse }));
+        localStorage.setItem(cacheKey, JSON.stringify({ stats: dashboardData.data || null, report: reportToUse }));
       } catch { /* ignore storage quota */ }
 
     } catch (err) {

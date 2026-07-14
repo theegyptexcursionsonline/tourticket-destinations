@@ -39,7 +39,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 // Refresh shared homepage data every 60 seconds.
-export const revalidate = 60;
+export const revalidate = 900; // 15 min — per-domain edge cache; stale-while-revalidate keeps clicks instant
 
 export default function HomePage() {
   if (COMING_SOON_MODE) {

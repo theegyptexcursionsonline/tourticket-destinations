@@ -178,12 +178,29 @@ const BookingsPage = () => {
 
   const fetchBookings = useCallback(async (effectiveSearch: string) => {
     if (!token) return;
-    setLoading(true);
+    const requestUrl = buildBookingsUrl(effectiveSearch);
+    // Stale-while-revalidate keyed by the exact filter view (tenant included
+    // in the URL): revisiting the page paints the last-known rows instantly
+    // while the fresh list loads behind it. sessionStorage: per tab, contains
+    // customer names so it must not outlive the browser session.
+    const cacheKey = `admin-bookings-cache:${requestUrl}`;
+    let hasCached = false;
+    try {
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        setBookings(parsed.bookings || []);
+        setTotalBookings(parsed.total || 0);
+        setTotalPages(parsed.totalPages || 1);
+        hasCached = true;
+      }
+    } catch { /* ignore corrupt cache */ }
+    setLoading(!hasCached);
     setError(null);
     try {
       // Cache-buster + no-store: the admin list must never serve a stale
       // (edge-cached) page, otherwise a just-deleted booking reappears.
-      const url = `${buildBookingsUrl(effectiveSearch)}&_t=${Date.now()}`;
+      const url = `${requestUrl}&_t=${Date.now()}`;
       const response = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
         cache: 'no-store',
@@ -195,6 +212,13 @@ const BookingsPage = () => {
       setBookings(data.data || []);
       setTotalBookings(data.meta?.total || 0);
       setTotalPages(data.meta?.totalPages || 1);
+      try {
+        sessionStorage.setItem(cacheKey, JSON.stringify({
+          bookings: data.data || [],
+          total: data.meta?.total || 0,
+          totalPages: data.meta?.totalPages || 1,
+        }));
+      } catch { /* ignore storage quota */ }
     } catch (err) {
       setError((err as Error).message);
       console.error('Error fetching bookings:', err);
@@ -327,6 +351,17 @@ const BookingsPage = () => {
     );
   };
 
+  // Cached list views are stale after a mutation — drop them so old rows or
+  // statuses can't flash back on the next visit.
+  const clearBookingsCache = () => {
+    try {
+      for (let i = sessionStorage.length - 1; i >= 0; i--) {
+        const key = sessionStorage.key(i);
+        if (key && key.startsWith('admin-bookings-cache:')) sessionStorage.removeItem(key);
+      }
+    } catch { /* storage unavailable */ }
+  };
+
   const handleStatusChange = async (bookingId: string, newStatus: string) => {
     try {
       const response = await fetch(`/api/admin/bookings/${bookingId}${tenantQuery}`, {
@@ -353,6 +388,7 @@ const BookingsPage = () => {
         )
       );
 
+      clearBookingsCache();
       toast.success(`Booking status updated to ${savedStatus}`);
     } catch (error) {
       console.error('Error updating booking status:', error);
@@ -374,6 +410,7 @@ const BookingsPage = () => {
       }
       setBookings((prev) => prev.filter((b) => b._id !== bookingId));
       setTotalBookings((prev) => Math.max(0, prev - 1));
+      clearBookingsCache();
       toast.success('Booking deleted');
     } catch (error) {
       toast.error((error as Error).message || 'Failed to delete booking');
