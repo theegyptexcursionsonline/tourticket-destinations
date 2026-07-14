@@ -107,7 +107,10 @@ export function AdminTenantProvider({ children }: AdminTenantProviderProps) {
       setIsLoading(true);
       setError(null);
       
-      const response = await fetch('/api/admin/tenants?active=true');
+      // The shared English/German network currently has more tenants than the
+      // API's default page size. Load the complete admin scope so no brand is
+      // missing from the global selector or reset to All Brands by mistake.
+      const response = await fetch('/api/admin/tenants?active=true&limit=50');
       const data = await response.json();
       
       if (data.success) {
