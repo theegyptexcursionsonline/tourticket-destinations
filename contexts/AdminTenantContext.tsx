@@ -4,6 +4,7 @@
 // Admin panel context for managing selected tenant (brand) filtering
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { useAdminAuth } from '@/contexts/AdminAuthContext';
 
 // ============================================
 // TYPES
@@ -76,6 +77,7 @@ interface AdminTenantProviderProps {
 }
 
 export function AdminTenantProvider({ children }: AdminTenantProviderProps) {
+  const { isAuthenticated, isLoading: isAuthLoading } = useAdminAuth();
   const [selectedTenantId, setSelectedTenantIdState] = useState<string>(ALL_TENANTS_VALUE);
   const [tenants, setTenants] = useState<AdminTenant[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -134,12 +136,20 @@ export function AdminTenantProvider({ children }: AdminTenantProviderProps) {
     }
   }, [selectedTenantId, setSelectedTenantId]);
 
-  // Fetch tenants on mount
+  // Fetch tenants only after the admin cookie session is authenticated. The
+  // provider also wraps the login screen, so fetching on mount would receive
+  // 401 and leave the selector empty until a manual page reload.
   useEffect(() => {
-    if (isInitialized) {
-      fetchTenants();
+    if (!isInitialized || isAuthLoading) return;
+
+    if (!isAuthenticated) {
+      setTenants([]);
+      setIsLoading(false);
+      return;
     }
-  }, [isInitialized, fetchTenants]);
+
+    fetchTenants();
+  }, [isAuthenticated, isAuthLoading, isInitialized, fetchTenants]);
 
   // Helper: Get currently selected tenant object
   const getSelectedTenant = useCallback((): AdminTenant | null => {
