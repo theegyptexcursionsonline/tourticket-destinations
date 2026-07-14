@@ -18,7 +18,8 @@ describe('admin tenant access', () => {
     expect(canAccessTenant(base, 'brand-b')).toBe(false);
   });
 
-  it('allows super administrators to access every tenant', () => {
-    expect(canAccessTenant({ ...base, role: 'super_admin' }, 'brand-b')).toBe(true);
+  it('keeps super administrators inside their resolved network tenant list', () => {
+    expect(canAccessTenant({ ...base, role: 'super_admin' }, 'brand-a')).toBe(true);
+    expect(canAccessTenant({ ...base, role: 'super_admin' }, 'brand-b')).toBe(false);
   });
 });

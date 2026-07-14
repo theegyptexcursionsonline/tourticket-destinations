@@ -56,11 +56,8 @@ export async function GET(request: NextRequest) {
     // Hurghada booking for a shared/copied tour title.
     if (effectiveTenantId) {
       baseMatch.tenantId = effectiveTenantId;
-    } else if (auth.role !== 'super_admin') {
-      baseMatch.tenantId = { $in: auth.tenantIds };
     } else {
-      // "All brands" — exclude default, null, undefined, empty, and missing tenantId
-      baseMatch.tenantId = { $exists: true, $nin: ['default', null, undefined, ''] };
+      baseMatch.tenantId = { $in: auth.tenantIds };
     }
 
     // Status filter

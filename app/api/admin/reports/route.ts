@@ -124,11 +124,12 @@ function buildDateSelection(searchParams: URLSearchParams): DateRangeSelection {
   };
 }
 
-function buildTenantBookingMatch(effectiveTenantId: string | undefined) {
+function buildTenantBookingMatch(
+  effectiveTenantId: string | undefined,
+  tenantScopeIds: string[],
+) {
   if (!effectiveTenantId) {
-    return {
-      tenantId: { $exists: true, $nin: ['default', null, ''] },
-    };
+    return { tenantId: { $in: tenantScopeIds } };
   }
 
   if (effectiveTenantId === 'default') {
@@ -147,9 +148,12 @@ function buildTenantBookingMatch(effectiveTenantId: string | undefined) {
   };
 }
 
-function buildReviewTenantMatch(effectiveTenantId: string | undefined) {
+function buildReviewTenantMatch(
+  effectiveTenantId: string | undefined,
+  tenantScopeIds: string[],
+) {
   if (!effectiveTenantId) {
-    return { tenantId: { $exists: true, $nin: ['default', null, ''] } };
+    return { tenantId: { $in: tenantScopeIds } };
   }
 
   if (effectiveTenantId === 'default') {
@@ -252,6 +256,7 @@ function computeTrend(currentValue: number, previousValue: number): TrendInfo {
 async function fetchReportData(
   effectiveTenantId: string | undefined,
   selection: DateRangeSelection,
+  tenantScopeIds: string[],
 ) {
   await dbConnect(effectiveTenantId || undefined);
 
@@ -262,9 +267,9 @@ async function fetchReportData(
     createdAt: { $gte: selection.previousStart, $lte: selection.previousEnd },
   };
   const chartFormat = selection.bucket === 'day' ? '%Y-%m-%d' : '%Y-%m';
-  const tenantBookingMatch = buildTenantBookingMatch(effectiveTenantId);
+  const tenantBookingMatch = buildTenantBookingMatch(effectiveTenantId, tenantScopeIds);
   const tenantBookingScopeStages = buildBookingTourScopeStages(effectiveTenantId);
-  const reviewTenantMatch = buildReviewTenantMatch(effectiveTenantId);
+  const reviewTenantMatch = buildReviewTenantMatch(effectiveTenantId, tenantScopeIds);
 
   const [
     currentSuccessRows,
@@ -479,10 +484,12 @@ function getCachedReportData(
   tenantKey: string,
   rangeKey: string,
   selection: DateRangeSelection,
+  tenantScopeIds: string[],
 ) {
+  const scopeKey = tenantScopeIds.slice().sort().join(',');
   return cacheIfAvailable(
-    () => fetchReportData(tenantKey === 'all' ? undefined : tenantKey, selection),
-    [`report-data-${REPORT_CACHE_VERSION}-${tenantKey}-${rangeKey}`],
+    () => fetchReportData(tenantKey === 'all' ? undefined : tenantKey, selection, tenantScopeIds),
+    [`report-data-${REPORT_CACHE_VERSION}-${tenantKey}-${rangeKey}-${scopeKey}`],
     { revalidate: 120, tags: ['reports', `reports-${tenantKey}`] },
   )();
 }
@@ -499,9 +506,15 @@ export async function GET(request: NextRequest) {
       searchParams.get('brand_id');
     const tenantKey = tenantId && tenantId !== 'all' ? tenantId : 'all';
     if (tenantKey !== 'all' && !canAccessTenant(auth, tenantKey)) return tenantForbiddenResponse();
-    if (tenantKey === 'all' && auth.role !== 'super_admin') return tenantForbiddenResponse();
+    if (tenantKey === 'all' && auth.tenantIds.length === 0) return tenantForbiddenResponse();
     const selection = buildDateSelection(searchParams);
-    const data = await getCachedReportData(tenantKey, selection.rangeKey, selection);
+    const tenantScopeIds = tenantKey === 'all' ? auth.tenantIds : [tenantKey];
+    const data = await getCachedReportData(
+      tenantKey,
+      selection.rangeKey,
+      selection,
+      tenantScopeIds,
+    );
 
     return NextResponse.json({ success: true, ...data });
   } catch (error) {

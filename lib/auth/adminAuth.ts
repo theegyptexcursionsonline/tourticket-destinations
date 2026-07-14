@@ -6,6 +6,7 @@ import {
   getDefaultPermissions,
 } from '@/lib/constants/adminPermissions';
 import { canAccessMultiTenantAdmin } from '@/lib/auth/serializeAdminIdentity';
+import { resolveAdminNetworkTenantIds } from '@/lib/auth/adminNetworkScope';
 
 export interface AdminAuthContext {
   userId: string;
@@ -70,9 +71,7 @@ export async function requireAdminAuth(
   const permissionsFromToken = Array.isArray(user.permissions) && user.permissions.length > 0
     ? (user.permissions as AdminPermission[])
     : getDefaultPermissions(role);
-  const tenantIds = Array.isArray(user.tenantIds)
-    ? user.tenantIds.filter((id: unknown): id is string => typeof id === 'string' && id.length > 0)
-    : [];
+  const tenantIds = resolveAdminNetworkTenantIds(role, user.tenantIds);
 
   if (!canAccessMultiTenantAdmin(role, tenantIds, user.adminPortalScopes)) {
     return forbiddenResponse();
@@ -85,6 +84,17 @@ export async function requireAdminAuth(
     permissions: permissionsFromToken,
     tenantIds,
   };
+
+  const requestedTenantId = request.nextUrl.searchParams.get('tenantId')
+    || request.nextUrl.searchParams.get('brandId')
+    || request.nextUrl.searchParams.get('brand_id');
+  if (
+    requestedTenantId
+    && requestedTenantId !== 'all'
+    && !authContext.tenantIds.includes(requestedTenantId)
+  ) {
+    return forbiddenResponse();
+  }
 
   const { permissions = [], requireAll = true } = options;
   if (permissions.length === 0) {
@@ -103,7 +113,7 @@ export async function requireAdminAuth(
 }
 
 export function canAccessTenant(auth: AdminAuthContext, tenantId: string): boolean {
-  return auth.role === 'super_admin' || auth.tenantIds.includes(tenantId);
+  return auth.tenantIds.includes(tenantId);
 }
 
 export function tenantForbiddenResponse() {

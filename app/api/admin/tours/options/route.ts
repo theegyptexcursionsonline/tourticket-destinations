@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
   const tenantId = (searchParams.get('tenantId') || '').trim();
   const effectiveTenantId = tenantId && tenantId !== 'all' ? tenantId : undefined;
   if (effectiveTenantId && !canAccessTenant(auth, effectiveTenantId)) return tenantForbiddenResponse();
-  if (!effectiveTenantId && auth.role !== 'super_admin') return tenantForbiddenResponse();
+  if (!effectiveTenantId && auth.tenantIds.length === 0) return tenantForbiddenResponse();
   await dbConnect(effectiveTenantId || undefined);
 
   try {
@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
 
     const filter: Record<string, unknown> = {};
     if (effectiveTenantId) filter.$or = [{ tenantId: effectiveTenantId }, { tenantIds: effectiveTenantId }];
+    else filter.tenantId = { $in: auth.tenantIds };
 
     if (q) {
       // Simple case-insensitive title match (fast enough for dropdown)
@@ -46,5 +47,4 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: false, error: 'Failed to fetch tour options' }, { status: 500 });
   }
 }
-
 

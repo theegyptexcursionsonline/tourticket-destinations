@@ -34,10 +34,9 @@ export async function GET(request: NextRequest) {
     const skip = parseInt(searchParams.get('skip') || '0', 10);
     
     // Build query
-    const query: Record<string, unknown> = {};
-    if (auth.role !== 'super_admin') {
-      query.tenantId = { $in: auth.tenantIds };
-    }
+    const query: Record<string, unknown> = {
+      tenantId: { $in: auth.tenantIds },
+    };
     
     if (activeFilter !== null) {
       query.isActive = activeFilter === 'true';

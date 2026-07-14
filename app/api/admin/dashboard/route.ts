@@ -10,7 +10,10 @@ import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/li
 
 export const dynamic = 'force-dynamic';
 
-async function fetchDashboardStats(effectiveTenantId: string | undefined) {
+async function fetchDashboardStats(
+  effectiveTenantId: string | undefined,
+  tenantScopeIds: string[],
+) {
   const tourTenantFilter: Record<string, unknown> = {};
   const bookingTenantFilter: Record<string, unknown> = {};
   if (effectiveTenantId) {
@@ -19,12 +22,8 @@ async function fetchDashboardStats(effectiveTenantId: string | undefined) {
     tourTenantFilter.tenantId = effectiveTenantId;
     bookingTenantFilter.tenantId = effectiveTenantId;
   } else {
-    // "All Brands" = real brands only. Exclude the shared default/main-EEO and
-    // no-brand data so the dashboard matches the bookings list's definition
-    // (otherwise it counts the whole shared database and inflates every card).
-    const brandedOnly = { $exists: true, $nin: ['default', null, ''] };
-    tourTenantFilter.tenantId = brandedOnly;
-    bookingTenantFilter.tenantId = brandedOnly;
+    tourTenantFilter.tenantId = { $in: tenantScopeIds };
+    bookingTenantFilter.tenantId = { $in: tenantScopeIds };
   }
 
   // Revenue = collected money only; cancelled/refunded bookings are excluded.
@@ -143,10 +142,11 @@ async function fetchDashboardStats(effectiveTenantId: string | undefined) {
   return { ...stats, trends, recentActivities };
 }
 
-function getCachedDashboardStats(tenantKey: string) {
+function getCachedDashboardStats(tenantKey: string, tenantScopeIds: string[]) {
+  const scopeKey = tenantScopeIds.slice().sort().join(',');
   return cacheIfAvailable(
-    () => fetchDashboardStats(tenantKey === 'all' ? undefined : tenantKey),
-    [`dashboard-stats-${tenantKey}`],
+    () => fetchDashboardStats(tenantKey === 'all' ? undefined : tenantKey, tenantScopeIds),
+    [`dashboard-stats-${tenantKey}-${scopeKey}`],
     { revalidate: 60, tags: ['dashboard', `dashboard-${tenantKey}`] }
   )();
 }
@@ -166,9 +166,10 @@ export async function GET(request: NextRequest) {
       searchParams.get('brand_id');
     const tenantKey = tenantId && tenantId !== 'all' ? tenantId : 'all';
     if (tenantKey !== 'all' && !canAccessTenant(authResult, tenantKey)) return tenantForbiddenResponse();
-    if (tenantKey === 'all' && authResult.role !== 'super_admin') return tenantForbiddenResponse();
+    if (tenantKey === 'all' && authResult.tenantIds.length === 0) return tenantForbiddenResponse();
 
-    const responseData = await getCachedDashboardStats(tenantKey);
+    const tenantScopeIds = tenantKey === 'all' ? authResult.tenantIds : [tenantKey];
+    const responseData = await getCachedDashboardStats(tenantKey, tenantScopeIds);
 
     return NextResponse.json({ success: true, data: responseData });
   } catch (error) {

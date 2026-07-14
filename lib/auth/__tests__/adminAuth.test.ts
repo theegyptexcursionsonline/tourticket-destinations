@@ -7,7 +7,7 @@ jest.mock('@/lib/models/user', () => ({
       select: jest.fn(() => ({
         lean: jest.fn().mockResolvedValue({
           _id: 'admin-id', email: 'admin@example.com', role: 'admin',
-          permissions: ['manageDashboard'], tenantIds: ['tenant-a'], isActive: true,
+          permissions: ['manageDashboard'], tenantIds: ['hurghada-speedboat'], isActive: true,
         }),
       })),
     })),
@@ -40,6 +40,7 @@ describe('requireAdminAuth', () => {
     const request = {
       headers: new Headers({ authorization: 'Bearer exposed-token' }),
       cookies: { get: jest.fn().mockReturnValue(undefined) },
+      nextUrl: new URL('https://dashboard.egypt-excursionsonline.com/api/admin/dashboard'),
     } as any;
 
     const result = await requireAdminAuth(request);
@@ -54,16 +55,17 @@ describe('requireAdminAuth', () => {
       scope: 'admin',
       role: 'admin',
       permissions: ['manageDashboard'],
-      tenantIds: ['tenant-a'],
+      tenantIds: ['hurghada-speedboat'],
     } as any);
     const request = {
       headers: new Headers(),
       cookies: { get: jest.fn().mockReturnValue({ value: 'cookie-token' }) },
+      nextUrl: new URL('https://dashboard.egypt-excursionsonline.com/api/admin/dashboard'),
     } as any;
 
     const result = await requireAdminAuth(request);
     expect(result).not.toBeInstanceOf(NextResponse);
     expect(mockedVerifyToken).toHaveBeenCalledWith('cookie-token');
-    expect(result).toMatchObject({ userId: 'admin-id', tenantIds: ['tenant-a'] });
+    expect(result).toMatchObject({ userId: 'admin-id', tenantIds: ['hurghada-speedboat'] });
   });
 });

@@ -16,6 +16,7 @@ import {
   canAccessMultiTenantAdmin,
   serializeTenantIds,
 } from '@/lib/auth/serializeAdminIdentity';
+import { resolveAdminNetworkTenantIds } from '@/lib/auth/adminNetworkScope';
 
 function invalidCredentialsResponse() {
   return NextResponse.json(
@@ -34,7 +35,7 @@ function buildAdminUserPayload(user: any, permissions: AdminPermission[]) {
     name: `${user.firstName} ${user.lastName}`.trim(),
     role: user.role,
     permissions,
-    tenantIds: serializeTenantIds(user.tenantIds),
+    tenantIds: resolveAdminNetworkTenantIds(user.role, serializeTenantIds(user.tenantIds)),
   };
 }
 
@@ -158,7 +159,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const tenantIds = serializeTenantIds(user.tenantIds);
+    const tenantIds = resolveAdminNetworkTenantIds(
+      user.role,
+      serializeTenantIds(user.tenantIds),
+    );
     if (!canAccessMultiTenantAdmin(user.role, tenantIds, user.adminPortalScopes)) {
       return NextResponse.json(
         { success: false, error: 'This account is not assigned to this admin portal.' },

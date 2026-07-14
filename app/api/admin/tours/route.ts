@@ -106,7 +106,7 @@ export async function GET(request: NextRequest) {
   const tenantId = searchParams.get('tenantId');
   const effectiveTenantId = tenantId && tenantId !== 'all' ? tenantId : undefined;
   if (effectiveTenantId && !canAccessTenant(auth, effectiveTenantId)) return tenantForbiddenResponse();
-  if (!effectiveTenantId && auth.role !== 'super_admin') return tenantForbiddenResponse();
+  if (!effectiveTenantId && auth.tenantIds.length === 0) return tenantForbiddenResponse();
   await dbConnect(effectiveTenantId || undefined);
 
   try {
@@ -126,9 +126,7 @@ export async function GET(request: NextRequest) {
         { tenantIds: tenantId },
       ];
     } else {
-      // "All Brands" = real brands only. Never surface the EEO 'default'
-      // (main-site) tours on this brands admin.
-      filter.tenantId = { $exists: true, $nin: ['default', null, ''] };
+      filter.tenantId = { $in: auth.tenantIds };
     }
 
     // Filter by published status if specified
