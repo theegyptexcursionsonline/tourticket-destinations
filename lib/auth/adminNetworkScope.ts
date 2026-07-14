@@ -1,13 +1,20 @@
 export const ADMIN_NETWORK_TENANT_IDS = [
+  'aegypten-ausfluege',
   'aswan-excursions',
+  'cairo-ausfluege',
   'cairo-excursions-online',
   'dahab-excursions',
   'el-gouna',
+  'elgouna-ausfluege',
+  'hurghada-ausfluege',
   'hurghada-excursions-online',
   'hurghada-speedboat',
+  'luxor-ausfluege',
   'luxor-excursions',
+  'makadi-ausfluege',
   'makadi-bay',
   'marsa-alam-excursions',
+  'sharm-ausfluege',
   'sharm-excursions-online',
 ] as const;
 
