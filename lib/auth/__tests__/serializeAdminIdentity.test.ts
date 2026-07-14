@@ -1,4 +1,7 @@
-import { serializeTenantIds } from '../serializeAdminIdentity';
+import {
+  canAccessMultiTenantAdmin,
+  serializeTenantIds,
+} from '../serializeAdminIdentity';
 
 describe('serializeTenantIds', () => {
   it('returns a plain string array for an array-like database value', () => {
@@ -13,5 +16,17 @@ describe('serializeTenantIds', () => {
 
   it('returns an empty array when tenant access is unset', () => {
     expect(serializeTenantIds(undefined)).toEqual([]);
+  });
+});
+
+describe('canAccessMultiTenantAdmin', () => {
+  it('keeps main-site-only operations accounts out of the multi-tenant portal', () => {
+    expect(canAccessMultiTenantAdmin('operations', [])).toBe(false);
+  });
+
+  it('allows tenant-scoped operators and full administrators', () => {
+    expect(canAccessMultiTenantAdmin('operations', ['default'])).toBe(true);
+    expect(canAccessMultiTenantAdmin('admin', [])).toBe(true);
+    expect(canAccessMultiTenantAdmin('super_admin', [])).toBe(true);
   });
 });

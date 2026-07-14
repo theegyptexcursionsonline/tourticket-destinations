@@ -12,7 +12,10 @@ import {
   failedAdminLoginUpdate,
   loginRetryAfterSeconds,
 } from '@/lib/security/adminLoginProtection';
-import { serializeTenantIds } from '@/lib/auth/serializeAdminIdentity';
+import {
+  canAccessMultiTenantAdmin,
+  serializeTenantIds,
+} from '@/lib/auth/serializeAdminIdentity';
 
 function invalidCredentialsResponse() {
   return NextResponse.json(
@@ -155,11 +158,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const tenantIds = serializeTenantIds(user.tenantIds);
+    if (!canAccessMultiTenantAdmin(user.role, tenantIds)) {
+      return NextResponse.json(
+        { success: false, error: 'This account is not assigned to this admin portal.' },
+        { status: 403 },
+      );
+    }
+
     const permissions =
       user.permissions && user.permissions.length > 0
         ? [...user.permissions]
         : getDefaultPermissions(user.role);
-    const tenantIds = serializeTenantIds(user.tenantIds);
 
     user.lastLoginAt = new Date();
     user.failedLoginAttempts = 0;
