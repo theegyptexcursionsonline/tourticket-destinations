@@ -79,6 +79,15 @@ export const TourActions = ({ tourId }: { tourId: string }) => {
       const currentPath = window.location.pathname;
       const params = searchParams.toString();
       const fullPath = params ? `${currentPath}?${params}` : currentPath;
+      // The tours list is client-cached; purge and notify it so the deleted
+      // tour disappears immediately instead of flashing back from cache.
+      try {
+        for (let i = sessionStorage.length - 1; i >= 0; i--) {
+          const key = sessionStorage.key(i);
+          if (key && key.startsWith('admin-tours-cache:')) sessionStorage.removeItem(key);
+        }
+      } catch { /* storage unavailable */ }
+      window.dispatchEvent(new CustomEvent('admin-tours-changed'));
       router.push(fullPath);
       router.refresh();
     } catch (err) {

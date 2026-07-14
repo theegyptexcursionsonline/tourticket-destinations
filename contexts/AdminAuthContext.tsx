@@ -1,7 +1,13 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import * as Sentry from '@sentry/nextjs';
 import toast from 'react-hot-toast';
+
+// Abort a login request that hangs (stalled network path) instead of
+// spinning forever — the timeout also surfaces the event in Sentry so
+// "infinite loading" reports become diagnosable.
+const LOGIN_TIMEOUT_MS = 20_000;
 
 interface AdminUser {
   id: string;
@@ -74,7 +80,7 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
       // Cached admin lists/metrics must not outlive the session.
       for (let i = sessionStorage.length - 1; i >= 0; i--) {
         const key = sessionStorage.key(i);
-        if (key && (key.startsWith('admin-bookings-cache:') || key.startsWith('admin-reviews-cache:'))) {
+        if (key && (key.startsWith('admin-bookings-cache:') || key.startsWith('admin-reviews-cache:') || key.startsWith('admin-tours-cache:'))) {
           sessionStorage.removeItem(key);
         }
       }
@@ -135,14 +141,35 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
   const login = useCallback(
     async (email: string, password: string) => {
       setIsLoading(true);
+      const startedAt = Date.now();
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), LOGIN_TIMEOUT_MS);
       try {
-        const response = await fetch('/api/admin/login', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ email, username: email, password }),
-        });
+        let response: Response;
+        try {
+          response = await fetch('/api/admin/login', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email, username: email, password }),
+            signal: controller.signal,
+          });
+        } catch (fetchError) {
+          const timedOut = fetchError instanceof DOMException && fetchError.name === 'AbortError';
+          Sentry.captureMessage(timedOut ? 'admin-login-timeout' : 'admin-login-network-error', {
+            level: 'warning',
+            extra: {
+              durationMs: Date.now() - startedAt,
+              online: typeof navigator !== 'undefined' ? navigator.onLine : null,
+            },
+          });
+          throw new Error(
+            timedOut
+              ? 'Connection timed out. Please check your internet connection and try again.'
+              : 'Could not reach the server. Please check your internet connection and try again.',
+          );
+        }
 
         let data: any = null;
         const contentType = response.headers.get('content-type');
@@ -170,6 +197,7 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
         toast.error(error.message || 'Failed to log in');
         throw error;
       } finally {
+        clearTimeout(timeoutId);
         setIsLoading(false);
       }
     },

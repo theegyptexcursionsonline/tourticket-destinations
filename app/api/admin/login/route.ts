@@ -12,6 +12,7 @@ import {
   failedAdminLoginUpdate,
   loginRetryAfterSeconds,
 } from '@/lib/security/adminLoginProtection';
+import { recordLoginAudit } from '@/lib/auth/loginAudit';
 import {
   canAccessMultiTenantAdmin,
   serializeTenantIds,
@@ -108,12 +109,14 @@ export async function POST(request: NextRequest) {
     if (!user) {
       // Keep nonexistent-account timing close to a real password comparison.
       await bcrypt.compare(password, '$2b$10$C6UzMDM.H6dfI/f/IKcEe.3u5W4WcXHfsvhQ4FZ9DqI7I7M.JxH1K');
+      await recordLoginAudit(request.headers, identifier, 'unknown_account');
       return invalidCredentialsResponse();
     }
 
     const now = new Date();
     if (user.loginLockedUntil && user.loginLockedUntil > now) {
       const retryAfter = loginRetryAfterSeconds(user.loginLockedUntil, now.getTime());
+      await recordLoginAudit(request.headers, identifier, 'locked');
       return NextResponse.json(
         { success: false, error: 'Too many login attempts. Please try again later.' },
         { status: 429, headers: { 'Retry-After': String(retryAfter) } },
@@ -121,6 +124,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!user.isActive) {
+      await recordLoginAudit(request.headers, identifier, 'inactive');
       return NextResponse.json(
         { success: false, error: 'This admin account has been deactivated.' },
         { status: 403 },
@@ -128,6 +132,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!user.password) {
+      await recordLoginAudit(request.headers, identifier, 'wrong_password');
       return invalidCredentialsResponse();
     }
 
@@ -149,10 +154,12 @@ export async function POST(request: NextRequest) {
           { $set: { loginLockedUntil: protection.loginLockedUntil } },
         );
       }
+      await recordLoginAudit(request.headers, identifier, protection.loginLockedUntil ? 'locked' : 'wrong_password');
       return invalidCredentialsResponse();
     }
 
     if (!user.role || user.role === 'customer') {
+      await recordLoginAudit(request.headers, identifier, 'not_admin');
       return NextResponse.json(
         { success: false, error: 'This account does not have admin access.' },
         { status: 403 },
@@ -164,6 +171,7 @@ export async function POST(request: NextRequest) {
       serializeTenantIds(user.tenantIds),
     );
     if (!canAccessMultiTenantAdmin(user.role, tenantIds, user.adminPortalScopes)) {
+      await recordLoginAudit(request.headers, identifier, 'portal_rejected');
       return NextResponse.json(
         { success: false, error: 'This account is not assigned to this admin portal.' },
         { status: 403 },
@@ -187,6 +195,7 @@ export async function POST(request: NextRequest) {
       { _id: user._id },
       { $set: { failedLoginAttempts: 0 }, $unset: { loginLockedUntil: 1 } },
     );
+    await recordLoginAudit(request.headers, identifier, 'success');
 
     const token = await signToken(
       {

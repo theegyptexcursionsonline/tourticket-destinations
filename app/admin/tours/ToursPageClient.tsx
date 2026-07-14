@@ -40,10 +40,20 @@ function ToursPageClientComponent() {
 
   // Fetch tours based on selected tenant
   const fetchTours = useCallback(async () => {
+    // Stale-while-revalidate keyed by tenant: sidebar revisits paint the
+    // last-known list instantly while the fresh list loads behind it.
+    const cacheKey = `admin-tours-cache:${selectedTenantId || 'all'}`;
+    let hasCached = false;
     try {
-      setIsLoading(true);
-      setError(null);
-
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached) {
+        setTours(JSON.parse(cached));
+        hasCached = true;
+      }
+    } catch { /* ignore corrupt cache */ }
+    setIsLoading(!hasCached);
+    setError(null);
+    try {
       const params = new URLSearchParams();
       if (selectedTenantId && selectedTenantId !== 'all') {
         params.set('tenantId', selectedTenantId);
@@ -54,6 +64,9 @@ function ToursPageClientComponent() {
 
       if (data.success) {
         setTours(data.data || []);
+        try {
+          sessionStorage.setItem(cacheKey, JSON.stringify(data.data || []));
+        } catch { /* ignore storage quota */ }
       } else {
         setError(data.error || 'Failed to fetch tours');
         setTours([]);
@@ -70,6 +83,11 @@ function ToursPageClientComponent() {
   // Fetch tours when tenant changes
   useEffect(() => {
     fetchTours();
+    // TourActions dispatches this after deleting a tour so the list drops
+    // the row immediately instead of serving it back from cache.
+    const onChanged = () => void fetchTours();
+    window.addEventListener('admin-tours-changed', onChanged);
+    return () => window.removeEventListener('admin-tours-changed', onChanged);
   }, [fetchTours]);
 
   // Dedupe tours by slug when viewing "All Brands".
