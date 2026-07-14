@@ -7,6 +7,7 @@ import {
   DEFAULT_ADMIN_ROLE,
   getDefaultPermissions,
 } from '@/lib/constants/adminPermissions';
+import type { AdminPortalScope } from '@/lib/auth/serializeAdminIdentity';
 
 // Cart item interface for storing in user document
 export interface ICartItem {
@@ -53,6 +54,7 @@ export interface IUser extends Document {
   cart?: ICartItem[]; // Array of cart items
   // Multi-tenant support — which brands this team member can access
   tenantIds?: string[];
+  adminPortalScopes?: AdminPortalScope[];
 }
 
 const UserSchema: Schema<IUser> = new Schema({
@@ -144,6 +146,11 @@ const UserSchema: Schema<IUser> = new Schema({
     type: [String],
     default: [],
     index: true,
+  },
+  adminPortalScopes: {
+    type: [String],
+    enum: ['main', 'multiTenant'],
+    default: undefined,
   },
   createdAt: {
     type: Date,

@@ -159,7 +159,7 @@ export async function POST(request: NextRequest) {
     }
 
     const tenantIds = serializeTenantIds(user.tenantIds);
-    if (!canAccessMultiTenantAdmin(user.role, tenantIds)) {
+    if (!canAccessMultiTenantAdmin(user.role, tenantIds, user.adminPortalScopes)) {
       return NextResponse.json(
         { success: false, error: 'This account is not assigned to this admin portal.' },
         { status: 403 },

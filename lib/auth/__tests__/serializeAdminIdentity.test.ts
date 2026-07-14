@@ -1,5 +1,6 @@
 import {
   canAccessMultiTenantAdmin,
+  serializeAdminPortalScopes,
   serializeTenantIds,
 } from '../serializeAdminIdentity';
 
@@ -28,5 +29,21 @@ describe('canAccessMultiTenantAdmin', () => {
     expect(canAccessMultiTenantAdmin('operations', ['default'])).toBe(true);
     expect(canAccessMultiTenantAdmin('admin', [])).toBe(true);
     expect(canAccessMultiTenantAdmin('super_admin', [])).toBe(true);
+  });
+
+  it('keeps explicitly main-only administrators out of the multi-tenant portal', () => {
+    expect(canAccessMultiTenantAdmin('admin', [], ['main'])).toBe(false);
+    expect(canAccessMultiTenantAdmin('super_admin', [], ['main'])).toBe(false);
+  });
+
+  it('allows explicitly multi-tenant administrators and normalizes their scopes', () => {
+    expect(canAccessMultiTenantAdmin('admin', [], ['multiTenant'])).toBe(true);
+    expect(serializeAdminPortalScopes(['multiTenant', 'multiTenant', 'invalid']))
+      .toEqual(['multiTenant']);
+  });
+
+  it('rejects malformed explicit portal scope data', () => {
+    expect(canAccessMultiTenantAdmin('admin', [], ['invalid'])).toBe(false);
+    expect(canAccessMultiTenantAdmin('admin', [], 'multiTenant')).toBe(false);
   });
 });

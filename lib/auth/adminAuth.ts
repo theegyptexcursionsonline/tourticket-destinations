@@ -5,6 +5,7 @@ import {
   AdminRole,
   getDefaultPermissions,
 } from '@/lib/constants/adminPermissions';
+import { canAccessMultiTenantAdmin } from '@/lib/auth/serializeAdminIdentity';
 
 export interface AdminAuthContext {
   userId: string;
@@ -59,7 +60,7 @@ export async function requireAdminAuth(
   ]);
   await dbConnect();
   const user = await User.findById(String(payload.sub))
-    .select('email role permissions tenantIds isActive')
+    .select('email role permissions tenantIds adminPortalScopes isActive')
     .lean<any>();
   if (!user || !user.isActive || !user.role || user.role === 'customer') {
     return unauthorizedResponse();
@@ -69,15 +70,20 @@ export async function requireAdminAuth(
   const permissionsFromToken = Array.isArray(user.permissions) && user.permissions.length > 0
     ? (user.permissions as AdminPermission[])
     : getDefaultPermissions(role);
+  const tenantIds = Array.isArray(user.tenantIds)
+    ? user.tenantIds.filter((id: unknown): id is string => typeof id === 'string' && id.length > 0)
+    : [];
+
+  if (!canAccessMultiTenantAdmin(role, tenantIds, user.adminPortalScopes)) {
+    return forbiddenResponse();
+  }
 
   const authContext: AdminAuthContext = {
     userId: String(payload.sub),
     email: typeof user.email === 'string' ? user.email : undefined,
     role,
     permissions: permissionsFromToken,
-    tenantIds: Array.isArray(user.tenantIds)
-      ? user.tenantIds.filter((id: unknown): id is string => typeof id === 'string' && id.length > 0)
-      : [],
+    tenantIds,
   };
 
   const { permissions = [], requireAll = true } = options;
