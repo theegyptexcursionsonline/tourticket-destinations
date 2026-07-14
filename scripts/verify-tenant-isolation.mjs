@@ -13,7 +13,7 @@ const DOMAINS = [
   { host: 'aswanexcursions.com', marker: /Aswan Excursions/i },
   { host: 'luxorexcursions.com', marker: /Luxor Excursions/i },
   { host: 'dahabexcursions.com', marker: /Dahab Excursions/i },
-  { host: 'www.marsaalamexcursions.com', marker: /Marsa Alam/i },
+
 ];
 
 const PATHS = ['/'];
