@@ -11,13 +11,17 @@ export async function GET(request: NextRequest) {
   if (auth instanceof NextResponse) return auth;
 
   try {
-    // Get tenant from request
-    const tenantId = await getTenantFromRequest();
+    // The shared dashboard host resolves to `default`, so admin forms must be
+    // able to request taxonomy for the explicitly selected network brand.
+    const { searchParams } = new URL(request.url);
+    const requestedTenantId = (searchParams.get('tenantId') || '').trim();
+    const tenantId = requestedTenantId && requestedTenantId !== 'all'
+      ? requestedTenantId
+      : await getTenantFromRequest();
     if (!canAccessTenant(auth, tenantId)) return tenantForbiddenResponse();
     await dbConnect(tenantId);
     
     // Check if admin wants all destinations (for admin panel)
-    const { searchParams } = new URL(request.url);
     const showAll = searchParams.get('all') === 'true';
     if (showAll && auth.role !== 'super_admin') return tenantForbiddenResponse();
     

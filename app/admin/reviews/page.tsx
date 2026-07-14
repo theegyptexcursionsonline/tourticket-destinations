@@ -29,6 +29,39 @@ interface ReviewStats {
   averageRating: number;
 }
 
+interface ReviewPagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
+}
+
+interface ReviewsResponse {
+  success: boolean;
+  data: Review[];
+  stats: ReviewStats;
+  pagination: ReviewPagination;
+  message?: string;
+}
+
+const REVIEWS_PER_PAGE = 30;
+const EMPTY_STATS: ReviewStats = {
+  totalReviews: 0,
+  pendingReviews: 0,
+  approvedReviews: 0,
+  averageRating: 0,
+};
+const EMPTY_PAGINATION: ReviewPagination = {
+  page: 1,
+  limit: REVIEWS_PER_PAGE,
+  total: 0,
+  totalPages: 1,
+  hasPreviousPage: false,
+  hasNextPage: false,
+};
+
 // --- Star Rating Component ---
 const StarRating = ({ rating, size = 'sm' }: { rating: number; size?: 'sm' | 'lg' }) => (
   <div className="flex items-center">
@@ -48,14 +81,10 @@ const StarRating = ({ rating, size = 'sm' }: { rating: number; size?: 'sm' | 'lg
 
 const ReviewsPage = () => {
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [filteredReviews, setFilteredReviews] = useState<Review[]>([]);
   const [activeFilter, setActiveFilter] = useState<'all' | 'pending' | 'approved'>('all');
-  const [stats, setStats] = useState<ReviewStats>({
-    totalReviews: 0,
-    pendingReviews: 0,
-    approvedReviews: 0,
-    averageRating: 0
-  });
+  const [page, setPage] = useState(1);
+  const [stats, setStats] = useState<ReviewStats>(EMPTY_STATS);
+  const [pagination, setPagination] = useState<ReviewPagination>(EMPTY_PAGINATION);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -63,71 +92,53 @@ const ReviewsPage = () => {
   const { selectedTenantId, getSelectedTenant, isAllTenantsSelected } = useAdminTenant();
   const selectedTenant = getSelectedTenant();
 
-  // --- Calculate stats from reviews ---
-  const calculateStats = (reviewsData: Review[]): ReviewStats => {
-    const totalReviews = reviewsData.length;
-    const pendingReviews = reviewsData.filter((r: Review) => !r.verified).length;
-    const approvedReviews = reviewsData.filter((r: Review) => r.verified).length;
-    const averageRating = totalReviews > 0
-      ? Math.round((reviewsData.reduce((sum: number, r: Review) => sum + r.rating, 0) / totalReviews) * 10) / 10
-      : 0;
-
-    return { totalReviews, pendingReviews, approvedReviews, averageRating };
-  };
+  useEffect(() => {
+    queueMicrotask(() => setPage(1));
+  }, [selectedTenantId]);
 
   // --- Fetch reviews with tenant filter ---
   const fetchReviews = useCallback(async () => {
     setIsLoading(true);
+    setError(null);
     try {
-      // Build query params with tenant filter
-      const params = new URLSearchParams();
+      const params = new URLSearchParams({
+        status: activeFilter,
+        page: String(page),
+        limit: String(REVIEWS_PER_PAGE),
+      });
       if (selectedTenantId && selectedTenantId !== 'all') {
         params.set('tenantId', selectedTenantId);
       }
-      const queryString = params.toString();
-      const url = `/api/admin/reviews${queryString ? `?${queryString}` : ''}`;
-      
-      const response = await fetch(url);
-      if (!response.ok) throw new Error('Failed to fetch reviews');
-      const data = await response.json();
-      setReviews(data);
-      setStats(calculateStats(data));
+      const response = await fetch(`/api/admin/reviews?${params.toString()}`);
+      const data = await response.json() as ReviewsResponse;
+      if (!response.ok || !data.success) throw new Error(data.message || 'Failed to fetch reviews');
+      setReviews(data.data || []);
+      setStats(data.stats || EMPTY_STATS);
+      setPagination(data.pagination || EMPTY_PAGINATION);
     } catch (err) {
       setError((err as Error).message);
     } finally {
       setIsLoading(false);
     }
-  }, [selectedTenantId]);
+  }, [activeFilter, page, selectedTenantId]);
 
   // Fetch reviews when tenant changes
   useEffect(() => {
-    fetchReviews();
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) fetchReviews();
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [fetchReviews]);
-
-  // --- Recalculate stats whenever reviews change ---
-  useEffect(() => {
-    setStats(calculateStats(reviews));
-  }, [reviews]);
-
-  // Filter reviews based on active filter
-  useEffect(() => {
-    switch (activeFilter) {
-      case 'pending':
-        setFilteredReviews(reviews.filter(r => !r.verified));
-        break;
-      case 'approved':
-        setFilteredReviews(reviews.filter(r => r.verified));
-        break;
-      default:
-        setFilteredReviews(reviews);
-    }
-  }, [reviews, activeFilter]);
 
   // --- Approve a Review ---
   const handleApprove = async (id: string) => {
     const loadingToast = toast.loading('Approving review...');
     try {
-      const response = await fetch(`/api/admin/reviews/${id}`, {
+      const tenantQuery = selectedTenantId !== 'all' ? `?tenantId=${encodeURIComponent(selectedTenantId)}` : '';
+      const response = await fetch(`/api/admin/reviews/${id}${tenantQuery}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ verified: true }),
@@ -136,10 +147,12 @@ const ReviewsPage = () => {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to approve review');
       }
-      const updatedReview = await response.json();
-
-      // Update the review in the local state
-      setReviews(reviews.map(r => r._id === id ? updatedReview : r));
+      await response.json();
+      if (activeFilter === 'pending' && reviews.length === 1 && page > 1) {
+        setPage((currentPage) => currentPage - 1);
+      } else {
+        await fetchReviews();
+      }
       toast.success('Review approved successfully!', { id: loadingToast });
     } catch (err) {
       toast.error(`Error: ${(err as Error).message}`, { id: loadingToast });
@@ -151,7 +164,8 @@ const ReviewsPage = () => {
     if (!confirm('Are you sure you want to permanently delete this review?')) return;
     const loadingToast = toast.loading('Deleting review...');
     try {
-      const response = await fetch(`/api/admin/reviews/${id}`, {
+      const tenantQuery = selectedTenantId !== 'all' ? `?tenantId=${encodeURIComponent(selectedTenantId)}` : '';
+      const response = await fetch(`/api/admin/reviews/${id}${tenantQuery}`, {
         method: 'DELETE',
       });
       if (!response.ok) {
@@ -159,8 +173,11 @@ const ReviewsPage = () => {
         throw new Error(errorData.message || 'Failed to delete review');
       }
 
-      // Remove the review from the local state
-      setReviews(reviews.filter(r => r._id !== id));
+      if (reviews.length === 1 && page > 1) {
+        setPage((currentPage) => currentPage - 1);
+      } else {
+        await fetchReviews();
+      }
       toast.success('Review deleted successfully!', { id: loadingToast });
     } catch (err) {
       toast.error(`Error: ${(err as Error).message}`, { id: loadingToast });
@@ -293,7 +310,10 @@ const ReviewsPage = () => {
           ].map(tab => (
             <button
               key={tab.key}
-              onClick={() => setActiveFilter(tab.key as any)}
+              onClick={() => {
+                setActiveFilter(tab.key as typeof activeFilter);
+                setPage(1);
+              }}
               className={`px-6 py-4 font-semibold transition-colors flex items-center space-x-2 ${
                 activeFilter === tab.key
                   ? 'text-red-600 border-b-2 border-red-600 bg-red-50'
@@ -312,9 +332,9 @@ const ReviewsPage = () => {
       </div>
 
       {/* Reviews List */}
-      {filteredReviews.length > 0 ? (
+      {reviews.length > 0 ? (
         <div className="space-y-6">
-          {filteredReviews.map(review => (
+          {reviews.map(review => (
             <div key={review._id} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300">
               <div className="p-6">
                 <div className="flex justify-between items-start mb-4">
@@ -408,6 +428,37 @@ const ReviewsPage = () => {
              activeFilter === 'approved' ? 'No reviews have been approved yet.' :
              'No customer reviews have been submitted yet.'}
           </p>
+        </div>
+      )}
+
+      {pagination.totalPages > 1 && (
+        <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 rounded-xl bg-white p-5 shadow-lg">
+          <p className="text-sm text-slate-500">
+            Showing <span className="font-semibold text-slate-700">{(pagination.page - 1) * pagination.limit + 1}</span>{' '}
+            to <span className="font-semibold text-slate-700">{Math.min(pagination.page * pagination.limit, pagination.total)}</span>{' '}
+            of <span className="font-semibold text-slate-700">{pagination.total}</span> reviews
+          </p>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setPage((currentPage) => Math.max(1, currentPage - 1))}
+              disabled={!pagination.hasPreviousPage}
+              className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Previous
+            </button>
+            <span className="text-sm font-medium text-slate-600">
+              Page {pagination.page} of {pagination.totalPages}
+            </span>
+            <button
+              type="button"
+              onClick={() => setPage((currentPage) => Math.min(pagination.totalPages, currentPage + 1))}
+              disabled={!pagination.hasNextPage}
+              className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
         </div>
       )}
     </div>

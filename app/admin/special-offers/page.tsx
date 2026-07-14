@@ -118,7 +118,7 @@ const SpecialOffersPage = () => {
       if (selectedTenantId && selectedTenantId !== 'all') {
         params.set('tenantId', selectedTenantId);
       }
-      const response = await fetch(`/api/admin/tours?${params.toString()}`);
+      const response = await fetch(`/api/admin/tours/options?${params.toString()}`);
       const data = await response.json();
       if (data.success) {
         setTours(data.data || []);

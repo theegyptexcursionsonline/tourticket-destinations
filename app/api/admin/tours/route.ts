@@ -6,6 +6,39 @@ import { syncTourToAlgolia } from '@/lib/algolia';
 import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 import { translateTourInBackground } from '@/lib/translation/translateService';
 
+const ADMIN_TOUR_LIST_PROJECTION = [
+  'title',
+  'name',
+  'slug',
+  'price',
+  'originalPrice',
+  'discountPrice',
+  'isPublished',
+  'isFeatured',
+  'image',
+  'thumbnail',
+  'category',
+  'destination',
+  'duration',
+  'rating',
+  'reviews',
+  'tenantId',
+  'tenantIds',
+  'createdAt',
+  'updatedAt',
+].join(' ');
+
+function addReviewCounts(tours: unknown[]) {
+  return tours.map((tour) => {
+    if (!tour || typeof tour !== 'object') return tour;
+    const { reviews, ...listFields } = tour as Record<string, unknown>;
+    return {
+      ...listFields,
+      reviewCount: Array.isArray(reviews) ? reviews.length : 0,
+    };
+  });
+}
+
 function generateOptionId() {
   return globalThis.crypto?.randomUUID?.() || `opt-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
@@ -77,24 +110,22 @@ function cleanBookingOptions(bookingOptions: any[]): any[] {
 
 async function fetchToursWithPopulate(filter: Record<string, unknown> = {}) {
   try {
-    return await Tour.find(filter)
-      .populate('category')
-      .populate('destination')
-      .populate('reviews')
-      .populate('attractions')
-      .populate('interests')
+    const tours = await Tour.find(filter)
+      .select(ADMIN_TOUR_LIST_PROJECTION)
+      .populate({ path: 'category', select: 'name title slug' })
+      .populate({ path: 'destination', select: 'name title slug' })
       .sort({ createdAt: -1 })
       .lean();
+    return addReviewCounts(tours);
   } catch (err) {
     console.warn('Populate failed, retrying with strictPopulate:false', err);
-    return await Tour.find(filter)
-      .populate({ path: 'category', strictPopulate: false })
-      .populate({ path: 'destination', strictPopulate: false })
-      .populate({ path: 'reviews', strictPopulate: false })
-      .populate({ path: 'attractions', strictPopulate: false })
-      .populate({ path: 'interests', strictPopulate: false })
+    const tours = await Tour.find(filter)
+      .select(ADMIN_TOUR_LIST_PROJECTION)
+      .populate({ path: 'category', select: 'name title slug', strictPopulate: false })
+      .populate({ path: 'destination', select: 'name title slug', strictPopulate: false })
       .sort({ createdAt: -1 })
       .lean();
+    return addReviewCounts(tours);
   }
 }
 

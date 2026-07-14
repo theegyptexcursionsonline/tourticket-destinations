@@ -1,14 +1,18 @@
 // app/api/attractions-interests/route.ts
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import AttractionPage from '@/lib/models/AttractionPage';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     await dbConnect();
 
-    // Fetch all attraction pages
-    const pages = await AttractionPage.find({ isPublished: true })
+    const requestedTenantId = (request.nextUrl.searchParams.get('tenantId') || '').trim();
+    const tenantFilter = requestedTenantId && requestedTenantId !== 'all'
+      ? { tenantId: requestedTenantId }
+      : {};
+
+    const pages = await AttractionPage.find({ isPublished: true, ...tenantFilter })
       .select('_id title slug pageType')
       .sort({ title: 1 })
       .lean();

@@ -422,7 +422,7 @@ export default function TourForm({ tourToEdit, onSave, fullPage = false }: { tou
     useEffect(() => {
         if (!tourToEdit && tenants.length > 0 && !formData.tenantId) {
             const next = getDefaultTenantId();
-            setFormData(prev => ({ ...prev, tenantId: next, tenantIds: [next] }));
+            setFormData(prev => ({ ...prev, tenantId: next, tenantIds: next ? [next] : [] }));
         }
     }, [formData.tenantId, getDefaultTenantId, tenants, tourToEdit]);
 
@@ -554,10 +554,19 @@ export default function TourForm({ tourToEdit, onSave, fullPage = false }: { tou
 
         const fetchData = async () => {
             try {
+                const lookupTenantId = tourToEdit?.tenantId || formData.tenantId || getDefaultTenantId();
+                if (!lookupTenantId) {
+                    setDestinations([]);
+                    setCategories([]);
+                    setAttractions([]);
+                    setInterests([]);
+                    return;
+                }
+                const tenantQuery = `tenantId=${encodeURIComponent(lookupTenantId)}`;
                 const [destRes, catRes, attractionsRes] = await Promise.all([
-                    fetch('/api/admin/tours/destinations'),
-                    fetch('/api/categories'),
-                    fetch('/api/attractions-interests')
+                    fetch(`/api/admin/tours/destinations?${tenantQuery}`),
+                    fetch(`/api/categories?${tenantQuery}`),
+                    fetch(`/api/attractions-interests?${tenantQuery}`)
                 ]);
 
                 if (!destRes.ok) throw new Error(`Failed to fetch destinations: ${destRes.statusText}`);
@@ -565,6 +574,8 @@ export default function TourForm({ tourToEdit, onSave, fullPage = false }: { tou
 
                 const destData = await destRes.json();
                 const catData = await catRes.json();
+                if (!attractionsRes.ok) throw new Error(`Failed to fetch attractions: ${attractionsRes.statusText}`);
+
                 const attractionsData = await attractionsRes.json();
 
                 if (destData?.success) setDestinations(destData.data);
@@ -579,7 +590,7 @@ export default function TourForm({ tourToEdit, onSave, fullPage = false }: { tou
             }
         };
         fetchData();
-    }, [getDefaultTenantId, tourToEdit]);
+    }, [formData.tenantId, getDefaultTenantId, tourToEdit]);
 
     // Debug logging for attractions/interests
     useEffect(() => {
