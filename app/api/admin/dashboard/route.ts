@@ -19,89 +19,142 @@ async function fetchDashboardStats(
   if (effectiveTenantId) {
     // A specific brand: its OWN data only. Never fold in the EEO 'default'
     // (main-site) tenant, even as a tour fallback, on this brands admin.
-    tourTenantFilter.tenantId = effectiveTenantId;
+    tourTenantFilter.$or = [
+      { tenantId: effectiveTenantId },
+      { tenantIds: effectiveTenantId },
+    ];
     bookingTenantFilter.tenantId = effectiveTenantId;
   } else {
     tourTenantFilter.tenantId = { $in: tenantScopeIds };
     bookingTenantFilter.tenantId = { $in: tenantScopeIds };
   }
 
-  // Revenue = collected money only; cancelled/refunded bookings are excluded.
-  const revenueMatch: Record<string, unknown> = {
-    ...bookingTenantFilter,
-    status: { $nin: ['cancelled', 'Cancelled', 'refunded', 'Refunded', 'partial_refunded'] },
-  };
-
   await Promise.race([
     dbConnect(effectiveTenantId || undefined),
     new Promise((_, reject) => setTimeout(() => reject(new Error('Database connection timeout')), 10000))
   ]);
 
-  // Fire the month-over-month trend queries concurrently with the main stats
-  // batch below (one DB round-trip instead of two). Docs are dated by their
-  // _id timestamp, present on every document.
+  // Docs are dated by their _id timestamp, present on every document.
   const oneMonthAgo = new Date();
   oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
   const cutoffId = mongoose.Types.ObjectId.createFromTime(Math.floor(oneMonthAgo.getTime() / 1000));
   const revStatus = { $nin: ['cancelled', 'Cancelled', 'refunded', 'Refunded', 'partial_refunded'] };
-  const trendsPromise = Promise.all([
-    Booking.countDocuments({ ...bookingTenantFilter, _id: { $lt: cutoffId } }),
-    Booking.aggregate([{ $match: { ...bookingTenantFilter, status: revStatus, _id: { $lt: cutoffId } } }, { $group: { _id: null, s: { $sum: '$totalPrice' } } }]),
-    Tour.countDocuments({ isPublished: true, ...tourTenantFilter, _id: { $lt: cutoffId } }),
-    Booking.aggregate([{ $match: { ...bookingTenantFilter, _id: { $lt: cutoffId } } }, { $group: { _id: '$user' } }, { $count: 'count' }]),
-  ]).catch(() => [0, [] as any[], 0, [] as any[]] as const);
+  const twentyFourHoursAgo = new Date();
+  twentyFourHoursAgo.setDate(twentyFourHoursAgo.getDate() - 1);
 
-  const [
-    totalTours,
-    totalBookings,
-    totalUsers,
-    revenueResult,
-    recentBookingsCount,
-    recentBookings
-  ] = await Promise.allSettled([
-    Tour.countDocuments({ isPublished: true, ...tourTenantFilter }),
-    Booking.countDocuments(bookingTenantFilter),
-    // Customers aren't tenant-tagged (User has no tenantId), so count distinct
-    // customers who have a booking in scope — the meaningful per-brand figure.
+  // A booking is visible only when its own tenant and its linked tour agree.
+  // This is the same isolation rule used by the bookings list and reports, so
+  // legacy cross-tenant references cannot inflate dashboard totals/revenue.
+  const bookingTourScopeStages = effectiveTenantId
+    ? [
+        {
+          $match: {
+            $or: [
+              { 'tourDetails.tenantId': effectiveTenantId },
+              { 'tourDetails.tenantIds': effectiveTenantId },
+            ],
+          },
+        },
+      ]
+    : [
+        {
+          $match: {
+            $expr: {
+              $or: [
+                { $eq: ['$tourDetails.tenantId', '$tenantId'] },
+                {
+                  $in: [
+                    '$tenantId',
+                    { $ifNull: ['$tourDetails.tenantIds', []] },
+                  ],
+                },
+              ],
+            },
+          },
+        },
+      ];
+
+  const [tourStats, bookingStats] = await Promise.allSettled([
+    Promise.all([
+      Tour.countDocuments({ isPublished: true, ...tourTenantFilter }),
+      Tour.countDocuments({ isPublished: true, ...tourTenantFilter, _id: { $lt: cutoffId } }),
+    ]),
     Booking.aggregate([
       { $match: bookingTenantFilter },
-      { $group: { _id: '$user' } },
-      { $count: 'count' },
-    ]),
-    Booking.aggregate([
-      { $match: revenueMatch },
-      { $group: { _id: null, totalRevenue: { $sum: '$totalPrice' } } },
-    ]),
-    (async () => {
-      const twentyFourHoursAgo = new Date();
-      twentyFourHoursAgo.setDate(twentyFourHoursAgo.getDate() - 1);
-      return await Booking.countDocuments({
-        createdAt: { $gte: twentyFourHoursAgo },
-        ...bookingTenantFilter,
-      });
-    })(),
-    Booking.find(bookingTenantFilter)
-      .sort({ createdAt: -1 })
-      .limit(5)
-      .populate({ path: 'tour', model: Tour, select: 'title' })
-      .populate({ path: 'user', model: User, select: 'firstName lastName email' })
-      .lean()
+      {
+        $lookup: {
+          from: Tour.collection.name,
+          localField: 'tour',
+          foreignField: '_id',
+          as: 'tourDetails',
+        },
+      },
+      { $unwind: { path: '$tourDetails', preserveNullAndEmptyArrays: true } },
+      ...bookingTourScopeStages,
+      {
+        $facet: {
+          totalBookings: [{ $count: 'count' }],
+          totalUsers: [{ $group: { _id: '$user' } }, { $count: 'count' }],
+          revenue: [
+            { $match: { status: revStatus } },
+            { $group: { _id: null, totalRevenue: { $sum: '$totalPrice' } } },
+          ],
+          recentBookingsCount: [
+            { $match: { createdAt: { $gte: twentyFourHoursAgo } } },
+            { $count: 'count' },
+          ],
+          recentBookingIds: [
+            { $sort: { createdAt: -1 } },
+            { $limit: 5 },
+            { $project: { _id: 1 } },
+          ],
+          previousBookings: [
+            { $match: { _id: { $lt: cutoffId } } },
+            { $count: 'count' },
+          ],
+          previousRevenue: [
+            { $match: { status: revStatus, _id: { $lt: cutoffId } } },
+            { $group: { _id: null, totalRevenue: { $sum: '$totalPrice' } } },
+          ],
+          previousUsers: [
+            { $match: { _id: { $lt: cutoffId } } },
+            { $group: { _id: '$user' } },
+            { $count: 'count' },
+          ],
+        },
+      },
+    ]).allowDiskUse(true),
   ]);
 
+  const [currentTours, previousTours] = tourStats.status === 'fulfilled'
+    ? tourStats.value
+    : [0, 0];
+  const bookingFacet = bookingStats.status === 'fulfilled' ? bookingStats.value[0] : undefined;
+  const recentBookingIds = bookingFacet?.recentBookingIds?.map((row: { _id: mongoose.Types.ObjectId }) => row._id) || [];
+  const recentBookingRows = recentBookingIds.length > 0
+    ? await Booking.find({ _id: { $in: recentBookingIds } })
+        .populate({ path: 'tour', model: Tour, select: 'title' })
+        .populate({ path: 'user', model: User, select: 'firstName lastName email' })
+        .lean()
+    : [];
+  const recentBookingOrder = new Map<string, number>(
+    recentBookingIds.map((id: mongoose.Types.ObjectId, index: number) => [id.toString(), index]),
+  );
+  const recentBookings = recentBookingRows.sort(
+    (left, right) =>
+      (recentBookingOrder.get(left._id.toString()) ?? 0) -
+      (recentBookingOrder.get(right._id.toString()) ?? 0),
+  );
+
   const stats = {
-    totalTours: totalTours.status === 'fulfilled' ? totalTours.value : 0,
-    totalBookings: totalBookings.status === 'fulfilled' ? totalBookings.value : 0,
-    totalUsers: totalUsers.status === 'fulfilled' && totalUsers.value.length > 0
-      ? (totalUsers.value[0].count || 0)
-      : 0,
-    totalRevenue: revenueResult.status === 'fulfilled' && revenueResult.value.length > 0
-      ? revenueResult.value[0].totalRevenue || 0
-      : 0,
-    recentBookingsCount: recentBookingsCount.status === 'fulfilled' ? recentBookingsCount.value : 0,
+    totalTours: currentTours,
+    totalBookings: bookingFacet?.totalBookings?.[0]?.count || 0,
+    totalUsers: bookingFacet?.totalUsers?.[0]?.count || 0,
+    totalRevenue: bookingFacet?.revenue?.[0]?.totalRevenue || 0,
+    recentBookingsCount: bookingFacet?.recentBookingsCount?.[0]?.count || 0,
   };
 
-  const recentActivities = recentBookings.status === 'fulfilled'
-    ? recentBookings.value
+  const recentActivities = recentBookings
         .filter((booking: any) => booking && booking.tour && booking.user)
         .map((booking: any) => {
           try {
@@ -121,22 +174,20 @@ async function fetchDashboardStats(
               createdAt: booking.createdAt || booking._id.getTimestamp(),
             };
           }
-        })
-    : [];
+        });
 
-  // Trend queries were fired concurrently above — resolve them now.
-  const [pB, pRAgg, pT, pUAgg] = await trendsPromise;
-  const prevRevenue = Array.isArray(pRAgg) && pRAgg[0] ? (pRAgg[0].s || 0) : 0;
-  const prevUsers = Array.isArray(pUAgg) && pUAgg[0] ? (pUAgg[0].count || 0) : 0;
+  const previousBookings = bookingFacet?.previousBookings?.[0]?.count || 0;
+  const previousRevenue = bookingFacet?.previousRevenue?.[0]?.totalRevenue || 0;
+  const previousUsers = bookingFacet?.previousUsers?.[0]?.count || 0;
   const trendOf = (cur: number, prev: number) => ({
     value: Math.round(prev > 0 ? ((cur - prev) / prev) * 100 : (cur > 0 ? 100 : 0)),
     isPositive: cur >= prev,
   });
   const trends = {
-    bookings: trendOf(stats.totalBookings, pB as number),
-    revenue: trendOf(stats.totalRevenue, prevRevenue),
-    tours: trendOf(stats.totalTours, pT as number),
-    users: trendOf(stats.totalUsers, prevUsers),
+    bookings: trendOf(stats.totalBookings, previousBookings),
+    revenue: trendOf(stats.totalRevenue, previousRevenue),
+    tours: trendOf(stats.totalTours, previousTours),
+    users: trendOf(stats.totalUsers, previousUsers),
   };
 
   return { ...stats, trends, recentActivities };
@@ -146,7 +197,7 @@ function getCachedDashboardStats(tenantKey: string, tenantScopeIds: string[]) {
   const scopeKey = tenantScopeIds.slice().sort().join(',');
   return cacheIfAvailable(
     () => fetchDashboardStats(tenantKey === 'all' ? undefined : tenantKey, tenantScopeIds),
-    [`dashboard-stats-${tenantKey}-${scopeKey}`],
+    [`dashboard-stats-tenant-safe-v2-${tenantKey}-${scopeKey}`],
     { revalidate: 60, tags: ['dashboard', `dashboard-${tenantKey}`] }
   )();
 }
