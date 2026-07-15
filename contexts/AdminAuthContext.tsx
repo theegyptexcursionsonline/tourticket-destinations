@@ -80,7 +80,7 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
       // Cached admin lists/metrics must not outlive the session.
       for (let i = sessionStorage.length - 1; i >= 0; i--) {
         const key = sessionStorage.key(i);
-        if (key && (key.startsWith('admin-bookings-cache:') || key.startsWith('admin-reviews-cache:') || key.startsWith('admin-tours-cache:'))) {
+        if (key && (key.startsWith('admin-bookings-cache:') || key.startsWith('admin-reviews-cache:') || key.startsWith('admin-tours-cache:') || key.startsWith('admin-tenants-'))) {
           sessionStorage.removeItem(key);
         }
       }

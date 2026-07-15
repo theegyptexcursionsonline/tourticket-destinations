@@ -26,6 +26,9 @@ import {
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import withAuth from '@/components/admin/withAuth';
+import { useAdminTenant } from '@/contexts/AdminTenantContext';
+
+const TENANTS_CACHE_KEY = 'admin-tenants-page-cache:v1';
 
 interface Tenant {
   _id: string;
@@ -47,14 +50,25 @@ interface Tenant {
 function TenantsPage() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  // Keep an immediate input value for responsiveness + debounce before fetching
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchInput, setSearchInput] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [filter, setFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const requestControllerRef = useRef<AbortController | null>(null);
+  const requestIdRef = useRef(0);
+  const { refreshTenants: refreshTenantSelector } = useAdminTenant();
 
-  const isSearching = searchInput.trim() !== searchQuery.trim();
+  const visibleTenants = useMemo(() => {
+    const query = searchInput.trim().toLowerCase();
+    return tenants.filter((tenant) => {
+      if (filter === 'active' && !tenant.isActive) return false;
+      if (filter === 'inactive' && tenant.isActive) return false;
+      if (!query) return true;
+      return [tenant.name, tenant.tenantId, tenant.domain, ...(tenant.domains || [])]
+        .some((value) => String(value || '').toLowerCase().includes(query));
+    });
+  }, [filter, searchInput, tenants]);
 
   const activeCount = tenants.filter((t) => t.isActive).length;
   const inactiveCount = tenants.filter((t) => !t.isActive).length;
@@ -95,49 +109,75 @@ function TenantsPage() {
     },
   ], [tenants.length, activeCount, inactiveCount, defaultTenantName, defaultTenant?.domain]);
 
-  // Debounce search input to avoid refetching on every keystroke
-  useEffect(() => {
-    const handle = window.setTimeout(() => {
-      setSearchQuery(searchInput.trim());
-    }, 250);
-    return () => window.clearTimeout(handle);
-  }, [searchInput]);
-  
-  // Fetch tenants
-  const fetchTenants = useCallback(async () => {
+  const cacheTenants = useCallback((nextTenants: Tenant[]) => {
     try {
-      setIsLoading(true);
+      sessionStorage.setItem(TENANTS_CACHE_KEY, JSON.stringify({ tenants: nextTenants }));
+    } catch { /* ignore storage quota */ }
+  }, []);
+
+  // Fetch the complete small brand set once. Search/status filtering is local,
+  // so typing and switching tabs never trigger another server round trip.
+  const fetchTenants = useCallback(async (showInitialLoader = false) => {
+    requestControllerRef.current?.abort();
+    const controller = new AbortController();
+    requestControllerRef.current = controller;
+    const requestId = ++requestIdRef.current;
+    try {
+      if (showInitialLoader) setIsLoading(true);
+      else setIsRefreshing(true);
       setErrorMessage(null);
-      const params = new URLSearchParams();
-      
-      if (filter !== 'all') {
-        params.set('active', filter === 'active' ? 'true' : 'false');
-      }
-      if (searchQuery) {
-        params.set('search', searchQuery);
-      }
-      
-      const response = await fetch(`/api/admin/tenants?${params.toString()}`);
+      const response = await fetch('/api/admin/tenants?limit=100', {
+        cache: 'no-store',
+        signal: controller.signal,
+      });
       const data = await response.json();
-      
+
+      if (requestId !== requestIdRef.current) return;
       if (data.success) {
-        setTenants(data.data);
+        const nextTenants = data.data || [];
+        setTenants(nextTenants);
+        cacheTenants(nextTenants);
       } else {
         setErrorMessage(data.error || 'Failed to fetch tenants');
         toast.error('Failed to fetch tenants');
       }
     } catch (error) {
+      if ((error as Error).name === 'AbortError') return;
       console.error('Error fetching tenants:', error);
       setErrorMessage('Failed to fetch tenants');
       toast.error('Failed to fetch tenants');
     } finally {
-      setIsLoading(false);
+      if (requestId === requestIdRef.current) {
+        setIsLoading(false);
+        setIsRefreshing(false);
+      }
     }
-  }, [filter, searchQuery]);
+  }, [cacheTenants]);
   
   useEffect(() => {
-    fetchTenants();
+    let hasCached = false;
+    try {
+      const cached = sessionStorage.getItem(TENANTS_CACHE_KEY);
+      if (cached) {
+        const parsed = JSON.parse(cached) as { tenants?: Tenant[] };
+        if (Array.isArray(parsed.tenants)) {
+          setTenants(parsed.tenants);
+          setIsLoading(false);
+          hasCached = true;
+        }
+      }
+    } catch { /* ignore corrupt/unavailable storage */ }
+    void fetchTenants(!hasCached);
+    return () => requestControllerRef.current?.abort();
   }, [fetchTenants]);
+
+  const updateTenants = useCallback((updater: (current: Tenant[]) => Tenant[]) => {
+    setTenants((current) => {
+      const next = updater(current);
+      cacheTenants(next);
+      return next;
+    });
+  }, [cacheTenants]);
   
   // Toggle tenant active status
   const toggleTenantStatus = async (tenantId: string, currentStatus: boolean) => {
@@ -154,7 +194,10 @@ function TenantsPage() {
       
       if (data.success) {
         toast.success(`Tenant ${currentStatus ? 'deactivated' : 'activated'}`);
-        fetchTenants();
+        updateTenants((current) => current.map((tenant) => tenant.tenantId === tenantId
+          ? { ...tenant, isActive: !currentStatus }
+          : tenant));
+        void refreshTenantSelector();
       } else {
         toast.error(data.error || 'Failed to update tenant');
       }
@@ -177,7 +220,11 @@ function TenantsPage() {
       
       if (data.success) {
         toast.success('Default tenant updated');
-        fetchTenants();
+        updateTenants((current) => current.map((tenant) => ({
+          ...tenant,
+          isDefault: tenant.tenantId === tenantId,
+        })));
+        void refreshTenantSelector();
       } else {
         toast.error(data.error || 'Failed to set default tenant');
       }
@@ -208,7 +255,10 @@ function TenantsPage() {
       
       if (data.success) {
         toast.success('Tenant deactivated');
-        fetchTenants();
+        updateTenants((current) => current.map((tenant) => tenant.tenantId === tenantId
+          ? { ...tenant, isActive: false }
+          : tenant));
+        void refreshTenantSelector();
       } else {
         toast.error(data.error || 'Failed to deactivate tenant');
       }
@@ -277,8 +327,8 @@ function TenantsPage() {
             className="w-full rounded-2xl border border-slate-200 bg-white py-3 ps-12 pe-12 text-sm text-slate-700 placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20"
           />
           <div className="absolute end-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
-            {isSearching && (
-              <Loader2 className="w-4 h-4 text-slate-400 animate-spin" aria-label="Searching" />
+            {isRefreshing && (
+              <Loader2 className="w-4 h-4 text-slate-400 animate-spin" aria-label="Refreshing brands" />
             )}
             {!!searchInput && (
               <button
@@ -358,14 +408,14 @@ function TenantsPage() {
             </div>
             <button
               type="button"
-              onClick={fetchTenants}
+              onClick={() => void fetchTenants(true)}
               className="inline-flex items-center justify-center rounded-2xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white shadow hover:bg-slate-800 transition-colors"
             >
               Retry
             </button>
           </div>
         </div>
-      ) : tenants.length === 0 ? (
+      ) : visibleTenants.length === 0 ? (
         <div className="bg-white rounded-xl p-12 border border-gray-200 text-center">
           <Globe className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No brands found</h3>
@@ -380,7 +430,7 @@ function TenantsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {tenants.map((tenant) => (
+          {visibleTenants.map((tenant) => (
             <div
               key={tenant._id}
               className={`group relative rounded-3xl border bg-white/70 backdrop-blur p-6 shadow-sm transition-all hover:-translate-y-1 hover:shadow-2xl ${
@@ -562,7 +612,8 @@ function TenantsPage() {
           onClose={() => setShowCreateModal(false)}
           onSuccess={() => {
             setShowCreateModal(false);
-            fetchTenants();
+            void fetchTenants(false);
+            void refreshTenantSelector();
           }}
         />
       )}

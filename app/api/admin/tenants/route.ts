@@ -30,8 +30,10 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const activeFilter = searchParams.get('active');
     const search = searchParams.get('search');
-    const limit = parseInt(searchParams.get('limit') || '50', 10);
-    const skip = parseInt(searchParams.get('skip') || '0', 10);
+    const requestedLimit = Number.parseInt(searchParams.get('limit') || '50', 10);
+    const requestedSkip = Number.parseInt(searchParams.get('skip') || '0', 10);
+    const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 100) : 50;
+    const skip = Number.isFinite(requestedSkip) ? Math.max(requestedSkip, 0) : 0;
     
     // Build query
     const query: Record<string, unknown> = {
@@ -43,25 +45,28 @@ export async function GET(request: NextRequest) {
     }
     
     if (search) {
+      const safeSearch = search.slice(0, 100).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { domain: { $regex: search, $options: 'i' } },
-        { tenantId: { $regex: search, $options: 'i' } },
+        { name: { $regex: safeSearch, $options: 'i' } },
+        { domain: { $regex: safeSearch, $options: 'i' } },
+        { tenantId: { $regex: safeSearch, $options: 'i' } },
       ];
     }
-    
-    // Get total count
-    const total = await Tenant.countDocuments(query);
-    
-    // Get tenants
-    const tenants = await Tenant.find(query)
-      .sort({ isDefault: -1, name: 1 })
-      .skip(skip)
-      .limit(limit)
-      .select('-integrations.stripeAccountId -integrations.sentryDsn') // Exclude sensitive fields
-      .lean();
-    
-    return NextResponse.json({
+
+    // Count and fetch in parallel. The selector/brand grid only needs these
+    // fields; returning the entire tenant configuration made every admin
+    // refresh transfer large navigation, SEO, email and integration objects.
+    const [total, tenants] = await Promise.all([
+      Tenant.countDocuments(query),
+      Tenant.find(query)
+        .sort({ isDefault: -1, name: 1 })
+        .skip(skip)
+        .limit(limit)
+        .select('_id tenantId name domain domains isActive isDefault branding.logo branding.primaryColor branding.secondaryColor createdAt updatedAt')
+        .lean(),
+    ]);
+
+    const response = NextResponse.json({
       success: true,
       data: tenants,
       pagination: {
@@ -71,6 +76,8 @@ export async function GET(request: NextRequest) {
         hasMore: skip + tenants.length < total,
       },
     });
+    response.headers.set('Cache-Control', 'private, no-store, max-age=0');
+    return response;
     
   } catch (error) {
     console.error('Error fetching tenants:', error);

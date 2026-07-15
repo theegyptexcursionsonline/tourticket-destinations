@@ -48,6 +48,7 @@ interface AdminTenantContextType {
 // ============================================
 
 const STORAGE_KEY = 'adminSelectedTenant';
+const TENANTS_CACHE_KEY = 'admin-tenants-selector-cache:v1';
 const ALL_TENANTS_VALUE = 'all';
 
 // ============================================
@@ -105,8 +106,20 @@ export function AdminTenantProvider({ children }: AdminTenantProviderProps) {
 
   // Fetch all tenants
   const fetchTenants = useCallback(async () => {
+    let hasCached = false;
     try {
-      setIsLoading(true);
+      try {
+        const cached = sessionStorage.getItem(TENANTS_CACHE_KEY);
+        if (cached) {
+          const parsed = JSON.parse(cached) as { tenants?: AdminTenant[] };
+          if (Array.isArray(parsed.tenants)) {
+            setTenants(parsed.tenants);
+            hasCached = true;
+          }
+        }
+      } catch { /* ignore corrupt/unavailable storage */ }
+
+      setIsLoading(!hasCached);
       setError(null);
       
       // The shared English/German network currently has more tenants than the
@@ -116,15 +129,18 @@ export function AdminTenantProvider({ children }: AdminTenantProviderProps) {
       const data = await response.json();
       
       if (data.success) {
-        setTenants(data.data || []);
+        const nextTenants = data.data || [];
+        setTenants(nextTenants);
+        try {
+          sessionStorage.setItem(TENANTS_CACHE_KEY, JSON.stringify({ tenants: nextTenants }));
+        } catch { /* ignore storage quota */ }
         
         // If currently selected tenant no longer exists, reset to all
-        if (selectedTenantId !== ALL_TENANTS_VALUE) {
-          const stillExists = data.data?.some((t: AdminTenant) => t.tenantId === selectedTenantId);
-          if (!stillExists) {
-            setSelectedTenantId(ALL_TENANTS_VALUE);
-          }
-        }
+        setSelectedTenantIdState((current) => {
+          if (current === ALL_TENANTS_VALUE || nextTenants.some((t: AdminTenant) => t.tenantId === current)) return current;
+          localStorage.setItem(STORAGE_KEY, ALL_TENANTS_VALUE);
+          return ALL_TENANTS_VALUE;
+        });
       } else {
         setError(data.error || 'Failed to fetch tenants');
       }
@@ -134,7 +150,7 @@ export function AdminTenantProvider({ children }: AdminTenantProviderProps) {
     } finally {
       setIsLoading(false);
     }
-  }, [selectedTenantId, setSelectedTenantId]);
+  }, []);
 
   // Fetch tenants only after the admin cookie session is authenticated. The
   // provider also wraps the login screen, so fetching on mount would receive
