@@ -84,6 +84,7 @@ export async function POST(
     const refundAmount = (booking.totalPrice * refundPercentage) / 100;
 
     // Update booking status
+    const previousStatus = booking.status;
     booking.status = 'Cancelled';
     await booking.save();
 
@@ -120,10 +121,39 @@ export async function POST(
       }
     }
 
+    // "Nothing silent": the operator/admin team must also hear about every
+    // cancellation, not only the customer.
+    let operatorNotificationSent: boolean | undefined;
+    try {
+      await EmailService.sendAdminBookingStatusUpdate({
+        bookingId: (booking._id as any).toString(),
+        tourTitle: tour?.title || 'Tour',
+        customerName: `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Customer',
+        customerEmail: user?.email || '',
+        customerPhone: user?.phone,
+        bookingDate: formatBookingDate(booking.date),
+        bookingTime: booking.time,
+        oldStatus: previousStatus,
+        newStatus: 'Cancelled',
+        changedBy: auth.email || 'Admin',
+        changedAt: new Date().toISOString(),
+        totalPrice: `$${Number(booking.totalPrice || 0).toFixed(2)}`,
+        paymentMethod: booking.paymentMethod,
+        baseUrl,
+        adminCcEmail: tenantBranding?.contactEmail,
+        tenantBranding,
+      });
+      operatorNotificationSent = true;
+    } catch (emailError) {
+      operatorNotificationSent = false;
+      console.error('Failed to send operator cancellation notification:', emailError);
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Booking cancelled successfully by admin',
       notificationSent,
+      operatorNotificationSent,
       refundAmount,
       refundPercentage,
       cancelledBy: auth.email || auth.userId,
