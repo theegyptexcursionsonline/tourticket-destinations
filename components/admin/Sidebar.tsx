@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from 'next/link';
 import Image from "next/image";
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
   Map,
@@ -59,6 +59,7 @@ const AdminSidebar = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [pendingHref, setPendingHref] = useState<string | null>(null);
   const pathname = usePathname();
+  const router = useRouter();
   const showLabel = isOpen || (isMobile && isMobileOpen);
   const { hasAnyPermission } = useAdminAuth();
   const { getSelectedTenant, isAllTenantsSelected, isLoading: isTenantLoading } = useAdminTenant();
@@ -160,15 +161,17 @@ const AdminSidebar = () => {
       return;
     }
 
+    // Client-side navigation instead of window.location.assign(): a hard
+    // reload re-downloaded the whole app, re-ran auth and re-fetched every
+    // section on every nav click (the "unnecessary loader"). router.push
+    // keeps it an instant SPA transition, and the <Link> prefetches the
+    // target route's payload while it sits in the sidebar.
     event.preventDefault();
     setPendingHref(href);
     if (isMobile) {
       setIsMobileOpen(false);
     }
-
-    window.setTimeout(() => {
-      window.location.assign(href);
-    }, 80);
+    router.push(href);
   };
 
   const sidebarWidth = isMobile ? "w-72" : isOpen ? "w-72" : "w-20";
