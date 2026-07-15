@@ -317,9 +317,43 @@ const BookingDetailPage = () => {
     }
   };
 
+  // Manual resend of the booking's notification emails (customer + operator).
+  const resendNotifications = async () => {
+    if (!booking) return;
+    if (!window.confirm('Resend the notification emails for this booking to the customer and the operator?')) return;
+    setUpdating(true);
+    try {
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const response = await fetch(`/api/admin/bookings/${id}/resend-notification`, {
+        method: 'POST',
+        headers,
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok && response.status !== 502) {
+        throw new Error(result?.error || 'Failed to resend notifications');
+      }
+      if (result?.notificationSent) {
+        toast.success('Customer email sent');
+      } else {
+        toast.error('The CUSTOMER email failed to send — check the address and Mailgun.', { duration: 8000 });
+      }
+      if (result?.operatorNotificationSent) {
+        toast.success('Operator email sent');
+      } else {
+        toast.error('The operator notification email failed to send.', { duration: 8000 });
+      }
+    } catch (err) {
+      console.error('Error resending notifications:', err);
+      toast.error((err as Error).message || 'Failed to resend notifications');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   const updateBookingStatus = async (newStatus: string) => {
     if (!booking) return;
-    
+
     setUpdating(true);
     try {
       const headers: Record<string, string> = {
@@ -718,6 +752,20 @@ const BookingDetailPage = () => {
                 <option value="Refunded">Refunded</option>
                 <option value="Partial Refunded">Partial Refunded</option>
               </select>
+
+              <div className="border-t border-slate-200 pt-3">
+                <button
+                  type="button"
+                  onClick={resendNotifications}
+                  disabled={updating}
+                  className="w-full rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Resend emails (customer + operator)
+                </button>
+                <p className="mt-2 text-xs leading-5 text-slate-500">
+                  Re-sends the notification for this booking&apos;s current status — use when an email failed or the customer says they never received it.
+                </p>
+              </div>
             </div>
           </div>
         </div>
