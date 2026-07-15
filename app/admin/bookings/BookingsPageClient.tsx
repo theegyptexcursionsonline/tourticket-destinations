@@ -419,6 +419,51 @@ const BookingsPage = () => {
     }
   };
 
+  // Export the currently loaded bookings (respecting the active filters) to a
+  // CSV file. Was a dead placeholder button before.
+  const handleExport = () => {
+    if (!bookings.length) {
+      toast.error('No bookings to export');
+      return;
+    }
+    const csvEscape = (value: unknown): string => {
+      const s = value === null || value === undefined ? '' : String(value);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const headers = [
+      'Reference', 'Brand', 'Tour', 'Customer', 'Email', 'Tour Date', 'Time',
+      'Guests', 'Total', 'Status', 'Payment', 'Source', 'Booked At',
+    ];
+    const rows = bookings.map((b) => [
+      b.bookingReference || b._id,
+      getBrandName(b),
+      b.tour?.title || '',
+      b.user?.name || `${b.user?.firstName || ''} ${b.user?.lastName || ''}`.trim(),
+      b.user?.email || '',
+      b.dateString || (b.date ? String(b.date).slice(0, 10) : ''),
+      b.time || '',
+      b.guests ?? '',
+      b.totalPrice ?? '',
+      b.status || '',
+      b.paymentStatus || b.paymentMethod || '',
+      b.source || '',
+      b.createdAt ? new Date(b.createdAt).toISOString() : '',
+    ]);
+    const csv = [headers, ...rows].map((r) => r.map(csvEscape).join(',')).join('\r\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const stamp = new Date().toISOString().slice(0, 10);
+    const brand = isAllTenantsSelected() ? 'all-brands' : (selectedTenantId || 'brand');
+    link.href = url;
+    link.download = `bookings-${brand}-${stamp}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${bookings.length} booking${bookings.length === 1 ? '' : 's'}`);
+  };
+
   const showingFrom = totalBookings === 0 ? 0 : (page - 1) * perPage + 1;
   const showingTo = Math.min(totalBookings, (page - 1) * perPage + bookings.length);
 
@@ -484,7 +529,10 @@ const BookingsPage = () => {
             <RefreshCw size={16} />
             Refresh
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 border border-slate-300 rounded-full hover:bg-slate-50 transition-colors">
+          <button
+            onClick={handleExport}
+            className="flex items-center gap-2 px-4 py-2 border border-slate-300 rounded-full hover:bg-slate-50 transition-colors"
+          >
             <Download size={16} />
             Export
           </button>

@@ -17,7 +17,10 @@ export async function GET(request: NextRequest) {
     const tenantId = searchParams.get('tenantId');
     const effectiveTenantId = tenantId && tenantId !== 'all' ? tenantId : undefined;
     if (effectiveTenantId && !canAccessTenant(auth, effectiveTenantId)) return tenantForbiddenResponse();
-    if (!effectiveTenantId && auth.role !== 'super_admin') return tenantForbiddenResponse();
+    // A network admin viewing "All Brands" has no single tenant but does have
+    // an accessible set — only forbid when they have none (matches the list
+    // and single-booking routes).
+    if (!effectiveTenantId && auth.role !== 'super_admin' && auth.tenantIds.length === 0) return tenantForbiddenResponse();
 
     // If no slug is provided, return a bad request error
     if (!slug) {
@@ -27,11 +30,19 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Tenant scope for the tour lookup: a specific brand, everything
+    // (super_admin), or the admin's own tenant set (All Brands view).
+    const tenantScope = effectiveTenantId
+      ? { $or: [{ tenantId: effectiveTenantId }, { tenantIds: effectiveTenantId }] }
+      : auth.role === 'super_admin'
+        ? {}
+        : { $or: [{ tenantId: { $in: auth.tenantIds } }, { tenantIds: { $in: auth.tenantIds } }] };
+
     // Find tours that match the slug. Using find() instead of findOne()
     // to match the structure your front-end expects ([data])
     const tours = await Tour.find({
       slug,
-      ...(effectiveTenantId ? { $or: [{ tenantId: effectiveTenantId }, { tenantIds: effectiveTenantId }] } : {}),
+      ...tenantScope,
     })
       .populate('destination')
       .populate('categories');

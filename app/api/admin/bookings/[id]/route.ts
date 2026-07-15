@@ -8,7 +8,7 @@ import { EmailService } from '@/lib/email/emailService';
 import { BOOKING_STATUSES_DB, toBookingStatusCode, toBookingStatusDb } from '@/lib/constants/bookingStatus';
 import Tenant from '@/lib/models/Tenant';
 import { getTenantEmailBranding } from '@/lib/tenant';
-import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
+import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse, type AdminAuthContext } from '@/lib/auth/adminAuth';
 
 // Helper to format dates consistently and avoid timezone issues
 function formatBookingDate(dateString: string | Date | undefined): string {
@@ -37,9 +37,30 @@ function formatBookingDate(dateString: string | Date | undefined): string {
   });
 }
 
-function bookingMatchesTenantScope(booking: any, effectiveTenantId?: string): boolean {
+// True when this admin is allowed to act on the "All Brands" view — i.e. a
+// super_admin, or any admin who has at least one accessible tenant. Mirrors
+// the list route (app/api/admin/bookings/route.ts), which a network admin
+// uses successfully; the single-booking routes previously required
+// super_admin here, which 403'd network admins on status changes.
+function canActOnAllBrands(auth: AdminAuthContext): boolean {
+  return auth.role === 'super_admin' || auth.tenantIds.length > 0;
+}
+
+// Mongo filter for a single-booking lookup, scoped to what this admin may
+// touch: a specific brand, everything (super_admin), or the admin's own
+// tenant set (network admin on the All Brands view).
+function bookingTenantFilter(auth: AdminAuthContext, id: string, effectiveTenantId?: string): Record<string, unknown> {
+  if (effectiveTenantId) return { _id: id, tenantId: effectiveTenantId };
+  if (auth.role === 'super_admin') return { _id: id };
+  return { _id: id, tenantId: { $in: auth.tenantIds } };
+}
+
+function bookingMatchesTenantScope(booking: any, auth: AdminAuthContext, effectiveTenantId?: string): boolean {
   if (!effectiveTenantId) {
-    return true;
+    // All Brands view: super_admin sees everything; a network admin may only
+    // act on bookings whose brand is in their accessible set.
+    if (auth.role === 'super_admin') return true;
+    return auth.tenantIds.includes(booking?.tenantId);
   }
 
   if (booking?.tenantId !== effectiveTenantId) {
@@ -67,16 +88,14 @@ export async function GET(
     searchParams.get('brand_id');
   const effectiveTenantId = tenantId && tenantId !== 'all' ? tenantId : undefined;
   if (effectiveTenantId && !canAccessTenant(auth, effectiveTenantId)) return tenantForbiddenResponse();
-  if (!effectiveTenantId && auth.role !== 'super_admin') return tenantForbiddenResponse();
+  if (!effectiveTenantId && !canActOnAllBrands(auth)) return tenantForbiddenResponse();
 
   await dbConnect(effectiveTenantId || undefined);
 
   try {
     const { id } = await params;
 
-    const bookingQuery = effectiveTenantId
-      ? { _id: id, tenantId: effectiveTenantId }
-      : { _id: id };
+    const bookingQuery = bookingTenantFilter(auth, id, effectiveTenantId);
 
     const booking = await Booking.findOne(bookingQuery)
       .populate({
@@ -103,7 +122,7 @@ export async function GET(
       );
     }
 
-    if (!bookingMatchesTenantScope(booking, effectiveTenantId)) {
+    if (!bookingMatchesTenantScope(booking, auth, effectiveTenantId)) {
       return NextResponse.json(
         { success: false, message: 'Booking not found' },
         { status: 404 }
@@ -160,7 +179,7 @@ export async function PATCH(
     searchParams.get('brand_id');
   const effectiveTenantId = tenantId && tenantId !== 'all' ? tenantId : undefined;
   if (effectiveTenantId && !canAccessTenant(auth, effectiveTenantId)) return tenantForbiddenResponse();
-  if (!effectiveTenantId && auth.role !== 'super_admin') return tenantForbiddenResponse();
+  if (!effectiveTenantId && !canActOnAllBrands(auth)) return tenantForbiddenResponse();
 
   await dbConnect(effectiveTenantId || undefined);
 
@@ -179,9 +198,7 @@ export async function PATCH(
     }
 
     // Get the current booking with populated fields before updating
-    const bookingQuery = effectiveTenantId
-      ? { _id: id, tenantId: effectiveTenantId }
-      : { _id: id };
+    const bookingQuery = bookingTenantFilter(auth, id, effectiveTenantId);
 
     const currentBooking = await Booking.findOne(bookingQuery)
       .populate({
@@ -207,7 +224,7 @@ export async function PATCH(
       );
     }
 
-    if (!bookingMatchesTenantScope(currentBooking, effectiveTenantId)) {
+    if (!bookingMatchesTenantScope(currentBooking, auth, effectiveTenantId)) {
       return NextResponse.json(
         { success: false, message: 'Booking not found' },
         { status: 404 }
@@ -411,7 +428,7 @@ export async function DELETE(
     searchParams.get('brand_id');
   const effectiveTenantId = tenantId && tenantId !== 'all' ? tenantId : undefined;
   if (effectiveTenantId && !canAccessTenant(auth, effectiveTenantId)) return tenantForbiddenResponse();
-  if (!effectiveTenantId && auth.role !== 'super_admin') return tenantForbiddenResponse();
+  if (!effectiveTenantId && !canActOnAllBrands(auth)) return tenantForbiddenResponse();
 
   await dbConnect(effectiveTenantId || undefined);
 
@@ -419,7 +436,7 @@ export async function DELETE(
     const { id } = await params;
 
     const deletedBooking = await Booking.findOneAndDelete(
-      effectiveTenantId ? { _id: id, tenantId: effectiveTenantId } : { _id: id },
+      bookingTenantFilter(auth, id, effectiveTenantId),
     );
 
     if (!deletedBooking) {
