@@ -96,6 +96,8 @@ export async function POST(
     const tenantBranding = getTenantEmailBranding(tenantConfig as any, baseUrl);
 
     // Send Cancellation Confirmation Email
+    // "Nothing silent": report whether the customer notification went out.
+    let notificationSent: boolean | undefined;
     if (user && tour) {
       try {
         await EmailService.sendCancellationConfirmation({
@@ -110,7 +112,9 @@ export async function POST(
           baseUrl,
           tenantBranding,
         });
+        notificationSent = true;
       } catch (emailError) {
+        notificationSent = false;
         console.error('Failed to send cancellation email:', emailError);
         // Don't fail the cancellation if email fails
       }
@@ -119,6 +123,7 @@ export async function POST(
     return NextResponse.json({
       success: true,
       message: 'Booking cancelled successfully by admin',
+      notificationSent,
       refundAmount,
       refundPercentage,
       cancelledBy: auth.email || auth.userId,

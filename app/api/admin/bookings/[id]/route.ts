@@ -275,6 +275,12 @@ export async function PATCH(
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || '';
     const tenantBranding = getTenantEmailBranding(tenantConfig as any, baseUrl);
 
+    // "Nothing silent": track email outcomes so the admin UI can show when a
+    // notification failed instead of the failure disappearing into the logs.
+    const notifications: { customer: 'sent' | 'failed' | 'skipped'; operator: 'sent' | 'failed' | 'skipped' } = {
+      customer: 'skipped',
+      operator: 'skipped',
+    };
     if (statusChanged && updatedUser && updatedTour) {
       const customerName = updatedUser.name ||
         `${updatedUser.firstName || ''} ${updatedUser.lastName || ''}`.trim() ||
@@ -346,7 +352,9 @@ export async function PATCH(
 
           console.log(`✅ Status update email sent - Status: ${normalizedStatus}`);
         }
+        notifications.customer = 'sent';
       } catch (emailError) {
+        notifications.customer = 'failed';
         console.error('❌ Failed to send customer email notification:', emailError);
         // Don't fail the request if email fails, just log it
         // This allows the status update to succeed even if email fails
@@ -373,7 +381,9 @@ export async function PATCH(
           tenantBranding,
         });
         console.log(`✅ Admin/operator status notification sent for ${bookingId}: ${oldStatus} → ${normalizedStatus}`);
+        notifications.operator = 'sent';
       } catch (emailError) {
+        notifications.operator = 'failed';
         console.error('❌ Failed to send admin/operator status notification:', emailError);
       }
     }
@@ -396,6 +406,7 @@ export async function PATCH(
         id: finalUser._id,
         name: finalUser.name || `${finalUser.firstName || ''} ${finalUser.lastName || ''}`.trim(),
       } : null,
+      notifications,
     };
 
     return NextResponse.json(transformedBooking);

@@ -343,6 +343,13 @@ const BookingDetailPage = () => {
 
       setBooking(data);
       toast.success(`Booking status updated to ${newStatus}`);
+      // "Nothing silent": surface notification email failures to the admin.
+      if (data?.notifications?.customer === 'failed') {
+        toast.error('Status saved, but the CUSTOMER email failed to send — notify them manually.', { duration: 8000 });
+      }
+      if (data?.notifications?.operator === 'failed') {
+        toast.error('Status saved, but the operator notification email failed to send.', { duration: 8000 });
+      }
     } catch (err: any) {
       console.error('Error updating booking:', err);
       toast.error(err?.message || 'Failed to update booking status');

@@ -394,6 +394,13 @@ const BookingsPage = () => {
 
       clearBookingsCache();
       toast.success(`Booking status updated to ${savedStatus}`);
+      // "Nothing silent": tell the admin when a notification email failed.
+      if (updatedBooking?.notifications?.customer === 'failed') {
+        toast.error('Status saved, but the CUSTOMER email failed to send — notify them manually.', { duration: 8000 });
+      }
+      if (updatedBooking?.notifications?.operator === 'failed') {
+        toast.error('Status saved, but the operator notification email failed to send.', { duration: 8000 });
+      }
     } catch (error) {
       console.error('Error updating booking status:', error);
       toast.error((error as Error).message || 'Failed to update booking status');
