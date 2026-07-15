@@ -19,6 +19,7 @@ import {
   FileText
 } from 'lucide-react';
 import { parseLocalDate, toDateOnlyString } from '@/utils/date';
+import { useAdminTenant } from '@/contexts/AdminTenantContext';
 
 // --- Type Definitions ---
 interface Tour {
@@ -57,6 +58,7 @@ const formatManifestDate = (dateString: string): string => {
 };
 
 const ManifestsPage = () => {
+  const { selectedTenantId } = useAdminTenant();
   const [tours, setTours] = useState<Tour[]>([]);
   const [selectedTour, setSelectedTour] = useState('');
   const [selectedDate, setSelectedDate] = useState(toDateOnlyString(new Date()));
@@ -64,11 +66,13 @@ const ManifestsPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch all tours for the dropdown selector
+  // Fetch only the lightweight fields required by the dropdown selector.
   useEffect(() => {
     const fetchTours = async () => {
       try {
-        const response = await fetch('/api/admin/tours');
+        const params = new URLSearchParams({ limit: '1000' });
+        if (selectedTenantId && selectedTenantId !== 'all') params.set('tenantId', selectedTenantId);
+        const response = await fetch(`/api/admin/tours/options?${params.toString()}`);
         if (!response.ok) throw new Error('Failed to fetch tours');
         const data = await response.json();
 
@@ -85,7 +89,7 @@ const ManifestsPage = () => {
       }
     };
     fetchTours();
-  }, []);
+  }, [selectedTenantId]);
 
   const handleGenerateManifest = async () => {
     if (!selectedTour || !selectedDate) {

@@ -54,12 +54,29 @@ describe('EEO Network GET /api/admin/tours list payload', () => {
     const response = await GET({ url: 'https://dashboard.egypt-excursionsonline.com/api/admin/tours' } as never);
     const body = await response.json();
 
-    expect(mockTourFind).toHaveBeenCalledWith({ tenantId: { $in: ['makadi-bay'] } });
+    expect(mockTourFind).toHaveBeenCalledWith({
+      $or: [
+        { tenantId: { $in: ['makadi-bay'] } },
+        { tenantIds: { $in: ['makadi-bay'] } },
+      ],
+    });
     expect(body.data[0].reviewCount).toBe(1);
     expect(body.data[0].reviews).toBeUndefined();
     expect(mockSelect.mock.calls[0][0]).not.toContain('description');
     expect(mockPopulate).toHaveBeenCalledTimes(2);
     expect(mockPopulate).toHaveBeenNthCalledWith(1, { path: 'category', select: 'name title slug' });
     expect(mockPopulate).toHaveBeenNthCalledWith(2, { path: 'destination', select: 'name title slug' });
+  });
+
+  it('matches both direct and shared assignments for a selected brand', async () => {
+    const { GET } = await import('@/app/api/admin/tours/route');
+    await GET({ url: 'https://dashboard.egypt-excursionsonline.com/api/admin/tours?tenantId=makadi-bay' } as never);
+
+    expect(mockTourFind).toHaveBeenCalledWith({
+      $or: [
+        { tenantId: 'makadi-bay' },
+        { tenantIds: 'makadi-bay' },
+      ],
+    });
   });
 });

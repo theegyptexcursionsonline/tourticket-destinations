@@ -7,7 +7,10 @@ import Tour from '@/lib/models/Tour';
 import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAdminAuth(request, { permissions: ['manageTours'] });
+  const auth = await requireAdminAuth(request, {
+    permissions: ['manageTours', 'manageBookings'],
+    requireAll: false,
+  });
   if (auth instanceof NextResponse) return auth;
   const { searchParams } = new URL(request.url);
   const tenantId = (searchParams.get('tenantId') || '').trim();
@@ -20,11 +23,14 @@ export async function GET(request: NextRequest) {
     const q = (searchParams.get('q') || '').trim();
     const limitParam = searchParams.get('limit');
 
-    const limit = Math.min(200, Math.max(1, Number.parseInt(limitParam || '200', 10) || 200));
+    const limit = Math.min(1000, Math.max(1, Number.parseInt(limitParam || '200', 10) || 200));
 
     const filter: Record<string, unknown> = {};
     if (effectiveTenantId) filter.$or = [{ tenantId: effectiveTenantId }, { tenantIds: effectiveTenantId }];
-    else filter.tenantId = { $in: auth.tenantIds };
+    else filter.$or = [
+      { tenantId: { $in: auth.tenantIds } },
+      { tenantIds: { $in: auth.tenantIds } },
+    ];
 
     if (q) {
       // Simple case-insensitive title match (fast enough for dropdown)

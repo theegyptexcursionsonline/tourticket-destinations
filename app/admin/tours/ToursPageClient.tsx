@@ -9,6 +9,10 @@ import { Plus, RefreshCw, AlertCircle, Copy, Files, Layers3 } from 'lucide-react
 import { ToursListClient } from './ToursListClient';
 import { useAdminTenant } from '@/contexts/AdminTenantContext';
 import withAuth from '@/components/admin/withAuth';
+import {
+  getBrandAssignmentSummary,
+  groupToursBySlugForAllBrands,
+} from '@/lib/admin/tourBrandAssignments';
 
 type TourType = {
   _id: string;
@@ -26,6 +30,7 @@ type TourType = {
   isPublished?: boolean;
   isFeatured?: boolean;
   tenantId?: string;
+  tenantIds?: string[];
   // UI-only field: list of tenantIds that have a copy of this tour (populated by dedupe in All Brands view)
   tenantCopies?: string[];
 };
@@ -96,27 +101,13 @@ function ToursPageClientComponent() {
   // For a single-tenant view, no dedupe — show that tenant's tours as-is.
   const displayTours = useMemo<TourType[]>(() => {
     if (!isAllTenantsSelected()) return tours;
-
-    const bySlug = new Map<string, { canonical: TourType; tenantIds: string[] }>();
-    for (const t of tours) {
-      // Tours without a slug are kept as individual rows (rare, but be safe)
-      const key = t.slug || `__no-slug__${t._id}`;
-      const existing = bySlug.get(key);
-      if (!existing) {
-        bySlug.set(key, { canonical: t, tenantIds: [t.tenantId || 'unknown'] });
-      } else {
-        existing.tenantIds.push(t.tenantId || 'unknown');
-        // Prefer the 'default' tenant version as the canonical (English original).
-        if (t.tenantId === 'default' && existing.canonical.tenantId !== 'default') {
-          existing.canonical = t;
-        }
-      }
-    }
-    return Array.from(bySlug.values()).map(({ canonical, tenantIds }) => ({
-      ...canonical,
-      tenantCopies: tenantIds,
-    }));
+    return groupToursBySlugForAllBrands(tours);
   }, [tours, isAllTenantsSelected]);
+
+  const selectedBrandSummary = useMemo(() => {
+    if (isAllTenantsSelected() || !selectedTenantId) return null;
+    return getBrandAssignmentSummary(tours, selectedTenantId);
+  }, [isAllTenantsSelected, selectedTenantId, tours]);
 
   const allBrandsSummary = useMemo(() => {
     if (!isAllTenantsSelected()) {
@@ -187,8 +178,16 @@ function ToursPageClientComponent() {
               <p className="font-semibold text-slate-900">{selectedTenant.name}</p>
               <p className="text-sm text-slate-500">{selectedTenant.domain}</p>
             </div>
-            <div className="ms-auto text-sm text-slate-600">
-              <span className="font-bold text-indigo-600">{tours.length}</span> tour{tours.length !== 1 ? 's' : ''}
+            <div className="ms-auto text-right text-sm text-slate-600">
+              <div>
+                <span className="font-bold text-indigo-600">{selectedBrandSummary?.total ?? tours.length}</span>{' '}
+                assigned tour{(selectedBrandSummary?.total ?? tours.length) !== 1 ? 's' : ''}
+              </div>
+              {selectedBrandSummary && (
+                <div className="mt-0.5 text-xs text-slate-500">
+                  {selectedBrandSummary.direct} direct · {selectedBrandSummary.shared} shared
+                </div>
+              )}
             </div>
           </div>
         </div>

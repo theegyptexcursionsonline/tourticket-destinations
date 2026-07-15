@@ -157,7 +157,12 @@ export async function GET(request: NextRequest) {
         { tenantIds: tenantId },
       ];
     } else {
-      filter.tenantId = { $in: auth.tenantIds };
+      // All Brands must include tours shared with an accessible brand even
+      // when another tenant owns the canonical document.
+      filter.$or = [
+        { tenantId: { $in: auth.tenantIds } },
+        { tenantIds: { $in: auth.tenantIds } },
+      ];
     }
 
     // Filter by published status if specified

@@ -9,6 +9,7 @@ import toast from 'react-hot-toast';
 import { useAdminTenant } from '@/contexts/AdminTenantContext';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
 import { BOOKING_STATUS, toBookingStatusCode } from '@/lib/constants/bookingStatus';
+import { toSafeCsvCell } from '@/lib/admin/csv';
 
 interface BookingUser {
   _id: string;
@@ -108,6 +109,7 @@ const BookingsPage = () => {
   const [totalBookings, setTotalBookings] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -143,7 +145,7 @@ const BookingsPage = () => {
     try {
       const params = new URLSearchParams();
       if (selectedTenantId && selectedTenantId !== 'all') params.set('tenantId', selectedTenantId);
-      params.set('limit', '200');
+      params.set('limit', '1000');
       const url = `/api/admin/tours/options?${params.toString()}`;
       const response = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
@@ -302,7 +304,7 @@ const BookingsPage = () => {
 
   const StatusDropdown = ({ booking, onStatusChange }: {
     booking: Booking;
-    onStatusChange: (bookingId: string, newStatus: string) => void;
+    onStatusChange: (bookingId: string, newStatus: string) => Promise<void>;
   }) => {
     const [isUpdating, setIsUpdating] = useState(false);
 
@@ -315,6 +317,7 @@ const BookingsPage = () => {
     return (
       <div className="relative">
         <select
+          aria-label={`Change status for booking ${booking.bookingReference || booking._id}`}
           value={booking.status}
           onChange={(e) => handleChange(e.target.value)}
           disabled={isUpdating}
@@ -374,7 +377,8 @@ const BookingsPage = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update booking status');
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.message || data?.error || 'Failed to update booking status');
       }
 
       const updatedBooking = await response.json();
@@ -392,7 +396,7 @@ const BookingsPage = () => {
       toast.success(`Booking status updated to ${savedStatus}`);
     } catch (error) {
       console.error('Error updating booking status:', error);
-      toast.error('Failed to update booking status');
+      toast.error((error as Error).message || 'Failed to update booking status');
     }
   };
 
@@ -426,10 +430,6 @@ const BookingsPage = () => {
       toast.error('No bookings to export');
       return;
     }
-    const csvEscape = (value: unknown): string => {
-      const s = value === null || value === undefined ? '' : String(value);
-      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-    };
     const headers = [
       'Reference', 'Brand', 'Tour', 'Customer', 'Email', 'Tour Date', 'Time',
       'Guests', 'Total', 'Status', 'Payment', 'Source', 'Booked At',
@@ -449,7 +449,7 @@ const BookingsPage = () => {
       b.source || '',
       b.createdAt ? new Date(b.createdAt).toISOString() : '',
     ]);
-    const csv = [headers, ...rows].map((r) => r.map(csvEscape).join(',')).join('\r\n');
+    const csv = [headers, ...rows].map((r) => r.map(toSafeCsvCell).join(',')).join('\r\n');
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -462,6 +462,16 @@ const BookingsPage = () => {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
     toast.success(`Exported ${bookings.length} booking${bookings.length === 1 ? '' : 's'}`);
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await fetchBookings(searchTerm.trim());
+      toast.success('Bookings refreshed');
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const showingFrom = totalBookings === 0 ? 0 : (page - 1) * perPage + 1;
@@ -489,7 +499,8 @@ const BookingsPage = () => {
           <h3 className="text-red-800 font-semibold">Error loading bookings</h3>
           <p className="text-red-600 mt-1">{error}</p>
           <button
-            onClick={() => fetchBookings(searchTerm.trim())}
+            onClick={handleRefresh}
+            disabled={refreshing}
             className="mt-3 px-4 py-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors"
           >
             Try Again
@@ -523,11 +534,12 @@ const BookingsPage = () => {
             Create Booking
           </button>
           <button
-            onClick={() => fetchBookings(searchTerm.trim())}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors"
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <RefreshCw size={16} />
-            Refresh
+            <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
+            {refreshing ? 'Refreshing…' : 'Refresh'}
           </button>
           <button
             onClick={handleExport}

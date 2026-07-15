@@ -35,6 +35,7 @@ import QRCode from 'qrcode';
 import toast from 'react-hot-toast';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
 import { useAdminTenant } from '@/contexts/AdminTenantContext';
+import { toSafeCsvCell } from '@/lib/admin/csv';
 
 // Enhanced interfaces matching your booking model
 interface BookingUser {
@@ -350,6 +351,50 @@ const BookingDetailPage = () => {
     }
   };
 
+  const handleExport = () => {
+    if (!booking) return;
+
+    const customerName = booking.user?.name
+      || `${booking.user?.firstName || ''} ${booking.user?.lastName || ''}`.trim();
+    const headers = [
+      'Reference', 'Tour', 'Customer', 'Email', 'Phone', 'Activity Date',
+      'Time', 'Adults', 'Children', 'Infants', 'Guests', 'Total', 'Status',
+      'Payment Method', 'Payment Status', 'Source', 'Pickup',
+      'Special Requests', 'Booked At',
+    ];
+    const row = [
+      booking.bookingReference || booking._id,
+      booking.tour?.title || '',
+      customerName,
+      booking.user?.email || '',
+      booking.user?.phone || booking.customerPhone || '',
+      booking.dateString || booking.date,
+      booking.time,
+      booking.adultGuests ?? '',
+      booking.childGuests ?? '',
+      booking.infantGuests ?? '',
+      booking.guests,
+      booking.totalPrice,
+      booking.status,
+      booking.paymentMethod || '',
+      booking.paymentStatus || '',
+      booking.source || 'online',
+      booking.pickupAddress || booking.pickupLocation || '',
+      booking.specialRequests || '',
+      booking.createdAt,
+    ];
+    const csv = `\uFEFF${[headers, row].map((values) => values.map(toSafeCsvCell).join(',')).join('\r\n')}`;
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `booking-${String(booking.bookingReference || booking._id).replace(/[^a-zA-Z0-9_-]/g, '-')}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    toast.success('Booking exported');
+  };
+
   const getStatusBadge = (status: string) => {
     const baseClasses = "px-3 py-1 text-sm font-semibold rounded-full";
     switch (status) {
@@ -557,7 +602,11 @@ const BookingDetailPage = () => {
         </div>
         
         <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
+          <button
+            type="button"
+            onClick={handleExport}
+            className="flex items-center gap-2 px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+          >
             <Download size={16} />
             Export
           </button>
