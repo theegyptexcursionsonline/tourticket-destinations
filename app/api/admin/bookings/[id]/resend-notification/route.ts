@@ -72,6 +72,29 @@ export async function POST(
           ...common,
           cancellationReason: 'Notification re-sent by administrator',
         });
+      } else if (booking.status === 'Pending' || booking.status === 'Confirmed') {
+        // A live booking's relevant email is the REAL confirmation with the
+        // QR voucher — the one checkout/webhook may have failed to deliver.
+        const adults = Number(booking.adultGuests || 0);
+        const children = Number(booking.childGuests || 0);
+        const infants = Number(booking.infantGuests || 0);
+        const totalGuests = adults + children + infants || Number(booking.guests || 1);
+        await EmailService.sendBookingConfirmation({
+          ...common,
+          customerPhone: user.phone,
+          bookingTime: booking.time,
+          participants: `${totalGuests} participant${totalGuests !== 1 ? 's' : ''}`,
+          totalPrice: `$${Number(booking.totalPrice || 0).toFixed(2)}`,
+          bookingOption: booking.selectedBookingOption?.title,
+          specialRequests: booking.specialRequests,
+          hotelPickupDetails: booking.hotelPickupDetails,
+          meetingPoint: tour.meetingPoint || 'Meeting point will be confirmed 24 hours before tour',
+          tourImage: tour.image,
+        });
+        await Booking.updateOne(
+          { _id: booking._id },
+          { $set: { confirmationSentAt: new Date() }, $unset: { confirmationEmailFailedAt: 1, confirmationEmailFailureCode: 1 } },
+        ).catch(() => undefined);
       } else {
         await EmailService.sendBookingStatusUpdate({
           ...common,

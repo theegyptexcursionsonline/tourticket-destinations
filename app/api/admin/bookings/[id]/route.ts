@@ -427,51 +427,18 @@ export async function PATCH(
 // DELETE - Delete a booking
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
 ) {
   const auth = await requireAdminAuth(request, { permissions: ['manageBookings'] });
   if (auth instanceof NextResponse) return auth;
 
-  const { searchParams } = new URL(request.url);
-  const tenantId =
-    searchParams.get('tenantId') ||
-    searchParams.get('brandId') ||
-    searchParams.get('brand_id');
-  const effectiveTenantId = tenantId && tenantId !== 'all' ? tenantId : undefined;
-  if (effectiveTenantId && !canAccessTenant(auth, effectiveTenantId)) return tenantForbiddenResponse();
-  if (!effectiveTenantId && !canActOnAllBrands(auth)) return tenantForbiddenResponse();
-
-  await dbConnect(effectiveTenantId || undefined);
-
-  try {
-    const { id } = await params;
-
-    const deletedBooking = await Booking.findOneAndDelete(
-      bookingTenantFilter(auth, id, effectiveTenantId),
-    );
-
-    if (!deletedBooking) {
-      return NextResponse.json(
-        { success: false, message: 'Booking not found' },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json({
-      success: true,
-      message: 'Booking deleted successfully',
-      data: { id: deletedBooking._id },
-    });
-
-  } catch (error: any) {
-    console.error('Failed to delete booking:', error);
-    return NextResponse.json(
-      { 
-        success: false, 
-        message: 'Failed to delete booking',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined,
-      },
-      { status: 500 }
-    );
-  }
+  // Aligned with the main EEO platform: bookings are never hard-deleted so
+  // the financial audit trail survives. Use the cancellation workflow.
+  return NextResponse.json(
+    {
+      success: false,
+      code: 'BOOKING_DELETION_DISABLED',
+      message: 'Bookings cannot be permanently deleted. Use the cancellation workflow to preserve the financial audit trail.',
+    },
+    { status: 409 },
+  );
 }

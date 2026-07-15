@@ -37,6 +37,9 @@ export interface IBooking extends Document {
     | 'refunded'
     | 'partial_refunded';
   paymentId?: string;
+  confirmationSentAt?: Date;
+  confirmationEmailFailedAt?: Date;
+  confirmationEmailFailureCode?: string;
   checkoutItemKey?: string;
   paymentMethod?: string;
   paymentStatus?: 'paid' | 'pending' | 'pay_on_arrival';
@@ -213,6 +216,19 @@ const BookingSchema: Schema<IBooking> = new Schema({
     type: String,
     enum: ['card', 'paypal', 'bank', 'cash', 'pay_later', 'other'],
     default: 'card',
+  },
+
+  // "Nothing silent": tracks whether the booking-confirmation email reached
+  // the customer; failures surface in the admin UI and clear on resend.
+  confirmationSentAt: {
+    type: Date,
+  },
+  confirmationEmailFailedAt: {
+    type: Date,
+  },
+  confirmationEmailFailureCode: {
+    type: String,
+    maxlength: 200,
   },
 
   paymentStatus: {

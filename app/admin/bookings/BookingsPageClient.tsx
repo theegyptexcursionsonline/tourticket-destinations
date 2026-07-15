@@ -137,7 +137,6 @@ const BookingsPage = () => {
   const tenantQuery = selectedTenantId && selectedTenantId !== 'all' ? `?tenantId=${encodeURIComponent(selectedTenantId)}` : '';
 
   // Tracks which booking row is mid-delete (for the per-row spinner/disable).
-  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const fetchTourOptions = useCallback(async () => {
     if (!token) return;
@@ -407,28 +406,6 @@ const BookingsPage = () => {
     }
   };
 
-  const handleDeleteBooking = async (bookingId: string) => {
-    if (!window.confirm('Delete this booking permanently? This cannot be undone.')) return;
-    setDeletingId(bookingId);
-    try {
-      const response = await fetch(`/api/admin/bookings/${bookingId}${tenantQuery}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok || data?.success === false) {
-        throw new Error(data?.message || 'Failed to delete booking');
-      }
-      setBookings((prev) => prev.filter((b) => b._id !== bookingId));
-      setTotalBookings((prev) => Math.max(0, prev - 1));
-      clearBookingsCache();
-      toast.success('Booking deleted');
-    } catch (error) {
-      toast.error((error as Error).message || 'Failed to delete booking');
-    } finally {
-      setDeletingId(null);
-    }
-  };
 
   // Export the currently loaded bookings (respecting the active filters) to a
   // CSV file. Was a dead placeholder button before.
@@ -835,15 +812,6 @@ const BookingsPage = () => {
                           >
                             <Eye size={12} />
                             View
-                          </button>
-                          <button
-                            onClick={() => handleDeleteBooking(booking._id)}
-                            disabled={deletingId === booking._id}
-                            title="Delete booking"
-                            className="flex items-center gap-1 px-3 py-1 text-xs font-medium text-red-600 bg-red-50 rounded-full hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {deletingId === booking._id ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
-                            Delete
                           </button>
                         </div>
                       </td>

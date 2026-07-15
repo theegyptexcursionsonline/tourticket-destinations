@@ -734,9 +734,19 @@ export async function POST(request: Request) {
         dateBadge,
         tenantBranding: getTenantEmailBranding(tenantConfig, emailBaseUrl)
       });
+      await Booking.updateMany(
+        { _id: { $in: createdBookings.map((booking) => booking._id) } },
+        { $set: { confirmationSentAt: new Date() }, $unset: { confirmationEmailFailedAt: 1, confirmationEmailFailureCode: 1 } },
+      ).catch(() => undefined);
     } catch (emailError) {
       console.error('Failed to send booking confirmation email:', emailError);
-      // Don't fail the booking if email fails
+      // Don't fail the booking if email fails — record it for the admin UI
+      // ("nothing silent"); the resend button clears it.
+      const failureCode = (emailError instanceof Error ? emailError.message : 'unknown_error').slice(0, 200);
+      await Booking.updateMany(
+        { _id: { $in: createdBookings.map((booking) => booking._id) } },
+        { $set: { confirmationEmailFailedAt: new Date(), confirmationEmailFailureCode: failureCode } },
+      ).catch(() => undefined);
     }
 
     // Send Admin Alert

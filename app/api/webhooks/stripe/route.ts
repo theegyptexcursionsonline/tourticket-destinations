@@ -279,9 +279,18 @@ async function processSuccessfulPayment(paymentIntent: Stripe.PaymentIntent) {
           });
 
           console.log(`[Webhook] Sent customer confirmation for updated booking(s) - tenant: ${tenantId}`);
+          await Booking.updateMany(
+            { _id: { $in: existingBookings.map((booking: any) => booking._id) } },
+            { $set: { confirmationSentAt: new Date() }, $unset: { confirmationEmailFailedAt: 1, confirmationEmailFailureCode: 1 } },
+          ).catch(() => undefined);
         }
       } catch (emailError) {
         console.error(`[Webhook] Failed to send customer email for updated booking:`, emailError);
+        const failureCode = (emailError instanceof Error ? emailError.message : 'unknown_error').slice(0, 200);
+        await Booking.updateMany(
+          { _id: { $in: existingBookings.map((booking: any) => booking._id) } },
+          { $set: { confirmationEmailFailedAt: new Date(), confirmationEmailFailureCode: failureCode } },
+        ).catch(() => undefined);
       }
 
       return {
@@ -653,9 +662,19 @@ async function processSuccessfulPayment(paymentIntent: Stripe.PaymentIntent) {
     });
 
     console.log(`[Webhook] Sent admin alert for booking ${bookingId} to ${adminEmail || 'default'} - tenant: ${tenantId}`);
+    await Booking.updateMany(
+      { _id: { $in: createdBookings.map(({ booking }) => booking._id) } },
+      { $set: { confirmationSentAt: new Date() }, $unset: { confirmationEmailFailedAt: 1, confirmationEmailFailureCode: 1 } },
+    ).catch(() => undefined);
   } catch (emailError) {
     console.error(`[Webhook] Failed to send emails:`, emailError);
-    // Don't fail the whole process if email fails
+    // Don't fail the whole process if email fails — record it for the admin
+    // UI ("nothing silent"); the resend button clears it.
+    const failureCode = (emailError instanceof Error ? emailError.message : 'unknown_error').slice(0, 200);
+    await Booking.updateMany(
+      { _id: { $in: createdBookings.map(({ booking }) => booking._id) } },
+      { $set: { confirmationEmailFailedAt: new Date(), confirmationEmailFailureCode: failureCode } },
+    ).catch(() => undefined);
   }
 
   return {

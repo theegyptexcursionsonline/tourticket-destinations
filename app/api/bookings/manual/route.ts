@@ -375,9 +375,18 @@ export async function POST(request: NextRequest) {
           },
           tenantBranding: getTenantEmailBranding(tenantConfig, emailBaseUrl),
         } as any);
+        await Booking.updateOne(
+          { _id: bookingDoc._id },
+          { $set: { confirmationSentAt: new Date() }, $unset: { confirmationEmailFailedAt: 1, confirmationEmailFailureCode: 1 } },
+        ).catch(() => undefined);
       } catch (e) {
-        // Don't fail booking creation if email fails
+        // Don't fail booking creation if email fails — record it for the admin UI.
         console.error('Manual booking: failed to send confirmation email', e);
+        const failureCode = (e instanceof Error ? e.message : 'unknown_error').slice(0, 200);
+        await Booking.updateOne(
+          { _id: bookingDoc._id },
+          { $set: { confirmationEmailFailedAt: new Date(), confirmationEmailFailureCode: failureCode } },
+        ).catch(() => undefined);
       }
     }
 
