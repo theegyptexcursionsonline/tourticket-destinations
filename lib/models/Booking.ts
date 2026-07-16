@@ -40,6 +40,9 @@ export interface IBooking extends Document {
   confirmationSentAt?: Date;
   confirmationEmailFailedAt?: Date;
   confirmationEmailFailureCode?: string;
+  operatorNotificationSentAt?: Date;
+  operatorNotificationFailedAt?: Date;
+  operatorNotificationFailureCode?: string;
   checkoutItemKey?: string;
   paymentMethod?: string;
   paymentStatus?: 'paid' | 'pending' | 'pay_on_arrival';
@@ -227,6 +230,16 @@ const BookingSchema: Schema<IBooking> = new Schema({
     type: Date,
   },
   confirmationEmailFailureCode: {
+    type: String,
+    maxlength: 200,
+  },
+  operatorNotificationSentAt: {
+    type: Date,
+  },
+  operatorNotificationFailedAt: {
+    type: Date,
+  },
+  operatorNotificationFailureCode: {
     type: String,
     maxlength: 200,
   },

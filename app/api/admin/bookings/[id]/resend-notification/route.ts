@@ -106,6 +106,11 @@ export async function POST(
       notificationSent = true;
     } catch (emailError) {
       console.error('Manual customer notification resend failed:', emailError);
+      const failureCode = (emailError instanceof Error ? emailError.message : 'manual_resend_failed').slice(0, 200);
+      await Booking.updateOne(
+        { _id: booking._id, tenantId: booking.tenantId },
+        { $set: { confirmationEmailFailedAt: new Date(), confirmationEmailFailureCode: failureCode } },
+      ).catch(() => undefined);
     }
 
     let operatorNotificationSent = false;
@@ -128,9 +133,18 @@ export async function POST(
         adminCcEmail: tenantBranding?.contactEmail,
         tenantBranding,
       });
+      await Booking.updateOne(
+        { _id: booking._id, tenantId: booking.tenantId },
+        { $set: { operatorNotificationSentAt: new Date() }, $unset: { operatorNotificationFailedAt: 1, operatorNotificationFailureCode: 1 } },
+      );
       operatorNotificationSent = true;
     } catch (emailError) {
       console.error('Manual operator notification resend failed:', emailError);
+      const failureCode = (emailError instanceof Error ? emailError.message : 'manual_resend_failed').slice(0, 200);
+      await Booking.updateOne(
+        { _id: booking._id, tenantId: booking.tenantId },
+        { $set: { operatorNotificationFailedAt: new Date(), operatorNotificationFailureCode: failureCode } },
+      ).catch(() => undefined);
     }
 
     return NextResponse.json({

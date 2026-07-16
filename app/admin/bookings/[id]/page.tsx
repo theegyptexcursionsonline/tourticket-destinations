@@ -124,6 +124,9 @@ interface BookingDetails {
   confirmationSentAt?: string;
   confirmationEmailFailedAt?: string;
   confirmationEmailFailureCode?: string;
+  operatorNotificationSentAt?: string;
+  operatorNotificationFailedAt?: string;
+  operatorNotificationFailureCode?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -739,6 +742,17 @@ const BookingDetailPage = () => {
                 Failed {new Date(booking.confirmationEmailFailedAt).toLocaleString()}
                 {booking.confirmationEmailFailureCode ? ` — ${booking.confirmationEmailFailureCode}` : ''}.
                 The customer has NOT received their booking confirmation. Use “Resend emails” below to send it now.
+              </p>
+            </div>
+          )}
+
+          {booking.operatorNotificationFailedAt && (
+            <div className="rounded-lg border border-amber-300 bg-amber-50 p-4">
+              <p className="text-sm font-semibold text-amber-900">Operator notification failed</p>
+              <p className="mt-1 text-xs leading-5 text-amber-800">
+                Failed {new Date(booking.operatorNotificationFailedAt).toLocaleString()}
+                {booking.operatorNotificationFailureCode ? ` — ${booking.operatorNotificationFailureCode}` : ''}.
+                Customer confirmation is tracked separately. Use “Resend emails” to retry the operator copy.
               </p>
             </div>
           )}
