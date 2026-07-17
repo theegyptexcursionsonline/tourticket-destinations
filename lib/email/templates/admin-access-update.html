@@ -1,143 +1,129 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="UTF-8" />
-    <title>Admin Access Update - {{companyName}}</title>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
+    <meta name="color-scheme" content="light">
+    <meta name="supported-color-schemes" content="light">
+    <title>Admin Access Update</title>
     <style>
-      body {
-        font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        background: #f5f7fb;
-        margin: 0;
-        padding: 0;
-        color: #0f172a;
-      }
-      .wrapper {
-        max-width: 620px;
-        margin: 0 auto;
-        padding: 32px 20px;
-      }
-      .header {
-        text-align: center;
-        padding: 24px;
-        background: {{secondaryColor}};
-        border-radius: 18px 18px 0 0;
-      }
-      .header img {
-        max-height: 48px;
-        margin: 0 auto;
-      }
-      .header-text {
-        color: #fff;
-        font-size: 20px;
-        font-weight: 800;
-      }
-      .card {
-        background: #ffffff;
-        border-radius: 0 0 18px 18px;
-        padding: 36px;
-        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
-      }
-      .badge {
-        display: inline-block;
-        padding: 6px 14px;
-        border-radius: 999px;
-        font-size: 12px;
-        font-weight: 600;
-        letter-spacing: 0.5px;
-        text-transform: uppercase;
-        margin-bottom: 16px;
-      }
-      .badge--activated {
-        background: #dcfce7;
-        color: #16a34a;
-      }
-      .badge--deactivated {
-        background: #fee2e2;
-        color: #dc2626;
-      }
-      .btn {
-        display: inline-block;
-        padding: 12px 26px;
-        border-radius: 12px;
-        text-decoration: none;
-        font-weight: 600;
-        background: {{primaryColor}};
-        color: #fff;
-      }
-      a {
-        color: {{primaryColor}};
-        text-decoration: none;
-      }
-      footer {
-        text-align: center;
-        margin-top: 28px;
-        color: #94a3b8;
-        font-size: 13px;
-      }
+        body, table, td, p, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+        table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+        img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }
+        body { margin: 0; padding: 0; width: 100% !important; background: #f6f9fc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #0a2540; }
+        a { color: {{primaryColor}}; text-decoration: none; }
+        @media screen and (max-width: 640px) {
+            .container { width: 100% !important; border-radius: 0 !important; border-left: 0 !important; border-right: 0 !important; }
+            .px { padding-left: 24px !important; padding-right: 24px !important; }
+            .btn a { display: block !important; }
+        }
     </style>
-  </head>
-  <body>
-    <div class="wrapper">
-      <div class="header">
-        {{#if companyLogo}}
-        <img src="{{companyLogo}}" alt="{{companyName}}">
-        {{else}}
-        <div class="header-text">{{companyName}}</div>
-        {{/if}}
-      </div>
-      <div class="card">
-        <span class="badge {{#if isActivated}}badge--activated{{else}}badge--deactivated{{/if}}">
-          {{#if (eq action 'permissions_updated')}}
-            Permissions Updated
-          {{else if (eq action 'deleted')}}
-            Access Removed
-          {{else}}
-            Access {{action}}
-          {{/if}}
-        </span>
-        <h1>Hello {{inviteeName}},</h1>
-        <p>
-          {{#if (eq action 'permissions_updated')}}
-            {{updatedBy}} updated your admin permissions. Your new access level is now in effect.
-            {{#if permissions}}
-            <br/><br/>
-            <strong>Your current permissions:</strong>
-            <ul>
-              {{#each permissions}}
-                <li>{{this}}</li>
-              {{/each}}
-            </ul>
-            {{/if}}
-          {{else if (eq action 'deleted')}}
-            {{updatedBy}} permanently removed your admin account. You no longer have access to the admin portal.
-            All your credentials have been deleted from the system.
-          {{else if isActivated}}
-            Good news! {{updatedBy}} reactivated your admin privileges. You can log in any time using
-            the button below.
-          {{else}}
-            Heads up—{{updatedBy}} temporarily removed your admin access. You won't be able to log in
-            until your permissions are restored.
-          {{/if}}
-        </p>
+</head>
+<body>
+    <div style="display:none; font-size:1px; line-height:1px; max-height:0; max-width:0; opacity:0; overflow:hidden; mso-hide:all;">Your {{companyName}} admin access was updated: {{action}}</div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f9fc;">
+        <tr>
+            <td align="center" style="padding:40px 12px;">
 
-        {{#if (or isActivated (eq action 'permissions_updated'))}}
-        <p style="margin: 24px 0;">
-          <a class="btn" href="{{portalLink}}" target="_blank" rel="noopener noreferrer">
-            Go to admin portal
-          </a>
-        </p>
-        {{/if}}
+                <!-- Brand -->
+                <table role="presentation" width="600" class="container" cellpadding="0" cellspacing="0" style="width:600px; max-width:600px;">
+                    <tr>
+                        <td align="center" style="padding:0 0 24px;">
+                            <img src="{{companyLogo}}" width="40" height="40" alt="{{companyName}}" style="display:inline-block; width:40px; height:40px; border-radius:8px; object-fit:contain;">
+                        </td>
+                    </tr>
+                </table>
 
-        <p>
-          If you have any questions or believe this change was made in error, reach out to
-          <a href="mailto:{{contactEmail}}">{{contactEmail}}</a> and we'll sort it out quickly.
-        </p>
-      </div>
+                <!-- Card -->
+                <table role="presentation" width="600" class="container" cellpadding="0" cellspacing="0" style="width:600px; max-width:600px; background:#ffffff; border:1px solid #e6ebf1; border-radius:12px;">
 
-      <footer>
-        © {{year}} {{companyName}} · Security first
-        {{#if website}}<br><a href="{{website}}">{{website}}</a>{{/if}}
-      </footer>
-    </div>
-  </body>
+                    <!-- Header -->
+                    <tr>
+                        <td class="px" align="center" style="padding:40px 48px 0;">
+                            <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+                                <td style="width:22px; height:22px; border-radius:999px; background:#5b6b7f; text-align:center; vertical-align:middle;">
+                                    <span style="color:#ffffff; font-size:13px; line-height:22px; font-weight:700;">!</span>
+                                </td>
+                                <td style="padding-left:8px; font-size:13px; font-weight:600; color:#5b6b7f; letter-spacing:0.2px;">Access update</td>
+                            </tr></table>
+                            <h1 style="margin:14px 0 6px; font-size:24px; line-height:32px; font-weight:700; color:#0a2540; letter-spacing:-0.3px;">
+                                {{#if (eq action 'permissions_updated')}}
+                                    Permissions updated
+                                {{else if (eq action 'deleted')}}
+                                    Access removed
+                                {{else}}
+                                    Access {{action}}
+                                {{/if}}
+                            </h1>
+                            <p style="margin:0; font-size:15px; line-height:24px; color:#5b6b7f;">Hello {{inviteeName}}, here is what changed on your admin account.</p>
+                        </td>
+                    </tr>
+
+                    <!-- Details -->
+                    <tr>
+                        <td class="px" style="padding:28px 48px 0;">
+                            <p style="margin:0; font-size:14px; line-height:23px; color:#425466;">
+                                {{#if (eq action 'permissions_updated')}}
+                                    {{updatedBy}} updated your admin permissions. Your new access level is now in effect.
+                                {{else if (eq action 'deleted')}}
+                                    {{updatedBy}} permanently removed your admin account. You no longer have access to the admin portal. All your credentials have been deleted from the system.
+                                {{else}}
+                                    {{#if isActivated}}
+                                    Good news! {{updatedBy}} reactivated your admin privileges. You can log in any time using the button below.
+                                    {{else}}
+                                    Heads up&mdash;{{updatedBy}} temporarily removed your admin access. You won't be able to log in until your permissions are restored.
+                                    {{/if}}
+                                {{/if}}
+                            </p>
+                            {{#if (eq action 'permissions_updated')}}
+                            {{#if permissions}}
+                            <p style="margin:20px 0 8px; font-size:12px; line-height:16px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:#8898aa;">Your current permissions</p>
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                {{#each permissions}}
+                                <tr>
+                                    <td style="padding:8px 0; font-size:14px; line-height:20px; font-weight:600; color:#0a2540; border-bottom:1px solid #eef2f6;">{{this}}</td>
+                                </tr>
+                                {{/each}}
+                            </table>
+                            {{/if}}
+                            {{/if}}
+                        </td>
+                    </tr>
+
+                    <!-- CTA -->
+                    {{#if (or isActivated (eq action 'permissions_updated'))}}
+                    <tr>
+                        <td class="px btn" align="center" style="padding:28px 48px 0;">
+                            <a href="{{portalLink}}" target="_blank" rel="noopener noreferrer" style="display:inline-block; background:{{primaryColor}}; color:#ffffff; font-size:15px; line-height:22px; font-weight:600; padding:12px 32px; border-radius:8px;">Go to admin portal</a>
+                        </td>
+                    </tr>
+                    {{/if}}
+
+                    <!-- Divider -->
+                    <tr><td class="px" style="padding:32px 48px 0;"><div style="height:1px; background:#e6ebf1; line-height:1px; font-size:0;">&nbsp;</div></td></tr>
+
+                    <!-- Support -->
+                    <tr>
+                        <td class="px" style="padding:20px 48px 36px;">
+                            <p style="margin:0; font-size:13px; line-height:20px; color:#8898aa;">If you have any questions or believe this change was made in error, reach out to <a href="mailto:{{supportEmail}}" style="color:{{primaryColor}};">{{supportEmail}}</a> and we'll sort it out quickly.</p>
+                        </td>
+                    </tr>
+                </table>
+
+                <!-- Footer -->
+                <table role="presentation" width="600" class="container" cellpadding="0" cellspacing="0" style="width:600px; max-width:600px;">
+                    <tr>
+                        <td align="center" style="padding:24px 48px;">
+                            <p style="margin:0; font-size:12px; line-height:19px; color:#8898aa;">Sent by {{companyName}} admin system.</p>
+                            <p style="margin:4px 0 0; font-size:12px; line-height:19px; color:#aab7c4;">&copy; {{year}} {{companyName}}. All rights reserved.</p>
+                        </td>
+                    </tr>
+                </table>
+
+            </td>
+        </tr>
+    </table>
+</body>
 </html>

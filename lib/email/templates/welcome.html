@@ -3,166 +3,132 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="format-detection" content="telephone=no, email=no, address=no">
-    <title>Welcome to {{companyName}}</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
+    <meta name="color-scheme" content="light">
+    <meta name="supported-color-schemes" content="light">
+    <title>Welcome</title>
     <style>
-        body { margin: 0; padding: 0; background: #f4f6fb; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #0f172a; -webkit-font-smoothing: antialiased; }
-        img { border: none; display: block; max-width: 100%; }
-        .wrapper { width: 100%; padding: 32px 0; }
-        .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 35px 60px rgba(15,23,42,0.12); }
-
-        .hero { background: linear-gradient(135deg, {{secondaryColor}} 0%, {{primaryColor}} 100%); padding: 36px 40px; color: #f0f9ff; text-align: center; }
-        .logo { max-width: 180px; max-height: 60px; margin: 0 auto 20px; }
-        .hero-eyebrow { font-size: 12px; letter-spacing: 1px; text-transform: uppercase; opacity: 0.8; }
-        .hero-title { font-size: 28px; font-weight: 700; margin: 12px 0 6px; letter-spacing: -0.3px; }
-        .hero-meta { font-size: 15px; opacity: 0.85; }
-
-        .content { padding: 42px; }
-        .greeting { font-size: 20px; font-weight: 700; margin-bottom: 12px; }
-        .intro { font-size: 15px; color: #475569; line-height: 1.7; margin-bottom: 26px; }
-
-        .pill-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 30px; }
-        .pill { border: 1px solid #e2e8f0; border-radius: 999px; padding: 10px 18px; font-size: 13px; font-weight: 600; color: {{secondaryColor}}; background: #f8fafc; text-align: center; }
-
-        .card { border: 1px solid #e2e8f0; border-radius: 18px; padding: 24px 28px; margin-bottom: 26px; }
-        .card-title { font-size: 13px; letter-spacing: 0.8px; text-transform: uppercase; color: #94a3b8; font-weight: 700; margin-bottom: 12px; }
-        .card-text { font-size: 14px; color: #1f2937; line-height: 1.6; }
-
-        .feature-row { display: flex; gap: 16px; margin-bottom: 14px; }
-        .feature-icon { width: 42px; height: 42px; border-radius: 12px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 20px; color: {{primaryColor}}; }
-        .feature-copy { font-size: 14px; color: #1f2937; line-height: 1.4; }
-        .feature-copy strong { display: block; font-size: 14px; color: #0f172a; }
-
-        .cta { text-align: center; margin: 32px 0; }
-        .cta-button { display: inline-block; padding: 16px 40px; border-radius: 10px; font-size: 16px; font-weight: 600; text-decoration: none; background: {{primaryColor}}; color: #ffffff; box-shadow: 0 18px 35px rgba(0,0,0,0.15); }
-        .cta-secondary { margin-top: 10px; display: inline-block; color: #64748b; font-size: 13px; }
-        .cta-secondary a { color: {{primaryColor}}; text-decoration: none; }
-
-        .tour-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
-        .tour-card { border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; text-decoration: none; color: inherit; box-shadow: 0 12px 25px rgba(15,23,42,0.08); }
-        .tour-card img { height: 150px; object-fit: cover; width: 100%; }
-        .tour-info { padding: 18px; }
-        .tour-title { font-size: 15px; font-weight: 700; color: #0f172a; margin-bottom: 6px; }
-        .tour-price { font-size: 14px; color: {{primaryColor}}; font-weight: 700; }
-
-        .checklist { border: 1px dashed #e2e8f0; border-radius: 16px; padding: 22px 24px; margin-top: 30px; }
-        .checklist-title { font-size: 13px; letter-spacing: 0.8px; text-transform: uppercase; color: #94a3b8; font-weight: 700; margin-bottom: 12px; }
-        .checklist-item { font-size: 14px; color: #1f2937; margin-bottom: 8px; padding-left: 20px; position: relative; }
-        .checklist-item:before { content: '→'; position: absolute; left: 0; color: {{primaryColor}}; }
-
-        .footer { background: #f8fafc; padding: 28px 40px; text-align: center; border-top: 1px solid #e2e8f0; }
-        .footer-links a { color: #64748b; font-size: 13px; margin: 0 10px; text-decoration: none; font-weight: 600; }
-        .footer-links a:hover { color: {{primaryColor}}; }
-        .footer p { color: #94a3b8; font-size: 12px; margin: 10px 0; }
-        .social-links { margin: 12px 0; }
-        .social-links a { color: #64748b; margin: 0 8px; font-size: 13px; text-decoration: none; }
-
-        @media (max-width: 600px) {
-            .wrapper { padding: 0; }
-            .container { border-radius: 0; }
-            .hero, .content, .footer { padding-left: 24px !important; padding-right: 24px !important; }
-            .feature-row { flex-direction: column; }
+        body, table, td, p, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+        table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+        img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }
+        body { margin: 0; padding: 0; width: 100% !important; background: #f6f9fc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #0a2540; }
+        a { color: {{primaryColor}}; text-decoration: none; }
+        @media screen and (max-width: 640px) {
+            .container { width: 100% !important; border-radius: 0 !important; border-left: 0 !important; border-right: 0 !important; }
+            .px { padding-left: 24px !important; padding-right: 24px !important; }
+            .btn a { display: block !important; }
+            .stack { display: block !important; width: 100% !important; }
         }
     </style>
 </head>
 <body>
-    <div class="wrapper">
-        <div class="container">
-            <div class="hero">
-                {{#if companyLogo}}
-                <img src="{{companyLogo}}" alt="{{companyName}}" class="logo">
-                {{else}}
-                <div style="font-size: 28px; font-weight: 800; margin-bottom: 20px;">{{companyName}}</div>
-                {{/if}}
-                <div class="hero-eyebrow">Account activated</div>
-                <div class="hero-title">Welcome to {{companyName}}</div>
-                <div class="hero-meta">Your dashboard is ready</div>
-            </div>
-
-            <div class="content">
-                <div class="greeting">Hi {{customerName}},</div>
-                <p class="intro">You're officially part of our explorer community. Here's what you can do next and how to make the most of your account.</p>
-
-                <div class="pill-grid">
-                    <div class="pill">Save favorite tours</div>
-                    <div class="pill">Chat with our planners</div>
-                    <div class="pill">Access exclusive offers</div>
-                </div>
-
-                <div class="card">
-                    <div class="card-title">Why travel with us</div>
-                    <div class="feature-row">
-                        <div class="feature-icon">🗺️</div>
-                        <div class="feature-copy">
-                            <strong>Made-to-measure itineraries</strong>
-                            Every tour is curated by guides who live and breathe the destination.
-                        </div>
-                    </div>
-                    <div class="feature-row">
-                        <div class="feature-icon">🤝</div>
-                        <div class="feature-copy">
-                            <strong>Concierge-level care</strong>
-                            Real people available 24/7 via WhatsApp, phone, or email.
-                        </div>
-                    </div>
-                    <div class="feature-row">
-                        <div class="feature-icon">💠</div>
-                        <div class="feature-copy">
-                            <strong>Insider access</strong>
-                            Private entries, hidden gems, and flexible upgrades.
-                        </div>
-                    </div>
-                </div>
-
-                <div class="cta">
-                    <a class="cta-button" href="{{dashboardLink}}">Open my dashboard</a>
-                    {{#if verificationLink}}
-                    <div class="cta-secondary">Need to verify your email? <a href="{{verificationLink}}">Click here</a></div>
-                    {{/if}}
-                </div>
-
-                {{#if recommendedTours}}
-                <div class="card">
-                    <div class="card-title">Handpicked for you</div>
-                    <div class="tour-grid">
-                        {{#each recommendedTours}}
-                        <a href="{{link}}" class="tour-card">
-                            <img src="{{image}}" alt="{{title}}">
-                            <div class="tour-info">
-                                <div class="tour-title">{{title}}</div>
-                                <div class="tour-price">{{price}}</div>
-                            </div>
-                        </a>
-                        {{/each}}
-                    </div>
-                </div>
-                {{/if}}
-
-                <div class="checklist">
-                    <div class="checklist-title">Make the most of today</div>
-                    <div class="checklist-item">Complete your traveler profile so we can tailor suggestions.</div>
-                    <div class="checklist-item">Bookmark tours you love and compare them easily later.</div>
-                    <div class="checklist-item">Message our team if you need help designing a custom experience.</div>
-                </div>
-            </div>
-
-            <div class="footer">
-                <div class="footer-links">
-                    <a href="{{baseUrl}}/user/bookings">My Bookings</a>
-                    {{#if website}}<a href="{{website}}">Website</a>{{/if}}
-                    {{#if contactEmail}}<a href="mailto:{{contactEmail}}">Contact Us</a>{{/if}}
-                </div>
-                {{#if (or facebookUrl instagramUrl twitterUrl)}}
-                <div class="social-links">
-                    {{#if facebookUrl}}<a href="{{facebookUrl}}">Facebook</a>{{/if}}
-                    {{#if instagramUrl}}<a href="{{instagramUrl}}">Instagram</a>{{/if}}
-                    {{#if twitterUrl}}<a href="{{twitterUrl}}">Twitter</a>{{/if}}
-                </div>
-                {{/if}}
-                <p>© {{year}} {{companyName}}</p>
-                {{#if contactPhone}}<p style="margin-top: 4px;">Contact: {{contactPhone}}</p>{{/if}}
-            </div>
-        </div>
+    <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">
+        Welcome, {{customerName}} — your {{companyName}} account is ready. Open your dashboard to start exploring.
     </div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f9fc;">
+        <tr>
+            <td align="center" style="padding:40px 12px;">
+
+                <!-- Brand -->
+                <table role="presentation" width="600" class="container" cellpadding="0" cellspacing="0" style="width:600px; max-width:600px;">
+                    <tr>
+                        <td align="center" style="padding:0 0 24px;">
+                            <img src="{{companyLogo}}" width="40" height="40" alt="{{companyName}}" style="display:inline-block; width:40px; height:40px; border-radius:8px; object-fit:contain;">
+                        </td>
+                    </tr>
+                </table>
+
+                <!-- Card -->
+                <table role="presentation" width="600" class="container" cellpadding="0" cellspacing="0" style="width:600px; max-width:600px; background:#ffffff; border:1px solid #e6ebf1; border-radius:12px;">
+
+                    <!-- Header -->
+                    <tr>
+                        <td class="px" align="center" style="padding:40px 48px 0;">
+                            <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+                                <td style="width:22px; height:22px; border-radius:999px; background:#0cbd6b; text-align:center; vertical-align:middle;">
+                                    <span style="color:#ffffff; font-size:13px; line-height:22px; font-weight:700;">&#10003;</span>
+                                </td>
+                                <td style="padding-left:8px; font-size:13px; font-weight:600; color:#0cbd6b; letter-spacing:0.2px;">Welcome</td>
+                            </tr></table>
+                            <h1 style="margin:14px 0 6px; font-size:24px; line-height:32px; font-weight:700; color:#0a2540; letter-spacing:-0.3px;">Welcome to {{companyName}}</h1>
+                            <p style="margin:0; font-size:15px; line-height:24px; color:#5b6b7f;">Hi {{customerName}}, your account is ready. Here is what you can do next and how to make the most of it.</p>
+                        </td>
+                    </tr>
+
+                    <!-- What you can do -->
+                    <tr>
+                        <td class="px" style="padding:32px 48px 0;">
+                            <p style="margin:0 0 8px; font-size:12px; line-height:16px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:#8898aa;">With your account</p>
+                            <p style="margin:0 0 6px; font-size:14px; line-height:22px; color:#425466;"><strong style="color:#0a2540;">Made-to-measure itineraries</strong> — every tour is curated by guides who live and breathe Egypt.</p>
+                            <p style="margin:0 0 6px; font-size:14px; line-height:22px; color:#425466;"><strong style="color:#0a2540;">Concierge-level care</strong> — real people available around the clock via WhatsApp, phone, or email.</p>
+                            <p style="margin:0; font-size:14px; line-height:22px; color:#425466;"><strong style="color:#0a2540;">Insider access</strong> — private entries, hidden gems, and flexible upgrades, plus saved favorites and exclusive offers.</p>
+                        </td>
+                    </tr>
+
+                    <!-- CTA -->
+                    <tr>
+                        <td class="px btn" align="center" style="padding:28px 48px 0;">
+                            <a href="{{dashboardLink}}" style="display:inline-block; background:{{primaryColor}}; color:#ffffff; font-size:15px; line-height:22px; font-weight:600; padding:12px 32px; border-radius:8px;">Open my dashboard</a>
+                            {{#if verificationLink}}
+                            <p style="margin:12px 0 0; font-size:13px; line-height:20px; color:#5b6b7f;">Need to verify your email? <a href="{{verificationLink}}" style="color:{{primaryColor}}; font-weight:600;">Verify now</a></p>
+                            {{/if}}
+                        </td>
+                    </tr>
+
+                    {{#if recommendedTours}}
+                    <!-- Divider -->
+                    <tr><td class="px" style="padding:32px 48px 0;"><div style="height:1px; background:#e6ebf1; line-height:1px; font-size:0;">&nbsp;</div></td></tr>
+
+                    <tr>
+                        <td class="px" style="padding:28px 48px 0;">
+                            <p style="margin:0 0 4px; font-size:12px; line-height:16px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:#8898aa;">Handpicked for you</p>
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                {{#each recommendedTours}}
+                                <tr>
+                                    <td style="padding:14px 14px 14px 0; width:48px; vertical-align:top; border-bottom:1px solid #eef2f6;">
+                                        <a href="{{link}}"><img src="{{image}}" alt="{{title}}" width="48" height="48" style="display:block; width:48px; height:48px; border-radius:8px; object-fit:cover;"></a>
+                                    </td>
+                                    <td style="padding:14px 0; vertical-align:top; border-bottom:1px solid #eef2f6;">
+                                        <p style="margin:0; font-size:14px; line-height:21px; font-weight:600;"><a href="{{link}}" style="color:#0a2540;">{{title}}</a></p>
+                                    </td>
+                                    <td align="right" style="padding:14px 0; vertical-align:top; border-bottom:1px solid #eef2f6; white-space:nowrap;">
+                                        <p style="margin:0; font-size:14px; line-height:21px; font-weight:600; color:#0a2540;">{{price}}</p>
+                                    </td>
+                                </tr>
+                                {{/each}}
+                            </table>
+                        </td>
+                    </tr>
+                    {{/if}}
+
+                    <!-- Divider -->
+                    <tr><td class="px" style="padding:32px 48px 0;"><div style="height:1px; background:#e6ebf1; line-height:1px; font-size:0;">&nbsp;</div></td></tr>
+
+                    <!-- Next steps -->
+                    <tr>
+                        <td class="px" style="padding:28px 48px 36px;">
+                            <p style="margin:0 0 8px; font-size:12px; line-height:16px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:#8898aa;">Make the most of today</p>
+                            <p style="margin:0 0 6px; font-size:14px; line-height:22px; color:#425466;">Complete your traveler profile so we can tailor suggestions.</p>
+                            <p style="margin:0 0 6px; font-size:14px; line-height:22px; color:#425466;">Bookmark tours you love and compare them easily later.</p>
+                            <p style="margin:0 0 6px; font-size:14px; line-height:22px; color:#425466;">Message our team if you need help designing a custom experience.</p>
+                            <p style="margin:14px 0 0; font-size:13px; line-height:20px; color:#8898aa;">Revisit your bookings any time at <a href="{{baseUrl}}/user/bookings" style="color:{{primaryColor}}; font-weight:600;">{{baseUrl}}/user/bookings</a>.</p>
+                        </td>
+                    </tr>
+                </table>
+
+                <!-- Footer -->
+                <table role="presentation" width="600" class="container" cellpadding="0" cellspacing="0" style="width:600px; max-width:600px;">
+                    <tr>
+                        <td align="center" style="padding:24px 48px;">
+                            <p style="margin:0; font-size:12px; line-height:19px; color:#8898aa;">{{companyName}} · <a href="mailto:{{supportEmail}}" style="color:#8898aa; text-decoration:underline;">{{supportEmail}}</a></p>
+                            <p style="margin:4px 0 0; font-size:12px; line-height:19px; color:#aab7c4;">© {{year}} {{companyName}}. All rights reserved.</p>
+                        </td>
+                    </tr>
+                </table>
+
+            </td>
+        </tr>
+    </table>
 </body>
 </html>

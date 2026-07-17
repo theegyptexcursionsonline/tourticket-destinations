@@ -1,146 +1,139 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="UTF-8" />
-    <title>Admin Invitation - {{companyName}}</title>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
+    <meta name="color-scheme" content="light">
+    <meta name="supported-color-schemes" content="light">
+    <title>Admin Invitation</title>
     <style>
-      body {
-        font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        background: #f4f6fb;
-        margin: 0;
-        padding: 0;
-        color: #0f172a;
-      }
-      .wrapper {
-        max-width: 640px;
-        margin: 0 auto;
-        padding: 32px 20px;
-      }
-      .header {
-        text-align: center;
-        padding: 24px;
-        background: {{secondaryColor}};
-        border-radius: 20px 20px 0 0;
-      }
-      .header img {
-        max-height: 48px;
-        margin: 0 auto;
-      }
-      .header-text {
-        color: #fff;
-        font-size: 20px;
-        font-weight: 800;
-      }
-      .card {
-        background: #ffffff;
-        border-radius: 0 0 20px 20px;
-        padding: 40px;
-        box-shadow: 0 14px 40px rgba(15, 23, 42, 0.08);
-      }
-      .btn {
-        display: inline-block;
-        padding: 14px 28px;
-        border-radius: 999px;
-        text-decoration: none;
-        font-weight: 600;
-        background: {{primaryColor}};
-        color: #fff;
-      }
-      .muted {
-        color: #475569;
-        font-size: 14px;
-      }
-      .pill {
-        display: inline-block;
-        background: #f1f5f9;
-        color: #475569;
-        padding: 6px 14px;
-        border-radius: 999px;
-        font-size: 13px;
-        margin: 4px 6px 0 0;
-      }
-      .credentials {
-        background: {{secondaryColor}};
-        color: #fff;
-        border-radius: 16px;
-        padding: 18px 24px;
-        margin: 24px 0;
-      }
-      .credentials strong {
-        display: block;
-        font-size: 13px;
-        letter-spacing: 1px;
-        text-transform: uppercase;
-        color: rgba(255, 255, 255, 0.7);
-      }
-      footer {
-        text-align: center;
-        margin-top: 30px;
-        color: #94a3b8;
-        font-size: 13px;
-      }
-      footer a {
-        color: {{primaryColor}};
-        text-decoration: none;
-      }
+        body, table, td, p, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+        table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+        img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }
+        body { margin: 0; padding: 0; width: 100% !important; background: #f6f9fc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #0a2540; }
+        a { color: {{primaryColor}}; text-decoration: none; }
+        @media screen and (max-width: 640px) {
+            .container { width: 100% !important; border-radius: 0 !important; border-left: 0 !important; border-right: 0 !important; }
+            .px { padding-left: 24px !important; padding-right: 24px !important; }
+            .btn a { display: block !important; }
+        }
     </style>
-  </head>
-  <body>
-    <div class="wrapper">
-      <div class="header">
-        {{#if companyLogo}}
-        <img src="{{companyLogo}}" alt="{{companyName}}">
-        {{else}}
-        <div class="header-text">{{companyName}}</div>
-        {{/if}}
-      </div>
-      <div class="card">
-        <p class="muted">Private invite</p>
-        <h1>Hi {{inviteeName}},</h1>
-        <p>
-          {{inviterName}} just invited you to help manage {{companyName}}. Click the button
-          below to accept your invitation and set your password.
-        </p>
+</head>
+<body>
+    <div style="display:none; font-size:1px; line-height:1px; max-height:0; max-width:0; opacity:0; overflow:hidden; mso-hide:all;">{{inviterName}} invited you to the {{companyName}} admin portal as {{role}}</div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f9fc;">
+        <tr>
+            <td align="center" style="padding:40px 12px;">
 
-        <div class="credentials">
-          <div>
-            <strong>Your email</strong>
-            <span>{{inviteeEmail}}</span>
-          </div>
-          <div style="margin-top: 12px;">
-            <strong>Role</strong>
-            <span style="text-transform: capitalize;">{{role}}</span>
-          </div>
-        </div>
+                <!-- Brand -->
+                <table role="presentation" width="600" class="container" cellpadding="0" cellspacing="0" style="width:600px; max-width:600px;">
+                    <tr>
+                        <td align="center" style="padding:0 0 24px;">
+                            <img src="{{companyLogo}}" width="40" height="40" alt="{{companyName}}" style="display:inline-block; width:40px; height:40px; border-radius:8px; object-fit:contain;">
+                        </td>
+                    </tr>
+                </table>
 
-        <p style="margin: 32px 0;">
-          <a class="btn" href="{{portalLink}}" target="_blank" rel="noopener noreferrer">
-            Accept Invitation & Set Password
-          </a>
-        </p>
+                <!-- Card -->
+                <table role="presentation" width="600" class="container" cellpadding="0" cellspacing="0" style="width:600px; max-width:600px; background:#ffffff; border:1px solid #e6ebf1; border-radius:12px;">
 
-        <p class="muted" style="margin-bottom: 8px;">Your access permissions:</p>
-        <div>
-          {{#each permissions}}
-          <span class="pill">{{this}}</span>
-          {{/each}}
-        </div>
+                    <!-- Header -->
+                    <tr>
+                        <td class="px" align="center" style="padding:40px 48px 0;">
+                            <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+                                <td style="width:22px; height:22px; border-radius:999px; background:{{primaryColor}}; text-align:center; vertical-align:middle;">
+                                    <span style="color:#ffffff; font-size:13px; line-height:22px; font-weight:700;">+</span>
+                                </td>
+                                <td style="padding-left:8px; font-size:13px; font-weight:600; color:{{primaryColor}}; letter-spacing:0.2px;">Team invite</td>
+                            </tr></table>
+                            <h1 style="margin:14px 0 6px; font-size:24px; line-height:32px; font-weight:700; color:#0a2540; letter-spacing:-0.3px;">Hi {{inviteeName}}, you're invited</h1>
+                            <p style="margin:0; font-size:15px; line-height:24px; color:#5b6b7f;">{{inviterName}} invited you to help manage {{companyName}}. Accept the invitation below to set your password and get started.</p>
+                        </td>
+                    </tr>
 
-        <div style="background: #fff7ed; border: 1px solid #fed7aa; border-radius: 12px; padding: 16px; margin-top: 24px;">
-          <p style="color: #9a3412; font-size: 14px; margin: 0;">
-            <strong>⚠️ Security Notice:</strong> This invitation link expires in 7 days. For security reasons, please accept it as soon as possible.
-          </p>
-        </div>
+                    <!-- Account details -->
+                    <tr>
+                        <td class="px" style="padding:28px 48px 0;">
+                            <p style="margin:0 0 8px; font-size:12px; line-height:16px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:#8898aa;">Your account</p>
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td style="padding:8px 0; font-size:12px; line-height:18px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:#8898aa; border-bottom:1px solid #eef2f6; width:35%;">Email</td>
+                                    <td align="right" style="padding:8px 0; font-size:14px; line-height:20px; font-weight:600; color:#0a2540; border-bottom:1px solid #eef2f6;">{{inviteeEmail}}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:8px 0; font-size:12px; line-height:18px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:#8898aa;">Role</td>
+                                    <td align="right" style="padding:8px 0; font-size:14px; line-height:20px; font-weight:600; color:#0a2540; text-transform:capitalize;">{{role}}</td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
 
-        <p style="margin-top: 24px; font-size: 14px; color: #64748b;">
-          Need help? Reply to this email or contact <a href="mailto:{{contactEmail}}" style="color: {{primaryColor}};">{{contactEmail}}</a>.
-        </p>
-      </div>
+                    <!-- Temporary password -->
+                    {{#if temporaryPassword}}
+                    <tr>
+                        <td class="px" style="padding:24px 48px 0;">
+                            <p style="margin:0 0 8px; font-size:12px; line-height:16px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:#8898aa;">Temporary password</p>
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td align="center" style="background:#f6f9fc; border:1px solid #e6ebf1; border-radius:8px; padding:14px 16px;">
+                                        <p style="margin:0; font-size:16px; line-height:24px; font-weight:600; color:#0a2540; font-family:'SFMono-Regular', Menlo, Consolas, monospace; letter-spacing:1px;">{{temporaryPassword}}</p>
+                                    </td>
+                                </tr>
+                            </table>
+                            <p style="margin:8px 0 0; font-size:13px; line-height:20px; color:#8898aa;">Use it for your first sign-in, then set your own password.</p>
+                        </td>
+                    </tr>
+                    {{/if}}
 
-      <footer>
-        © {{year}} {{companyName}} · Secure admin access only
-        {{#if website}}<br><a href="{{website}}">{{website}}</a>{{/if}}
-      </footer>
-    </div>
-  </body>
+                    <!-- CTA -->
+                    <tr>
+                        <td class="px btn" align="center" style="padding:28px 48px 0;">
+                            <a href="{{portalLink}}" target="_blank" rel="noopener noreferrer" style="display:inline-block; background:{{primaryColor}}; color:#ffffff; font-size:15px; line-height:22px; font-weight:600; padding:12px 32px; border-radius:8px;">Accept invitation and set password</a>
+                        </td>
+                    </tr>
+
+                    <!-- Divider -->
+                    <tr><td class="px" style="padding:32px 48px 0;"><div style="height:1px; background:#e6ebf1; line-height:1px; font-size:0;">&nbsp;</div></td></tr>
+
+                    <!-- Permissions -->
+                    <tr>
+                        <td class="px" style="padding:24px 48px 0;">
+                            <p style="margin:0 0 8px; font-size:12px; line-height:16px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:#8898aa;">Your access permissions</p>
+                            <p style="margin:0; font-size:14px; line-height:26px; color:#0a2540;">
+                                {{#each permissions}}<span style="display:inline-block; background:#f6f9fc; border:1px solid #e6ebf1; border-radius:999px; padding:3px 12px; font-size:13px; line-height:19px; color:#425466; margin:0 4px 6px 0;">{{this}}</span>{{/each}}
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Security note -->
+                    <tr>
+                        <td class="px" style="padding:20px 48px 36px;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td style="background:#f6f9fc; border:1px solid #e6ebf1; border-radius:8px; padding:12px 16px;">
+                                        <p style="margin:0; font-size:13px; line-height:20px; color:#5b6b7f;"><strong style="color:#0a2540;">Security notice:</strong> this invitation link expires in 7 days. Please accept it as soon as possible.</p>
+                                    </td>
+                                </tr>
+                            </table>
+                            <p style="margin:14px 0 0; font-size:13px; line-height:20px; color:#8898aa;">Need help? Reply to this email or contact <a href="mailto:{{supportEmail}}" style="color:{{primaryColor}};">{{supportEmail}}</a>.</p>
+                        </td>
+                    </tr>
+                </table>
+
+                <!-- Footer -->
+                <table role="presentation" width="600" class="container" cellpadding="0" cellspacing="0" style="width:600px; max-width:600px;">
+                    <tr>
+                        <td align="center" style="padding:24px 48px;">
+                            <p style="margin:0; font-size:12px; line-height:19px; color:#8898aa;">Sent by {{companyName}} admin system.</p>
+                            <p style="margin:4px 0 0; font-size:12px; line-height:19px; color:#aab7c4;">&copy; {{year}} {{companyName}}. All rights reserved.</p>
+                        </td>
+                    </tr>
+                </table>
+
+            </td>
+        </tr>
+    </table>
+</body>
 </html>

@@ -1,158 +1,145 @@
 <!DOCTYPE html>
-<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
-  <meta name="color-scheme" content="light">
-  <meta name="supported-color-schemes" content="light">
-  <title>Booking Status Update - {{companyName}}</title>
-  <style>
-    body, table, td, p, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
-    table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
-    img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; display: block; }
-    body { margin: 0; padding: 0; width: 100% !important; background: #f4f6f8; font-family: Arial, Helvetica, sans-serif; color: #172033; }
-    a { color: {{primaryColor}}; text-decoration: none; }
-    .status-pill { display: inline-block; padding: 8px 16px; border-radius: 999px; font-size: 12px; line-height: 16px; letter-spacing: 0.4px; text-transform: uppercase; font-weight: 700; border: 1px solid #c7d2fe; background: #eef2ff; color: #3730a3; }
-    .status-Confirmed, .status-confirmed { background: #dcfce7; color: #166534; border-color: #86efac; }
-    .status-Pending, .status-pending { background: #fef3c7; color: #92400e; border-color: #fcd34d; }
-    .status-Completed, .status-completed { background: #d1fae5; color: #065f46; border-color: #6ee7b7; }
-    .status-Cancelled, .status-cancelled { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
-    .status-Refunded, .status-refunded, .status-Partial, .status-partial { background: #dbeafe; color: #1e40af; border-color: #93c5fd; }
-    @media only screen and (max-width: 620px) {
-      .email-container { width: 100% !important; border-radius: 0 !important; }
-      .mobile-padding { padding-left: 20px !important; padding-right: 20px !important; }
-      .stack-column { display: block !important; width: 100% !important; padding-right: 0 !important; padding-bottom: 12px !important; }
-      .cta-button { display: block !important; text-align: center !important; }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
+    <meta name="color-scheme" content="light">
+    <meta name="supported-color-schemes" content="light">
+    <title>Booking Status Update - {{companyName}}</title>
+    <style>
+        body, table, td, p, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+        table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+        img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }
+        body { margin: 0; padding: 0; width: 100% !important; background: #f6f9fc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #0a2540; }
+        a { color: {{primaryColor}}; text-decoration: none; }
+        .status-pill { display: inline-block; padding: 6px 14px; border-radius: 999px; font-size: 13px; line-height: 18px; letter-spacing: 0.2px; font-weight: 600; border: 1px solid #c7d2fe; background: #eef2ff; color: #3730a3; }
+        .status-Confirmed, .status-confirmed { background: #dcfce7; color: #166534; border-color: #86efac; }
+        .status-Pending, .status-pending { background: #fef3c7; color: #92400e; border-color: #fcd34d; }
+        .status-Completed, .status-completed { background: #d1fae5; color: #065f46; border-color: #6ee7b7; }
+        .status-Cancelled, .status-cancelled { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
+        .status-Refunded, .status-refunded, .status-Partial, .status-partial { background: #dbeafe; color: #1e40af; border-color: #93c5fd; }
+        @media screen and (max-width: 640px) {
+            .container { width: 100% !important; border-radius: 0 !important; border-left: 0 !important; border-right: 0 !important; }
+            .px { padding-left: 24px !important; padding-right: 24px !important; }
+            .btn a { display: block !important; }
+        }
+    </style>
 </head>
-<body style="margin:0; padding:0; background:#f4f6f8;">
-  <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">
-    Your booking {{bookingId}} is now {{newStatus}}.
-  </div>
+<body>
+    <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent; mso-hide:all;">Your booking {{bookingId}} is now {{newStatus}}.</div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f9fc;">
+        <tr>
+            <td align="center" style="padding:40px 12px;">
 
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f8;">
-    <tr>
-      <td align="center" style="padding:28px 12px;">
-        <table role="presentation" class="email-container" width="600" cellpadding="0" cellspacing="0" style="width:600px; max-width:600px; background:#ffffff; border-radius:10px; overflow:hidden; box-shadow:0 12px 30px rgba(15,23,42,0.08);">
-          <tr>
-            <td style="height:4px; background:{{primaryColor}}; font-size:0; line-height:0;">&nbsp;</td>
-          </tr>
-
-          <tr>
-            <td class="mobile-padding" style="padding:24px 32px 20px;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-                <tr>
-                  <td class="stack-column" style="vertical-align:middle;">
-                    <table role="presentation" cellpadding="0" cellspacing="0">
-                      <tr>
-                        <td style="width:52px; vertical-align:middle;">
-                          <img src="{{companyLogo}}" width="44" height="44" alt="{{companyName}}" style="width:44px; height:44px; border-radius:10px; object-fit:contain; background:#ffffff;">
+                <!-- Brand -->
+                <table role="presentation" width="600" class="container" cellpadding="0" cellspacing="0" style="width:600px; max-width:600px;">
+                    <tr>
+                        <td align="center" style="padding:0 0 24px;">
+                            <img src="{{companyLogo}}" width="40" height="40" alt="{{companyName}}" style="display:inline-block; width:40px; height:40px; border-radius:8px; object-fit:contain;">
                         </td>
-                        <td style="vertical-align:middle;">
-                          <div style="font-size:15px; line-height:20px; font-weight:700; color:#111827;">{{companyName}}</div>
-                          <div style="font-size:12px; line-height:18px; color:#6b7280;">Booking update</div>
+                    </tr>
+                </table>
+
+                <!-- Card -->
+                <table role="presentation" width="600" class="container" cellpadding="0" cellspacing="0" style="width:600px; max-width:600px; background:#ffffff; border:1px solid #e6ebf1; border-radius:12px;">
+
+                    <!-- Header -->
+                    <tr>
+                        <td class="px" align="center" style="padding:40px 48px 0;">
+                            <span class="status-pill status-{{newStatus}}">{{newStatus}}</span>
+                            <h1 style="margin:14px 0 6px; font-size:24px; line-height:32px; font-weight:700; color:#0a2540; letter-spacing:-0.3px;">Your booking was updated</h1>
+                            <p style="margin:0; font-size:15px; line-height:24px; color:#5b6b7f;">Hi {{customerName}}, the status of your booking for {{tourTitle}} has changed.</p>
                         </td>
-                      </tr>
-                    </table>
-                  </td>
-                  <td class="stack-column" align="right" style="vertical-align:middle;">
-                    <span class="status-pill status-{{newStatus}}">{{newStatus}}</span>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
+                    </tr>
 
-          <tr>
-            <td class="mobile-padding" style="padding:0 32px;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-                <tr><td style="border-top:1px solid #edf0f3; font-size:0; line-height:0;">&nbsp;</td></tr>
-              </table>
-            </td>
-          </tr>
+                    <!-- Status message -->
+                    <tr>
+                        <td class="px" style="padding:28px 48px 0;">
+                            <p style="margin:0 0 6px; font-size:12px; line-height:16px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:#8898aa;">What this means</p>
+                            <p style="margin:0; font-size:14px; line-height:22px; font-weight:600; color:#0a2540;">{{statusMessage}}</p>
+                            {{#if additionalInfo}}
+                            <p style="margin:8px 0 0; font-size:14px; line-height:22px; color:#425466;">{{additionalInfo}}</p>
+                            {{/if}}
+                        </td>
+                    </tr>
 
-          <tr>
-            <td class="mobile-padding" style="padding:28px 32px 8px;">
-              <p style="margin:0 0 8px; font-size:13px; line-height:18px; color:#6b7280; font-weight:700; text-transform:uppercase; letter-spacing:0.6px;">Booking {{bookingId}}</p>
-              <h1 style="margin:0 0 12px; font-size:26px; line-height:32px; color:#111827; font-weight:800;">Your booking status has been updated</h1>
-              <p style="margin:0; font-size:15px; line-height:24px; color:#4b5563;">Hi {{customerName}}, we updated your booking for <strong style="color:#111827;">{{tourTitle}}</strong>.</p>
-            </td>
-          </tr>
+                    <!-- Divider -->
+                    <tr><td class="px" style="padding:28px 48px 0;"><div style="height:1px; background:#e6ebf1; line-height:1px; font-size:0;">&nbsp;</div></td></tr>
 
-          <tr>
-            <td class="mobile-padding" style="padding:20px 32px 8px;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb; border:1px solid #e5e7eb; border-radius:10px;">
-                <tr>
-                  <td style="padding:20px 22px;">
-                    <div style="font-size:12px; line-height:18px; color:#6b7280; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">Current status</div>
-                    <div style="margin-top:10px;"><span class="status-pill status-{{newStatus}}">{{newStatus}}</span></div>
-                    <p style="margin:14px 0 0; font-size:15px; line-height:23px; color:#111827; font-weight:600;">{{statusMessage}}</p>
-                    {{#if additionalInfo}}
-                    <p style="margin:10px 0 0; font-size:14px; line-height:22px; color:#4b5563;">{{additionalInfo}}</p>
-                    {{/if}}
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
+                    <!-- Booking details -->
+                    <tr>
+                        <td class="px" style="padding:24px 48px 0;">
+                            <p style="margin:0 0 4px; font-size:12px; line-height:16px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:#8898aa;">Booking details</p>
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td style="padding:12px 0; border-bottom:1px solid #eef2f6; width:40%; vertical-align:top;">
+                                        <p style="margin:0; font-size:12px; line-height:18px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:#8898aa;">Tour</p>
+                                    </td>
+                                    <td style="padding:12px 0; border-bottom:1px solid #eef2f6; vertical-align:top;">
+                                        <p style="margin:0; font-size:14px; line-height:22px; font-weight:600; color:#0a2540;">{{tourTitle}}</p>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:12px 0; border-bottom:1px solid #eef2f6; vertical-align:top;">
+                                        <p style="margin:0; font-size:12px; line-height:18px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:#8898aa;">Date</p>
+                                    </td>
+                                    <td style="padding:12px 0; border-bottom:1px solid #eef2f6; vertical-align:top;">
+                                        <p style="margin:0; font-size:14px; line-height:22px; font-weight:600; color:#0a2540;">{{bookingDate}}</p>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:12px 0; border-bottom:1px solid #eef2f6; vertical-align:top;">
+                                        <p style="margin:0; font-size:12px; line-height:18px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:#8898aa;">Time</p>
+                                    </td>
+                                    <td style="padding:12px 0; border-bottom:1px solid #eef2f6; vertical-align:top;">
+                                        <p style="margin:0; font-size:14px; line-height:22px; font-weight:600; color:#0a2540;">{{bookingTime}}</p>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:12px 0; vertical-align:top;">
+                                        <p style="margin:0; font-size:12px; line-height:18px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:#8898aa;">Reference</p>
+                                    </td>
+                                    <td style="padding:12px 0; vertical-align:top;">
+                                        <p style="margin:0; font-size:14px; line-height:22px; font-weight:600; color:#0a2540;">{{bookingId}}</p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
 
-          <tr>
-            <td class="mobile-padding" style="padding:18px 32px 8px;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb; border-radius:10px; overflow:hidden;">
-                <tr>
-                  <td colspan="2" style="padding:14px 20px; background:#fbfcfd; border-bottom:1px solid #e5e7eb; font-size:12px; line-height:18px; color:#6b7280; font-weight:700; text-transform:uppercase; letter-spacing:0.6px;">Booking details</td>
-                </tr>
-                <tr>
-                  <td style="padding:14px 20px; border-bottom:1px solid #f1f5f9; color:#6b7280; font-size:13px;">Tour</td>
-                  <td align="right" style="padding:14px 20px; border-bottom:1px solid #f1f5f9; color:#111827; font-size:14px; font-weight:700;">{{tourTitle}}</td>
-                </tr>
-                <tr>
-                  <td style="padding:14px 20px; border-bottom:1px solid #f1f5f9; color:#6b7280; font-size:13px;">Date</td>
-                  <td align="right" style="padding:14px 20px; border-bottom:1px solid #f1f5f9; color:#111827; font-size:14px; font-weight:700;">{{bookingDate}}</td>
-                </tr>
-                <tr>
-                  <td style="padding:14px 20px; border-bottom:1px solid #f1f5f9; color:#6b7280; font-size:13px;">Time</td>
-                  <td align="right" style="padding:14px 20px; border-bottom:1px solid #f1f5f9; color:#111827; font-size:14px; font-weight:700;">{{bookingTime}}</td>
-                </tr>
-                <tr>
-                  <td style="padding:14px 20px; color:#6b7280; font-size:13px;">Reference</td>
-                  <td align="right" style="padding:14px 20px; color:#111827; font-size:14px; font-weight:700; font-family:Menlo,Consolas,monospace;">{{bookingId}}</td>
-                </tr>
-              </table>
-            </td>
-          </tr>
+                    <!-- CTA -->
+                    <tr>
+                        <td class="px btn" align="center" style="padding:24px 48px 8px;">
+                            <a href="{{baseUrl}}/user/bookings" style="display:inline-block; background:{{primaryColor}}; color:#ffffff; font-size:15px; line-height:22px; font-weight:600; padding:12px 32px; border-radius:8px;">View my bookings</a>
+                        </td>
+                    </tr>
 
-          <tr>
-            <td class="mobile-padding" style="padding:24px 32px 10px;">
-              <a class="cta-button" href="{{baseUrl}}/user/bookings" style="display:inline-block; background:{{primaryColor}}; color:#ffffff; padding:13px 22px; border-radius:7px; font-size:14px; line-height:20px; font-weight:700; text-decoration:none;">View my bookings</a>
-            </td>
-          </tr>
+                    <!-- Divider -->
+                    <tr><td class="px" style="padding:28px 48px 0;"><div style="height:1px; background:#e6ebf1; line-height:1px; font-size:0;">&nbsp;</div></td></tr>
 
-          <tr>
-            <td class="mobile-padding" style="padding:14px 32px 30px;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#fff7ed; border:1px solid #fed7aa; border-radius:10px;">
-                <tr>
-                  <td style="padding:16px 18px;">
-                    <p style="margin:0 0 6px; font-size:14px; line-height:20px; color:#111827; font-weight:700;">Need help?</p>
-                    <p style="margin:0; font-size:13px; line-height:21px; color:#4b5563;">Reply to this email or contact us at <a href="mailto:{{contactEmail}}" style="color:{{primaryColor}}; font-weight:700;">{{contactEmail}}</a>{{#if contactPhone}} or {{contactPhone}}{{/if}}.</p>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
+                    <!-- Help -->
+                    <tr>
+                        <td class="px" style="padding:24px 48px 36px;">
+                            <p style="margin:0 0 6px; font-size:12px; line-height:16px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:#8898aa;">Need help?</p>
+                            <p style="margin:0; font-size:14px; line-height:22px; color:#425466;">Reply to this email or contact us at <a href="mailto:{{contactEmail}}" style="color:{{primaryColor}}; font-weight:600;">{{contactEmail}}</a>{{#if contactPhone}} or {{contactPhone}}{{/if}}.</p>
+                        </td>
+                    </tr>
+                </table>
 
-          <tr>
-            <td class="mobile-padding" style="padding:20px 32px; background:#f9fafb; border-top:1px solid #edf0f3; text-align:center;">
-              <p style="margin:0 0 6px; font-size:12px; line-height:18px; color:#6b7280;">{{companyName}}</p>
-              <p style="margin:0; font-size:11px; line-height:17px; color:#9ca3af;">This email was sent because your booking status changed.</p>
+                <!-- Footer -->
+                <table role="presentation" width="600" class="container" cellpadding="0" cellspacing="0" style="width:600px; max-width:600px;">
+                    <tr>
+                        <td align="center" style="padding:24px 48px;">
+                            <p style="margin:0; font-size:12px; line-height:19px; color:#8898aa;">{{companyName}} · <a href="mailto:{{supportEmail}}" style="color:#8898aa; text-decoration:underline;">{{supportEmail}}</a></p>
+                            <p style="margin:4px 0 0; font-size:12px; line-height:19px; color:#aab7c4;">© {{year}} {{companyName}}. This email was sent because your booking status changed.</p>
+                        </td>
+                    </tr>
+                </table>
+
             </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
+        </tr>
+    </table>
 </body>
 </html>

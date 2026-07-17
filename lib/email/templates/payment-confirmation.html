@@ -3,156 +3,132 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="format-detection" content="telephone=no, email=no, address=no">
-    <title>Payment Confirmation - {{companyName}}</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
+    <meta name="color-scheme" content="light">
+    <meta name="supported-color-schemes" content="light">
+    <title>Payment Confirmation</title>
     <style>
-        body { margin: 0; padding: 0; background: #eef2f7; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #0f172a; -webkit-font-smoothing: antialiased; }
-        img { border: none; display: block; max-width: 100%; }
-        table { border-collapse: collapse; }
-
-        .wrapper { width: 100%; padding: 32px 0; }
-        .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 25px 45px rgba(15,23,42,0.15); }
-
-        .hero { background: linear-gradient(135deg, {{secondaryColor}} 0%, {{primaryColor}} 100%); padding: 36px 40px; color: #ffffff; text-align: center; position: relative; }
-        .logo { max-width: 180px; max-height: 60px; margin: 0 auto 24px; }
-        .hero-status { display: inline-block; padding: 8px 18px; border-radius: 999px; font-size: 12px; letter-spacing: 1px; text-transform: uppercase; font-weight: 700; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); }
-        .hero-title { font-size: 28px; font-weight: 700; letter-spacing: -0.6px; margin: 18px 0 8px; }
-        .hero-meta { color: rgba(255,255,255,0.8); font-size: 15px; }
-
-        .content { padding: 40px; }
-        .greeting { font-size: 20px; font-weight: 700; margin-bottom: 12px; letter-spacing: -0.2px; }
-        .intro { font-size: 15px; color: #475569; line-height: 1.7; margin-bottom: 28px; }
-
-        .card { border: 1px solid #e2e8f0; border-radius: 16px; margin-bottom: 28px; overflow: hidden; }
-        .card-header { padding: 20px 28px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; font-size: 13px; letter-spacing: 1px; color: #94a3b8; font-weight: 700; text-transform: uppercase; }
-        .card-body { padding: 24px 28px; }
-
-        .detail-grid { width: 100%; }
-        .detail-grid tr td { padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
-        .detail-grid tr:last-child td { border-bottom: none; }
-        .detail-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; color: #94a3b8; font-weight: 600; }
-        .detail-value { font-size: 16px; color: #0f172a; font-weight: 600; }
-        .detail-value.mono { font-family: 'SFMono-Regular', Menlo, monospace; letter-spacing: 0.5px; font-size: 15px; }
-
-        .amount-highlight { background: linear-gradient(135deg, #ecfccb 0%, #d9f99d 100%); border-radius: 14px; padding: 18px 20px; margin-top: 18px; display: flex; justify-content: space-between; align-items: center; }
-        .amount-label { font-size: 13px; letter-spacing: 0.7px; font-weight: 700; color: #3f6212; text-transform: uppercase; }
-        .amount-value { font-size: 26px; font-weight: 700; color: #1a2e05; }
-
-        .badges-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 28px; }
-        .badge { padding: 8px 14px; border-radius: 12px; border: 1px solid #e5e7eb; font-size: 13px; font-weight: 600; color: #475569; background: #f8fafc; }
-
-        .cta { text-align: center; margin: 32px 0 20px; }
-        .cta-button { display: inline-block; padding: 16px 40px; border-radius: 10px; background: {{primaryColor}}; color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; box-shadow: 0 15px 30px rgba(0,0,0,0.15); }
-        .cta-note { margin-top: 12px; font-size: 13px; color: #64748b; }
-
-        .support { border: 1px solid #e2e8f0; border-radius: 16px; padding: 22px 24px; background: #f8fafc; display: flex; gap: 16px; align-items: center; margin-bottom: 32px; }
-        .support-icon { font-size: 26px; }
-        .support-text strong { display: block; font-size: 15px; color: #0f172a; }
-        .support-text span { font-size: 14px; color: #475569; }
-        .support-text a { color: {{primaryColor}}; text-decoration: none; }
-
-        .footer { background: #f8fafc; padding: 28px 40px; text-align: center; border-top: 1px solid #e2e8f0; }
-        .footer-links a { color: #64748b; font-size: 13px; margin: 0 10px; text-decoration: none; font-weight: 600; }
-        .footer p { color: #94a3b8; font-size: 12px; margin: 10px 0; }
-
-        @media (max-width: 640px) {
-            .wrapper { padding: 0; }
-            .container { border-radius: 0; }
-            .hero, .content, .footer { padding-left: 24px !important; padding-right: 24px !important; }
-            .card-header, .card-body { padding-left: 20px; padding-right: 20px; }
-            .badges-row { flex-direction: column; }
-            .cta-button { width: 100%; }
-            .support { flex-direction: column; text-align: center; }
+        body, table, td, p, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+        table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+        img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }
+        body { margin: 0; padding: 0; width: 100% !important; background: #f6f9fc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #0a2540; }
+        a { color: {{primaryColor}}; text-decoration: none; }
+        @media screen and (max-width: 640px) {
+            .container { width: 100% !important; border-radius: 0 !important; border-left: 0 !important; border-right: 0 !important; }
+            .px { padding-left: 24px !important; padding-right: 24px !important; }
+            .btn a { display: block !important; }
+            .stack { display: block !important; width: 100% !important; }
         }
     </style>
 </head>
 <body>
-    <div class="wrapper">
-        <div class="container">
-            <div class="hero">
-                {{#if companyLogo}}
-                <img src="{{companyLogo}}" alt="{{companyName}}" class="logo">
-                {{else}}
-                <div style="font-size: 24px; font-weight: 800; margin-bottom: 24px;">{{companyName}}</div>
-                {{/if}}
-                <div class="hero-status">Payment received</div>
-                <div class="hero-title">Transaction successful</div>
-                <div class="hero-meta">Booking {{bookingId}} · {{tourTitle}}</div>
-            </div>
-
-            <div class="content">
-                <div class="greeting">Hi {{customerName}},</div>
-                <p class="intro">
-                    We've received your payment and your booking is fully secured. Below is a quick summary of the transaction for your records.
-                </p>
-
-                <div class="badges-row">
-                    <div class="badge">Payment ID · {{paymentId}}</div>
-                    <div class="badge">Method · {{paymentMethod}}</div>
-                    <div class="badge">Currency · {{currency}}</div>
-                </div>
-
-                <div class="card">
-                    <div class="card-header">Payment breakdown</div>
-                    <div class="card-body">
-                        <table class="detail-grid">
-                            <tr>
-                                <td class="detail-label">Booking ID</td>
-                                <td class="detail-value mono">{{bookingId}}</td>
-                            </tr>
-                            <tr>
-                                <td class="detail-label">Tour</td>
-                                <td class="detail-value">{{tourTitle}}</td>
-                            </tr>
-                            <tr>
-                                <td class="detail-label">Payment method</td>
-                                <td class="detail-value">{{paymentMethod}}</td>
-                            </tr>
-                            <tr>
-                                <td class="detail-label">Payment ID</td>
-                                <td class="detail-value mono">{{paymentId}}</td>
-                            </tr>
-                        </table>
-
-                        <div class="amount-highlight">
-                            <div class="amount-label">Amount paid</div>
-                            <div class="amount-value">{{amount}}</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="card-header">What happens next</div>
-                    <div class="card-body">
-                        <p style="margin: 0 0 12px; font-size: 14px; color: #475569;">• A receipt has been saved in your account.</p>
-                        <p style="margin: 0 0 12px; font-size: 14px; color: #475569;">• Your booking dashboard shows all upcoming experiences.</p>
-                        <p style="margin: 0; font-size: 14px; color: #475569;">• We'll remind you 24 hours before your tour with final instructions.</p>
-                    </div>
-                </div>
-
-                <div class="cta">
-                    <a class="cta-button" href="{{baseUrl}}/user/bookings/{{bookingId}}">View booking</a>
-                    <div class="cta-note">Need to update something? Visit your account or contact our team.</div>
-                </div>
-
-                <div class="support">
-                    <div class="support-icon">💳</div>
-                    <div class="support-text">
-                        <strong>Questions about this charge?</strong>
-                        <span>Email <a href="mailto:{{contactEmail}}">{{contactEmail}}</a>{{#if contactPhone}} or WhatsApp <a href="https://wa.me/{{contactPhone}}">{{contactPhone}}</a>{{/if}}</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="footer">
-                <div class="footer-links">
-                    <a href="{{baseUrl}}/user/bookings">My Bookings</a>
-                    {{#if website}}<a href="{{website}}">Website</a>{{/if}}
-                    {{#if contactEmail}}<a href="mailto:{{contactEmail}}">Contact</a>{{/if}}
-                </div>
-                <p>© {{year}} {{companyName}}</p>
-            </div>
-        </div>
+    <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">
+        Payment received for booking {{bookingId}} — {{amount}}. Your booking is fully secured.
     </div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f9fc;">
+        <tr>
+            <td align="center" style="padding:40px 12px;">
+
+                <!-- Brand -->
+                <table role="presentation" width="600" class="container" cellpadding="0" cellspacing="0" style="width:600px; max-width:600px;">
+                    <tr>
+                        <td align="center" style="padding:0 0 24px;">
+                            <img src="{{companyLogo}}" width="40" height="40" alt="{{companyName}}" style="display:inline-block; width:40px; height:40px; border-radius:8px; object-fit:contain;">
+                        </td>
+                    </tr>
+                </table>
+
+                <!-- Card -->
+                <table role="presentation" width="600" class="container" cellpadding="0" cellspacing="0" style="width:600px; max-width:600px; background:#ffffff; border:1px solid #e6ebf1; border-radius:12px;">
+
+                    <!-- Header -->
+                    <tr>
+                        <td class="px" align="center" style="padding:40px 48px 0;">
+                            <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+                                <td style="width:22px; height:22px; border-radius:999px; background:#0cbd6b; text-align:center; vertical-align:middle;">
+                                    <span style="color:#ffffff; font-size:13px; line-height:22px; font-weight:700;">&#10003;</span>
+                                </td>
+                                <td style="padding-left:8px; font-size:13px; font-weight:600; color:#0cbd6b; letter-spacing:0.2px;">Paid</td>
+                            </tr></table>
+                            <h1 style="margin:14px 0 6px; font-size:24px; line-height:32px; font-weight:700; color:#0a2540; letter-spacing:-0.3px;">Payment received</h1>
+                            <p style="margin:0; font-size:15px; line-height:24px; color:#5b6b7f;">Hi {{customerName}}, your payment went through and your booking is fully secured. Here is the transaction summary for your records.</p>
+                        </td>
+                    </tr>
+
+                    <!-- Payment details -->
+                    <tr>
+                        <td class="px" style="padding:32px 48px 0;">
+                            <p style="margin:0 0 4px; font-size:12px; line-height:16px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:#8898aa;">Payment details</p>
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td style="padding:12px 0; border-bottom:1px solid #eef2f6; font-size:14px; line-height:21px; color:#5b6b7f;">Booking ID</td>
+                                    <td align="right" style="padding:12px 0; border-bottom:1px solid #eef2f6; font-size:14px; line-height:21px; font-weight:600; color:#0a2540;">{{bookingId}}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:12px 0; border-bottom:1px solid #eef2f6; font-size:14px; line-height:21px; color:#5b6b7f;">Tour</td>
+                                    <td align="right" style="padding:12px 0; border-bottom:1px solid #eef2f6; font-size:14px; line-height:21px; font-weight:600; color:#0a2540;">{{tourTitle}}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:12px 0; border-bottom:1px solid #eef2f6; font-size:14px; line-height:21px; color:#5b6b7f;">Payment method</td>
+                                    <td align="right" style="padding:12px 0; border-bottom:1px solid #eef2f6; font-size:14px; line-height:21px; font-weight:600; color:#0a2540;">{{paymentMethod}}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:12px 0; border-bottom:1px solid #eef2f6; font-size:14px; line-height:21px; color:#5b6b7f;">Payment ID</td>
+                                    <td align="right" style="padding:12px 0; border-bottom:1px solid #eef2f6; font-size:14px; line-height:21px; font-weight:600; color:#0a2540;">{{paymentId}}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:12px 0; border-bottom:1px solid #eef2f6; font-size:14px; line-height:21px; color:#5b6b7f;">Currency</td>
+                                    <td align="right" style="padding:12px 0; border-bottom:1px solid #eef2f6; font-size:14px; line-height:21px; font-weight:600; color:#0a2540;">{{currency}}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:14px 0 0; font-size:15px; line-height:23px; font-weight:700; color:#0a2540;">Amount paid</td>
+                                    <td align="right" style="padding:14px 0 0; font-size:15px; line-height:23px; font-weight:700; color:#0a2540;">{{amount}}</td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- CTA -->
+                    <tr>
+                        <td class="px btn" align="center" style="padding:28px 48px 8px;">
+                            <a href="{{baseUrl}}/user/bookings/{{bookingId}}" style="display:inline-block; background:{{primaryColor}}; color:#ffffff; font-size:15px; line-height:22px; font-weight:600; padding:12px 32px; border-radius:8px;">View my booking</a>
+                        </td>
+                    </tr>
+
+                    <!-- Divider -->
+                    <tr><td class="px" style="padding:32px 48px 0;"><div style="height:1px; background:#e6ebf1; line-height:1px; font-size:0;">&nbsp;</div></td></tr>
+
+                    <!-- What happens next -->
+                    <tr>
+                        <td class="px" style="padding:28px 48px 0;">
+                            <p style="margin:0 0 8px; font-size:12px; line-height:16px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:#8898aa;">What happens next</p>
+                            <p style="margin:0 0 6px; font-size:14px; line-height:22px; color:#425466;">A receipt has been saved to your account.</p>
+                            <p style="margin:0 0 6px; font-size:14px; line-height:22px; color:#425466;">Your booking dashboard at <a href="{{baseUrl}}/user/bookings" style="color:{{primaryColor}}; font-weight:600;">{{baseUrl}}/user/bookings</a> shows all upcoming experiences.</p>
+                            <p style="margin:0; font-size:14px; line-height:22px; color:#425466;">We will send final instructions 24 hours before your tour.</p>
+                        </td>
+                    </tr>
+
+                    <!-- Support -->
+                    <tr>
+                        <td class="px" style="padding:28px 48px 36px;">
+                            <p style="margin:0; font-size:13px; line-height:20px; color:#8898aa;">Questions about this charge? Reply to this email or write to <a href="mailto:{{supportEmail}}" style="color:{{primaryColor}};">{{supportEmail}}</a>.</p>
+                        </td>
+                    </tr>
+                </table>
+
+                <!-- Footer -->
+                <table role="presentation" width="600" class="container" cellpadding="0" cellspacing="0" style="width:600px; max-width:600px;">
+                    <tr>
+                        <td align="center" style="padding:24px 48px;">
+                            <p style="margin:0; font-size:12px; line-height:19px; color:#8898aa;">{{companyName}} · <a href="mailto:{{supportEmail}}" style="color:#8898aa; text-decoration:underline;">{{supportEmail}}</a></p>
+                            <p style="margin:4px 0 0; font-size:12px; line-height:19px; color:#aab7c4;">© {{year}} {{companyName}}. All rights reserved.</p>
+                        </td>
+                    </tr>
+                </table>
+
+            </td>
+        </tr>
+    </table>
 </body>
 </html>

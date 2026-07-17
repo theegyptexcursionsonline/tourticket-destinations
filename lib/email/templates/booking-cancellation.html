@@ -3,163 +3,139 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="format-detection" content="telephone=no, email=no, address=no">
-    <title>Booking Cancellation - {{companyName}}</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
+    <meta name="color-scheme" content="light">
+    <meta name="supported-color-schemes" content="light">
+    <title>Booking Cancellation</title>
     <style>
-        body { margin: 0; padding: 0; background: #f5f6fb; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #0f172a; -webkit-font-smoothing: antialiased; }
-        img { border: none; display: block; max-width: 100%; }
-        .wrapper { width: 100%; padding: 32px 0; }
-        .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 30px 55px rgba(15,23,42,0.12); }
-
-        .hero { background: linear-gradient(135deg, {{secondaryColor}} 0%, #991b1b 100%); padding: 36px 40px; color: #fef2f2; text-align: center; }
-        .logo { max-width: 180px; max-height: 60px; margin: 0 auto 20px; }
-        .hero-eyebrow { font-size: 12px; letter-spacing: 1px; text-transform: uppercase; opacity: 0.8; }
-        .hero-title { font-size: 28px; font-weight: 700; margin: 12px 0 6px; letter-spacing: -0.4px; }
-        .hero-meta { font-size: 15px; opacity: 0.85; }
-
-        .content { padding: 42px; }
-        .greeting { font-size: 20px; font-weight: 700; margin-bottom: 12px; }
-        .intro { font-size: 15px; color: #475569; line-height: 1.7; margin-bottom: 28px; }
-
-        .alert { border: 1px solid #fecdd3; border-radius: 16px; background: #fff1f2; padding: 22px 24px; margin-bottom: 28px; display: flex; gap: 16px; }
-        .alert-icon { font-size: 26px; }
-        .alert strong { display: block; color: #be123c; font-size: 15px; margin-bottom: 6px; }
-        .alert span { font-size: 14px; color: #9f1239; }
-
-        .card { border: 1px solid #e2e8f0; border-radius: 18px; margin-bottom: 28px; overflow: hidden; box-shadow: 0 12px 35px rgba(15,23,42,0.06); }
-        .card-header { background: #f8fafc; padding: 18px 28px; font-size: 12px; letter-spacing: 0.8px; text-transform: uppercase; color: #94a3b8; font-weight: 700; }
-        .card-body { padding: 24px 28px; }
-        .detail-grid { width: 100%; }
-        .detail-grid tr td { padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
-        .detail-grid tr:last-child td { border-bottom: none; }
-        .detail-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.6px; color: #94a3b8; font-weight: 600; }
-        .detail-value { font-size: 16px; color: #0f172a; font-weight: 600; }
-
-        .refund-box { border: 1px solid #bbf7d0; border-radius: 16px; background: #f0fdf4; padding: 22px 24px; margin-bottom: 28px; }
-        .refund-title { font-size: 14px; font-weight: 700; color: #15803d; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 10px; }
-        .refund-row { font-size: 14px; color: #065f46; margin: 6px 0; }
-
-        .options { border: 1px dashed #e5e7eb; border-radius: 14px; padding: 22px 24px; margin-bottom: 30px; }
-        .option-title { font-size: 13px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px; }
-        .option { display: flex; gap: 12px; margin-bottom: 12px; }
-        .option:last-child { margin-bottom: 0; }
-        .option-bullet { width: 20px; height: 20px; border-radius: 50%; border: 2px solid {{primaryColor}}; flex-shrink: 0; }
-        .option-text { font-size: 14px; color: #1f2937; line-height: 1.5; }
-
-        .cta { text-align: center; margin: 32px 0; }
-        .cta-button { display: inline-block; padding: 15px 38px; border-radius: 10px; border: 1px solid {{primaryColor}}; color: {{primaryColor}}; font-size: 15px; font-weight: 600; text-decoration: none; }
-
-        .support { border: 1px solid #e2e8f0; border-radius: 16px; background: #f8fafc; padding: 22px 24px; text-align: center; }
-        .support strong { display: block; font-size: 15px; color: #0f172a; margin-bottom: 6px; }
-        .support span { font-size: 14px; color: #475569; }
-        .support a { color: {{primaryColor}}; text-decoration: none; }
-
-        .footer { background: #f8fafc; padding: 28px 40px; text-align: center; border-top: 1px solid #e2e8f0; }
-        .footer-links a { color: #64748b; font-size: 13px; margin: 0 10px; text-decoration: none; font-weight: 600; }
-        .footer p { color: #94a3b8; font-size: 12px; margin: 10px 0; }
-
-        @media (max-width: 600px) {
-            .wrapper { padding: 0; }
-            .container { border-radius: 0; }
-            .hero, .content, .footer { padding-left: 24px !important; padding-right: 24px !important; }
-            .card-header, .card-body { padding-left: 20px; padding-right: 20px; }
-            .alert { flex-direction: column; text-align: center; }
-            .option { flex-direction: column; }
-            .cta-button { width: 100%; }
+        body, table, td, p, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+        table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+        img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }
+        body { margin: 0; padding: 0; width: 100% !important; background: #f6f9fc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #0a2540; }
+        a { color: {{primaryColor}}; text-decoration: none; }
+        @media screen and (max-width: 640px) {
+            .container { width: 100% !important; border-radius: 0 !important; border-left: 0 !important; border-right: 0 !important; }
+            .px { padding-left: 24px !important; padding-right: 24px !important; }
+            .btn a { display: block !important; }
         }
     </style>
 </head>
 <body>
-    <div class="wrapper">
-        <div class="container">
-            <div class="hero">
-                {{#if companyLogo}}
-                <img src="{{companyLogo}}" alt="{{companyName}}" class="logo">
-                {{else}}
-                <div style="font-size: 24px; font-weight: 800; margin-bottom: 20px;">{{companyName}}</div>
-                {{/if}}
-                <div class="hero-eyebrow">Booking {{bookingId}}</div>
-                <div class="hero-title">Cancellation confirmed</div>
-                <div class="hero-meta">{{tourTitle}} · {{bookingDate}}</div>
-            </div>
+    <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent; mso-hide:all;">Your booking {{bookingId}} for {{tourTitle}} on {{bookingDate}} has been cancelled.</div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f9fc;">
+        <tr>
+            <td align="center" style="padding:40px 12px;">
 
-            <div class="content">
-                <div class="greeting">Hi {{customerName}},</div>
-                <p class="intro">We've finalized your cancellation request. Below is a snapshot of what was cancelled and how any refund will be handled.</p>
+                <!-- Brand -->
+                <table role="presentation" width="600" class="container" cellpadding="0" cellspacing="0" style="width:600px; max-width:600px;">
+                    <tr>
+                        <td align="center" style="padding:0 0 24px;">
+                            <img src="{{companyLogo}}" width="40" height="40" alt="{{companyName}}" style="display:inline-block; width:40px; height:40px; border-radius:8px; object-fit:contain;">
+                        </td>
+                    </tr>
+                </table>
 
-                <div class="alert">
-                    <div class="alert-icon">⚠️</div>
-                    <div>
-                        <strong>Your booking has been released.</strong>
-                        <span>Feel free to rebook at any time—your account keeps all your traveler details.</span>
-                    </div>
-                </div>
+                <!-- Card -->
+                <table role="presentation" width="600" class="container" cellpadding="0" cellspacing="0" style="width:600px; max-width:600px; background:#ffffff; border:1px solid #e6ebf1; border-radius:12px;">
 
-                <div class="card">
-                    <div class="card-header">Cancelled itinerary</div>
-                    <div class="card-body">
-                        <table class="detail-grid">
-                            <tr>
-                                <td class="detail-label">Tour</td>
-                                <td class="detail-value">{{tourTitle}}</td>
-                            </tr>
-                            <tr>
-                                <td class="detail-label">Original date</td>
-                                <td class="detail-value">{{bookingDate}}</td>
-                            </tr>
-                            <tr>
-                                <td class="detail-label">Booking ID</td>
-                                <td class="detail-value" style="font-family: 'SFMono-Regular', Menlo, monospace;">{{bookingId}}</td>
-                            </tr>
+                    <!-- Header -->
+                    <tr>
+                        <td class="px" align="center" style="padding:40px 48px 0;">
+                            <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+                                <td style="width:22px; height:22px; border-radius:999px; background:#e35d6a; text-align:center; vertical-align:middle;">
+                                    <span style="color:#ffffff; font-size:12px; line-height:22px; font-weight:700;">&#10005;</span>
+                                </td>
+                                <td style="padding-left:8px; font-size:13px; font-weight:600; color:#e35d6a; letter-spacing:0.2px;">Cancelled</td>
+                            </tr></table>
+                            <h1 style="margin:14px 0 6px; font-size:24px; line-height:32px; font-weight:700; color:#0a2540; letter-spacing:-0.3px;">Booking cancelled</h1>
+                            <p style="margin:0; font-size:15px; line-height:24px; color:#5b6b7f;">Hi {{customerName}}, your cancellation is confirmed. The details are below for your records.</p>
+                        </td>
+                    </tr>
+
+                    <!-- Cancelled booking details -->
+                    <tr>
+                        <td class="px" style="padding:28px 48px 0;">
+                            <p style="margin:0 0 4px; font-size:12px; line-height:16px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:#8898aa;">Cancelled booking</p>
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td style="padding:12px 0; border-bottom:1px solid #eef2f6; width:40%; vertical-align:top;">
+                                        <p style="margin:0; font-size:12px; line-height:18px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:#8898aa;">Tour</p>
+                                    </td>
+                                    <td style="padding:12px 0; border-bottom:1px solid #eef2f6; vertical-align:top;">
+                                        <p style="margin:0; font-size:14px; line-height:22px; font-weight:600; color:#0a2540;">{{tourTitle}}</p>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:12px 0; border-bottom:1px solid #eef2f6; vertical-align:top;">
+                                        <p style="margin:0; font-size:12px; line-height:18px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:#8898aa;">Original date</p>
+                                    </td>
+                                    <td style="padding:12px 0; border-bottom:1px solid #eef2f6; vertical-align:top;">
+                                        <p style="margin:0; font-size:14px; line-height:22px; font-weight:600; color:#0a2540;">{{bookingDate}}</p>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:12px 0; vertical-align:top;">
+                                        <p style="margin:0; font-size:12px; line-height:18px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:#8898aa;">Booking ID</p>
+                                    </td>
+                                    <td style="padding:12px 0; vertical-align:top;">
+                                        <p style="margin:0; font-size:14px; line-height:22px; font-weight:600; color:#0a2540;">{{bookingId}}</p>
+                                    </td>
+                                </tr>
+                            </table>
                             {{#if cancellationReason}}
-                            <tr>
-                                <td class="detail-label">Reason provided</td>
-                                <td class="detail-value">{{cancellationReason}}</td>
-                            </tr>
+                            <p style="margin:10px 0 0; font-size:13px; line-height:20px; color:#5b6b7f;">Reason provided: {{cancellationReason}}</p>
                             {{/if}}
-                        </table>
-                    </div>
-                </div>
+                        </td>
+                    </tr>
 
-                {{#if refundAmount}}
-                <div class="refund-box">
-                    <div class="refund-title">Refund status</div>
-                    <div class="refund-row"><strong>Amount:</strong> {{refundAmount}}</div>
-                    <div class="refund-row"><strong>Processing time:</strong> {{refundProcessingDays}} business days</div>
-                    <div class="refund-row">Funds return to your original payment method automatically.</div>
-                </div>
-                {{/if}}
+                    {{#if refundAmount}}
+                    <!-- Refund -->
+                    <tr>
+                        <td class="px" style="padding:24px 48px 0;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf6; border:1px solid #b7e4c7; border-radius:8px;">
+                                <tr>
+                                    <td style="padding:16px 20px;">
+                                        <p style="margin:0 0 2px; font-size:12px; line-height:16px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:#2f855a;">Refund on its way</p>
+                                        <p style="margin:0; font-size:14px; line-height:22px; color:#276749;"><strong style="color:#22543d;">{{refundAmount}}</strong> will return to your original payment method within {{refundProcessingDays}} business days — no action needed.</p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    {{/if}}
 
-                <div class="options">
-                    <div class="option-title">Need to travel soon?</div>
-                    <div class="option">
-                        <div class="option-bullet"></div>
-                        <div class="option-text">Reply to this email and we'll help you find a new date or tour instantly.</div>
-                    </div>
-                    <div class="option">
-                        <div class="option-bullet"></div>
-                        <div class="option-text">Browse fresh experiences in your account dashboard whenever you're ready.</div>
-                    </div>
-                </div>
+                    <!-- CTA -->
+                    <tr>
+                        <td class="px btn" align="center" style="padding:28px 48px 8px;">
+                            <a href="{{baseUrl}}/user/bookings" style="display:inline-block; background:{{primaryColor}}; color:#ffffff; font-size:15px; line-height:22px; font-weight:600; padding:12px 32px; border-radius:8px;">Explore other tours</a>
+                        </td>
+                    </tr>
 
-                <div class="cta">
-                    <a class="cta-button" href="{{baseUrl}}/user/bookings">Explore other tours</a>
-                </div>
+                    <!-- Divider -->
+                    <tr><td class="px" style="padding:28px 48px 0;"><div style="height:1px; background:#e6ebf1; line-height:1px; font-size:0;">&nbsp;</div></td></tr>
 
-                <div class="support">
-                    <strong>Concierge support</strong>
-                    <span><a href="mailto:{{contactEmail}}">{{contactEmail}}</a>{{#if contactPhone}} • WhatsApp <a href="https://wa.me/{{contactPhone}}">{{contactPhone}}</a>{{/if}}</span>
-                </div>
-            </div>
+                    <!-- Help -->
+                    <tr>
+                        <td class="px" style="padding:24px 48px 36px;">
+                            <p style="margin:0 0 6px; font-size:12px; line-height:16px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:#8898aa;">Need to travel soon?</p>
+                            <p style="margin:0; font-size:14px; line-height:22px; color:#425466;">Reply to this email and we'll help you find a new date or tour, or browse experiences any time at <a href="{{baseUrl}}/user/bookings" style="color:{{primaryColor}}; font-weight:600;">{{baseUrl}}/user/bookings</a>. Your account keeps all your traveler details.</p>
+                        </td>
+                    </tr>
+                </table>
 
-            <div class="footer">
-                <div class="footer-links">
-                    <a href="{{baseUrl}}/user/bookings">My Bookings</a>
-                    {{#if website}}<a href="{{website}}">Website</a>{{/if}}
-                </div>
-                <p>© {{year}} {{companyName}}</p>
-            </div>
-        </div>
-    </div>
+                <!-- Footer -->
+                <table role="presentation" width="600" class="container" cellpadding="0" cellspacing="0" style="width:600px; max-width:600px;">
+                    <tr>
+                        <td align="center" style="padding:24px 48px;">
+                            <p style="margin:0; font-size:12px; line-height:19px; color:#8898aa;">{{companyName}} · <a href="mailto:{{supportEmail}}" style="color:#8898aa; text-decoration:underline;">{{supportEmail}}</a></p>
+                            <p style="margin:4px 0 0; font-size:12px; line-height:19px; color:#aab7c4;">© {{year}} {{companyName}}. All rights reserved.</p>
+                        </td>
+                    </tr>
+                </table>
+
+            </td>
+        </tr>
+    </table>
 </body>
 </html>

@@ -3,180 +3,171 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="format-detection" content="telephone=no, email=no, address=no">
-    <title>Trip Reminder - {{companyName}}</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
+    <meta name="color-scheme" content="light">
+    <meta name="supported-color-schemes" content="light">
+    <title>Trip Reminder</title>
     <style>
-        body { margin: 0; padding: 0; background: #f3f6fb; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #0f172a; -webkit-font-smoothing: antialiased; }
-        img { border: none; display: block; max-width: 100%; }
-        .wrapper { width: 100%; padding: 32px 0; }
-        .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 30px 55px rgba(15,23,42,0.12); }
-
-        .hero { background: linear-gradient(135deg, {{secondaryColor}} 0%, {{primaryColor}} 100%); padding: 36px 40px; color: #f8fafc; text-align: center; }
-        .logo { max-width: 180px; max-height: 60px; margin: 0 auto 20px; }
-        .hero-eyebrow { font-size: 12px; letter-spacing: 1px; text-transform: uppercase; opacity: 0.8; }
-        .hero-title { font-size: 28px; font-weight: 700; margin: 12px 0 6px; }
-        .hero-meta { font-size: 15px; opacity: 0.85; }
-
-        .content { padding: 42px; }
-        .greeting { font-size: 20px; font-weight: 700; margin-bottom: 12px; }
-        .intro { font-size: 15px; color: #475569; line-height: 1.7; margin-bottom: 26px; }
-
-        .countdown { border: 1px solid rgba(14,165,233,0.25); border-radius: 16px; background: #ecfeff; padding: 22px 24px; text-align: center; margin-bottom: 28px; }
-        .countdown-label { font-size: 12px; letter-spacing: 0.8px; text-transform: uppercase; color: #0c4a6e; font-weight: 700; margin-bottom: 6px; }
-        .countdown-value { font-size: 26px; font-weight: 700; color: #0c4a6e; }
-
-        .info-card { border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px 28px; margin-bottom: 24px; }
-        .info-title { font-size: 12px; letter-spacing: 0.8px; text-transform: uppercase; color: #94a3b8; font-weight: 700; margin-bottom: 12px; }
-        .info-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .info-row:last-child { margin-bottom: 0; }
-        .info-label { font-size: 13px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.6px; }
-        .info-value { font-size: 16px; font-weight: 600; color: #0f172a; }
-
-        .timeline { border: 1px dashed #e2e8f0; border-radius: 16px; padding: 24px 20px; margin-bottom: 28px; }
-        .timeline-step { display: flex; gap: 12px; margin-bottom: 16px; }
-        .timeline-step:last-child { margin-bottom: 0; }
-        .timeline-dot { width: 12px; height: 12px; border-radius: 50%; background: {{primaryColor}}; margin-top: 4px; flex-shrink: 0; }
-        .timeline-text { font-size: 14px; color: #1f2937; line-height: 1.5; }
-
-        .essentials { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 28px; }
-        .essential-item { border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; text-align: center; background: #f8fafc; }
-        .essential-icon { font-size: 20px; margin-bottom: 6px; }
-        .essential-label { font-size: 13px; color: #475569; font-weight: 600; }
-
-        .checklist { border: 1px solid #e2e8f0; border-radius: 16px; padding: 22px 24px; margin-bottom: 28px; background: #f8fafc; }
-        .checklist-title { font-size: 13px; letter-spacing: 0.8px; text-transform: uppercase; color: {{primaryColor}}; font-weight: 700; margin-bottom: 12px; }
-        .checklist-item { font-size: 14px; color: #1e293b; margin-bottom: 8px; padding-left: 22px; position: relative; }
-        .checklist-item:before { content: '✓'; position: absolute; left: 0; color: #22c55e; font-weight: 700; }
-
-        .weather { border: 1px solid #bae6fd; border-radius: 14px; padding: 18px 20px; margin-bottom: 24px; background: #e0f2fe; font-size: 14px; color: #0c4a6e; }
-
-        .support { border: 1px solid #e2e8f0; border-radius: 16px; padding: 22px 24px; background: {{secondaryColor}}; color: #f8fafc; text-align: center; }
-        .support strong { display: block; font-size: 15px; margin-bottom: 6px; }
-        .support span { font-size: 14px; color: rgba(248,250,252,0.85); }
-        .support a { color: #fff; text-decoration: none; }
-
-        .footer { background: #f8fafc; padding: 28px 40px; text-align: center; border-top: 1px solid #e2e8f0; }
-        .footer-links a { color: #64748b; font-size: 13px; margin: 0 10px; text-decoration: none; font-weight: 600; }
-        .footer p { color: #94a3b8; font-size: 12px; margin: 10px 0; }
-
-        @media (max-width: 600px) {
-            .wrapper { padding: 0; }
-            .container { border-radius: 0; }
-            .hero, .content, .footer { padding-left: 24px !important; padding-right: 24px !important; }
-            .essentials { grid-template-columns: repeat(2, 1fr); }
-            .timeline-step { flex-direction: column; }
+        body, table, td, p, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+        table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+        img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }
+        body { margin: 0; padding: 0; width: 100% !important; background: #f6f9fc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #0a2540; }
+        a { color: {{primaryColor}}; text-decoration: none; }
+        @media screen and (max-width: 640px) {
+            .container { width: 100% !important; border-radius: 0 !important; border-left: 0 !important; border-right: 0 !important; }
+            .px { padding-left: 24px !important; padding-right: 24px !important; }
+            .btn a { display: block !important; }
+            .stack { display: block !important; width: 100% !important; }
         }
     </style>
 </head>
 <body>
-    <div class="wrapper">
-        <div class="container">
-            <div class="hero">
-                {{#if companyLogo}}
-                <img src="{{companyLogo}}" alt="{{companyName}}" class="logo">
-                {{else}}
-                <div style="font-size: 24px; font-weight: 800; margin-bottom: 20px;">{{companyName}}</div>
-                {{/if}}
-                <div class="hero-eyebrow">Tour starts in 24 hours</div>
-                <div class="hero-title">Tomorrow is the day!</div>
-                <div class="hero-meta">{{tourTitle}} · {{bookingDate}} · {{bookingTime}}</div>
-            </div>
-
-            <div class="content">
-                <div class="greeting">Hi {{customerName}},</div>
-                <p class="intro">Your adventure begins tomorrow. Here's a quick briefing to make arrival effortless.</p>
-
-                <div class="countdown">
-                    <div class="countdown-label">Countdown</div>
-                    <div class="countdown-value">Less than 24 hours to go</div>
-                </div>
-
-                <div class="info-card">
-                    <div class="info-title">Tour details</div>
-                    <div class="info-row">
-                        <span class="info-label">Tour</span>
-                        <span class="info-value">{{tourTitle}}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Date & time</span>
-                        <span class="info-value">{{bookingDate}} · {{bookingTime}}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Meeting point</span>
-                        <span class="info-value">{{meetingPoint}}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Booking ID</span>
-                        <span class="info-value" style="font-family: 'SFMono-Regular', Menlo, monospace;">{{bookingId}}</span>
-                    </div>
-                </div>
-
-                <div class="timeline">
-                    <div class="timeline-step">
-                        <div class="timeline-dot"></div>
-                        <div class="timeline-text"><strong>Tonight:</strong> Pack essentials, charge your phone, and keep this email handy.</div>
-                    </div>
-                    <div class="timeline-step">
-                        <div class="timeline-dot"></div>
-                        <div class="timeline-text"><strong>1 hour before:</strong> Leave early to arrive at the meeting point 15 minutes ahead of time.</div>
-                    </div>
-                    <div class="timeline-step">
-                        <div class="timeline-dot"></div>
-                        <div class="timeline-text"><strong>On arrival:</strong> Show your booking ID and enjoy your experience.</div>
-                    </div>
-                </div>
-
-                <div class="essentials">
-                    <div class="essential-item">
-                        <div class="essential-icon">🪪</div>
-                        <div class="essential-label">ID / passport</div>
-                    </div>
-                    <div class="essential-item">
-                        <div class="essential-icon">💧</div>
-                        <div class="essential-label">Water & sun care</div>
-                    </div>
-                    <div class="essential-item">
-                        <div class="essential-icon">👟</div>
-                        <div class="essential-label">Comfortable shoes</div>
-                    </div>
-                </div>
-
-                {{#if weatherInfo}}
-                <div class="weather">
-                    <strong>Weather outlook:</strong> {{weatherInfo}}
-                </div>
-                {{/if}}
-
-                {{#if whatToBring}}
-                <div class="checklist">
-                    <div class="checklist-title">Bring these items</div>
-                    {{#each whatToBring}}
-                    <div class="checklist-item">{{this}}</div>
-                    {{/each}}
-                </div>
-                {{/if}}
-
-                {{#if importantNotes}}
-                <div class="info-card" style="background: #fffbeb; border-color: #fde68a;">
-                    <div class="info-title" style="color:#b45309;">Important notes</div>
-                    <p style="margin: 0; font-size: 14px; color: #92400e;">{{importantNotes}}</p>
-                </div>
-                {{/if}}
-
-                <div class="support">
-                    <strong>Need us on the day?</strong>
-                    <span>{{#if contactPhone}}<a href="https://wa.me/{{contactPhone}}">WhatsApp: {{contactPhone}}</a>{{/if}}{{#if contactEmail}} · <a href="mailto:{{contactEmail}}">{{contactEmail}}</a>{{/if}}</span>
-                </div>
-            </div>
-
-            <div class="footer">
-                <div class="footer-links">
-                    <a href="{{baseUrl}}/user/bookings">My Bookings</a>
-                    {{#if website}}<a href="{{website}}">Website</a>{{/if}}
-                </div>
-                <p>© {{year}} {{companyName}}</p>
-            </div>
-        </div>
+    <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">
+        Your tour {{tourTitle}} starts tomorrow — {{bookingDate}} at {{bookingTime}}, meeting at {{meetingPoint}}.
     </div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f9fc;">
+        <tr>
+            <td align="center" style="padding:40px 12px;">
+
+                <!-- Brand -->
+                <table role="presentation" width="600" class="container" cellpadding="0" cellspacing="0" style="width:600px; max-width:600px;">
+                    <tr>
+                        <td align="center" style="padding:0 0 24px;">
+                            <img src="{{companyLogo}}" width="40" height="40" alt="{{companyName}}" style="display:inline-block; width:40px; height:40px; border-radius:8px; object-fit:contain;">
+                        </td>
+                    </tr>
+                </table>
+
+                <!-- Card -->
+                <table role="presentation" width="600" class="container" cellpadding="0" cellspacing="0" style="width:600px; max-width:600px; background:#ffffff; border:1px solid #e6ebf1; border-radius:12px;">
+
+                    <!-- Header -->
+                    <tr>
+                        <td class="px" align="center" style="padding:40px 48px 0;">
+                            <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+                                <td style="width:22px; height:22px; border-radius:999px; background:{{primaryColor}}; text-align:center; vertical-align:middle;">
+                                    <span style="color:#ffffff; font-size:13px; line-height:22px; font-weight:700;">&#8594;</span>
+                                </td>
+                                <td style="padding-left:8px; font-size:13px; font-weight:600; color:{{primaryColor}}; letter-spacing:0.2px;">Tomorrow</td>
+                            </tr></table>
+                            <h1 style="margin:14px 0 6px; font-size:24px; line-height:32px; font-weight:700; color:#0a2540; letter-spacing:-0.3px;">Your tour is tomorrow</h1>
+                            <p style="margin:0; font-size:15px; line-height:24px; color:#5b6b7f;">Hi {{customerName}}, your Egyptian adventure begins in less than 24 hours. Here is everything you need for an effortless arrival.</p>
+                        </td>
+                    </tr>
+
+                    <!-- Tour details -->
+                    <tr>
+                        <td class="px" style="padding:32px 48px 0;">
+                            <p style="margin:0 0 4px; font-size:12px; line-height:16px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:#8898aa;">Tour details</p>
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td style="padding:12px 0; border-bottom:1px solid #eef2f6; font-size:14px; line-height:21px; color:#5b6b7f;">Tour</td>
+                                    <td align="right" style="padding:12px 0; border-bottom:1px solid #eef2f6; font-size:14px; line-height:21px; font-weight:600; color:#0a2540;">{{tourTitle}}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:12px 0; border-bottom:1px solid #eef2f6; font-size:14px; line-height:21px; color:#5b6b7f;">Date</td>
+                                    <td align="right" style="padding:12px 0; border-bottom:1px solid #eef2f6; font-size:14px; line-height:21px; font-weight:600; color:#0a2540;">{{bookingDate}}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:12px 0; border-bottom:1px solid #eef2f6; font-size:14px; line-height:21px; color:#5b6b7f;">Time</td>
+                                    <td align="right" style="padding:12px 0; border-bottom:1px solid #eef2f6; font-size:14px; line-height:21px; font-weight:600; color:#0a2540;">{{bookingTime}}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:12px 0; border-bottom:1px solid #eef2f6; font-size:14px; line-height:21px; color:#5b6b7f;">Meeting point</td>
+                                    <td align="right" style="padding:12px 0; border-bottom:1px solid #eef2f6; font-size:14px; line-height:21px; font-weight:600; color:#0a2540;">{{meetingPoint}}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:12px 0 0; font-size:14px; line-height:21px; color:#5b6b7f;">Booking ID</td>
+                                    <td align="right" style="padding:12px 0 0; font-size:14px; line-height:21px; font-weight:600; color:#0a2540;">{{bookingId}}</td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- CTA -->
+                    <tr>
+                        <td class="px btn" align="center" style="padding:28px 48px 8px;">
+                            <a href="{{baseUrl}}/user/bookings" style="display:inline-block; background:{{primaryColor}}; color:#ffffff; font-size:15px; line-height:22px; font-weight:600; padding:12px 32px; border-radius:8px;">View my booking</a>
+                        </td>
+                    </tr>
+
+                    <!-- Divider -->
+                    <tr><td class="px" style="padding:32px 48px 0;"><div style="height:1px; background:#e6ebf1; line-height:1px; font-size:0;">&nbsp;</div></td></tr>
+
+                    <!-- Before you go -->
+                    <tr>
+                        <td class="px" style="padding:28px 48px 0;">
+                            <p style="margin:0 0 8px; font-size:12px; line-height:16px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:#8898aa;">Before you go</p>
+                            <p style="margin:0 0 6px; font-size:14px; line-height:22px; color:#425466;"><strong style="color:#0a2540;">Tonight:</strong> pack essentials, charge your phone, and keep this email handy.</p>
+                            <p style="margin:0 0 6px; font-size:14px; line-height:22px; color:#425466;"><strong style="color:#0a2540;">1 hour before:</strong> leave early to arrive at the meeting point 15 minutes ahead of time.</p>
+                            <p style="margin:0; font-size:14px; line-height:22px; color:#425466;"><strong style="color:#0a2540;">On arrival:</strong> show your booking ID and enjoy your experience.</p>
+                        </td>
+                    </tr>
+
+                    {{#if weatherInfo}}
+                    <tr>
+                        <td class="px" style="padding:28px 48px 0;">
+                            <p style="margin:0 0 6px; font-size:12px; line-height:16px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:#8898aa;">Weather outlook</p>
+                            <p style="margin:0; font-size:14px; line-height:22px; color:#425466;">{{weatherInfo}}</p>
+                        </td>
+                    </tr>
+                    {{/if}}
+
+                    {{#if whatToBring}}
+                    <tr>
+                        <td class="px" style="padding:28px 48px 0;">
+                            <p style="margin:0 0 4px; font-size:12px; line-height:16px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:#8898aa;">What to bring</p>
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                {{#each whatToBring}}
+                                <tr>
+                                    <td style="padding:10px 10px 10px 0; width:14px; vertical-align:top; border-bottom:1px solid #eef2f6;">
+                                        <span style="color:#0cbd6b; font-size:13px; line-height:21px; font-weight:700;">&#10003;</span>
+                                    </td>
+                                    <td style="padding:10px 0; vertical-align:top; border-bottom:1px solid #eef2f6; font-size:14px; line-height:21px; color:#0a2540;">{{this}}</td>
+                                </tr>
+                                {{/each}}
+                            </table>
+                        </td>
+                    </tr>
+                    {{/if}}
+
+                    {{#if importantNotes}}
+                    <tr>
+                        <td class="px" style="padding:28px 48px 0;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#fff8eb; border:1px solid #f0c36d; border-radius:8px;">
+                                <tr>
+                                    <td style="padding:14px 18px;">
+                                        <p style="margin:0 0 4px; font-size:12px; line-height:16px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:#92400e;">Important notes</p>
+                                        <p style="margin:0; font-size:13px; line-height:21px; color:#92400e;">{{importantNotes}}</p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    {{/if}}
+
+                    <!-- Day-of contact -->
+                    <tr>
+                        <td class="px" style="padding:28px 48px 36px;">
+                            <p style="margin:0 0 6px; font-size:12px; line-height:16px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:#8898aa;">Need us on the day</p>
+                            <p style="margin:0; font-size:14px; line-height:22px; color:#425466;">Guide contact: <a href="https://wa.me/{{contactNumber}}" style="color:{{primaryColor}}; font-weight:600;">{{contactNumber}}</a> · or reply to this email.</p>
+                        </td>
+                    </tr>
+                </table>
+
+                <!-- Footer -->
+                <table role="presentation" width="600" class="container" cellpadding="0" cellspacing="0" style="width:600px; max-width:600px;">
+                    <tr>
+                        <td align="center" style="padding:24px 48px;">
+                            <p style="margin:0; font-size:12px; line-height:19px; color:#8898aa;">{{companyName}} · <a href="mailto:{{supportEmail}}" style="color:#8898aa; text-decoration:underline;">{{supportEmail}}</a></p>
+                            <p style="margin:4px 0 0; font-size:12px; line-height:19px; color:#aab7c4;">© {{year}} {{companyName}}. All rights reserved.</p>
+                        </td>
+                    </tr>
+                </table>
+
+            </td>
+        </tr>
+    </table>
 </body>
 </html>
