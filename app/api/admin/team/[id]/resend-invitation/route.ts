@@ -5,6 +5,7 @@ import User from '@/lib/models/user';
 import { requireAdminAuth } from '@/lib/auth/adminAuth';
 import mongoose from 'mongoose';
 import { EmailService } from '@/lib/email/emailService';
+import { getInvitationBaseUrl } from '@/lib/auth/invitationBaseUrl';
 
 const getSupportEmail = () =>
   process.env.SUPPORT_EMAIL ||
@@ -67,8 +68,7 @@ export async function POST(
   const inviterName = auth.email || 'Admin Team';
   
   // Generate invitation link
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || 'https://egypt-excursionsonline.com';
-  const invitationLink = `${baseUrl.replace(/\/$/, '')}/accept-invitation?token=${invitationToken}`;
+  const invitationLink = `${getInvitationBaseUrl(request)}/accept-invitation?token=${invitationToken}`;
 
   // Send email
   try {

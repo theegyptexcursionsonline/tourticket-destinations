@@ -271,7 +271,14 @@ function isAdminPath(pathname: string): boolean {
   );
 }
 
+// The team-invitation acceptance page is public (the invitee has no session
+// yet) and must resolve on the admin dashboard host and in every status mode.
+function isInvitationAcceptPath(pathname: string): boolean {
+  return /^\/(?:[a-z]{2}\/)?accept-invitation(?:\/.*)?$/.test(pathname);
+}
+
 function isAllowedInComingSoonMode(pathname: string): boolean {
+  if (isInvitationAcceptPath(pathname)) return true;
   return COMING_SOON_ALLOWED_PATHS.some(path =>
     pathname === path || pathname.startsWith(path + '/') || pathname.startsWith(path)
   );
@@ -458,7 +465,9 @@ export function proxy(request: NextRequest) {
     cleanHost.startsWith('admin.');
 
   if (isDashboardSubdomain) {
-    if (!pathname.startsWith('/admin') && !pathname.startsWith('/api') && !pathname.startsWith('/_next') && !isStaticFile(pathname)) {
+    // Serve the public invitation-acceptance page directly on the dashboard
+    // host instead of rewriting it into the (nonexistent) /admin tree.
+    if (!isInvitationAcceptPath(pathname) && !pathname.startsWith('/admin') && !pathname.startsWith('/api') && !pathname.startsWith('/_next') && !isStaticFile(pathname)) {
       const url = request.nextUrl.clone();
       url.pathname = pathname === '/' ? '/admin' : `/admin${pathname}`;
       const response = NextResponse.rewrite(url);

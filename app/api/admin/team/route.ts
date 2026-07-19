@@ -12,6 +12,7 @@ import {
   getDefaultPermissions,
 } from '@/lib/constants/adminPermissions';
 import { EmailService } from '@/lib/email/emailService';
+import { getInvitationBaseUrl } from '@/lib/auth/invitationBaseUrl';
 import Tenant from '@/lib/models/Tenant';
 import { getTenantEmailBranding } from '@/lib/tenant';
 
@@ -203,9 +204,8 @@ export async function POST(request: NextRequest) {
   const inviteeName = `${firstName} ${lastName}`.trim();
   const inviterName = auth.email || 'Admin Team';
   
-  // Generate invitation link
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || 'https://tourticket.app';
-  const invitationLink = `${baseUrl.replace(/\/$/, '')}/accept-invitation?token=${invitationToken}`;
+  // Generate invitation link on the same (branded) host the admin is using.
+  const invitationLink = `${getInvitationBaseUrl(request)}/accept-invitation?token=${invitationToken}`;
 
   // Load tenant branding for invite email
   let tenantBranding;
@@ -213,7 +213,8 @@ export async function POST(request: NextRequest) {
     const bodyTenantId = body.tenantId;
     if (bodyTenantId && bodyTenantId !== 'all') {
       const tenantConfig = await Tenant.findOne({ tenantId: bodyTenantId }).lean();
-      tenantBranding = getTenantEmailBranding(tenantConfig as any, baseUrl);
+      const assetBaseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://egypt-excursionsonline.com';
+      tenantBranding = getTenantEmailBranding(tenantConfig as any, assetBaseUrl);
     }
   } catch { /* ignore */ }
 
