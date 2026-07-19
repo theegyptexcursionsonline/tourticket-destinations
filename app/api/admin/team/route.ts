@@ -113,6 +113,12 @@ export async function POST(request: NextRequest) {
   }
 
   const normalizedEmail = email.toLowerCase().trim();
+  if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(normalizedEmail)) {
+    return NextResponse.json(
+      { success: false, error: 'Please provide a valid email address.' },
+      { status: 400 },
+    );
+  }
   const existing = await User.findOne({ email: normalizedEmail });
   if (existing) {
     return NextResponse.json(
@@ -157,19 +163,42 @@ export async function POST(request: NextRequest) {
     return tenantForbiddenResponse();
   }
 
-  const user = await User.create({
-    firstName,
-    lastName,
-    email: normalizedEmail,
-    password: hashedPassword,
-    role: normalizedRole,
-    permissions: effectivePermissions,
-    isActive: false, // Inactive until they accept invitation
-    invitationToken,
-    invitationExpires,
-    requirePasswordChange: true,
-    tenantIds: assignedTenantIds,
-  });
+  let user;
+  try {
+    user = await User.create({
+      firstName,
+      lastName,
+      email: normalizedEmail,
+      password: hashedPassword,
+      role: normalizedRole,
+      permissions: effectivePermissions,
+      isActive: false, // Inactive until they accept invitation
+      invitationToken,
+      invitationExpires,
+      requirePasswordChange: true,
+      tenantIds: assignedTenantIds,
+    });
+  } catch (error) {
+    // Surface validation/duplicate errors as a clean 400 instead of crashing.
+    const err = error as { name?: string; code?: number; message?: string };
+    if (err?.code === 11000) {
+      return NextResponse.json(
+        { success: false, error: 'An account with this email already exists.' },
+        { status: 409 },
+      );
+    }
+    if (err?.name === 'ValidationError') {
+      return NextResponse.json(
+        { success: false, error: err.message || 'Invalid team member details.' },
+        { status: 400 },
+      );
+    }
+    console.error('Failed to create team member:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to create team member.' },
+      { status: 500 },
+    );
+  }
 
   const inviteeName = `${firstName} ${lastName}`.trim();
   const inviterName = auth.email || 'Admin Team';

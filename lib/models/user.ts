@@ -74,7 +74,8 @@ const UserSchema: Schema<IUser> = new Schema({
     unique: true,
     lowercase: true,
     match: [
-      /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
+      // Allow '+' sub-addressing and modern multi-char TLDs (.online, .agency…).
+      /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/,
       'Please provide a valid email address.',
     ],
   },
