@@ -31,6 +31,37 @@ function firstTourSlug(payload: unknown): string | undefined {
   return undefined;
 }
 
+function homepageTourSlugs(html: string): string[] {
+  const reservedRoutes = new Set([
+    'about',
+    'contact',
+    'destinations',
+    'faqs',
+    'interests',
+    'login',
+    'privacy',
+    'search',
+    'signup',
+    'terms',
+    'tours',
+  ]);
+  const slugs = new Set<string>();
+
+  for (const match of html.matchAll(/href=["']\/([^\/"'?#]+)["']/g)) {
+    const slug = match[1];
+    if (
+      slug &&
+      !slug.startsWith('_') &&
+      !slug.includes('.') &&
+      !reservedRoutes.has(slug)
+    ) {
+      slugs.add(slug);
+    }
+  }
+
+  return [...slugs];
+}
+
 async function preferTestId(primary: Locator, fallback: Locator): Promise<Locator> {
   return (await primary.count()) > 0 ? primary : fallback;
 }
@@ -61,6 +92,29 @@ test.describe('Booking drawer overflow containment', () => {
       );
       if (searchResponse.ok()) {
         tourSlug = firstTourSlug(await searchResponse.json());
+      }
+    }
+
+    // A tenant alias can legitimately return a sibling catalogue record from
+    // a generic API while that slug is unavailable on the active domain.
+    // Validate the candidate, then fall back to tour links rendered by this
+    // exact storefront so the geometry test never runs against a custom 404.
+    if (tourSlug) {
+      const detailResponse = await request.get(`/${tourSlug}`);
+      if (!detailResponse.ok()) tourSlug = undefined;
+    }
+
+    if (!tourSlug) {
+      const homepageResponse = await request.get('/');
+      if (homepageResponse.ok()) {
+        const candidates = homepageTourSlugs(await homepageResponse.text());
+        for (const candidate of candidates) {
+          const detailResponse = await request.get(`/${candidate}`);
+          if (detailResponse.ok()) {
+            tourSlug = candidate;
+            break;
+          }
+        }
       }
     }
   });
