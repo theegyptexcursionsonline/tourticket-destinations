@@ -248,7 +248,7 @@ const StepsIndicator: React.FC<{
 }> = ({ currentStep, onStepClick, isClickable = false }) => {
   const t = useTranslations();
   return (
-    <div className="px-4 py-3 bg-white border-b border-gray-200">
+    <div className="px-3 py-2 sm:px-4 sm:py-3 bg-white border-b border-gray-200">
       <div className="grid grid-cols-7 items-center max-w-xl mx-auto gap-0">
         {STEPS.map((step, index) => {
           const isCompleted = step.id < currentStep;
@@ -268,7 +268,7 @@ const StepsIndicator: React.FC<{
                 whileTap={isClickable_ ? { scale: 0.95 } : {}}
               >
                 {/* Circle */}
-                <div className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 border-2 mb-1.5 ${
+                <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition-all duration-300 border-2 mb-1 ${
                   isCompleted
                     ? 'bg-green-600 text-white border-green-500 shadow-md'
                     : isActive
@@ -284,7 +284,7 @@ const StepsIndicator: React.FC<{
                   
                   {isActive && (
                     <motion.div
-                      className="absolute w-9 h-9 rounded-full border-2 border-red-400/50"
+                      className="absolute w-8 h-8 sm:w-9 sm:h-9 rounded-full border-2 border-red-400/50"
                       animate={{ scale: [1, 1.3, 1], opacity: [0.8, 0, 0.8] }}
                       transition={{ duration: 1.8, repeat: Infinity }}
                     />
@@ -299,7 +299,7 @@ const StepsIndicator: React.FC<{
                     <div className="sm:hidden text-xs">{step.shortTitle}</div>
                     <div className="hidden sm:block text-xs">{step.title}</div>
                   </div>
-                  <div className={`text-xs mt-0.5 ${
+                  <div className={`hidden sm:block text-xs mt-0.5 ${
                     isActive ? 'text-red-600' : isCompleted ? 'text-green-600' : 'text-gray-400'
                   }`}>
                     {isActive ? t('booking.stepCurrent') : isCompleted ? t('booking.stepDone') : t('booking.stepNext')}
@@ -1147,6 +1147,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
   
   const datePickerRef = useRef<HTMLDivElement>(null);
   const scrollableContentRef = useRef<HTMLDivElement>(null);
+  const stepHeadingRef = useRef<HTMLHeadingElement>(null);
   const lastToastTimeSlotRef = useRef<string | null>(null);
 
   const [isLoading, setIsLoading] = useState(false);
@@ -1597,6 +1598,19 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
     }
   }, []);
 
+  // Availability loading advances step 1 outside the regular Next handler.
+  // Keep every newly rendered step visible and announce it to keyboard users.
+  useEffect(() => {
+    if (currentStep === 1) return;
+
+    const timeoutId = window.setTimeout(() => {
+      scrollToTop();
+      stepHeadingRef.current?.focus({ preventScroll: true });
+    }, 400);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [currentStep, scrollToTop]);
+
   // Enhanced navigation handlers
   const handleNext = useCallback(() => {
     if (currentStep === 2 && !bookingData.selectedTimeSlot) {
@@ -1973,7 +1987,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
             animate="center"
             exit="exit"
             transition={{ duration: 0.3 }}
-            className="space-y-4 p-4 sm:p-6"
+            className="space-y-3 p-3 sm:space-y-4 sm:p-6"
           >
             {/* Tour info chips */}
             <div className="flex items-center gap-2 mb-4 flex-wrap">
@@ -2045,7 +2059,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
-                      className="absolute top-full start-0 end-0 mt-2 z-30 date-picker-content"
+                      className="relative mt-2 z-30 sm:absolute sm:top-full sm:start-0 sm:end-0 date-picker-content"
                     >
                       <CalendarWidget
                         selectedDate={bookingData.selectedDate}
@@ -2084,7 +2098,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
-                      className="absolute top-full start-0 end-0 mt-2 bg-white border-2 border-gray-200 rounded-2xl shadow-xl z-30 p-4 participants-content"
+                      className="relative mt-2 bg-white border border-gray-200 rounded-xl shadow-sm z-30 p-3 sm:absolute sm:top-full sm:start-0 sm:end-0 sm:border-2 sm:rounded-2xl sm:shadow-xl sm:p-4 participants-content"
                     >
                       <div className="space-y-3">
                         {/* Adult Counter */}
@@ -2180,7 +2194,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
             transition={{ duration: 0.3 }}
             className="space-y-6 p-4 sm:p-6"
           >
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">{t('booking.tourOptions')}</h2>
+            <h2 ref={stepHeadingRef} tabIndex={-1} className="text-xl sm:text-2xl font-bold text-gray-800 mb-2 focus:outline-none">{t('booking.tourOptions')}</h2>
             <p className="text-gray-600 mb-6">{t('booking.selectBestOption')} {getParticipantsText().toLowerCase()}.</p>
             {availability?.tourOptions.map(option => (
               <TourOptionCard
@@ -2207,7 +2221,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
             transition={{ duration: 0.3 }}
             className="space-y-6 p-4 sm:p-6"
           >
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">{t('booking.enhance')}</h2>
+            <h2 ref={stepHeadingRef} tabIndex={-1} className="text-xl sm:text-2xl font-bold text-gray-800 mb-2 focus:outline-none">{t('booking.enhance')}</h2>
             <p className="text-gray-600 mb-6">{t('booking.enhanceDescription')}</p>
             <div className="space-y-4 sm:space-y-6">
               {availability?.addOns.map(addOn => (
@@ -2234,7 +2248,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
             transition={{ duration: 0.3 }}
             className="space-y-6 p-4 sm:p-6"
           >
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">{t('booking.review')}</h2>
+            <h2 ref={stepHeadingRef} tabIndex={-1} className="text-xl sm:text-2xl font-bold text-gray-800 mb-2 focus:outline-none">{t('booking.review')}</h2>
             <p className="text-gray-600 mb-6">{t('booking.reviewDescription')}</p>
 
             <BookingSummaryCard
@@ -2355,14 +2369,14 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
           />
 
           <motion.div
-            className="relative bg-white h-full w-full max-w-md shadow-2xl flex flex-col overflow-hidden"
+            className="relative bg-white h-[100dvh] sm:h-full w-full max-w-md shadow-2xl flex flex-col overflow-hidden"
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white">
+            <div className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200 bg-white">
               <div className="flex items-center gap-2">
                 {currentStep > 1 && (
                   <motion.button
@@ -2400,7 +2414,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
               isClickable={currentStep >= 2}
             />
 
-            <div ref={scrollableContentRef} className="flex-1 overflow-y-auto">
+            <div ref={scrollableContentRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
               <AnimatePresence mode="wait">
                 {renderStepContent()}
               </AnimatePresence>
@@ -2414,12 +2428,12 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
                   initial={{ opacity: 0, y: 50 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 50 }}
-                  className="bg-white border-t border-gray-200 p-4 shadow-lg"
+                  className="bg-white border-t border-gray-200 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:p-4 shadow-lg"
                 >
                   <motion.button
                     onClick={handleCheckAvailability}
                     disabled={!bookingData.selectedDate || (bookingData.adults + bookingData.children + bookingData.infants === 0) || isLoading}
-                    className="w-full bg-red-600 text-white font-bold py-3 rounded-full transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg"
+                    className="w-full min-h-12 bg-red-600 text-white text-sm sm:text-base font-bold py-3 rounded-full transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
@@ -2444,7 +2458,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
                   initial={{ opacity: 0, y: 50 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 50 }}
-                  className="bg-white border-t border-gray-200 p-4 shadow-lg"
+                  className="bg-white border-t border-gray-200 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:p-4 shadow-lg"
                 >
                   {/* Price Display */}
                   <div className="flex items-center justify-between mb-4">

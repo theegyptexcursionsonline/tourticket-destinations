@@ -431,6 +431,15 @@ export function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const hostname = request.headers.get('host') || 'localhost:3000';
 
+  // Netlify executes this proxy before Next.js config rewrites. Preserve old
+  // shared/search links while sending visitors to the canonical root URL.
+  const legacyTourMatch = pathname.match(/^\/tours\/([^/]+)\/?$/);
+  if (legacyTourMatch) {
+    const url = request.nextUrl.clone();
+    url.pathname = `/${legacyTourMatch[1]}`;
+    return NextResponse.redirect(url, 308);
+  }
+
   // Skip middleware for static files
   if (isStaticFile(pathname)) {
     return NextResponse.next();
