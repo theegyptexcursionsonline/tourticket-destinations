@@ -64,6 +64,9 @@ const TeamPage = () => {
     () => tenants.filter((t) => t.tenantId !== 'default' && t.isActive),
     [tenants],
   );
+  const allBrandsSelected =
+    selectableBrands.length > 0 &&
+    selectableBrands.every((brand) => selectedBrandIds.includes(brand.tenantId));
 
   // Password reset modal state
   const [passwordResetModal, setPasswordResetModal] = useState<{
@@ -423,6 +426,22 @@ const TeamPage = () => {
             <div>
               <label className="text-xs text-slate-500 font-medium">Assign to brands</label>
               <div className="mt-2 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  aria-pressed={allBrandsSelected}
+                  onClick={() =>
+                    setSelectedBrandIds(
+                      allBrandsSelected ? [] : selectableBrands.map((brand) => brand.tenantId),
+                    )
+                  }
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition ${
+                    allBrandsSelected
+                      ? 'bg-slate-900 border-slate-900 text-white'
+                      : 'border-slate-300 text-slate-700 hover:border-slate-500 hover:text-slate-900'
+                  }`}
+                >
+                  All Brands
+                </button>
                 {selectableBrands.map((brand) => {
                   const selected = selectedBrandIds.includes(brand.tenantId);
                   return (
