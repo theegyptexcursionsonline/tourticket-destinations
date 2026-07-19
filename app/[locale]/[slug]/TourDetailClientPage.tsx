@@ -28,11 +28,12 @@ import { useSettings } from '@/hooks/useSettings';
 import { useCart } from '@/hooks/useCart';
 import { useWishlist } from '@/contexts/WishlistContext';
 import { useTenant } from '@/contexts/TenantContext';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import type { CartItem, Review, Tour } from '@/types';
 import toast from 'react-hot-toast';
 import { toDateOnlyString } from '@/utils/date';
 import { sanitizeRichHtml } from '@/lib/security/sanitizeRichHtml';
+import { formatExperienceDescription } from '@/lib/content/experienceDescription';
 
 // Enhanced interfaces for additional tour data
 interface ItineraryItem {
@@ -920,38 +921,63 @@ const ReviewsSection = ({ tour, reviews, onReviewSubmitted, sectionRef, onBookNo
   );
 };
 
+const ExperienceDescription = ({ html }: { html: string }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const isGerman = useLocale() === 'de';
+
+  return (
+    <div className="mb-8 max-w-[68ch]">
+      <div className="relative">
+        <div
+          className={`prose prose-slate text-[16px] leading-7 text-slate-600 transition-[max-height] duration-300 md:text-[17px] md:leading-8 [&_p]:mb-5 [&_p:last-child]:mb-0 ${isExpanded ? 'max-h-[80rem]' : 'max-h-72 overflow-hidden'}`}
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
+        {!isExpanded && <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-white to-transparent" />}
+      </div>
+      <button
+        type="button"
+        onClick={() => setIsExpanded((value) => !value)}
+        className="mt-3 inline-flex min-h-11 items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 transition-colors hover:border-slate-400 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] focus:ring-offset-2"
+        aria-expanded={isExpanded}
+      >
+        {isExpanded ? (isGerman ? 'Weniger anzeigen' : 'Show less') : (isGerman ? 'Vollständige Beschreibung lesen' : 'Read full description')}
+      </button>
+    </div>
+  );
+};
+
 const OverviewSection = ({ tour, sectionRef }: { tour: Tour, sectionRef: React.RefObject<HTMLDivElement | null> }) => {
   const t = useTranslations('tour');
   return (
   <div ref={sectionRef} id="overview" className="space-y-8 scroll-mt-24">
-    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-      <h2 className="text-2xl md:text-3xl font-bold text-slate-800 mb-4">{t('aboutExperience')}</h2>
-      <div
-        className="prose prose-slate max-w-none mb-6"
-        dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(tour.longDescription || tour.description) }}
-      />
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
+      <div className="mb-6">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--primary-color)]">{t('overview')}</p>
+        <h2 className="text-2xl font-bold tracking-tight text-slate-900 md:text-3xl">{t('aboutExperience')}</h2>
+      </div>
+      <ExperienceDescription html={formatExperienceDescription(sanitizeRichHtml(tour.longDescription || tour.description))} />
+      <div className="grid grid-cols-1 gap-4 border-t border-slate-200 pt-7 md:grid-cols-2 md:gap-5">
         {tour.includes && tour.includes.length > 0 && (
-          <div>
-            <h3 className="text-lg font-semibold text-slate-800 mb-3">{t('includes')}</h3>
-            <ul className="space-y-2">
+          <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-5">
+            <h3 className="mb-4 flex items-center gap-2.5 text-lg font-semibold text-slate-900"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50"><CheckCircle size={18} className="text-emerald-600" /></span>{t('includes')}</h3>
+            <ul className="space-y-3">
               {tour.includes.map((item, index) => (
-                <li key={index} className="flex items-start gap-2 text-slate-600">
-                  <CheckCircle size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
-                  <span className="text-sm">{item}</span>
+                <li key={index} className="flex items-start gap-3 text-slate-600">
+                  <CheckCircle size={16} className="mt-0.5 flex-shrink-0 text-emerald-600" />
+                  <span className="text-sm leading-6">{item}</span>
                 </li>
               ))}
             </ul>
           </div>
         )}
         {tour.highlights && tour.highlights.length > 0 && (
-          <div>
-            <h3 className="text-lg font-semibold text-slate-800 mb-3">{t('highlights')}</h3>
-            <ul className="space-y-2">
+          <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-5">
+            <h3 className="mb-4 flex items-center gap-2.5 text-lg font-semibold text-slate-900"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50"><Star size={18} className="fill-current text-amber-500" /></span>{t('highlights')}</h3>
+            <ul className="space-y-3">
               {tour.highlights.map((highlight, index) => (
-                <li key={index} className="flex items-start gap-2 text-slate-600">
-                  <Star size={16} className="text-yellow-500 mt-0.5 flex-shrink-0" />
-                  <span className="text-sm">{highlight}</span>
+                <li key={index} className="flex items-start gap-3 text-slate-600">
+                  <Star size={16} className="mt-0.5 flex-shrink-0 fill-current text-amber-500" />
+                  <span className="text-sm leading-6">{highlight}</span>
                 </li>
               ))}
             </ul>

@@ -18,6 +18,7 @@ import { useTranslations } from 'next-intl';
 import { useCart } from '@/hooks/useCart';
 import { useSettings } from '@/hooks/useSettings';
 import { toDateOnlyString } from '@/utils/date';
+import { loadCurrentBookingOptions } from '@/lib/bookings/liveBookingOptions';
 
 // Enhanced Types with database compatibility
 interface Tour {
@@ -1387,11 +1388,16 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
         throw new Error("Tour ID is missing");
       }
 
-      // Use pre-fetched bookingOptions from tour prop (SSR) if available
+      // Pricing keys can change while this ISR page is cached. Reconcile the
+      // embedded options with the live, tenant-scoped endpoint before quoting.
+      const bookingOptions = await loadCurrentBookingOptions<BookingOption>(
+        String(tourId),
+        tour.bookingOptions || []
+      );
+
       let tourOptions: TourOption[];
-      if (tour.bookingOptions && tour.bookingOptions.length > 0) {
-        // Transform pre-fetched bookingOptions to TourOption format
-        tourOptions = tour.bookingOptions.map((option: any, index: number) => {
+      if (bookingOptions.length > 0) {
+        tourOptions = bookingOptions.map((option: any, index: number) => {
           const optionPrice = option.price || tourDisplayData?.discountPrice || 50;
           return {
             id: option.id || option._id || `option-${index}`,

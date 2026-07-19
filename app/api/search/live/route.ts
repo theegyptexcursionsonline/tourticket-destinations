@@ -108,7 +108,7 @@ export async function GET(req: NextRequest) {
               searchConditions,
             ]
         })
-            .select('title slug image rating reviews destination location tags')
+            .select('title slug image rating reviews reviewCount destination location tags duration price discountPrice tenantId')
             .populate('destination', 'name')
             .sort({ rating: -1, bookings: -1 }) // Prioritize high-rated popular tours
             .limit(10)

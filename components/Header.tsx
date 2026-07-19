@@ -59,6 +59,7 @@ import {
 import { filterSearchHitsByTenant } from '@/lib/tenantSearchHitFilter';
 import 'instantsearch.css/themes/satellite.css';
 import { isRTL } from '@/i18n/config';
+import { tourSearchHref } from '@/lib/search/tourSearchHref';
 
 // =================================================================
 // --- ALGOLIA CONFIGURATION ---
@@ -72,6 +73,20 @@ const INDEX_BLOGS = 'blogs';
 const AGENT_ID = 'fb2ac93a-1b89-40e2-a9cb-c85c1bbd978e';
 
 const searchClient = algoliasearch(ALGOLIA_APP_ID, ALGOLIA_SEARCH_KEY);
+
+type LiveTourHit = {
+  _id?: string;
+  objectID?: string;
+  slug?: string;
+  title?: string;
+  image?: string;
+  images?: string[];
+  primaryImage?: string;
+  location?: string;
+  duration?: string;
+  price?: number;
+  discountPrice?: number;
+};
 
 // =================================================================
 // --- HELPER HOOKS & DATA ---
@@ -197,17 +212,17 @@ function TenantSearchScopeNote({ tenantName }: { tenantName: string }) {
 }
 
 function TourHits({
+  hits,
   onHitClick,
   limit = 5,
-  tenantId,
+  locale,
 }: {
+  hits: LiveTourHit[];
   onHitClick?: () => void;
   limit?: number;
-  tenantId?: string;
+  locale: string;
 }) {
-  const { hits } = useHits();
-  const tenantHits = filterSearchHitsByTenant(hits as any[], tenantId);
-  const limitedHits = tenantHits.slice(0, limit);
+  const limitedHits = hits.slice(0, limit);
 
   if (limitedHits.length === 0) return null;
 
@@ -222,14 +237,14 @@ function TourHits({
             Tours
           </span>
           <span className="ms-auto text-[10px] md:text-xs font-medium text-gray-400 bg-gray-100/80 backdrop-blur-sm px-2 md:px-2.5 py-0.5 md:py-1 rounded-full">
-            {tenantHits.length}
+            {hits.length}
           </span>
         </div>
       </div>
       {limitedHits.map((hit: any, index) => (
         <motion.a
-          key={hit.objectID}
-          href={`/${hit.slug || hit.objectID}`}
+          key={hit.objectID || hit._id}
+          href={tourSearchHref(String(hit.slug || hit.objectID || hit._id || ''), locale)}
           onClick={onHitClick}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -238,7 +253,7 @@ function TourHits({
         >
           <div className="absolute inset-0 bg-gradient-to-r from-blue-500/0 via-indigo-500/0 to-purple-500/0 group-hover:from-blue-500/5 group-hover:via-indigo-500/5 group-hover:to-purple-500/5 transition-all duration-500" />
           <div className="flex items-center gap-2.5 md:gap-4 relative z-10">
-            <div className="relative w-14 md:w-20 h-14 md:h-20 rounded-xl md:rounded-2xl flex-shrink-0 overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-100 shadow-sm group-hover:shadow-xl group-hover:scale-105 transition-all duration-300 ring-1 ring-black/5">
+            <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-xl bg-slate-100 shadow-sm ring-1 ring-black/5 transition-shadow duration-200 group-hover:shadow-md md:h-16 md:w-16">
               {(hit.image || hit.images?.[0] || hit.primaryImage) ? (
                 <Image
                   src={hit.image || hit.images?.[0] || hit.primaryImage}
@@ -272,7 +287,7 @@ function TourHits({
                 {hit.duration && (
                   <span className="flex items-center gap-1 md:gap-1.5 bg-gray-50/80 backdrop-blur-sm px-1.5 md:px-2.5 py-0.5 md:py-1 rounded-md md:rounded-lg">
                     <Clock className="w-2.5 md:w-3 h-2.5 md:h-3 text-gray-400" strokeWidth={2.5} />
-                    <span className="font-medium">{hit.duration} days</span>
+                    <span className="font-medium">{hit.duration}</span>
                   </span>
                 )}
                 {(hit.price || hit.discountPrice) && (
@@ -598,6 +613,8 @@ const MobileInlineSearch: FC<{ isOpen: boolean; onClose: () => void }> = React.m
   const [inputValue, setInputValue] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [chatMode, setChatMode] = useState(false);
+  const [tourResults, setTourResults] = useState<LiveTourHit[]>([]);
+  const [isTourSearching, setIsTourSearching] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
@@ -632,6 +649,40 @@ const MobileInlineSearch: FC<{ isOpen: boolean; onClose: () => void }> = React.m
     }
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
+
+  useEffect(() => {
+    const query = searchQuery.trim();
+    if (query.length < 2) {
+      setTourResults([]);
+      setIsTourSearching(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(async () => {
+      setIsTourSearching(true);
+      try {
+        const response = await fetch(`/api/search/live?q=${encodeURIComponent(query)}&tenantId=${encodeURIComponent(tenantId)}`, {
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+        const payload = await response.json();
+        setTourResults(response.ok && payload.success && Array.isArray(payload.data) ? payload.data : []);
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          console.error('Tenant tour search failed', error);
+          setTourResults([]);
+        }
+      } finally {
+        if (!controller.signal.aborted) setIsTourSearching(false);
+      }
+    }, 220);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [searchQuery, tenantId]);
 
   // Track if user has manually scrolled away from bottom
   const [userHasScrolledUp, setUserHasScrolledUp] = useState(false);
@@ -953,13 +1004,15 @@ const MobileInlineSearch: FC<{ isOpen: boolean; onClose: () => void }> = React.m
                     </div>
                   ) : searchQuery ? (
                     <>
+                      {isTourSearching ? (
+                        <div className="space-y-2 border-b border-slate-100 p-3" aria-label="Searching tours">
+                          {[0, 1].map((item) => <TourResultSkeleton key={item} />)}
+                        </div>
+                      ) : (
+                        <TourHits hits={tourResults} onHitClick={onClose} limit={5} locale={locale} />
+                      )}
                       <InstantSearch searchClient={searchClient} indexName={INDEX_TOURS}>
                         <CustomSearchBox searchQuery={searchQuery} onSearchChange={setSearchQuery} />
-
-                        <Index indexName={INDEX_TOURS}>
-                          <Configure hitsPerPage={5} />
-                          <TourHits onHitClick={onClose} limit={5} tenantId={tenantId} />
-                        </Index>
 
                         <Index indexName={INDEX_DESTINATIONS}>
                           <Configure hitsPerPage={3} />
@@ -1046,13 +1099,12 @@ const SearchSuggestion: FC<{
   </div>
 ));
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const TourResultSkeleton = () => (
-  <div className="bg-white rounded-lg shadow-md overflow-hidden animate-pulse">
-    <div className="w-full h-32 bg-slate-200" />
-    <div className="p-4">
-      <div className="h-4 bg-slate-200 rounded w-3/4 mb-2" />
-      <div className="h-3 bg-slate-200 rounded w-1/2" />
+  <div className="flex animate-pulse items-center gap-3 px-3 py-2">
+    <div className="h-14 w-14 flex-none rounded-xl bg-slate-200" />
+    <div className="min-w-0 flex-1">
+      <div className="mb-2 h-4 w-2/3 rounded bg-slate-200" />
+      <div className="h-3 w-2/5 rounded bg-slate-100" />
     </div>
   </div>
 );
