@@ -7,6 +7,7 @@ import mongoose from "mongoose";
 import { syncTourToAlgolia, deleteTourFromAlgolia } from "@/lib/algolia";
 import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from "@/lib/auth/adminAuth";
 import { translateTourInBackground } from '@/lib/translation/translateService';
+import { revalidateTourStorefront } from '@/lib/storefront/revalidateTourStorefront';
 
 function generateOptionId() {
     return globalThis.crypto?.randomUUID?.() || `opt-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -328,6 +329,8 @@ export async function PUT(
             return NextResponse.json({ success: false, error: "Tour not found" }, { status: 404 });
         }
 
+        revalidateTourStorefront();
+
         console.log('Tour updated successfully');
         console.log('Updated tour attractions:', updatedTour.attractions);
         console.log('Updated tour interests:', updatedTour.interests);
@@ -426,6 +429,8 @@ export async function DELETE(
         if (!deletedTour) {
             return NextResponse.json({ success: false, error: "Tour not found" }, { status: 404 });
         }
+
+        revalidateTourStorefront();
 
         // Remove from Algolia
         try {

@@ -1,5 +1,6 @@
 // app/api/admin/destinations/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidateStorefrontContent } from '@/lib/storefront/revalidateTourStorefront';
 import dbConnect from '@/lib/dbConnect';
 import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 import Destination from '@/lib/models/Destination';
@@ -161,6 +162,8 @@ export async function PUT(
       }, { status: 404 });
     }
 
+    revalidateStorefrontContent();
+
     return NextResponse.json({
       success: true,
       data: destination,
@@ -248,6 +251,8 @@ export async function DELETE(
         error: 'Destination not found'
       }, { status: 404 });
     }
+
+    revalidateStorefrontContent();
 
     return NextResponse.json({
       success: true,

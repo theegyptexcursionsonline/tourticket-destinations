@@ -1,5 +1,6 @@
 // app/api/categories/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidateStorefrontContent } from '@/lib/storefront/revalidateTourStorefront';
 import dbConnect from '@/lib/dbConnect';
 import Category from '@/lib/models/Category';
 import Tour from '@/lib/models/Tour';
@@ -123,6 +124,7 @@ export async function POST(request: NextRequest) {
 
     const category = new Category(body);
     await category.save();
+    revalidateStorefrontContent();
 
     return NextResponse.json({
       success: true,

@@ -1,5 +1,6 @@
 // app/api/admin/hero-settings/images/[imageIndex]/activate/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidateStorefrontContent } from '@/lib/storefront/revalidateTourStorefront';
 import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 import dbConnect from '@/lib/dbConnect';
 import HeroSettings from '@/lib/models/HeroSettings';
@@ -41,6 +42,7 @@ export async function PUT(
 
     heroSettings.currentActiveImage = heroSettings.backgroundImages[imageIndex].desktop;
     await heroSettings.save();
+    revalidateStorefrontContent();
 
     return NextResponse.json({
       success: true,

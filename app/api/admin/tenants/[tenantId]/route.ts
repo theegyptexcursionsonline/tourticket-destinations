@@ -2,6 +2,7 @@
 // Admin API for single tenant operations - Get, Update, Delete
 
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidateStorefrontContent } from '@/lib/storefront/revalidateTourStorefront';
 import dbConnect from '@/lib/dbConnect';
 import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 import Tenant from '@/lib/models/Tenant';
@@ -129,6 +130,7 @@ export async function PUT(
     
     // Clear cache
     clearTenantCache(tenantId);
+    revalidateStorefrontContent();
     
     return NextResponse.json({
       success: true,
@@ -199,6 +201,7 @@ export async function DELETE(
       
       // Clear cache
       clearTenantCache(tenantId);
+      revalidateStorefrontContent();
       
       return NextResponse.json({
         success: true,
@@ -214,6 +217,7 @@ export async function DELETE(
       
       // Clear cache
       clearTenantCache(tenantId);
+      revalidateStorefrontContent();
       
       return NextResponse.json({
         success: true,
@@ -310,6 +314,7 @@ export async function PATCH(
     
     // Get updated tenant
     const updatedTenant = await Tenant.findOne({ tenantId }).lean();
+    revalidateStorefrontContent();
     
     return NextResponse.json({
       success: true,

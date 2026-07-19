@@ -248,6 +248,8 @@ export async function translateTourInBackground(tourId: string): Promise<void> {
 
     if (Object.keys(translations).length > 0) {
       await Tour.findByIdAndUpdate(tourId, { translations });
+      const { revalidateTourStorefront } = await import('@/lib/storefront/revalidateTourStorefront');
+      revalidateTourStorefront();
       console.log(`[Translation] Completed translation for tour: ${(tour as Record<string, unknown>).title}`);
     }
   } catch (error) {
@@ -318,6 +320,11 @@ export async function translateAllTours(
     if (i + batchSize < tours.length) {
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
+  }
+
+  if (translated > 0) {
+    const { revalidateTourStorefront } = await import('@/lib/storefront/revalidateTourStorefront');
+    revalidateTourStorefront();
   }
 
   return { translated, failed, skipped };

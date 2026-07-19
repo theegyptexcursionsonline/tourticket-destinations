@@ -2,6 +2,7 @@
 // Admin API for tenant management - List and Create tenants
 
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidateStorefrontContent } from '@/lib/storefront/revalidateTourStorefront';
 import dbConnect from '@/lib/dbConnect';
 import { requireAdminAuth } from '@/lib/auth/adminAuth';
 import Tenant from '@/lib/models/Tenant';
@@ -156,6 +157,7 @@ export async function POST(request: NextRequest) {
     
     // Clear cache
     clearTenantCache();
+    revalidateStorefrontContent();
     
     return NextResponse.json({
       success: true,

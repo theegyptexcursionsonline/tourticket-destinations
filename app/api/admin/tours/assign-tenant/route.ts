@@ -2,6 +2,7 @@
 // API endpoint to bulk assign tours to a tenant
 
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidateStorefrontContent } from '@/lib/storefront/revalidateTourStorefront';
 import dbConnect from '@/lib/dbConnect';
 import Tour from '@/lib/models/Tour';
 import Tenant from '@/lib/models/Tenant';
@@ -119,6 +120,8 @@ export async function POST(request: NextRequest) {
       }
     }
     
+    revalidateStorefrontContent();
+
     return NextResponse.json({
       success: true,
       data: {

@@ -1,6 +1,14 @@
 // Learn more: https://github.com/testing-library/jest-dom
 import '@testing-library/jest-dom'
 
+// Route-module tests run outside the Next.js server runtime. Mock cache
+// invalidation so importing a write route does not require the Web Request API.
+jest.mock('next/cache', () => ({
+  revalidatePath: jest.fn(),
+  revalidateTag: jest.fn(),
+  unstable_cache: (callback) => callback,
+}))
+
 // Polyfill the Encoding API used by QR-code generation in jsdom.
 const { TextEncoder, TextDecoder } = require('util')
 if (!globalThis.TextEncoder) globalThis.TextEncoder = TextEncoder

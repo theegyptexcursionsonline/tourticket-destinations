@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidateStorefrontContent } from '@/lib/storefront/revalidateTourStorefront';
 import dbConnect from '@/lib/dbConnect';
 import Category from '@/lib/models/Category';
 import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
@@ -55,6 +56,7 @@ export async function POST(request: NextRequest) {
 
     await dbConnect(tenantId && tenantId !== 'all' ? tenantId : undefined);
     const category = await Category.create(body);
+    revalidateStorefrontContent();
 
     return NextResponse.json({ success: true, data: category }, { status: 201 });
   } catch (error: any) {

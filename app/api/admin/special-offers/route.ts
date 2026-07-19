@@ -1,5 +1,6 @@
 // app/api/admin/special-offers/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidateStorefrontContent } from '@/lib/storefront/revalidateTourStorefront';
 import dbConnect from '@/lib/dbConnect';
 import SpecialOffer from '@/lib/models/SpecialOffer';
 import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
@@ -196,6 +197,7 @@ export async function POST(request: NextRequest) {
     });
 
     await offer.save();
+    revalidateStorefrontContent();
 
     // Populate the response with tour details
     await offer.populate('applicableTours', 'title slug bookingOptions');
@@ -296,6 +298,8 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    revalidateStorefrontContent();
+
     return NextResponse.json({
       success: true,
       data: offer,
@@ -343,6 +347,8 @@ export async function DELETE(request: NextRequest) {
         { status: 404 }
       );
     }
+
+    revalidateStorefrontContent();
 
     return NextResponse.json({
       success: true,

@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { syncTourToAlgolia } from '@/lib/algolia';
 import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 import { translateTourInBackground } from '@/lib/translation/translateService';
+import { revalidateTourStorefront } from '@/lib/storefront/revalidateTourStorefront';
 
 const ADMIN_TOUR_LIST_PROJECTION = [
   'title',
@@ -277,6 +278,7 @@ export async function POST(request: NextRequest) {
     }
 
     const tour = await Tour.create(body);
+    revalidateTourStorefront();
     
     let populated: any = tour;
     try {

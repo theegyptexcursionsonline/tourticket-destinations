@@ -5,6 +5,7 @@ import Category from '@/lib/models/Category';
 import Destination from '@/lib/models/Destination';
 import AttractionPage from '@/lib/models/AttractionPage'; // Add this import
 import { requireAdminAuth } from '@/lib/auth/adminAuth';
+import { revalidateStorefrontContent } from '@/lib/storefront/revalidateTourStorefront';
 
 const PLACEHOLDER_PATTERNS = [
   'your-cdn.com',
@@ -197,6 +198,7 @@ export async function POST(request: NextRequest) {
     }
 
     const totalCleaned = results.tours.count + results.categories.count + results.destinations.count + results.attractionPages.count;
+    revalidateStorefrontContent();
 
     return NextResponse.json({
       success: true,

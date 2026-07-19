@@ -5,6 +5,7 @@
 // (tenant, slug). Blogs are tenant-scoped, so the same slug may exist per tenant.
 
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateStorefrontContent } from "@/lib/storefront/revalidateTourStorefront";
 import dbConnect from "@/lib/dbConnect";
 import Blog from "@/lib/models/Blog";
 import { verifyContentEngine } from "@/lib/auth/verifyContentEngine";
@@ -149,6 +150,8 @@ export async function POST(req: NextRequest) {
       featured: payload.featured === true,
     });
 
+    revalidateStorefrontContent();
+
     return NextResponse.json(
       { id: String(doc._id), slug: doc.slug, liveUrl: liveUrlForBlog(doc.slug, tenantId) },
       { status: 201 },
@@ -200,6 +203,7 @@ export async function PUT(req: NextRequest) {
 
   try {
     await existing.save();
+    revalidateStorefrontContent();
     return NextResponse.json({ id: String(existing._id), slug: existing.slug, liveUrl: liveUrlForBlog(existing.slug, tenantId) });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Update failed";

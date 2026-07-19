@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidateStorefrontContent } from '@/lib/storefront/revalidateTourStorefront';
 import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 import dbConnect from '@/lib/dbConnect';
 import AttractionPage from '@/lib/models/AttractionPage';
@@ -147,6 +148,8 @@ export async function PUT(
       }, { status: 404 });
     }
 
+    revalidateStorefrontContent();
+
     console.log('✅ Page updated successfully');
 
     return NextResponse.json({
@@ -207,6 +210,8 @@ export async function DELETE(
         error: 'Page not found'
       }, { status: 404 });
     }
+
+    revalidateStorefrontContent();
 
     console.log('Attraction page deleted successfully:', id);
 

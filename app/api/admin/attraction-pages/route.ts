@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidateStorefrontContent } from '@/lib/storefront/revalidateTourStorefront';
 import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 import dbConnect from '@/lib/dbConnect';
 import AttractionPage from '@/lib/models/AttractionPage';
@@ -190,6 +191,7 @@ export async function POST(request: NextRequest) {
 
     const page = new AttractionPage(body);
     await page.save();
+    revalidateStorefrontContent();
 
     // Populate the category for response
     await page.populate({

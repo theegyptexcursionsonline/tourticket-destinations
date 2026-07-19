@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidateStorefrontContent } from '@/lib/storefront/revalidateTourStorefront';
 import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 import dbConnect from '@/lib/dbConnect';
 import Blog from '@/lib/models/Blog';
@@ -56,6 +57,8 @@ export async function PUT(
         error: 'Blog post not found' 
       }, { status: 404 });
     }
+
+    revalidateStorefrontContent();
     
     return NextResponse.json({ 
       success: true, 
@@ -122,6 +125,8 @@ export async function DELETE(
         error: 'Blog post not found'
       }, { status: 404 });
     }
+
+    revalidateStorefrontContent();
     
     return NextResponse.json({ 
       success: true, 

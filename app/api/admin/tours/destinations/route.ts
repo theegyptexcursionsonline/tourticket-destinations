@@ -2,6 +2,7 @@
 import dbConnect from '@/lib/dbConnect';
 import Destination from '@/lib/models/Destination';
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidateStorefrontContent } from '@/lib/storefront/revalidateTourStorefront';
 import { MongoError } from 'mongodb';
 import { getTenantFromRequest, buildTenantQuery } from '@/lib/tenant';
 import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
@@ -105,6 +106,7 @@ export async function POST(request: NextRequest) {
     });
    
     const destination = await Destination.create(body);
+    revalidateStorefrontContent();
     return NextResponse.json({ success: true, data: destination }, { status: 201 });
    
   } catch (error) {

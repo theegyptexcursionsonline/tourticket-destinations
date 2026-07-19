@@ -1,5 +1,6 @@
 // app/api/admin/hero-settings/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidateStorefrontContent } from '@/lib/storefront/revalidateTourStorefront';
 import dbConnect from '@/lib/dbConnect';
 import HeroSettings from '@/lib/models/HeroSettings';
 import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
@@ -123,6 +124,8 @@ export async function PUT(request: NextRequest) {
       body,
       { new: true, upsert: true, runValidators: true }
     );
+
+    revalidateStorefrontContent();
 
     return NextResponse.json({ success: true, data: settings });
   } catch (error) {

@@ -1,6 +1,7 @@
 import { getOpenAIClient } from '@/lib/openai';
 import dbConnect from '@/lib/dbConnect';
 import Tour from '@/lib/models/Tour';
+import { revalidateStorefrontContent } from '@/lib/storefront/revalidateTourStorefront';
 import Destination from '@/lib/models/Destination';
 import Category from '@/lib/models/Category';
 import {
@@ -364,6 +365,7 @@ export async function autoTranslateTour(tourId: string): Promise<void> {
   if (Object.keys(translations).length === 0) return;
 
   await Tour.findByIdAndUpdate(tourId, { $set: { translations } });
+  revalidateStorefrontContent();
   console.log(`Auto-translated tour ${tourId} into ${Object.keys(translations).join(', ')}`);
 }
 
@@ -377,6 +379,7 @@ export async function autoTranslateDestination(destinationId: string): Promise<v
   if (Object.keys(translations).length === 0) return;
 
   await Destination.findByIdAndUpdate(destinationId, { $set: { translations } });
+  revalidateStorefrontContent();
   console.log(`Auto-translated destination ${destinationId} into ${Object.keys(translations).join(', ')}`);
 }
 
@@ -390,5 +393,6 @@ export async function autoTranslateCategory(categoryId: string): Promise<void> {
   if (Object.keys(translations).length === 0) return;
 
   await Category.findByIdAndUpdate(categoryId, { $set: { translations } });
+  revalidateStorefrontContent();
   console.log(`Auto-translated category ${categoryId} into ${Object.keys(translations).join(', ')}`);
 }

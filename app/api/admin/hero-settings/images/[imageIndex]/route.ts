@@ -1,5 +1,6 @@
 // app/api/admin/hero-settings/images/[imageIndex]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidateStorefrontContent } from '@/lib/storefront/revalidateTourStorefront';
 import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 import dbConnect from '@/lib/dbConnect';
 import HeroSettings from '@/lib/models/HeroSettings';
@@ -52,6 +53,7 @@ export async function DELETE(
     }
 
     await heroSettings.save();
+    revalidateStorefrontContent();
 
     return NextResponse.json({
       success: true,

@@ -1,5 +1,6 @@
 // app/api/categories/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidateStorefrontContent } from '@/lib/storefront/revalidateTourStorefront';
 import dbConnect from '@/lib/dbConnect';
 import Category from '@/lib/models/Category';
 import mongoose from 'mongoose';
@@ -94,6 +95,7 @@ export async function PUT(
       body,
       { new: true, runValidators: true }
     );
+    revalidateStorefrontContent();
 
     if (!category) {
       return NextResponse.json({
@@ -149,6 +151,7 @@ export async function DELETE(
     const tenantId = String((existing as any).tenantId || 'default');
     if (!canAccessTenant(adminAuth, tenantId)) return tenantForbiddenResponse();
     const category = await Category.findOneAndDelete({ _id: id, tenantId });
+    revalidateStorefrontContent();
 
     if (!category) {
       return NextResponse.json({

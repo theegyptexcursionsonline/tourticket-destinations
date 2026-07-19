@@ -1,5 +1,6 @@
 // app/api/admin/blog/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidateStorefrontContent } from '@/lib/storefront/revalidateTourStorefront';
 import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 import dbConnect from '@/lib/dbConnect';
 import Blog from '@/lib/models/Blog';
@@ -57,6 +58,7 @@ export async function POST(request: NextRequest) {
     }
 
     const created = await Blog.create(data);
+    revalidateStorefrontContent();
     return NextResponse.json({ success: true, data: created, message: 'Blog post created' }, { status: 201 });
   } catch (error: any) {
     console.error('Error creating blog post:', error);

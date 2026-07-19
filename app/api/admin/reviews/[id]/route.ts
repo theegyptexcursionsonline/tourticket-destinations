@@ -1,5 +1,6 @@
 // app/api/admin/reviews/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidateStorefrontContent } from '@/lib/storefront/revalidateTourStorefront';
 import dbConnect from '@/lib/dbConnect';
 import Review from '@/lib/models/Review';
 import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
@@ -46,6 +47,8 @@ export async function PATCH(
       return NextResponse.json({ message: 'Review not found' }, { status: 404 });
     }
 
+    revalidateStorefrontContent();
+
     return NextResponse.json(updatedReview);
   } catch (error) {
     return NextResponse.json({ message: 'Failed to update review', error: (error as Error).message }, { status: 500 });
@@ -77,6 +80,8 @@ export async function DELETE(
     if (!deletedReview) {
       return NextResponse.json({ message: 'Review not found' }, { status: 404 });
     }
+
+    revalidateStorefrontContent();
 
     return NextResponse.json({ message: 'Review deleted successfully' });
   } catch (error) {

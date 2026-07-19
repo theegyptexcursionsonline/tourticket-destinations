@@ -12,6 +12,7 @@ import dbConnect from './dbConnect';
 type CacheEntry<TResult> = {
   expiresAt: number;
   hasValue: boolean;
+  tags?: string[];
   promise?: Promise<TResult>;
   value?: TResult;
 };
@@ -57,8 +58,6 @@ export function cacheIfAvailable<TArgs extends unknown[], TResult>(
   keyParts: string[],
   options: { revalidate?: number; tags?: string[] } = {}
 ) {
-  void options.tags;
-
   const ttlMs = Math.max(0, (options.revalidate ?? CACHE_DURATIONS.MEDIUM) * 1000);
 
   if (ttlMs === 0) {
@@ -66,11 +65,17 @@ export function cacheIfAvailable<TArgs extends unknown[], TResult>(
   }
 
   const loadEntry = (cacheKey: string, args: TArgs, staleEntry?: CacheEntry<TResult>) => {
-    const promise = fn(...args)
+    let pendingPromise!: Promise<TResult>;
+    pendingPromise = fn(...args)
       .then((value) => {
+        // If this entry was invalidated while the query was running, do not
+        // let the older in-flight result repopulate the cache.
+        if (memoryCache.get(cacheKey)?.promise !== pendingPromise) return value;
+
         memoryCache.set(cacheKey, {
           expiresAt: Date.now() + ttlMs,
           hasValue: true,
+          tags: options.tags,
           value,
         } satisfies CacheEntry<TResult>);
 
@@ -87,15 +92,16 @@ export function cacheIfAvailable<TArgs extends unknown[], TResult>(
       });
 
     const pendingEntry: CacheEntry<TResult> = staleEntry?.hasValue
-      ? { ...staleEntry, promise }
+      ? { ...staleEntry, tags: options.tags, promise: pendingPromise }
       : {
           expiresAt: Date.now() + ttlMs,
           hasValue: false,
-          promise,
+          tags: options.tags,
+          promise: pendingPromise,
         };
 
     memoryCache.set(cacheKey, pendingEntry as CacheEntry<unknown>);
-    return promise;
+    return pendingPromise;
   };
 
   return async (...args: TArgs) => {
@@ -120,6 +126,22 @@ export function cacheIfAvailable<TArgs extends unknown[], TResult>(
 
     return loadEntry(cacheKey, args);
   };
+}
+
+/** Clear warm-instance cache entries after a related durable write. */
+export function invalidateMemoryCacheTags(tags: string[]) {
+  if (tags.length === 0) return 0;
+
+  const targetTags = new Set(tags);
+  let deleted = 0;
+  for (const [cacheKey, entry] of memoryCache) {
+    if (entry.tags?.some((tag) => targetTags.has(tag))) {
+      memoryCache.delete(cacheKey);
+      deleted += 1;
+    }
+  }
+
+  return deleted;
 }
 
 /**

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidateStorefrontContent } from '@/lib/storefront/revalidateTourStorefront';
 import dbConnect from '@/lib/dbConnect';
 import Destination from '@/lib/models/Destination';
 import Tour from '@/lib/models/Tour';
@@ -45,6 +46,8 @@ export async function PUT(
         error: 'Destination not found' 
       }, { status: 404 });
     }
+
+    revalidateStorefrontContent();
     
     return NextResponse.json({ 
       success: true, 
@@ -130,6 +133,8 @@ export async function DELETE(
         error: 'Destination not found'
       }, { status: 404 });
     }
+
+    revalidateStorefrontContent();
 
     return NextResponse.json({
       success: true,
