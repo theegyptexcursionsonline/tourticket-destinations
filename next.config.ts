@@ -123,6 +123,11 @@ const nextConfig = {
   async redirects() {
     return [
       {
+        source: '/tours/:slug',
+        destination: '/:slug',
+        permanent: true,
+      },
+      {
         source: '/tour/:slug',
         destination: '/:slug',
         permanent: true,
