@@ -25,7 +25,10 @@ function AcceptInvitationContent() {
     const fromParams = searchParams?.get('token');
     if (fromParams) return fromParams;
     if (typeof window !== 'undefined') {
-      const match = window.location.search.match(/token(?:=|&#x3D;|&#61;)([A-Fa-f0-9]{20,})/i);
+      // Some mail clients leave the escaped '=' undecoded, which turns the '#'
+      // of '&#x3D;' into a URL fragment — so the token may sit in search OR hash.
+      const raw = `${window.location.search}${window.location.hash}`;
+      const match = raw.match(/token(?:=|&#x3D;|&#61;)([A-Fa-f0-9]{20,})/i);
       if (match) return match[1];
     }
     return null;
