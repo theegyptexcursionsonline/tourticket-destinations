@@ -3,6 +3,7 @@ import Tour from '@/lib/models/Tour';
 import { NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import { buildStrictTenantQuery, getTenantFromRequest } from '@/lib/tenant';
+import { rankLiveSearchResults } from '@/lib/search/liveSearchRanking';
 
 // Helper function for flexible live search
 function createLiveSearchConditions(searchQuery: string) {
@@ -111,10 +112,10 @@ export async function GET(req: NextRequest) {
             .select('title slug image rating reviews reviewCount destination location tags duration price discountPrice tenantId')
             .populate('destination', 'name')
             .sort({ rating: -1, bookings: -1 }) // Prioritize high-rated popular tours
-            .limit(10)
+            .limit(30)
             .lean();
 
-        return NextResponse.json({ success: true, data: tours });
+        return NextResponse.json({ success: true, data: rankLiveSearchResults(tours, searchQuery).slice(0, 10) });
 
     } catch (error) {
         console.error(error);
