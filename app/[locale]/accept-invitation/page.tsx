@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useRouter } from '@/i18n/navigation';
 import { useSearchParams } from 'next/navigation';
 import { Link } from '@/i18n/navigation';
@@ -18,7 +18,18 @@ interface InvitationData {
 function AcceptInvitationContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const token = searchParams?.get('token');
+  // Recover the token even from older invite links that HTML-escaped the '='
+  // in "?token=" (e.g. "?token&#x3D;<token>"), which some mail clients pass
+  // through undecoded and which otherwise reads back as an empty param.
+  const token = useMemo(() => {
+    const fromParams = searchParams?.get('token');
+    if (fromParams) return fromParams;
+    if (typeof window !== 'undefined') {
+      const match = window.location.search.match(/token(?:=|&#x3D;|&#61;)([A-Fa-f0-9]{20,})/i);
+      if (match) return match[1];
+    }
+    return null;
+  }, [searchParams]);
 
   const [invitationData, setInvitationData] = useState<InvitationData | null>(null);
   const [password, setPassword] = useState('');
