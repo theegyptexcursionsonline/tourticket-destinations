@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import dbConnect from '@/lib/dbConnect';
 import User from '@/lib/models/user';
-import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
+import { requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 import {
   ADMIN_PERMISSIONS,
   ADMIN_ROLES,
@@ -72,20 +72,16 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = new URL(request.url);
   const tenantId = searchParams.get('tenantId') || searchParams.get('brandId');
-  if (tenantId && tenantId !== 'all' && !canAccessTenant(auth, tenantId)) return tenantForbiddenResponse();
-  if ((!tenantId || tenantId === 'all') && auth.role !== 'super_admin') return tenantForbiddenResponse();
 
   const filter: Record<string, unknown> = { role: { $ne: 'customer' } };
   if (tenantId && tenantId !== 'all') {
-    // Show team members who have this tenant in their tenantIds array
+    // requireAdminAuth has already verified that this brand belongs to the
+    // current admin's network scope.
     filter.tenantIds = tenantId;
   } else {
-    // "All brands" — only show members with at least one non-default tenant
-    filter.$and = [
-      { tenantIds: { $exists: true } },
-      { tenantIds: { $not: { $size: 0 } } },
-      { tenantIds: { $nin: ['default'] } },
-    ];
+    // "All brands" is still tenant-scoped. This lets a network admin use the
+    // page without exposing users assigned only to another admin network.
+    filter.tenantIds = { $in: auth.tenantIds };
   }
 
   const teamMembers = await User.find(filter)
