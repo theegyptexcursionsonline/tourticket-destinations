@@ -248,7 +248,7 @@ const StepsIndicator: React.FC<{
 }> = ({ currentStep, onStepClick, isClickable = false }) => {
   const t = useTranslations();
   return (
-    <div className="px-3 py-2 sm:px-4 sm:py-3 bg-white border-b border-gray-200">
+    <div className="relative z-20 flex-shrink-0 px-3 py-2 sm:px-4 sm:py-3 bg-white border-b border-gray-200">
       <div className="grid grid-cols-7 items-center max-w-xl mx-auto gap-0">
         {STEPS.map((step, index) => {
           const isCompleted = step.id < currentStep;
@@ -2369,15 +2369,15 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
           />
 
           <motion.div
-            className="relative bg-white h-[100dvh] sm:h-full w-full max-w-md shadow-2xl flex flex-col overflow-hidden"
+            className="relative isolate bg-white h-[100dvh] sm:h-full w-full max-w-md shadow-2xl flex flex-col overflow-hidden"
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200 bg-white">
-              <div className="flex items-center gap-2">
+            <div className="relative z-20 flex flex-shrink-0 items-center justify-between p-3 sm:p-4 border-b border-gray-200 bg-white">
+              <div className="flex min-w-0 flex-1 items-center gap-2">
                 {currentStep > 1 && (
                   <motion.button
                     onClick={handleBack}
@@ -2388,7 +2388,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
                     <ArrowLeft size={20} />
                   </motion.button>
                 )}
-                <div>
+                <div className="min-w-0 flex-1">
                   <h3 className="font-bold text-gray-800 text-lg">
                     {currentStep === 1 ? t('booking.startYourBooking') : t('booking.customizeYourTrip')}
                   </h3>
@@ -2399,7 +2399,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
               </div>
               <motion.button
                 onClick={onClose}
-                className="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                className="flex-shrink-0 p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
@@ -2414,10 +2414,17 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
               isClickable={currentStep >= 2}
             />
 
-            <div ref={scrollableContentRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
-              <AnimatePresence mode="wait">
-                {renderStepContent()}
-              </AnimatePresence>
+            <div className="relative flex-1 min-h-0 overflow-hidden bg-white">
+              <div
+                ref={scrollableContentRef}
+                className="h-full overflow-y-auto overscroll-contain scroll-pt-4 scroll-pb-4 [scrollbar-gutter:stable]"
+              >
+                <AnimatePresence mode="wait">
+                  {renderStepContent()}
+                </AnimatePresence>
+              </div>
+              <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 z-10 h-3 bg-gradient-to-b from-white to-transparent" />
+              <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-3 bg-gradient-to-t from-white to-transparent" />
             </div>
 
             {/* Footer Actions */}
@@ -2428,7 +2435,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
                   initial={{ opacity: 0, y: 50 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 50 }}
-                  className="bg-white border-t border-gray-200 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:p-4 shadow-lg"
+                  className="relative z-20 flex-shrink-0 bg-white border-t border-gray-200 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:p-4 shadow-lg"
                 >
                   <motion.button
                     onClick={handleCheckAvailability}
@@ -2458,7 +2465,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
                   initial={{ opacity: 0, y: 50 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 50 }}
-                  className="bg-white border-t border-gray-200 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:p-4 shadow-lg"
+                  className="relative z-20 flex-shrink-0 bg-white border-t border-gray-200 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:p-4 shadow-lg"
                 >
                   {/* Price Display */}
                   <div className="flex items-center justify-between mb-4">
