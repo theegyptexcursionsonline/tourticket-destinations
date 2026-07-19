@@ -1501,6 +1501,7 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
 
                   <div className="space-y-3">
                     <button
+                      data-testid="open-booking-drawer"
                       onClick={openBookingSidebar}
                       className="shimmer-effect w-full bg-red-600 text-white font-bold py-4 px-6 rounded-full hover:bg-red-700 transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-2 shadow-lg"
                     >

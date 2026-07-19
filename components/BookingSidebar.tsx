@@ -248,7 +248,10 @@ const StepsIndicator: React.FC<{
 }> = ({ currentStep, onStepClick, isClickable = false }) => {
   const t = useTranslations();
   return (
-    <div className="relative z-20 flex-shrink-0 px-3 py-2 sm:px-4 sm:py-3 bg-white border-b border-gray-200">
+    <div
+      data-testid="booking-drawer-progress"
+      className="relative z-20 flex-shrink-0 px-3 py-2 sm:px-4 sm:py-3 bg-white border-b border-gray-200"
+    >
       <div className="grid grid-cols-7 items-center max-w-xl mx-auto gap-0">
         {STEPS.map((step, index) => {
           const isCompleted = step.id < currentStep;
@@ -2369,6 +2372,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
           />
 
           <motion.div
+            data-testid="booking-drawer-shell"
             className="relative isolate bg-white h-[100dvh] sm:h-full w-full max-w-md shadow-2xl flex flex-col overflow-hidden"
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
@@ -2376,7 +2380,10 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
           >
             {/* Header */}
-            <div className="relative z-20 flex flex-shrink-0 items-center justify-between p-3 sm:p-4 border-b border-gray-200 bg-white">
+            <div
+              data-testid="booking-drawer-header"
+              className="relative z-20 flex flex-shrink-0 items-center justify-between p-3 sm:p-4 border-b border-gray-200 bg-white"
+            >
               <div className="flex min-w-0 flex-1 items-center gap-2">
                 {currentStep > 1 && (
                   <motion.button
@@ -2414,17 +2421,21 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
               isClickable={currentStep >= 2}
             />
 
-            <div className="relative flex-1 min-h-0 overflow-hidden bg-white">
+            <div
+              data-testid="booking-drawer-scroll-boundary"
+              className="relative flex-1 min-h-0 overflow-hidden bg-white"
+            >
               <div
                 ref={scrollableContentRef}
+                data-testid="booking-drawer-scroll-region"
                 className="h-full overflow-y-auto overscroll-contain scroll-pt-4 scroll-pb-4 [scrollbar-gutter:stable]"
               >
                 <AnimatePresence mode="wait">
                   {renderStepContent()}
                 </AnimatePresence>
               </div>
-              <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 z-10 h-3 bg-gradient-to-b from-white to-transparent" />
-              <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-3 bg-gradient-to-t from-white to-transparent" />
+              <div data-testid="booking-drawer-top-guard" aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 z-10 h-3 bg-gradient-to-b from-white to-transparent" />
+              <div data-testid="booking-drawer-bottom-guard" aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-3 bg-gradient-to-t from-white to-transparent" />
             </div>
 
             {/* Footer Actions */}
@@ -2432,6 +2443,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
               {/* Fixed Action Button for Step 1 */}
               {currentStep === 1 && (
                 <motion.div
+                  data-testid="booking-drawer-footer"
                   initial={{ opacity: 0, y: 50 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 50 }}
@@ -2462,6 +2474,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
               {/* Footer with Price and Actions - Only for Steps 2+ */}
               {currentStep > 1 && (
                 <motion.div
+                  data-testid="booking-drawer-footer"
                   initial={{ opacity: 0, y: 50 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 50 }}

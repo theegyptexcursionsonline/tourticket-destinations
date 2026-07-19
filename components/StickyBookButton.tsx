@@ -69,6 +69,7 @@ const StickyBookButton: React.FC<StickyBookButtonProps> = ({ price, currency: _c
             <span className="text-sm text-slate-500"> / person</span>
           </div>
           <button
+            data-testid="open-booking-drawer-mobile"
             onClick={onClick}
             className="shimmer-effect bg-red-600 text-white font-bold py-3 px-6 rounded-full hover:bg-red-700 transition-colors shadow-md"
           >
