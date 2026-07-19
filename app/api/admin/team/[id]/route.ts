@@ -12,6 +12,7 @@ import {
   getDefaultPermissions,
 } from '@/lib/constants/adminPermissions';
 import { EmailService } from '@/lib/email/emailService';
+import { guardTeamMutation } from '@/lib/auth/teamMutationGuards';
 
 const sanitize = (user: any) => ({
   id: user._id.toString(),
@@ -114,6 +115,32 @@ export async function PATCH(
     return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
   }
 
+  // Prevent self-lockout and removal of the last active super administrator.
+  const resultingRole = updates.role ? normalizeRole(updates.role) : user.role;
+  const isDeactivating = updates.isActive === false;
+  const isDemoting = user.role === 'super_admin' && resultingRole !== 'super_admin';
+  if (isDeactivating || isDemoting) {
+    let otherActiveSuperAdmins = Infinity;
+    if (user.role === 'super_admin' && user.isActive) {
+      otherActiveSuperAdmins = await User.countDocuments({
+        role: 'super_admin',
+        isActive: true,
+        _id: { $ne: user._id },
+      });
+    }
+    const guard = guardTeamMutation({
+      actorUserId: auth.userId,
+      targetUserId: String(user._id),
+      targetRole: user.role,
+      targetIsActive: user.isActive,
+      action: isDeactivating ? 'deactivate' : 'demote',
+      otherActiveSuperAdmins,
+    });
+    if (!guard.ok) {
+      return NextResponse.json({ success: false, error: guard.error }, { status: guard.status });
+    }
+  }
+
   if (updates.firstName) user.firstName = updates.firstName;
   if (updates.lastName) user.lastName = updates.lastName;
   const previousActive = user.isActive;
@@ -210,6 +237,27 @@ export async function DELETE(
   }
   if (auth.role !== 'super_admin' && !(user.tenantIds || []).some((tenantId) => auth.tenantIds.includes(tenantId))) {
     return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+  }
+
+  // Prevent self-deletion and deletion of the last active super administrator.
+  let otherActiveSuperAdmins = Infinity;
+  if (user.role === 'super_admin' && user.isActive) {
+    otherActiveSuperAdmins = await User.countDocuments({
+      role: 'super_admin',
+      isActive: true,
+      _id: { $ne: user._id },
+    });
+  }
+  const guard = guardTeamMutation({
+    actorUserId: auth.userId,
+    targetUserId: String(user._id),
+    targetRole: user.role,
+    targetIsActive: user.isActive,
+    action: 'delete',
+    otherActiveSuperAdmins,
+  });
+  if (!guard.ok) {
+    return NextResponse.json({ success: false, error: guard.error }, { status: guard.status });
   }
 
   // Send notification email before deleting
