@@ -37,6 +37,7 @@ const AdminHeader = () => {
         if (segment === 'dashboard') return 'Dashboard';
         if (segment === 'new') return 'New';
         if (segment === 'edit') return 'Edit';
+        if (segment === 'attraction-pages' || segment === 'categories') return 'Pages';
         
         // Handle UUIDs or similar
         if (/^[0-9a-fA-F]{24}$/.test(segment)) {
@@ -70,6 +71,9 @@ const AdminHeader = () => {
 
                             {pathSegments.length > 1 && pathSegments.map((segment, index) => {
                                 const href = `/${pathSegments.slice(0, index + 1).join('/')}`;
+                                const breadcrumbHref = segment === 'attraction-pages' || segment === 'categories'
+                                    ? '/admin/pages'
+                                    : href;
                                 const isLast = index === pathSegments.length - 1;
                                 const isLink = !isLast && segment !== 'edit' && !/^[0-9a-fA-F]{24}$/.test(segment);
                                 
@@ -86,7 +90,7 @@ const AdminHeader = () => {
                                         {/* Breadcrumb Item */}
                                         {isLink ? (
                                             <Link 
-                                                href={href} 
+                                                href={breadcrumbHref}
                                                 className="px-3 py-2 rounded-xl text-slate-600 hover:text-indigo-600 hover:bg-indigo-50/80 transition-all duration-200 font-medium"
                                             >
                                                 {formatSegmentName(segment)}

@@ -4,6 +4,7 @@ import Tour from '@/lib/models/Tour';
 import { revalidateStorefrontContent } from '@/lib/storefront/revalidateTourStorefront';
 import Destination from '@/lib/models/Destination';
 import Category from '@/lib/models/Category';
+import AttractionPage from '@/lib/models/AttractionPage';
 import {
   TranslationFieldDef,
   translatableLocales,
@@ -11,6 +12,7 @@ import {
   tourTranslationFields,
   destinationTranslationFields,
   categoryTranslationFields,
+  attractionPageTranslationFields,
 } from './translationFields';
 
 type FieldValues = Record<string, string | string[]>;
@@ -52,7 +54,7 @@ const hasText = (value: unknown): value is string =>
 
 /**
  * Translate a set of English field values into all target locales using OpenAI.
- * Returns { ar: { field: value }, es: { ... }, fr: { ... }, ru: { ... }, de: { ... } }
+ * Returns a locale-keyed translation map for every configured non-English locale.
  */
 export async function translateEntityFields(
   fields: FieldValues,
@@ -76,6 +78,7 @@ export async function translateEntityFields(
 
   const localeList = translatableLocales.map(l => `${l} (${localeNames[l] || l})`).join(', ');
 
+  const responseShape = Object.fromEntries(translatableLocales.map((locale) => [locale, { fieldName: 'translated value' }]));
   const prompt = `You are a professional translator for a tour booking website. Translate the following English ${entityContext} content into these locales: ${localeList}.
 
 Content to translate:
@@ -87,7 +90,7 @@ Rules:
 - Keep translations natural and fluent, not literal word-for-word
 - For SEO fields (metaTitle, metaDescription), optimize for the target language
 - Array fields must remain arrays with the same number of items, each item translated
-- Return ONLY a JSON object with this structure: { "ar": { ...fields }, "es": { ...fields }, "fr": { ...fields }, "ru": { ...fields }, "de": { ...fields } }`;
+- Return ONLY a JSON object with this locale-keyed structure: ${JSON.stringify(responseShape)}`;
 
   try {
     const response = await openai.chat.completions.create({
@@ -131,7 +134,11 @@ export async function translateEntityFieldsForLocale(
   locale: string
 ): Promise<Record<string, string | string[]>> {
   const openai = getOpenAIClient();
-  if (!openai) return {};
+  if (!openai) {
+    // Fail loud: a missing key must surface as an error in the admin UI,
+    // not silently produce "successful" empty translations.
+    throw new Error('Translation service is not configured (OPENAI_API_KEY missing)');
+  }
 
   const fieldsToTranslate: FieldValues = {};
   for (const def of fieldDefs) {
@@ -180,13 +187,16 @@ ${locale === 'ar' ? '- Produce proper RTL text for Arabic\n' : ''}- Keep transla
     });
 
     const text = response.choices[0]?.message?.content;
-    if (!text) return {};
+    if (!text) throw new Error('Empty response from translation model');
 
     const parsed = JSON.parse(text) as Record<string, string | string[]>;
-    return typeof parsed === 'object' && parsed !== null ? parsed : {};
+    if (typeof parsed !== 'object' || parsed === null || Object.keys(parsed).length === 0) {
+      throw new Error('Translation model returned no fields');
+    }
+    return parsed;
   } catch (error) {
     console.error(`Auto-translate failed for ${entityContext} (${locale}):`, error);
-    return {};
+    throw error instanceof Error ? error : new Error('Translation failed');
   }
 }
 
@@ -285,13 +295,16 @@ ${locale === 'ar' ? '- Produce proper RTL text for Arabic\n' : ''}- Keep the wor
     });
 
     const text = response.choices[0]?.message?.content;
-    if (!text) return {};
+    if (!text) throw new Error('Empty response from translation model');
 
     const parsed = JSON.parse(text) as StructuredTranslationMap;
-    return typeof parsed === 'object' && parsed !== null ? parsed : {};
+    if (typeof parsed !== 'object' || parsed === null) {
+      throw new Error('Translation model returned invalid structured content');
+    }
+    return parsed;
   } catch (error) {
     console.error(`Auto-translate failed for structured tour content (${locale}):`, error);
-    return {};
+    throw error instanceof Error ? error : new Error('Translation failed');
   }
 }
 
@@ -346,25 +359,54 @@ export function extractFields(doc: Record<string, unknown>, fieldDefs: Translati
   return fields;
 }
 
+/**
+ * Build a per-locale $set payload so saving translations only touches the
+ * locales that actually translated. A whole-map `$set: { translations }`
+ * wiped every other locale (including manual translations) whenever a run
+ * came back partial — the root cause of "translations keep disappearing".
+ */
+export function buildTranslationsSetOps(
+  translations: Record<string, Record<string, unknown>>
+): Record<string, Record<string, unknown>> {
+  const ops: Record<string, Record<string, unknown>> = {};
+  for (const [locale, bucket] of Object.entries(translations)) {
+    ops[`translations.${locale}`] = bucket;
+  }
+  return ops;
+}
+
+/** Translate every locale in parallel; failed locales are skipped, successful ones returned. */
+async function translateLocalesSettled(
+  translate: (locale: string) => Promise<Record<string, unknown>>
+): Promise<Record<string, Record<string, unknown>>> {
+  const results = await Promise.allSettled(
+    translatableLocales.map(async (locale) => ({ locale, bucket: await translate(locale) }))
+  );
+  const translations: Record<string, Record<string, unknown>> = {};
+  for (const result of results) {
+    if (result.status === 'fulfilled' && Object.keys(result.value.bucket).length > 0) {
+      translations[result.value.locale] = result.value.bucket;
+    } else if (result.status === 'rejected') {
+      console.error('Auto-translate locale failed:', result.reason);
+    }
+  }
+  return translations;
+}
+
 export async function autoTranslateTour(tourId: string): Promise<void> {
   await dbConnect();
   const tour = await Tour.findById(tourId).lean();
-  if (!tour) return;
+  if (!tour) throw new Error('Tour not found');
 
   const fields = extractFields(tour as Record<string, unknown>, tourTranslationFields);
   const structuredContent = extractStructuredTourContent(tour as Record<string, unknown>);
-  const translations: Record<string, Record<string, unknown>> = {};
+  const translations = await translateLocalesSettled(
+    (locale) => translateTourContentForLocale(fields, structuredContent, locale)
+  );
 
-  for (const locale of translatableLocales) {
-    const localeTranslations = await translateTourContentForLocale(fields, structuredContent, locale);
-    if (Object.keys(localeTranslations).length > 0) {
-      translations[locale] = localeTranslations;
-    }
-  }
+  if (Object.keys(translations).length === 0) throw new Error('No tour translations were generated');
 
-  if (Object.keys(translations).length === 0) return;
-
-  await Tour.findByIdAndUpdate(tourId, { $set: { translations } });
+  await Tour.findByIdAndUpdate(tourId, { $set: buildTranslationsSetOps(translations) });
   revalidateStorefrontContent();
   console.log(`Auto-translated tour ${tourId} into ${Object.keys(translations).join(', ')}`);
 }
@@ -372,13 +414,15 @@ export async function autoTranslateTour(tourId: string): Promise<void> {
 export async function autoTranslateDestination(destinationId: string): Promise<void> {
   await dbConnect();
   const dest = await Destination.findById(destinationId).lean();
-  if (!dest) return;
+  if (!dest) throw new Error('Destination not found');
 
   const fields = extractFields(dest as Record<string, unknown>, destinationTranslationFields);
-  const translations = await translateEntityFields(fields, destinationTranslationFields, 'destination');
-  if (Object.keys(translations).length === 0) return;
+  const translations = await translateLocalesSettled(
+    (locale) => translateEntityFieldsForLocale(fields, destinationTranslationFields, 'destination', locale)
+  );
+  if (Object.keys(translations).length === 0) throw new Error('No destination translations were generated');
 
-  await Destination.findByIdAndUpdate(destinationId, { $set: { translations } });
+  await Destination.findByIdAndUpdate(destinationId, { $set: buildTranslationsSetOps(translations) });
   revalidateStorefrontContent();
   console.log(`Auto-translated destination ${destinationId} into ${Object.keys(translations).join(', ')}`);
 }
@@ -386,13 +430,31 @@ export async function autoTranslateDestination(destinationId: string): Promise<v
 export async function autoTranslateCategory(categoryId: string): Promise<void> {
   await dbConnect();
   const cat = await Category.findById(categoryId).lean();
-  if (!cat) return;
+  if (!cat) throw new Error('Category not found');
 
   const fields = extractFields(cat as Record<string, unknown>, categoryTranslationFields);
-  const translations = await translateEntityFields(fields, categoryTranslationFields, 'category');
-  if (Object.keys(translations).length === 0) return;
+  const translations = await translateLocalesSettled(
+    (locale) => translateEntityFieldsForLocale(fields, categoryTranslationFields, 'category', locale)
+  );
+  if (Object.keys(translations).length === 0) throw new Error('No category translations were generated');
 
-  await Category.findByIdAndUpdate(categoryId, { $set: { translations } });
+  await Category.findByIdAndUpdate(categoryId, { $set: buildTranslationsSetOps(translations) });
   revalidateStorefrontContent();
   console.log(`Auto-translated category ${categoryId} into ${Object.keys(translations).join(', ')}`);
+}
+
+export async function autoTranslateAttractionPage(pageId: string): Promise<void> {
+  await dbConnect();
+  const page = await AttractionPage.findById(pageId).lean();
+  if (!page) throw new Error('Page not found');
+
+  const fields = extractFields(page as Record<string, unknown>, attractionPageTranslationFields);
+  const translations = await translateLocalesSettled(
+    (locale) => translateEntityFieldsForLocale(fields, attractionPageTranslationFields, 'landing page', locale)
+  );
+  if (Object.keys(translations).length === 0) throw new Error('No page translations were generated');
+
+  await AttractionPage.findByIdAndUpdate(pageId, { $set: buildTranslationsSetOps(translations) });
+  revalidateStorefrontContent();
+  console.log(`Auto-translated attraction page ${pageId} into ${Object.keys(translations).join(', ')}`);
 }

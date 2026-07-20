@@ -73,6 +73,18 @@ export const categoryTranslationFields: TranslationFieldDef[] = [
   { key: 'features', label: 'Features', type: 'array', maxLength: 300 },
 ];
 
+export const attractionPageTranslationFields: TranslationFieldDef[] = [
+  { key: 'title', label: 'Title', type: 'input', maxLength: 200 },
+  { key: 'description', label: 'Description', type: 'textarea', maxLength: 500, rows: 3 },
+  { key: 'longDescription', label: 'Long Description', type: 'textarea', maxLength: 2000, rows: 5 },
+  { key: 'gridTitle', label: 'Grid Title', type: 'input', maxLength: 200 },
+  { key: 'gridSubtitle', label: 'Grid Subtitle', type: 'textarea', maxLength: 500, rows: 2 },
+  { key: 'metaTitle', label: 'Meta Title', type: 'input', maxLength: 60 },
+  { key: 'metaDescription', label: 'Meta Description', type: 'textarea', maxLength: 160, rows: 2 },
+  { key: 'highlights', label: 'Highlights', type: 'array', maxLength: 200 },
+  { key: 'features', label: 'Features', type: 'array', maxLength: 300 },
+];
+
 // ── Shared helper ──
 
 /** Convert a Map or object from MongoDB into a plain translations object */

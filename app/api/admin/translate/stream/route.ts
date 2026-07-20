@@ -1,9 +1,14 @@
-import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  canAccessTenant,
+  requireAdminAuth,
+  tenantForbiddenResponse,
+} from '@/lib/auth/adminAuth';
 import dbConnect from '@/lib/dbConnect';
 import Tour from '@/lib/models/Tour';
 import Destination from '@/lib/models/Destination';
 import Category from '@/lib/models/Category';
+import AttractionPage from '@/lib/models/AttractionPage';
 import {
   translateEntityFieldsForLocale,
   translateTourContentForLocale,
@@ -16,73 +21,71 @@ import {
   tourTranslationFields,
   destinationTranslationFields,
   categoryTranslationFields,
+  attractionPageTranslationFields,
 } from '@/lib/i18n/translationFields';
+import { revalidateStorefrontContent } from '@/lib/storefront/revalidateTourStorefront';
+import type { Model } from 'mongoose';
 
-const VALID_MODEL_TYPES = ['tour', 'destination', 'category'] as const;
+const VALID_MODEL_TYPES = ['tour', 'destination', 'category', 'attraction-page'] as const;
 type ModelType = (typeof VALID_MODEL_TYPES)[number];
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAdminAuth(request, { permissions: ['manageTours'] });
+  const auth = await requireAdminAuth(request, {
+    permissions: ['manageTours', 'manageContent'],
+    requireAll: false,
+  });
   if (auth instanceof NextResponse) return auth;
 
-  const { modelType, id } = (await request.json()) as {
-    modelType: ModelType;
-    id: string;
-  };
-
+  const { modelType, id } = (await request.json()) as { modelType: ModelType; id: string };
   if (!modelType || !VALID_MODEL_TYPES.includes(modelType)) {
     return NextResponse.json(
       { success: false, error: `Invalid modelType. Must be one of: ${VALID_MODEL_TYPES.join(', ')}` },
-      { status: 400 }
+      { status: 400 },
     );
   }
-
-  if (!id) {
-    return NextResponse.json(
-      { success: false, error: 'Missing id' },
-      { status: 400 }
-    );
-  }
+  if (!id) return NextResponse.json({ success: false, error: 'Missing id' }, { status: 400 });
 
   await dbConnect();
-  const model: any = modelType === 'tour' ? Tour : modelType === 'destination' ? Destination : Category;
+  const models = {
+    tour: Tour,
+    destination: Destination,
+    category: Category,
+    'attraction-page': AttractionPage,
+  } as const;
+  const model = models[modelType] as Model<Record<string, unknown>>;
   const target = await model.findById(id).select('tenantId').lean() as { tenantId?: string } | null;
-  if (!target) return NextResponse.json({ success: false, error: `${modelType} not found` }, { status: 404 });
+  if (!target) {
+    return NextResponse.json({ success: false, error: `${modelType} not found` }, { status: 404 });
+  }
   const targetTenantId = String(target.tenantId || 'default');
   if (!canAccessTenant(auth, targetTenantId)) return tenantForbiddenResponse();
 
-  const fieldDefsMap = {
+  const fieldDefs = {
     tour: tourTranslationFields,
     destination: destinationTranslationFields,
     category: categoryTranslationFields,
-  };
-
-  const fieldDefs = fieldDefsMap[modelType];
+    'attraction-page': attractionPageTranslationFields,
+  }[modelType];
 
   const encoder = new TextEncoder();
-
   const stream = new ReadableStream({
     async start(controller) {
       const send = (event: string, data: unknown) => {
         controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
       };
 
+      const saveLocale = async (locale: string, bucket: Record<string, unknown>) => {
+        const filter = { _id: id, tenantId: targetTenantId };
+        const update = { $set: { [`translations.${locale}`]: bucket } };
+        await model.findOneAndUpdate(filter, update);
+      };
+
       try {
-        await dbConnect();
-
-        // Fetch the document
-        let doc: Record<string, unknown> | null = null;
-        if (modelType === 'tour') {
-          doc = await Tour.findById(id).lean() as Record<string, unknown> | null;
-        } else if (modelType === 'destination') {
-          doc = await Destination.findById(id).lean() as Record<string, unknown> | null;
-        } else if (modelType === 'category') {
-          doc = await Category.findById(id).lean() as Record<string, unknown> | null;
-        }
-
+        const doc = await model
+          .findOne({ _id: id, tenantId: targetTenantId })
+          .lean() as Record<string, unknown> | null;
         if (!doc) {
           send('error', { error: `${modelType} not found` });
-          controller.close();
           return;
         }
 
@@ -90,18 +93,13 @@ export async function POST(request: NextRequest) {
         const structuredTourContent = modelType === 'tour'
           ? extractStructuredTourContent(doc)
           : null;
-
         const hasFlatFields = Object.keys(fields).length > 0;
         const hasStructuredFields = modelType === 'tour' && structuredTourContent
-          ? ['itinerary', 'faq', 'bookingOptions', 'addOns'].some((key) => {
-              const value = structuredTourContent[key as keyof typeof structuredTourContent];
-              return Array.isArray(value) && value.length > 0;
-            })
+          ? Object.values(structuredTourContent).some((value) => Array.isArray(value) && value.length > 0)
           : false;
 
         if (!hasFlatFields && !hasStructuredFields) {
           send('error', { error: 'No translatable content found' });
-          controller.close();
           return;
         }
 
@@ -110,64 +108,59 @@ export async function POST(request: NextRequest) {
           localeNames,
           totalLocales: translatableLocales.length,
         });
-
-        const allTranslations: Record<string, Record<string, unknown>> = {};
-
-        // Translate one locale at a time and stream each result
-        for (let i = 0; i < translatableLocales.length; i++) {
-          const locale = translatableLocales[i];
-          const localeName = localeNames[locale] || locale;
-
+        for (const locale of translatableLocales) {
           send('translating', {
             locale,
-            localeName,
-            index: i,
+            localeName: localeNames[locale] || locale,
             total: translatableLocales.length,
-          });
-
-          const translated = modelType === 'tour'
-            ? await translateTourContentForLocale(fields, structuredTourContent || {
-                itinerary: [],
-                faq: [],
-                bookingOptions: [],
-                addOns: [],
-              }, locale)
-            : await translateEntityFieldsForLocale(
-                fields,
-                fieldDefs,
-                modelType,
-                locale
-              );
-
-          if (Object.keys(translated).length > 0) {
-            allTranslations[locale] = translated;
-          }
-
-          send('locale_done', {
-            locale,
-            localeName,
-            index: i,
-            total: translatableLocales.length,
-            translations: translated,
           });
         }
 
-        // Save all translations to DB
-        if (Object.keys(allTranslations).length > 0) {
-          send('saving', { message: 'Saving translations to database...' });
+        const succeeded: string[] = [];
+        const failed: Array<{ locale: string; error: string }> = [];
 
-          if (modelType === 'tour') {
-            await Tour.findOneAndUpdate({ _id: id, tenantId: targetTenantId }, { $set: { translations: allTranslations } });
-          } else if (modelType === 'destination') {
-            await Destination.findOneAndUpdate({ _id: id, tenantId: targetTenantId }, { $set: { translations: allTranslations } });
-          } else if (modelType === 'category') {
-            await Category.findOneAndUpdate({ _id: id, tenantId: targetTenantId }, { $set: { translations: allTranslations } });
+        await Promise.all(translatableLocales.map(async (locale, index) => {
+          const localeName = localeNames[locale] || locale;
+          try {
+            const translated = modelType === 'tour'
+              ? await translateTourContentForLocale(fields, structuredTourContent || {
+                  itinerary: [],
+                  faq: [],
+                  bookingOptions: [],
+                  addOns: [],
+                }, locale)
+              : await translateEntityFieldsForLocale(fields, fieldDefs, modelType, locale);
+
+            if (Object.keys(translated).length === 0) {
+              throw new Error('No translated content returned');
+            }
+            await saveLocale(locale, translated);
+            succeeded.push(locale);
+            send('locale_done', {
+              locale,
+              localeName,
+              index,
+              total: translatableLocales.length,
+              translations: translated,
+            });
+          } catch (error) {
+            const message = error instanceof Error ? error.message : 'Translation failed';
+            failed.push({ locale, error: message });
+            send('locale_error', {
+              locale,
+              localeName,
+              index,
+              total: translatableLocales.length,
+              error: message,
+            });
           }
-        }
+        }));
 
+        if (succeeded.length > 0) revalidateStorefrontContent();
         send('done', {
-          success: true,
-          translatedLocales: Object.keys(allTranslations),
+          success: failed.length === 0,
+          translatedLocales: succeeded,
+          failedLocales: failed,
         });
       } catch (error) {
         console.error('Streaming translate error:', error);

@@ -361,7 +361,7 @@ const TourCard = ({ tour, onAddToCartClick }: { tour: Tour; onAddToCartClick: (t
         </div>
         <div className="flex items-center justify-between mt-auto">
           <div>
-            {tour.originalPrice && (
+            {tour.originalPrice && tour.originalPrice > tour.discountPrice && (
               <span className="text-slate-500 line-through text-sm me-2">{formatPrice(tour.originalPrice)}</span>
             )}
             <span className="text-xl font-bold text-red-600">{formatPrice(tour.discountPrice)}</span>

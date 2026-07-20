@@ -1848,7 +1848,7 @@ const Top10Card = ({ tour, index, onAddToCartClick }: { tour: Tour, index: numbe
           <span>{tour.rating}</span>
         </div>
         <div className="mt-2 text-sm flex items-center gap-2">
-          {tour.originalPrice && <span className="text-slate-500 line-through text-xs sm:text-sm">{formatPrice(tour.originalPrice)}</span>}
+          {tour.originalPrice && tour.originalPrice > tour.discountPrice && <span className="text-slate-500 line-through text-xs sm:text-sm">{formatPrice(tour.originalPrice)}</span>}
           <span className="text-red-600 font-bold text-lg sm:text-xl">{formatPrice(tour.discountPrice)}</span>
         </div>
       </div>
@@ -1911,7 +1911,7 @@ const CombiDealCard = ({ tour, onAddToCartClick }: { tour: Tour, onAddToCartClic
           <span>{tour.bookings} {copy.bookings}</span>
         </div>
         <div className="flex items-end justify-end mt-3 sm:mt-4">
-          {tour.originalPrice && <span className="text-slate-500 line-through me-2 text-sm">{formatPrice(tour.originalPrice)}</span>}
+          {tour.originalPrice && tour.originalPrice > tour.discountPrice && <span className="text-slate-500 line-through me-2 text-sm">{formatPrice(tour.originalPrice)}</span>}
           <span className="text-lg sm:text-xl font-extrabold text-red-600">{formatPrice(tour.discountPrice)}</span>
         </div>
       </div>

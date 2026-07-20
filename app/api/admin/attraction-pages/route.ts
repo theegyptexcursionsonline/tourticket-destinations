@@ -5,6 +5,10 @@ import dbConnect from '@/lib/dbConnect';
 import AttractionPage from '@/lib/models/AttractionPage';
 import Tour from '@/lib/models/Tour';
 import Category from '@/lib/models/Category';
+import {
+  PageLinkValidationError,
+  validateAndNormalizePageLinks,
+} from '@/lib/attractionPages/validatePageLinks';
 
 export async function GET(request: NextRequest) {
   const auth = await requireAdminAuth(request, { permissions: ['manageContent'] });
@@ -189,7 +193,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const page = new AttractionPage(body);
+    const linkedContent = await validateAndNormalizePageLinks(body, targetTenantId);
+    const page = new AttractionPage({ ...body, ...linkedContent });
     await page.save();
     revalidateStorefrontContent();
 
@@ -207,6 +212,9 @@ export async function POST(request: NextRequest) {
     }, { status: 201 });
   } catch (error) {
     console.error('Error creating attraction page:', error);
+    if (error instanceof PageLinkValidationError) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 400 });
+    }
     
     // Handle validation errors
     if (error instanceof Error && error.name === 'ValidationError') {

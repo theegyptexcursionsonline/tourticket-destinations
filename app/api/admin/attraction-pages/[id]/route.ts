@@ -5,6 +5,10 @@ import dbConnect from '@/lib/dbConnect';
 import AttractionPage from '@/lib/models/AttractionPage';
 import Category from '@/lib/models/Category';
 import mongoose from 'mongoose';
+import {
+  PageLinkValidationError,
+  validateAndNormalizePageLinks,
+} from '@/lib/attractionPages/validatePageLinks';
 
 // Defensive helper: when an admin is scoped to a single tenant via the
 // AdminTenantContext, every write must include `?tenantId=xxx`. We use that
@@ -33,10 +37,19 @@ export async function GET(
       }, { status: 400 });
     }
 
-    const page = await AttractionPage.findById(id)
+    const unpopulatedPage = await AttractionPage.findById(id).lean();
+
+    if (!unpopulatedPage) {
+      return NextResponse.json({ success: false, error: 'Page not found' }, { status: 404 });
+    }
+    const pageTenantId = String((unpopulatedPage as { tenantId?: string }).tenantId || 'default');
+    if (!canAccessTenant(auth, pageTenantId)) return tenantForbiddenResponse();
+
+    const page = await AttractionPage.findOne({ _id: id, tenantId: pageTenantId })
       .populate({
         path: 'categoryId',
         model: Category,
+        match: { tenantId: pageTenantId },
         select: 'name slug'
       })
       .lean();
@@ -47,8 +60,6 @@ export async function GET(
         error: 'Page not found'
       }, { status: 404 });
     }
-    if (!canAccessTenant(auth, String((page as any).tenantId || 'default'))) return tenantForbiddenResponse();
-
     return NextResponse.json({
       success: true,
       data: page
@@ -116,8 +127,10 @@ export async function PUT(
     }
 
     // PROPERLY HANDLE ARRAYS - This is the fix
+    const linkedContent = await validateAndNormalizePageLinks(body, targetTenantId, id);
     const updateData = {
       ...body,
+      ...linkedContent,
       // Ensure arrays are properly handled
       images: Array.isArray(body.images) ? body.images : (body.images ? [body.images] : []),
       highlights: Array.isArray(body.highlights) ? body.highlights : (body.highlights ? [body.highlights] : []),
@@ -158,6 +171,9 @@ export async function PUT(
     });
   } catch (error) {
     console.error('❌ Error updating attraction page:', error);
+    if (error instanceof PageLinkValidationError) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 400 });
+    }
     
     // Handle validation errors
     if (error instanceof Error && error.name === 'ValidationError') {

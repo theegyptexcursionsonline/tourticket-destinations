@@ -22,6 +22,18 @@ export async function GET(
       }, { status: 400 });
     }
 
+    if (request.cookies.has('admin-auth-token')) {
+      const adminAuth = await requireAdminAuth(request, { permissions: ['manageContent'] });
+      if (adminAuth instanceof NextResponse) return adminAuth;
+      const adminCategory = await Category.findById(id).lean();
+      if (!adminCategory) {
+        return NextResponse.json({ success: false, error: 'Category not found' }, { status: 404 });
+      }
+      const adminTenantId = String((adminCategory as { tenantId?: string }).tenantId || 'default');
+      if (!canAccessTenant(adminAuth, adminTenantId)) return tenantForbiddenResponse();
+      return NextResponse.json({ success: true, data: adminCategory });
+    }
+
     const tenantId = await getTenantFromRequest();
     const category = await Category.findOne(
       buildStrictTenantQuery({ _id: id, isPublished: true }, tenantId),

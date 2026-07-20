@@ -256,12 +256,14 @@ export interface Review {
 
 export interface AttractionPage {
   _id: string;
+  tenantId?: string;
   title: string;
   slug: string;
   description: string;
   longDescription?: string;
   pageType: 'attraction' | 'category';
   categoryId?: string | Category;
+  urlType?: string;
   heroImage: string;
   images?: string[];
   highlights?: string[];
@@ -277,6 +279,10 @@ export interface AttractionPage {
   featured: boolean;
   createdAt?: string;
   updatedAt?: string;
+  linkedTourIds?: string[];
+  linkedPageIds?: string[];
+  linkedCategoryIds?: string[];
+  translations?: Record<string, Record<string, unknown>>;
 }
 
 export interface AttractionPageFormData {
@@ -286,6 +292,7 @@ export interface AttractionPageFormData {
   longDescription: string;
   pageType: 'attraction' | 'category';
   categoryId: string;
+  urlType: string;
   heroImage: string;
   images: string[];
   highlights: string[];
@@ -300,6 +307,9 @@ export interface AttractionPageFormData {
   isPublished: boolean;
   featured: boolean;
   linkedTours?: string[];
+  linkedPages?: string[];
+  linkedCategories?: string[];
+  translations?: Record<string, Record<string, unknown>>;
 }
 
 export interface CategoryPageData extends AttractionPage {
@@ -307,6 +317,14 @@ export interface CategoryPageData extends AttractionPage {
   tours: Tour[];
   totalTours: number;
   reviews?: Review[];
+  linkedPages?: Array<{
+    id: string;
+    title: string;
+    description?: string;
+    image?: string;
+    href: string;
+    kind: 'page' | 'category';
+  }>;
 }
 
 // =================================================================

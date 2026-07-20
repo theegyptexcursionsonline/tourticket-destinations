@@ -394,6 +394,33 @@ describe('DayTripsSection', () => {
       const originalPrice = screen.getByText('$50.00')
       expect(originalPrice.closest('span')).toHaveClass('line-through')
     })
+
+    it('should not show a struck-through original price when it equals the discount price', async () => {
+      ;(global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        status: 200,
+        text: async () => JSON.stringify({
+          success: true,
+          data: [
+            {
+              ...mockTours[0],
+              originalPrice: 380,
+              discountPrice: 380,
+            },
+          ],
+        }),
+      })
+
+      render(<DayTripsSection />)
+
+      await waitFor(() => {
+        expect(screen.getByText('$380.00')).toBeInTheDocument()
+      })
+
+      // Only the displayed price renders; no duplicate struck-through $380.00
+      expect(screen.getAllByText('$380.00')).toHaveLength(1)
+      expect(document.querySelector('.line-through')).not.toBeInTheDocument()
+    })
   })
 
   describe('Accessibility', () => {

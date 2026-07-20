@@ -10,6 +10,9 @@ import {
     Minus, HelpCircle, Palette
 } from 'lucide-react';
 import Image from 'next/image';
+import TranslationEditor from '@/components/admin/TranslationEditor';
+import { categoryTranslationFields, normalizeTranslations } from '@/lib/i18n/translationFields';
+import { useAdminTenant } from '@/contexts/AdminTenantContext';
 
 interface CategoryFormData {
   name: string;
@@ -28,6 +31,7 @@ interface CategoryFormData {
   order: number;
   isPublished: boolean;
   featured: boolean;
+  translations: Record<string, Record<string, unknown>>;
 }
 
 interface CategoryFormProps {
@@ -51,6 +55,7 @@ const defaultFormData: CategoryFormData = {
   order: 0,
   isPublished: true,
   featured: false,
+  translations: {},
 };
 
 // Helper Components
@@ -77,6 +82,7 @@ const textareaBase = "block w-full px-4 py-3 border border-slate-300 rounded-xl 
 
 export default function CategoryForm({ categoryId }: CategoryFormProps) {
   const router = useRouter();
+  const { selectedTenantId, getSelectedTenant } = useAdminTenant();
   const [isPanelOpen] = useState(true);
   const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(false);
   const [activeTab, setActiveTab] = useState('basic');
@@ -86,6 +92,13 @@ export default function CategoryForm({ categoryId }: CategoryFormProps) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [entityTenantId, setEntityTenantId] = useState('');
+  const activeTenantId = categoryId
+    ? entityTenantId
+    : selectedTenantId !== 'all'
+      ? selectedTenantId
+      : '';
+  const selectedBrand = getSelectedTenant();
 
   const fetchCategoryData = useCallback(async () => {
     if (!categoryId) return;
@@ -97,6 +110,7 @@ export default function CategoryForm({ categoryId }: CategoryFormProps) {
       
       if (data.success) {
         const category = data.data;
+        setEntityTenantId(String(category.tenantId || ''));
         
         setFormData({
           name: category.name || '',
@@ -115,6 +129,7 @@ export default function CategoryForm({ categoryId }: CategoryFormProps) {
           order: category.order || 0,
           isPublished: category.isPublished !== false,
           featured: category.featured || false,
+          translations: normalizeTranslations(category.translations),
         });
         setIsSlugManuallyEdited(Boolean(category.slug));
       } else {
@@ -221,14 +236,19 @@ export default function CategoryForm({ categoryId }: CategoryFormProps) {
     setError(null);
 
     try {
-      const url = categoryId 
+      if (!activeTenantId) {
+        throw new Error('Select a specific brand before creating a category page.');
+      }
+      const baseUrl = categoryId
         ? `/api/categories/${categoryId}`
         : '/api/categories';
+      const url = `${baseUrl}?tenantId=${encodeURIComponent(activeTenantId)}`;
       
       const method = categoryId ? 'PUT' : 'POST';
 
       const payload = {
         ...formData,
+        ...(!categoryId ? { tenantId: activeTenantId } : {}),
         highlights: Array.isArray(formData.highlights) ? formData.highlights.filter(item => item && item.trim() !== '') : [],
         features: Array.isArray(formData.features) ? formData.features.filter(item => item && item.trim() !== '') : [],
         images: Array.isArray(formData.images) ? formData.images.filter(item => item && item.trim() !== '') : [],
@@ -247,14 +267,16 @@ export default function CategoryForm({ categoryId }: CategoryFormProps) {
 
       if (data.success) {
         toast.success(`Category ${categoryId ? 'updated' : 'created'} successfully!`);
-        router.push('/admin/categories');
+        router.push('/admin/pages');
         router.refresh();
       } else {
         setError(data.error || 'Failed to save category');
         toast.error(data.error || 'Failed to save category');
       }
     } catch (err) {
-      const errorMessage = 'Network error occurred while saving the category';
+      const errorMessage = err instanceof Error
+        ? err.message
+        : 'Network error occurred while saving the category';
       setError(errorMessage);
       toast.error(errorMessage);
       console.error('Submit error:', err);
@@ -267,6 +289,7 @@ export default function CategoryForm({ categoryId }: CategoryFormProps) {
     { id: 'basic', label: 'Basic Info', icon: Info },
     { id: 'media', label: 'Media', icon: Camera },
     { id: 'content', label: 'Content', icon: Sparkles },
+    { id: 'translations', label: 'Translations', icon: Globe },
     { id: 'seo', label: 'SEO', icon: Globe },
     { id: 'settings', label: 'Settings', icon: Eye }
   ];
@@ -296,7 +319,7 @@ export default function CategoryForm({ categoryId }: CategoryFormProps) {
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-6">
             <button 
-              onClick={() => router.push('/admin/categories')}
+              onClick={() => router.push('/admin/pages')}
               className="flex items-center justify-center w-10 h-10 bg-white border border-slate-200 rounded-xl hover:border-indigo-300 hover:bg-indigo-50 transition-all duration-200 group"
             >
               <ArrowLeft className="h-5 w-5 text-slate-600 group-hover:text-indigo-600" />
@@ -313,8 +336,18 @@ export default function CategoryForm({ categoryId }: CategoryFormProps) {
               <p className="text-slate-500 mt-2">
                 {categoryId ? `Editing: ${formData.name || 'Category'}` : 'Fill out the form to create your category'}
               </p>
+              <p className="text-sm text-slate-500 mt-1">
+                Brand: {categoryId
+                  ? (entityTenantId || 'Loading…')
+                  : (selectedBrand?.name || 'Select a specific brand')}
+              </p>
             </div>
           </div>
+          {!categoryId && !activeTenantId && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              Select a specific brand from the top navigation before creating a category page.
+            </div>
+          )}
         </div>
 
         <div className="space-y-8">
@@ -651,6 +684,26 @@ export default function CategoryForm({ categoryId }: CategoryFormProps) {
                       </div>
                     )}
 
+                    {activeTab === 'translations' && (
+                      <div className="space-y-6">
+                        {categoryId ? (
+                          <TranslationEditor
+                            fields={categoryTranslationFields}
+                            value={formData.translations}
+                            onChange={(translations) => setFormData((prev) => ({ ...prev, translations }))}
+                            modelType="category"
+                            entityId={categoryId}
+                          />
+                        ) : (
+                          <div className="text-center py-10 bg-slate-50 rounded-xl border border-dashed border-slate-300">
+                            <Globe className="w-10 h-10 mx-auto mb-3 text-slate-300" />
+                            <p className="text-slate-600 font-medium">Save the category first, then add translations</p>
+                            <p className="text-sm text-slate-400 mt-1">Auto-translate needs a saved page to work from.</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     {/* SEO Tab */}
                     {activeTab === 'seo' && (
                       <div className="space-y-6">
@@ -824,7 +877,7 @@ export default function CategoryForm({ categoryId }: CategoryFormProps) {
                     <div className="flex items-center gap-4">
                       <button
                         type="button"
-                        onClick={() => router.push('/admin/categories')}
+                        onClick={() => router.push('/admin/pages')}
                         className="flex-1 px-6 py-3 text-slate-700 font-semibold border border-slate-300 rounded-xl hover:bg-slate-50 transition-all duration-200"
                       >
                         Cancel

@@ -83,6 +83,24 @@ describe('checkout pricing security', () => {
     }], 'brand-a')).rejects.toThrow('Invalid add-on');
   });
 
+  it('charges per-person add-ons once per paying guest — never times the stored quantity, and never for infants', async () => {
+    // Legacy clients persisted the guest count (or worse) as the add-on quantity.
+    // A per-person (Food) add-on must bill price × (adults + children) only:
+    // no quantity multiplication (the guest-count² overcharge) and no infants.
+    const result = await calculateCheckoutPricing([{
+      id: '507f1f77bcf86cd799439011',
+      quantity: 2,
+      childQuantity: 1,
+      infantQuantity: 2,
+      selectedDate: '2099-01-01',
+      selectedAddOns: { 'addon-1': 3 },
+    }], 'brand-a');
+
+    // base 100×2 + 50×1 = 250; add-on 20 × 3 paying guests = 60 (not 20 × 3 × 3)
+    expect(result.pricing.subtotal).toBe(310);
+    expect(result.cart[0].selectedAddOnDetails['addon-1'].perGuest).toBe(true);
+  });
+
   it('rejects tours outside the current tenant', async () => {
     tourLean.mockResolvedValueOnce(null);
     await expect(calculateCheckoutPricing([{

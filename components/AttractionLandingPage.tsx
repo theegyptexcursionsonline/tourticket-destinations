@@ -36,8 +36,18 @@ interface AttractionData {
   featured: boolean;
 }
 
+export interface LinkedPageCardData {
+  id: string;
+  title: string;
+  description?: string;
+  image?: string;
+  href: string;
+  kind: 'page' | 'category';
+}
+
 interface AttractionLandingPageProps {
   attraction: AttractionData;
+  linkedPages?: LinkedPageCardData[];
 }
 
 const QuickInfo = ({ attraction }: { attraction: AttractionData }) => {
@@ -332,7 +342,7 @@ const ReviewsSection = ({ reviews }: { reviews: Review[] }) => {
   );
 };
 
-const AttractionLandingPage: React.FC<AttractionLandingPageProps> = ({ attraction }) => {
+const AttractionLandingPage: React.FC<AttractionLandingPageProps> = ({ attraction, linkedPages = [] }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState('featured');
@@ -397,7 +407,8 @@ const AttractionLandingPage: React.FC<AttractionLandingPageProps> = ({ attractio
             </div>
             
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
-              Things to do in {attraction.title}
+              {/* Don't double the phrase when the page title already says it */}
+              {/things to do/i.test(attraction.title) ? attraction.title : `Things to do in ${attraction.title}`}
             </h1>
             
             <QuickInfo attraction={attraction} />
@@ -489,6 +500,47 @@ const AttractionLandingPage: React.FC<AttractionLandingPageProps> = ({ attractio
                 )}
               </motion.div>
             )}
+          </div>
+        </section>
+      )}
+
+      {linkedPages.length > 0 && (
+        <section className="py-12 bg-slate-50">
+          <div className="container mx-auto px-6">
+            <h2 className="text-3xl font-bold text-slate-900 mb-2">Explore more</h2>
+            <p className="text-slate-600 mb-8">Related guides and collections selected for this page</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {linkedPages.map((page) => (
+                <Link
+                  key={page.id}
+                  href={page.href}
+                  className="group bg-white rounded-xl border border-slate-200 overflow-hidden hover:shadow-lg hover:border-red-300 transition-all"
+                >
+                  {page.image && (
+                    <div className="relative h-40 w-full overflow-hidden">
+                      <Image
+                        src={page.image}
+                        alt={page.title}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-300"
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      />
+                    </div>
+                  )}
+                  <div className="p-5">
+                    <div className="flex items-center justify-between gap-3">
+                      <h3 className="font-semibold text-slate-900 group-hover:text-red-600 transition-colors">
+                        {page.title}
+                      </h3>
+                      <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-red-600 flex-shrink-0 transition-colors" />
+                    </div>
+                    {page.description && (
+                      <p className="text-sm text-slate-600 mt-2 line-clamp-2">{page.description}</p>
+                    )}
+                  </div>
+                </Link>
+              ))}
+            </div>
           </div>
         </section>
       )}

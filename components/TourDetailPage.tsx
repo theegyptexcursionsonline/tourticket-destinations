@@ -1193,7 +1193,7 @@ export default function TourPageClient({ tour, relatedTours, initialReviews }: T
                   </div>
 
                   <div className="text-end flex-shrink-0">
-                    {tour.originalPrice && (
+                    {tour.originalPrice && tour.originalPrice > tour.discountPrice && (
                       <p className="text-slate-500 line-through text-lg mb-1">{formatPrice(tour.originalPrice)}</p>
                     )}
                     <p className="text-3xl md:text-4xl font-extrabold text-red-600 mb-1">

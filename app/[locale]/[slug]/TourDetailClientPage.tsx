@@ -1332,7 +1332,7 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
                   </div>
 
                   <div className="text-end flex-shrink-0">
-                    {tour.originalPrice && (
+                    {tour.originalPrice && tour.originalPrice > tour.discountPrice && (
                       <p className="text-slate-500 line-through text-lg mb-1">{formatPrice(tour.originalPrice)}</p>
                     )}
                     <p className="text-3xl md:text-4xl font-extrabold text-red-600 mb-1">
@@ -1471,7 +1471,7 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
                 <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-6 mb-6">
                   <div className="text-center mb-6">
                     <div className="flex items-baseline justify-center gap-2 mb-2">
-                      {tour.originalPrice && (
+                      {tour.originalPrice && tour.originalPrice > tour.discountPrice && (
                         <span className="text-slate-500 line-through text-lg">{formatPrice(tour.originalPrice)}</span>
                       )}
                       <span className="text-4xl font-extrabold text-red-600">{formatPrice(tour.discountPrice)}</span>

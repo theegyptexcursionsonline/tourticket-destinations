@@ -1,5 +1,18 @@
  
 import mongoose, { Document, Schema, Model } from 'mongoose';
+import { PAGE_URL_TYPES, type PageUrlType } from '@/lib/attractionPages/pageUrl';
+
+export interface IAttractionPageTranslation {
+  title?: string;
+  description?: string;
+  longDescription?: string;
+  gridTitle?: string;
+  gridSubtitle?: string;
+  highlights?: string[];
+  features?: string[];
+  metaTitle?: string;
+  metaDescription?: string;
+}
 
 export interface IAttractionPage extends Document {
   // Multi-tenant support
@@ -14,12 +27,16 @@ export interface IAttractionPage extends Document {
   // Page Type
   pageType: 'attraction' | 'category';
   categoryId?: mongoose.Schema.Types.ObjectId;
+  urlType?: PageUrlType;
   
   // Content
   heroImage?: string; // NOW OPTIONAL
   images?: string[];
   highlights?: string[];
   features?: string[];
+  linkedTourIds?: mongoose.Types.ObjectId[];
+  linkedPageIds?: mongoose.Types.ObjectId[];
+  linkedCategoryIds?: mongoose.Types.ObjectId[];
   
   // Grid Settings
   gridTitle: string;
@@ -31,6 +48,7 @@ export interface IAttractionPage extends Document {
   metaTitle?: string;
   metaDescription?: string;
   keywords?: string[];
+  translations?: Map<string, IAttractionPageTranslation>;
   
   // Status
   isPublished: boolean;
@@ -40,6 +58,21 @@ export interface IAttractionPage extends Document {
   createdAt: Date;
   updatedAt: Date;
 }
+
+const AttractionPageTranslationSchema = new Schema<IAttractionPageTranslation>(
+  {
+    title: { type: String, trim: true, maxlength: 200 },
+    description: { type: String, trim: true, maxlength: 500 },
+    longDescription: { type: String, trim: true, maxlength: 2000 },
+    gridTitle: { type: String, trim: true, maxlength: 200 },
+    gridSubtitle: { type: String, trim: true, maxlength: 500 },
+    highlights: [{ type: String, trim: true, maxlength: 200 }],
+    features: [{ type: String, trim: true, maxlength: 300 }],
+    metaTitle: { type: String, trim: true, maxlength: 60 },
+    metaDescription: { type: String, trim: true, maxlength: 160 },
+  },
+  { _id: false },
+);
 
 const AttractionPageSchema: Schema<IAttractionPage> = new Schema({
   // Multi-tenant support
@@ -101,6 +134,11 @@ const AttractionPageSchema: Schema<IAttractionPage> = new Schema({
       message: 'Invalid category ID'
     }
   },
+  urlType: {
+    type: String,
+    enum: PAGE_URL_TYPES,
+    default: 'default',
+  },
   heroImage: {
     type: String,
     required: false,
@@ -109,6 +147,18 @@ const AttractionPageSchema: Schema<IAttractionPage> = new Schema({
   images: [{
     type: String,
     trim: true,
+  }],
+  linkedTourIds: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Tour',
+  }],
+  linkedPageIds: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'AttractionPage',
+  }],
+  linkedCategoryIds: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Category',
   }],
   highlights: {
     type: [String],
@@ -166,6 +216,11 @@ const AttractionPageSchema: Schema<IAttractionPage> = new Schema({
     trim: true,
     maxlength: [50, 'Each keyword cannot exceed 50 characters'],
   }],
+  translations: {
+    type: Map,
+    of: AttractionPageTranslationSchema,
+    default: undefined,
+  },
   isPublished: {
     type: Boolean,
     default: false,
