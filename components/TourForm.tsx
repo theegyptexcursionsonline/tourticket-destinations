@@ -111,6 +111,7 @@ interface AddOn {
     description: string;
     price: number;
     category?: string;
+    pricingMethod?: 'per_unit' | 'per_person';
 }
 
 interface TourFormData {
@@ -500,7 +501,12 @@ export default function TourForm({ tourToEdit, onSave, fullPage = false }: { tou
                         discount: 0,
                         isRecommended: false
                     }],
-                addOns: (tourToEdit.addOns?.length ?? 0) > 0 ? tourToEdit.addOns : [],
+                addOns: (tourToEdit.addOns?.length ?? 0) > 0
+                    ? tourToEdit.addOns!.map((addon) => ({
+                        ...addon,
+                        pricingMethod: addon.pricingMethod || (addon.category === 'Food' ? 'per_person' : 'per_unit'),
+                    }))
+                    : [],
              isPublished: tourToEdit.isPublished || false,
                 difficulty: tourToEdit.difficulty || '',
                 maxGroupSize: tourToEdit.maxGroupSize || 10,
@@ -832,7 +838,7 @@ const addItineraryItem = () => {
     const addAddOn = () => {
         setFormData((p) => ({ 
             ...p, 
-            addOns: [...p.addOns, { name: '', description: '', price: 0 }] 
+            addOns: [...p.addOns, { name: '', description: '', price: 0, pricingMethod: 'per_unit' as const }]
         }));
     };
 
@@ -2130,6 +2136,9 @@ const addItineraryItem = () => {
                                                                     <div className="text-lg font-bold text-slate-900">
                                                                         {selectedCurrency.symbol}{addon.price?.toFixed(2) || '0.00'}
                                                                     </div>
+                                                                    <div className="text-xs text-slate-500">
+                                                                        {addon.pricingMethod === 'per_person' ? 'per person' : 'per unit'}
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                             <div className="pt-2 border-t border-slate-100">
@@ -2161,7 +2170,7 @@ const addItineraryItem = () => {
                                                             <XCircle className="w-5 h-5" />
                                                         </button>
                                                     </div>
-                                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
                                                         <div className="space-y-2">
                                                             <label className="block text-sm font-medium text-slate-700">Add-on Name *</label>
                                                             <input 
@@ -2171,6 +2180,22 @@ const addItineraryItem = () => {
                                                                 placeholder="e.g., Professional Photography" 
                                                                 required
                                                             />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <label className="block text-sm font-medium text-slate-700">Pricing Method *</label>
+                                                            <select
+                                                                value={addon.pricingMethod || 'per_unit'}
+                                                                onChange={(e) => handleAddOnChange(index, 'pricingMethod', e.target.value)}
+                                                                className={`${inputBase} appearance-none cursor-pointer`}
+                                                            >
+                                                                <option value="per_unit">Per unit — price × selected quantity</option>
+                                                                <option value="per_person">Per person — price × each guest</option>
+                                                            </select>
+                                                            <p className="text-xs text-slate-500">
+                                                                {addon.pricingMethod === 'per_person'
+                                                                    ? 'Charged once per paying guest (adults + children; infants free).'
+                                                                    : 'Charged for each selected unit.'}
+                                                            </p>
                                                         </div>
                                                         <div className="space-y-2">
                                                             <label className="block text-sm font-medium text-slate-700">Price ({selectedCurrency.symbol}) *</label>

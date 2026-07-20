@@ -36,7 +36,7 @@ const CartSidebar: FC = () => {
                 const addOnDetail = item.selectedAddOnDetails?.[addOnId];
                 if (addOnDetail && quantity > 0) {
                     const totalGuests = item.quantity + item.childQuantity;
-                    const addOnQuantity = addOnDetail.perGuest ? totalGuests : 1;
+                    const addOnQuantity = addOnDetail.perGuest ? totalGuests : Number(quantity);
                     addOnsTotal += addOnDetail.price * addOnQuantity;
                 }
             });
@@ -206,7 +206,7 @@ const CartSidebar: FC = () => {
                                                                 if (!addOnDetail || quantity === 0) return null;
 
                                                                 const totalGuests = item.quantity + item.childQuantity;
-                                                                const addOnQuantity = addOnDetail.perGuest ? totalGuests : 1;
+                                                                const addOnQuantity = addOnDetail.perGuest ? totalGuests : Number(quantity);
                                                                 const addOnTotal = addOnDetail.price * addOnQuantity;
 
                                                                 return (

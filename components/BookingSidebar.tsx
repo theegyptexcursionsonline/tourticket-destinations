@@ -19,6 +19,7 @@ import { useCart } from '@/hooks/useCart';
 import { useSettings } from '@/hooks/useSettings';
 import { toDateOnlyString } from '@/utils/date';
 import { loadCurrentBookingOptions } from '@/lib/bookings/liveBookingOptions';
+import { isPerPersonAddOn } from '@/lib/checkout/addOnPricing';
 
 // Enhanced Types with database compatibility
 interface Tour {
@@ -122,6 +123,7 @@ interface AddOnTour {
   icon?: React.ElementType;
   savings?: number;
   perGuest?: boolean;
+  pricingMethod?: 'per_unit' | 'per_person';
 }
 
 interface AvailabilityData {
@@ -810,7 +812,7 @@ const AddOnCard: React.FC<{
   const IconComponent = addOn.icon || Gift;
   const isSelected = quantity > 0;
   
-  const calculatedQuantity = addOn.perGuest ? guestCount : 1;
+  const calculatedQuantity = addOn.perGuest ? guestCount : quantity;
   const _totalPrice = isSelected ? addOn.price * calculatedQuantity : 0;
   const _totalSavings = isSelected && addOn.savings ? addOn.savings * calculatedQuantity : 0;
 
@@ -1484,7 +1486,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
           category: (addon.category || 'Experience') as 'Transport' | 'Photography' | 'Food' | 'Experience',
           icon: getAddOnIcon(addon.category || 'Experience'),
           savings: addon.savings || (addon.price ? Math.round(addon.price * 0.3) : 5),
-          perGuest: addon.perGuest ?? addon.category === 'Food',
+          perGuest: isPerPersonAddOn(addon),
         }));
       } else {
         // Fallback to default add-ons
@@ -1520,7 +1522,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
   const { subtotal, addOnsTotal, total, totalSavings } = useMemo(() => {
     let basePrice = 0;
     let originalBasePrice = 0;
-    const totalGuests = bookingData.adults + bookingData.children + bookingData.infants;
+    const totalGuests = bookingData.adults + bookingData.children;
 
     if (bookingData.selectedTimeSlot) {
       basePrice = bookingData.selectedTimeSlot.price;
@@ -1540,19 +1542,19 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
     const subtotalCalc = (bookingData.adults * basePrice) + (bookingData.children * basePrice * 0.5);
     const originalSubtotal = (bookingData.adults * originalBasePrice) + (bookingData.children * originalBasePrice * 0.5);
 
-    const addOnsCalc = Object.entries(bookingData.selectedAddOns).reduce((acc, [addOnId, _quantity]) => {
+    const addOnsCalc = Object.entries(bookingData.selectedAddOns).reduce((acc, [addOnId, quantity]) => {
       const addOn = availability?.addOns.find(a => a.id === addOnId);
       if (addOn) {
-        const itemQuantity = addOn.perGuest ? totalGuests : 1;
+        const itemQuantity = addOn.perGuest ? totalGuests : quantity;
         return acc + (addOn.price * itemQuantity);
       }
       return acc;
     }, 0);
 
-    const addOnsSavings = Object.entries(bookingData.selectedAddOns).reduce((acc, [addOnId, _quantity]) => {
+    const addOnsSavings = Object.entries(bookingData.selectedAddOns).reduce((acc, [addOnId, quantity]) => {
       const addOn = availability?.addOns.find(a => a.id === addOnId);
       if (addOn && addOn.savings) {
-        const itemQuantity = addOn.perGuest ? totalGuests : 1;
+        const itemQuantity = addOn.perGuest ? totalGuests : quantity;
         return acc + (addOn.savings * itemQuantity);
       }
       return acc;
@@ -2269,12 +2271,13 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
                   {t('booking.tourEnhancements')}
                 </h3>
                 <div className="space-y-3">
-                  {Object.entries(bookingData.selectedAddOns).map(([addOnId, _quantity]) => {
+                  {Object.entries(bookingData.selectedAddOns).map(([addOnId, quantity]) => {
                     const addOn = availability?.addOns.find(a => a.id === addOnId);
                     if (!addOn) return null;
                     
                     const IconComponent = addOn.icon || Gift;
-                    const totalPrice = addOn.price * (addOn.perGuest ? (bookingData.adults + bookingData.children) : 1);
+                    const addOnQuantity = addOn.perGuest ? (bookingData.adults + bookingData.children) : quantity;
+                    const totalPrice = addOn.price * addOnQuantity;
                     
                     return (
                       <div key={addOnId} className="flex items-center gap-3 bg-white p-3 rounded-2xl">
@@ -2289,7 +2292,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
                           <div className="font-bold text-purple-600">{formatPrice(totalPrice)}</div>
                           {addOn.savings && (
                             <div className="text-xs text-green-600">
-                              {t('price.save')} {formatPrice(addOn.savings * (addOn.perGuest ? (bookingData.adults + bookingData.children) : 1))}
+                              {t('price.save')} {formatPrice(addOn.savings * addOnQuantity)}
                             </div>
                           )}
                         </div>

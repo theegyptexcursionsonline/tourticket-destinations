@@ -63,7 +63,7 @@ const calculateItemTotal = (item: ReceiptOrderedItem) => {
       const qtyNum = Number(qty) || 0;
       if (addOnDetail && qtyNum > 0) {
         const totalGuests = (item.quantity || 0) + (item.childQuantity || 0);
-        const addOnQuantity = addOnDetail.perGuest ? totalGuests : 1;
+        const addOnQuantity = addOnDetail.perGuest ? totalGuests : qtyNum;
         addOnsTotal += addOnDetail.price * addOnQuantity;
       }
     });

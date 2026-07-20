@@ -173,7 +173,7 @@ const SummaryItem: React.FC<{ item: CartItem }> = ({ item }) => {
         const addOnDetail = item.selectedAddOnDetails?.[addOnId];
         if (addOnDetail && quantity > 0) {
           const totalGuests = (item.quantity || 0) + (item.childQuantity || 0);
-          const addOnQuantity = addOnDetail.perGuest ? totalGuests : 1;
+          const addOnQuantity = addOnDetail.perGuest ? totalGuests : Number(quantity);
           addOnsTotal += addOnDetail.price * addOnQuantity;
         }
       });
@@ -227,7 +227,7 @@ const SummaryItem: React.FC<{ item: CartItem }> = ({ item }) => {
                 if (!addOnDetail || quantity === 0) return null;
 
                 const totalGuests = (item.quantity || 0) + (item.childQuantity || 0);
-                const addOnQuantity = addOnDetail.perGuest ? totalGuests : 1;
+                const addOnQuantity = addOnDetail.perGuest ? totalGuests : Number(quantity);
                 const addOnTotal = addOnDetail.price * addOnQuantity;
 
                 return (
@@ -1012,7 +1012,7 @@ const handleDownloadReceipt = async () => {
                         const addOnDetail = item.selectedAddOnDetails?.[addOnId];
                         if (addOnDetail && quantity > 0) {
                           const totalGuests = (item.quantity || 0) + (item.childQuantity || 0);
-                          const addOnQuantity = addOnDetail.perGuest ? totalGuests : 1;
+                          const addOnQuantity = addOnDetail.perGuest ? totalGuests : Number(quantity);
                           addOnsTotal += addOnDetail.price * addOnQuantity;
                         }
                       });
@@ -1222,7 +1222,7 @@ export default function CheckoutPage() {
         const addOnDetail = item.selectedAddOnDetails?.[addOnId];
         if (addOnDetail && quantity > 0) {
           const totalGuests = (item.quantity || 0) + (item.childQuantity || 0);
-          const addOnQuantity = addOnDetail.perGuest ? totalGuests : 1;
+          const addOnQuantity = addOnDetail.perGuest ? totalGuests : Number(quantity);
           addOnsTotal += addOnDetail.price * addOnQuantity;
         }
       });

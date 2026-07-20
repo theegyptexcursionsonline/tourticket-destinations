@@ -409,8 +409,8 @@ async function processSuccessfulPayment(paymentIntent: Stripe.PaymentIntent) {
           if (!Number.isFinite(qty) || qty <= 0) continue;
           const price = Number(ao?.p || 0);
           const perGuest = !!ao?.pg;
-          const multiplier = perGuest ? totalGuestsForAddOns : 1;
-          itemSubtotal += price * multiplier * qty;
+          const billedQuantity = perGuest ? totalGuestsForAddOns : qty;
+          itemSubtotal += price * billedQuantity;
         }
       }
 

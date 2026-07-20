@@ -4,6 +4,7 @@ import { buildStrictTenantQuery } from '@/lib/tenant';
 import Availability from '@/lib/models/Availability';
 import StopSale from '@/lib/models/StopSale';
 import { createHash, createHmac } from 'crypto';
+import { isPerPersonAddOn } from '@/lib/checkout/addOnPricing';
 
 type CartItem = Record<string, any>;
 
@@ -120,7 +121,7 @@ export async function calculateCheckoutPricing(
       const fallback = FALLBACK_ADD_ONS[addOnId];
       if (!stored && !fallback) throw new Error('Invalid add-on');
       const price = Number(stored?.price ?? fallback.price);
-      const perGuest = stored ? stored.category === 'Food' : fallback.perGuest;
+      const perGuest = stored ? isPerPersonAddOn(stored) : fallback.perGuest;
       const title = stored?.name ?? fallback.title;
       if (!Number.isFinite(price) || price < 0) throw new Error('Invalid add-on price');
       const billedQuantity = perGuest ? adults + children : requestedQuantity;

@@ -494,7 +494,7 @@ const BookingDetailPage = () => {
         const addOnDetail = booking.selectedAddOnDetails?.[addOnId];
         if (addOnDetail && quantity > 0) {
           const totalGuests = (booking.adultGuests || 0) + (booking.childGuests || 0);
-          const addOnQuantity = addOnDetail.perGuest ? totalGuests : 1;
+          const addOnQuantity = addOnDetail.perGuest ? totalGuests : quantity;
           addOnsTotal += addOnDetail.price * addOnQuantity;
         }
       });
@@ -1067,7 +1067,7 @@ const BookingDetailPage = () => {
                   if (!addOnDetail || quantity === 0) return null;
                   
                   const totalGuests = (booking.adultGuests || 0) + (booking.childGuests || 0);
-                  const addOnQuantity = addOnDetail.perGuest ? totalGuests : 1;
+                    const addOnQuantity = addOnDetail.perGuest ? totalGuests : quantity;
                   const addOnTotal = addOnDetail.price * addOnQuantity;
                   
                   return (

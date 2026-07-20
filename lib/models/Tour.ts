@@ -57,6 +57,7 @@ export interface IAddOn {
   description: string;
   price: number;
   category?: string;
+  pricingMethod?: 'per_unit' | 'per_person';
 }
 
 // Complete Tour Interface
@@ -398,6 +399,10 @@ const AddOnSchema = new Schema<IAddOn>({
   category: {
     type: String,
     trim: true
+  },
+  pricingMethod: {
+    type: String,
+    enum: ['per_unit', 'per_person']
   }
 }, { _id: false });
 

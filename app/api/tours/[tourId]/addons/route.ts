@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Tour from '@/lib/models/Tour';
 import { buildStrictTenantQuery, getTenantFromRequest } from '@/lib/tenant';
+import { isPerPersonAddOn, resolveAddOnPricingMethod } from '@/lib/checkout/addOnPricing';
 
 export async function GET(
   request: Request,
@@ -36,7 +37,8 @@ export async function GET(
           category: addon.category || 'Experience',
           popular: index === 0,
           savings: addon.price ? Math.round(addon.price * 0.3) : 5,
-          perGuest: addon.category === 'Food',
+          perGuest: isPerPersonAddOn(addon),
+          pricingMethod: resolveAddOnPricingMethod(addon),
           maxQuantity: 1,
           required: false,
         }))

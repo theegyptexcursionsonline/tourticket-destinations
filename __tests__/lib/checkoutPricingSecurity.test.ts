@@ -101,6 +101,49 @@ describe('checkout pricing security', () => {
     expect(result.cart[0].selectedAddOnDetails['addon-1'].perGuest).toBe(true);
   });
 
+  it('honours explicit per-unit pricing even for a Food add-on', async () => {
+    tourLean.mockResolvedValueOnce({
+      _id: '507f1f77bcf86cd799439011',
+      tenantId: 'brand-a',
+      title: 'Canonical tour',
+      discountPrice: 100,
+      addOns: [{ _id: 'addon-1', name: 'Lunch box', price: 20, category: 'Food', pricingMethod: 'per_unit' }],
+    });
+
+    const result = await calculateCheckoutPricing([{
+      id: '507f1f77bcf86cd799439011',
+      quantity: 2,
+      childQuantity: 1,
+      selectedDate: '2099-01-01',
+      selectedAddOns: { 'addon-1': 2 },
+    }], 'brand-a');
+
+    expect(result.pricing.subtotal).toBe(290); // base 250 + 2 units x 20
+    expect(result.cart[0].selectedAddOnDetails['addon-1'].perGuest).toBe(false);
+  });
+
+  it('honours explicit per-person pricing outside the Food category and excludes infants', async () => {
+    tourLean.mockResolvedValueOnce({
+      _id: '507f1f77bcf86cd799439011',
+      tenantId: 'brand-a',
+      title: 'Canonical tour',
+      discountPrice: 100,
+      addOns: [{ _id: 'addon-1', name: 'Guide audio', price: 10, category: 'Experience', pricingMethod: 'per_person' }],
+    });
+
+    const result = await calculateCheckoutPricing([{
+      id: '507f1f77bcf86cd799439011',
+      quantity: 2,
+      childQuantity: 1,
+      infantQuantity: 3,
+      selectedDate: '2099-01-01',
+      selectedAddOns: { 'addon-1': 9 },
+    }], 'brand-a');
+
+    expect(result.pricing.subtotal).toBe(280); // base 250 + 3 paying guests x 10
+    expect(result.cart[0].selectedAddOnDetails['addon-1'].perGuest).toBe(true);
+  });
+
   it('rejects tours outside the current tenant', async () => {
     tourLean.mockResolvedValueOnce(null);
     await expect(calculateCheckoutPricing([{

@@ -543,7 +543,7 @@ export async function POST(request: Request) {
               const addOnDetail = cartItem.selectedAddOnDetails?.[addOnId];
               if (addOnDetail && Number(quantity) > 0) {
                 const guestsForAddOns = (cartItem.quantity || 0) + (cartItem.childQuantity || 0);
-                const addOnQuantity = addOnDetail.perGuest ? guestsForAddOns : 1;
+                const addOnQuantity = addOnDetail.perGuest ? guestsForAddOns : Number(quantity);
                 addOnsTotal += addOnDetail.price * addOnQuantity;
               }
             });
@@ -639,7 +639,7 @@ export async function POST(request: Request) {
           const addOnDetail = item.selectedAddOnDetails?.[addOnId];
           if (addOnDetail && Number(quantity) > 0) {
             const guestsForAddOns = (item.quantity || 0) + (item.childQuantity || 0);
-            const addOnQuantity = addOnDetail.perGuest ? guestsForAddOns : 1;
+            const addOnQuantity = addOnDetail.perGuest ? guestsForAddOns : Number(quantity);
             total += addOnDetail.price * addOnQuantity;
           }
         });
@@ -781,7 +781,7 @@ export async function POST(request: Request) {
               const numericQuantity = Number(quantity);
               if (addOnDetail && numericQuantity > 0) {
                 const totalGuests = (item.quantity || 0) + (item.childQuantity || 0);
-                const addOnQuantity = addOnDetail.perGuest ? totalGuests : 1;
+                const addOnQuantity = addOnDetail.perGuest ? totalGuests : numericQuantity;
                 addOnsTotal += addOnDetail.price * addOnQuantity;
               }
             });
