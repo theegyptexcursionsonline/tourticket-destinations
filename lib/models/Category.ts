@@ -1,5 +1,17 @@
 // lib/models/Category.ts
 import mongoose, { Document, Schema, models } from 'mongoose';
+import type { ImageMetadata } from '@/lib/content/imageMetadata';
+import { ImageMetadataSchema } from '@/lib/models/schemas/ImageMetadataSchema';
+
+const FaqSchema = new Schema({
+  question: { type: String, required: true, trim: true, maxlength: 300 },
+  answer: { type: String, required: true, trim: true, maxlength: 2000 },
+}, { _id: false });
+
+const TravelTipSchema = new Schema({
+  title: { type: String, required: true, trim: true, maxlength: 200 },
+  content: { type: String, required: true, trim: true, maxlength: 1000 },
+}, { _id: false });
 
 export interface ICategory extends Document {
   // Multi-tenant support
@@ -14,10 +26,14 @@ export interface ICategory extends Document {
   // Media
   heroImage?: string;
   images?: string[];
+  imageMetadata?: ImageMetadata[];
   
   // Content
   highlights?: string[];
   features?: string[];
+  faqs?: Array<{ question: string; answer: string }>;
+  travelTips?: Array<{ title: string; content: string }>;
+  popularDestinationIds?: mongoose.Types.ObjectId[];
   
   // SEO
   metaTitle?: string;
@@ -90,6 +106,10 @@ const CategorySchema: Schema<ICategory> = new Schema({
     type: String,
     trim: true,
   }],
+  imageMetadata: {
+    type: [ImageMetadataSchema],
+    default: [],
+  },
   
   // Content
   highlights: {
@@ -112,6 +132,18 @@ const CategorySchema: Schema<ICategory> = new Schema({
       message: 'Each feature must be non-empty and not exceed 300 characters'
     }
   },
+  faqs: {
+    type: [FaqSchema],
+    default: [],
+  },
+  travelTips: {
+    type: [TravelTipSchema],
+    default: [],
+  },
+  popularDestinationIds: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Destination',
+  }],
   
   // SEO
   metaTitle: {

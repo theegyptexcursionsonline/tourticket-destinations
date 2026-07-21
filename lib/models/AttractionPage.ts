@@ -1,6 +1,18 @@
  
 import mongoose, { Document, Schema, Model } from 'mongoose';
 import { PAGE_URL_TYPES, type PageUrlType } from '@/lib/attractionPages/pageUrl';
+import type { ImageMetadata } from '@/lib/content/imageMetadata';
+import { ImageMetadataSchema } from '@/lib/models/schemas/ImageMetadataSchema';
+
+const FaqSchema = new Schema({
+  question: { type: String, required: true, trim: true, maxlength: 300 },
+  answer: { type: String, required: true, trim: true, maxlength: 2000 },
+}, { _id: false });
+
+const TravelTipSchema = new Schema({
+  title: { type: String, required: true, trim: true, maxlength: 200 },
+  content: { type: String, required: true, trim: true, maxlength: 1000 },
+}, { _id: false });
 
 export interface IAttractionPageTranslation {
   title?: string;
@@ -32,8 +44,11 @@ export interface IAttractionPage extends Document {
   // Content
   heroImage?: string; // NOW OPTIONAL
   images?: string[];
+  imageMetadata?: ImageMetadata[];
   highlights?: string[];
   features?: string[];
+  faqs?: Array<{ question: string; answer: string }>;
+  travelTips?: Array<{ title: string; content: string }>;
   linkedTourIds?: mongoose.Types.ObjectId[];
   linkedPageIds?: mongoose.Types.ObjectId[];
   linkedCategoryIds?: mongoose.Types.ObjectId[];
@@ -148,6 +163,10 @@ const AttractionPageSchema: Schema<IAttractionPage> = new Schema({
     type: String,
     trim: true,
   }],
+  imageMetadata: {
+    type: [ImageMetadataSchema],
+    default: [],
+  },
   linkedTourIds: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Tour',
@@ -179,6 +198,14 @@ const AttractionPageSchema: Schema<IAttractionPage> = new Schema({
       },
       message: 'Each feature must be non-empty and not exceed 300 characters'
     }
+  },
+  faqs: {
+    type: [FaqSchema],
+    default: [],
+  },
+  travelTips: {
+    type: [TravelTipSchema],
+    default: [],
   },
   gridTitle: {
     type: String,

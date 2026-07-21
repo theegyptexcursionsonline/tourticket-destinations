@@ -22,9 +22,15 @@ import {
 import TranslationEditor from '@/components/admin/TranslationEditor';
 import { attractionPageTranslationFields, normalizeTranslations } from '@/lib/i18n/translationFields';
 import { useAdminTenant } from '@/contexts/AdminTenantContext';
+import ImageSeoFields from '@/components/admin/ImageSeoFields';
+import { FaqEditor, TravelTipsEditor } from '@/components/admin/StructuredContentEditor';
+import { uploadImageFiles } from '@/lib/admin/uploadImages';
+import { ensureImageMetadata } from '@/lib/content/imageMetadata';
+import type { ContentFaq, ContentTravelTip, ImageMetadata } from '@/types';
 
 interface AttractionPageFormProps {
   pageId?: string;
+  initialPageType?: 'attraction' | 'category';
 }
 
 interface PickerOption {
@@ -46,8 +52,11 @@ const defaultFormData: AttractionPageFormData = {
   urlType: 'default',
   heroImage: '',
   images: [],
+  imageMetadata: [],
   highlights: [],
   features: [],
+  faqs: [],
+  travelTips: [],
   gridTitle: '',
   gridSubtitle: '',
   showStats: true,
@@ -226,14 +235,14 @@ function ListingPicker({
 }
 const textareaBase = "block w-full px-4 py-3 border border-slate-300 rounded-xl shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent sm:text-sm disabled:bg-slate-50 disabled:cursor-not-allowed transition-all duration-200 font-medium text-slate-700 resize-vertical min-h-[100px]";
 
-export default function AttractionPageForm({ pageId }: AttractionPageFormProps) {
+export default function AttractionPageForm({ pageId, initialPageType = 'attraction' }: AttractionPageFormProps) {
   const router = useRouter();
   const { selectedTenantId, getSelectedTenant } = useAdminTenant();
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(false);
   const [activeTab, setActiveTab] = useState('basic');
   
-  const [formData, setFormData] = useState<AttractionPageFormData>(defaultFormData);
+  const [formData, setFormData] = useState<AttractionPageFormData>(() => ({ ...defaultFormData, pageType: initialPageType }));
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -297,8 +306,11 @@ export default function AttractionPageForm({ pageId }: AttractionPageFormProps) 
           urlType: page.urlType || 'default',
           heroImage: page.heroImage || '',
           images: Array.isArray(page.images) ? page.images : [], // FIX: Ensure it's always an array
+          imageMetadata: ensureImageMetadata(page.imageMetadata, [page.heroImage || '', ...(page.images || [])]),
           highlights: Array.isArray(page.highlights) ? page.highlights : [],
           features: Array.isArray(page.features) ? page.features : [],
+          faqs: Array.isArray(page.faqs) ? page.faqs as ContentFaq[] : [],
+          travelTips: Array.isArray(page.travelTips) ? page.travelTips as ContentTravelTip[] : [],
           gridTitle: page.gridTitle || '',
           gridSubtitle: page.gridSubtitle || '',
           showStats: page.showStats !== undefined ? page.showStats : true,
@@ -408,41 +420,38 @@ export default function AttractionPageForm({ pageId }: AttractionPageFormProps) 
   const removeFromArray = (field: 'highlights' | 'features' | 'images' | 'keywords', index: number) => {
     setFormData(prev => ({
       ...prev,
-      [field]: prev[field].filter((_, i) => i !== index)
+      [field]: prev[field].filter((_, i) => i !== index),
+      ...(field === 'images' ? {
+        imageMetadata: (prev.imageMetadata || []).filter((item) => item.url !== prev.images[index]),
+      } : {}),
+    }));
+  };
+
+  const updateImageMetadata = (value: ImageMetadata) => {
+    setFormData((prev) => ({
+      ...prev,
+      imageMetadata: [...(prev.imageMetadata || []).filter((item) => item.url !== value.url), value],
     }));
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, isMainImage = true) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
 
     setIsUploading(true);
-    const uploadFormData = new FormData();
-    uploadFormData.append('file', file);
-
-    const promise = fetch('/api/upload', { method: 'POST', body: uploadFormData })
-      .then(res => {
-        if (!res.ok) throw new Error('Network response was not ok');
-        return res.json();
-      })
-      .then(data => {
-        if (data.success && data.url) {
-          if (isMainImage) {
-            console.log('🖼️ Setting hero image:', data.url);
-            setFormData(prev => ({ ...prev, heroImage: data.url }));
-          } else {
-            console.log('📸 Adding gallery image:', data.url);
-            console.log('📸 Current images before:', formData.images);
-            setFormData(prev => {
-              const newImages = [...(prev.images || []), data.url];
-              console.log('📸 New images array:', newImages);
-              return { ...prev, images: newImages };
-            });
-          }
-          return 'Image uploaded successfully!';
-        } else {
-          throw new Error(data.error || 'Upload failed: Invalid response from server.');
-        }
+    const promise = uploadImageFiles(isMainImage ? files.slice(0, 1) : files)
+      .then((urls) => {
+        setFormData((prev) => {
+          const heroImage = isMainImage ? urls[0] : prev.heroImage;
+          const images = isMainImage ? prev.images : [...prev.images, ...urls];
+          return {
+            ...prev,
+            heroImage,
+            images,
+            imageMetadata: ensureImageMetadata(prev.imageMetadata, [heroImage, ...images]),
+          };
+        });
+        return `${urls.length} image${urls.length === 1 ? '' : 's'} uploaded successfully!`;
       });
 
     toast.promise(promise, {
@@ -486,6 +495,9 @@ export default function AttractionPageForm({ pageId }: AttractionPageFormProps) 
         highlights: Array.isArray(cleanedData.highlights) ? cleanedData.highlights.filter(item => item && item.trim() !== '') : [],
         features: Array.isArray(cleanedData.features) ? cleanedData.features.filter(item => item && item.trim() !== '') : [],
         images: Array.isArray(cleanedData.images) ? cleanedData.images.filter(item => item && item.trim() !== '') : [], // FIX: Check for truthy value first
+        imageMetadata: ensureImageMetadata(cleanedData.imageMetadata, [cleanedData.heroImage || '', ...(cleanedData.images || [])]),
+        faqs: (cleanedData.faqs || []).filter((item) => item.question.trim() && item.answer.trim()),
+        travelTips: (cleanedData.travelTips || []).filter((item) => item.title.trim() && item.content.trim()),
         keywords: Array.isArray(cleanedData.keywords) ? cleanedData.keywords.filter(item => item && item.trim() !== '') : [],
         // Curated listings persist under their model field names
         linkedTourIds: Array.isArray(linkedTours) ? linkedTours : [],
@@ -510,8 +522,10 @@ export default function AttractionPageForm({ pageId }: AttractionPageFormProps) 
 
       if (data.success) {
         toast.success(`Page ${pageId ? 'updated' : 'created'} successfully!`);
-        setIsPanelOpen(false);
-        router.push('/admin/pages');
+        if (!pageId && data.data?._id) {
+          router.replace(`/admin/attraction-pages/${data.data._id}/edit`);
+        }
+        router.refresh();
       } else {
         setError(data.error || 'Failed to save page');
         toast.error(data.error || 'Failed to save page');
@@ -734,23 +748,29 @@ export default function AttractionPageForm({ pageId }: AttractionPageFormProps) 
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                           <div className="space-y-3">
                             <FormLabel icon={Grid3x3} required>Page Type</FormLabel>
-                            <div className="relative">
-                              <select 
-                                name="pageType" 
-                                value={formData.pageType} 
-                                onChange={handleChange} 
-                                className={`${inputBase} appearance-none cursor-pointer`}
-                                required
-                              >
-                                <option value="attraction">Attraction</option>
-                                <option value="category">Category landing (linked to a category)</option>
-                              </select>
-                              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+                            <div className="grid grid-cols-2 gap-2 rounded-xl bg-slate-100 p-1">
+                              {([
+                                ['attraction', 'Attraction'],
+                                ['category', 'Category'],
+                              ] as const).map(([value, label]) => (
+                                <button
+                                  key={value}
+                                  type="button"
+                                  onClick={() => setFormData((prev) => ({ ...prev, pageType: value }))}
+                                  className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
+                                    formData.pageType === value
+                                      ? 'bg-white text-indigo-700 shadow-sm'
+                                      : 'text-slate-600 hover:text-slate-900'
+                                  }`}
+                                >
+                                  {label}
+                                </button>
+                              ))}
                             </div>
                             <SmallHint>
-                              Need a full category (tour collection with its own URL type and filters)?{' '}
+                              Need a Catalogue (tour collection with its own URL type and filters)?{' '}
                               <Link href="/admin/pages/create?type=category" className="text-indigo-600 hover:underline font-medium">
-                                Create a Category page instead
+                                Create a Catalogue instead
                               </Link>
                             </SmallHint>
                           </div>
@@ -843,7 +863,11 @@ export default function AttractionPageForm({ pageId }: AttractionPageFormProps) 
                               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
                                 <button 
                                   type="button" 
-                                  onClick={() => setFormData(prev => ({ ...prev, heroImage: '' }))} 
+                                  onClick={() => setFormData(prev => ({
+                                    ...prev,
+                                    heroImage: '',
+                                    imageMetadata: (prev.imageMetadata || []).filter((item) => item.url !== prev.heroImage),
+                                  }))}
                                   className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-xl font-semibold hover:bg-red-600 transition-colors duration-200"
                                 >
                                   <Trash2 size={16} />
@@ -886,6 +910,13 @@ export default function AttractionPageForm({ pageId }: AttractionPageFormProps) 
                               </div>
                             </div>
                           )}
+                          {formData.heroImage && (
+                            <ImageSeoFields
+                              url={formData.heroImage}
+                              value={(formData.imageMetadata || []).find((item) => item.url === formData.heroImage)}
+                              onChange={updateImageMetadata}
+                            />
+                          )}
                         </div>
 
                         {/* Gallery Images */}
@@ -897,11 +928,12 @@ export default function AttractionPageForm({ pageId }: AttractionPageFormProps) 
                               className="flex items-center gap-2 px-4 py-2 text-sm text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
                             >
                               <Plus className="h-4 w-4" />
-                              Add Image
+                              Add Images
                               <input 
                                 id="gallery-upload" 
                                 type="file" 
                                 accept="image/*" 
+                                multiple
                                 onChange={(e) => handleImageUpload(e, false)} 
                                 className="sr-only"
                                 disabled={isUploading}
@@ -912,29 +944,39 @@ export default function AttractionPageForm({ pageId }: AttractionPageFormProps) 
                           {formData.images.length > 0 ? (
                             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                               {formData.images.map((img, i) => (
-                                <div key={i} className="relative group">
-                                  <Image
-                                    src={img} 
-                                    alt={`Gallery ${i}`} 
-                                    width={320}
-                                    height={128}
-                                    unoptimized
-                                    className="w-full h-32 object-cover rounded-xl border-2 border-slate-200 shadow-sm group-hover:shadow-md transition-all"
+                                <div key={`${img}-${i}`} className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-2">
+                                  <div className="relative group">
+                                    <Image
+                                      src={img}
+                                      alt={(formData.imageMetadata || []).find((item) => item.url === img)?.alt || `Gallery ${i + 1}`}
+                                      title={(formData.imageMetadata || []).find((item) => item.url === img)?.title || undefined}
+                                      width={320}
+                                      height={128}
+                                      unoptimized
+                                      className="w-full h-32 object-cover rounded-lg shadow-sm group-hover:shadow-md transition-all"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => removeFromArray('images', i)}
+                                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600 transition-all shadow-lg"
+                                      aria-label={`Remove gallery image ${i + 1}`}
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                  <ImageSeoFields
+                                    compact
+                                    url={img}
+                                    value={(formData.imageMetadata || []).find((item) => item.url === img)}
+                                    onChange={updateImageMetadata}
                                   />
-                                  <button 
-                                    type="button" 
-                                    onClick={() => removeFromArray('images', i)}
-                                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600 transition-all shadow-lg opacity-0 group-hover:opacity-100"
-                                  >
-                                    <X className="w-3 h-3" />
-                                  </button>
                                 </div>
                               ))}
                             </div>
                           ) : (
                             <div className="text-center py-8 text-slate-500">
                               <Grid3x3 className="h-12 w-12 mx-auto mb-4 text-slate-300" />
-                              <p>No gallery images yet. Click &quot;Add Image&quot; to upload photos.</p>
+                              <p>No gallery images yet. Click &quot;Add Images&quot; to upload one or more photos.</p>
                             </div>
                           )}
                         </div>
@@ -946,7 +988,9 @@ export default function AttractionPageForm({ pageId }: AttractionPageFormProps) 
                       <div className="space-y-8">
                         {/* Highlights */}
                         <div className="space-y-4">
-                          <FormLabel icon={Sparkles}>Highlights</FormLabel>
+                          <FormLabel icon={Sparkles}>
+                            Highlights <span className="font-normal text-slate-500">({formData.pageType === 'category' ? 'Why Choose This Experience' : 'What to Expect'})</span>
+                          </FormLabel>
                           <div className="space-y-3">
                             {formData.highlights.map((highlight, i) => (
                               <div key={i} className="flex items-center gap-3">
@@ -985,7 +1029,9 @@ export default function AttractionPageForm({ pageId }: AttractionPageFormProps) 
 
                         {/* Features */}
                         <div className="space-y-4">
-                          <FormLabel icon={Check}>Features</FormLabel>
+                          <FormLabel icon={Check}>
+                            Features <span className="font-normal text-slate-500">({formData.pageType === 'category' ? 'What Makes This Special' : 'Perfect For'})</span>
+                          </FormLabel>
                           <div className="space-y-3">
                             {formData.features.map((feature, i) => (
                               <div key={i} className="flex items-start gap-3">
@@ -1022,6 +1068,8 @@ export default function AttractionPageForm({ pageId }: AttractionPageFormProps) 
                             </button>
                           </div>
                         </div>
+                        <FaqEditor value={formData.faqs || []} onChange={(faqs) => setFormData((prev) => ({ ...prev, faqs }))} />
+                        <TravelTipsEditor value={formData.travelTips || []} onChange={(travelTips) => setFormData((prev) => ({ ...prev, travelTips }))} />
                       </div>
                     )}
 

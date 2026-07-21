@@ -6,15 +6,20 @@
 
 import React, { Suspense, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Layout, Tag, ChevronRight } from 'lucide-react';
+import { Landmark, LayoutGrid, Tag } from 'lucide-react';
 import AttractionPageForm from '@/components/admin/AttractionPageForm';
 import CategoryForm from '@/components/admin/CategoryForm';
 
-type CreateKind = 'page' | 'category';
+type CreateKind = 'attraction' | 'catalogue' | 'category';
 
 function CreatePageChooser() {
   const searchParams = useSearchParams();
-  const initialKind: CreateKind = searchParams.get('type') === 'category' ? 'category' : 'page';
+  const requestedType = searchParams.get('type');
+  const initialKind: CreateKind = requestedType === 'category'
+    ? 'catalogue'
+    : requestedType === 'category-landing'
+      ? 'category'
+      : 'attraction';
   const [kind, setKind] = useState<CreateKind>(initialKind);
 
   return (
@@ -24,48 +29,31 @@ function CreatePageChooser() {
           <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">
             What kind of page do you want to create?
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-2">
-            <button
-              type="button"
-              onClick={() => setKind('page')}
-              className={`flex items-start gap-3 p-4 rounded-xl border-2 text-left transition-all ${
-                kind === 'page'
-                  ? 'border-indigo-500 bg-indigo-50 shadow-sm'
-                  : 'border-slate-200 bg-white hover:border-slate-300'
-              }`}
-            >
-              <Layout className={`w-5 h-5 mt-0.5 ${kind === 'page' ? 'text-indigo-600' : 'text-slate-400'}`} />
-              <span>
-                <span className="block font-semibold text-slate-900">Page</span>
-                <span className="block text-sm text-slate-500 mt-1">
-                  Attraction page or category landing — hero, content, curated tour &amp; page listings, translations, URL type
-                </span>
-              </span>
-              {kind === 'page' && <ChevronRight className="w-4 h-4 text-indigo-500 ml-auto mt-1" />}
-            </button>
-            <button
-              type="button"
-              onClick={() => setKind('category')}
-              className={`flex items-start gap-3 p-4 rounded-xl border-2 text-left transition-all ${
-                kind === 'category'
-                  ? 'border-indigo-500 bg-indigo-50 shadow-sm'
-                  : 'border-slate-200 bg-white hover:border-slate-300'
-              }`}
-            >
-              <Tag className={`w-5 h-5 mt-0.5 ${kind === 'category' ? 'text-indigo-600' : 'text-slate-400'}`} />
-              <span>
-                <span className="block font-semibold text-slate-900">Category</span>
-                <span className="block text-sm text-slate-500 mt-1">
-                  Tour collection — tours are assigned to it and listed automatically, with full translation controls
-                </span>
-              </span>
-              {kind === 'category' && <ChevronRight className="w-4 h-4 text-indigo-500 ml-auto mt-1" />}
-            </button>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-2">
+            {([
+              { id: 'attraction', label: 'Attraction', description: 'A standalone attraction or interest page with curated tours.', icon: Landmark },
+              { id: 'catalogue', label: 'Catalogue', description: 'A tour collection used in the tour Catalogue selector.', icon: LayoutGrid },
+              { id: 'category', label: 'Category', description: 'A landing page linked to an existing catalogue.', icon: Tag },
+            ] as const).map((option) => {
+              const Icon = option.icon;
+              const selected = kind === option.id;
+              return (
+                <button key={option.id} type="button" onClick={() => setKind(option.id)} className={`flex items-start gap-3 p-4 rounded-xl border-2 text-left transition-all ${selected ? 'border-indigo-500 bg-indigo-50 shadow-sm' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
+                  <Icon className={`w-5 h-5 mt-0.5 flex-shrink-0 ${selected ? 'text-indigo-600' : 'text-slate-400'}`} />
+                  <span>
+                    <span className="block font-semibold text-slate-900">{option.label}</span>
+                    <span className="block text-xs leading-relaxed text-slate-500 mt-1">{option.description}</span>
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
 
-      {kind === 'page' ? <AttractionPageForm /> : <CategoryForm />}
+      {kind === 'catalogue'
+        ? <CategoryForm />
+        : <AttractionPageForm initialPageType={kind === 'category' ? 'category' : 'attraction'} />}
     </div>
   );
 }

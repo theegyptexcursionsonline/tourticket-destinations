@@ -15,6 +15,8 @@ import { Tour, Review } from '@/types';
 import TourCard from '@/components/shared/TourCard';
 import RelatedInterests from '@/components/RelatedInterests';
 import PopularInterestsGrid from '@/components/PopularInterestsGrid';
+import { imageMetadataFor } from '@/lib/content/imageMetadata';
+import type { ContentFaq, ContentTravelTip, ImageMetadata } from '@/types';
 
 interface AttractionData {
   _id: string;
@@ -24,13 +26,17 @@ interface AttractionData {
   longDescription?: string;
   heroImage: string;
   images?: string[];
+  imageMetadata?: ImageMetadata[];
   highlights?: string[];
   features?: string[];
+  faqs?: ContentFaq[];
+  travelTips?: ContentTravelTip[];
   tours: Tour[];
   totalTours: number;
   reviews: Review[];
   gridTitle: string;
   gridSubtitle?: string;
+  itemsPerRow?: number;
   showStats: boolean;
   isPublished: boolean;
   featured: boolean;
@@ -346,6 +352,14 @@ const AttractionLandingPage: React.FC<AttractionLandingPageProps> = ({ attractio
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState('featured');
+  const heroSeo = imageMetadataFor(attraction.heroImage, attraction.imageMetadata, attraction.title);
+  const gridColumns = attraction.itemsPerRow === 2
+    ? 'md:grid-cols-2'
+    : attraction.itemsPerRow === 3
+      ? 'md:grid-cols-2 lg:grid-cols-3'
+      : attraction.itemsPerRow && attraction.itemsPerRow >= 5
+        ? 'md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5'
+        : 'md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
 
   const filteredAndSortedTours = useMemo(() => {
     let filtered = attraction.tours?.filter(tour =>
@@ -387,7 +401,8 @@ const AttractionLandingPage: React.FC<AttractionLandingPageProps> = ({ attractio
         <div className="absolute inset-0">
           <Image
             src={attraction.heroImage}
-            alt={attraction.title}
+            alt={heroSeo.alt}
+            title={heroSeo.title}
             fill
             className="object-cover opacity-40"
             priority
@@ -415,6 +430,24 @@ const AttractionLandingPage: React.FC<AttractionLandingPageProps> = ({ attractio
           </motion.div>
         </div>
       </section>
+
+      {attraction.images && attraction.images.length > 0 && (
+        <section className="py-12 bg-slate-50">
+          <div className="container mx-auto px-6">
+            <h2 className="text-3xl font-bold text-slate-900 mb-6">Gallery</h2>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              {attraction.images.map((image, index) => {
+                const seo = imageMetadataFor(image, attraction.imageMetadata, `${attraction.title} ${index + 1}`);
+                return (
+                  <div key={`${image}-${index}`} className={`relative overflow-hidden rounded-2xl ${index === 0 ? 'col-span-2 row-span-2 min-h-72' : 'min-h-36'}`}>
+                    <Image src={image} alt={seo.alt} title={seo.title} fill className="object-cover transition-transform duration-500 hover:scale-105" sizes="(max-width: 1024px) 50vw, 25vw" />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Description Section */}
       <section className="py-12 bg-white border-b border-slate-200">
@@ -474,7 +507,7 @@ const AttractionLandingPage: React.FC<AttractionLandingPageProps> = ({ attractio
             </div>
 
             {filteredAndSortedTours.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <div className={`grid grid-cols-1 ${gridColumns} gap-6`}>
                 {filteredAndSortedTours.map((tour, index) => (
                   <TourCard key={tour._id} tour={tour} index={index} />
                 ))}
@@ -500,6 +533,41 @@ const AttractionLandingPage: React.FC<AttractionLandingPageProps> = ({ attractio
                 )}
               </motion.div>
             )}
+          </div>
+        </section>
+      )}
+
+      {attraction.travelTips && attraction.travelTips.length > 0 && (
+        <section className="py-12 bg-white">
+          <div className="container mx-auto px-6 max-w-5xl">
+            <h2 className="text-3xl font-bold text-slate-900 mb-6">Travel tips</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {attraction.travelTips.map((tip, index) => (
+                <article key={`${tip.title}-${index}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                  <h3 className="font-semibold text-slate-900">{tip.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-600">{tip.content}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {attraction.faqs && attraction.faqs.length > 0 && (
+        <section className="py-12 bg-slate-50">
+          <div className="container mx-auto px-6 max-w-4xl">
+            <h2 className="text-3xl font-bold text-slate-900 mb-6">Frequently asked questions</h2>
+            <div className="space-y-3">
+              {attraction.faqs.map((faq, index) => (
+                <details key={`${faq.question}-${index}`} className="group rounded-2xl border border-slate-200 bg-white p-5">
+                  <summary className="cursor-pointer list-none font-semibold text-slate-900 flex items-center justify-between gap-4">
+                    {faq.question}
+                    <ChevronDown className="h-5 w-5 text-slate-400 transition-transform group-open:rotate-180" />
+                  </summary>
+                  <p className="mt-3 text-sm leading-relaxed text-slate-600">{faq.answer}</p>
+                </details>
+              ))}
+            </div>
           </div>
         </section>
       )}

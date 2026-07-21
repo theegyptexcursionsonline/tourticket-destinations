@@ -33,6 +33,8 @@ import {
   getDestinationTrendingSearches,
 } from '@/lib/destinationPageSearch';
 import { filterSearchHitsByTenant } from '@/lib/tenantSearchHitFilter';
+import { imageMetadataFor } from '@/lib/content/imageMetadata';
+import { curateDestinationTours } from '@/lib/content/destinationTourCuration';
 
 const DESTINATION_HERO_FALLBACK_IMAGE = '/hero2.jpg';
 
@@ -1641,7 +1643,7 @@ const BackgroundSlideshow = ({
   fadeMs = 900,
   autoplay = true 
 }: { 
-  slides?: Array<{src: string, alt: string}>, 
+  slides?: Array<{src: string, alt: string, title?: string}>,
   delay?: number, 
   fadeMs?: number,
   autoplay?: boolean 
@@ -1689,7 +1691,7 @@ const BackgroundSlideshow = ({
               transform: visible ? 'scale(1)' : 'scale(1.02)',
             }}
           >
-            <BackgroundSlideImage src={s.src} alt={s.alt} />
+            <BackgroundSlideImage src={s.src} alt={s.alt} title={s.title} />
           </div>
         );
       })}
@@ -1697,7 +1699,7 @@ const BackgroundSlideshow = ({
   );
 };
 
-const BackgroundSlideImage = ({ src, alt }: { src: string; alt: string }) => {
+const BackgroundSlideImage = ({ src, alt, title }: { src: string; alt: string; title?: string }) => {
   const [resolvedSrc, setResolvedSrc] = useState(DESTINATION_HERO_FALLBACK_IMAGE);
 
   useEffect(() => {
@@ -1733,6 +1735,7 @@ const BackgroundSlideImage = ({ src, alt }: { src: string; alt: string }) => {
     <Image
       src={resolvedSrc}
       alt={alt}
+      title={title}
       fill
       unoptimized
       sizes="100vw"
@@ -1762,9 +1765,13 @@ const DestinationHeroSection = ({
   allCategories: Category[];
 }) => {
   const { rtl, copy } = useDestinationPageLocale();
-  const slides = destination.image
-    ? [{ src: destination.image, alt: destination.name }]
-    : [{ src: DESTINATION_HERO_FALLBACK_IMAGE, alt: destination.name }];
+  const heroImages = Array.from(new Set([destination.image, ...(destination.images || [])].filter(Boolean)));
+  const slides = heroImages.length > 0
+    ? heroImages.map((src, index) => {
+        const metadata = imageMetadataFor(src, destination.imageMetadata, `${destination.name} ${index + 1}`);
+        return { src, alt: metadata.alt, title: metadata.title };
+      })
+    : [{ src: DESTINATION_HERO_FALLBACK_IMAGE, alt: destination.name, title: destination.name }];
 
   const searchSuggestions = [
     copy.exploreDestination(destination.name),
@@ -1818,6 +1825,18 @@ const DestinationHeroSection = ({
       </div>
     </section>
   );
+};
+
+const DestinationGallerySection = ({ destination }: { destination: Destination }) => {
+  const images = Array.from(new Set([destination.image, ...(destination.images || [])].filter(Boolean)));
+  if (images.length <= 1) return null;
+  return <section className="bg-white py-12"><div className="container mx-auto max-w-6xl px-4"><h2 className="mb-6 text-3xl font-extrabold text-slate-900">Destination gallery</h2><div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{images.map((src, index) => { const seo = imageMetadataFor(src, destination.imageMetadata, `${destination.name} ${index + 1}`); return <div key={`${src}-${index}`} className={`relative overflow-hidden rounded-2xl ${index === 0 ? 'col-span-2 row-span-2 min-h-72' : 'min-h-36'}`}><Image src={src} alt={seo.alt} title={seo.title} fill className="object-cover" sizes="(max-width: 1024px) 50vw, 25vw" /></div>; })}</div></div></section>;
+};
+
+const DestinationPracticalSection = ({ destination }: { destination: Destination }) => {
+  const details = [destination.climate && ['Climate', destination.climate], destination.visaRequirements && ['Visa requirements', destination.visaRequirements], destination.languagesSpoken?.length && ['Languages', destination.languagesSpoken.join(', ')], destination.emergencyNumber && ['Emergency number', destination.emergencyNumber], destination.averageTemperature?.summer && ['Summer temperature', destination.averageTemperature.summer], destination.averageTemperature?.winter && ['Winter temperature', destination.averageTemperature.winter]].filter(Boolean) as Array<[string, string]>;
+  if (details.length === 0 && !destination.thingsToDo?.length && !destination.localCustoms?.length && !destination.weatherWarnings?.length) return null;
+  return <section className="bg-slate-50 py-12 sm:py-20"><div className="container mx-auto max-w-6xl px-4"><h2 className="mb-6 text-3xl font-extrabold text-slate-900">Practical information</h2><div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">{details.map(([title, value]) => <article key={title} className="rounded-2xl border border-slate-200 bg-white p-5"><h3 className="font-bold text-slate-900">{title}</h3><p className="mt-2 text-sm leading-relaxed text-slate-600">{value}</p></article>)}</div></div></section>;
 };
 
 // --- Card Components ---
@@ -1951,7 +1970,7 @@ const StatsSection = ({ destinationTours }: { destinationTours: Tour[] }) => {
 // --- Travel Tips Component ---
 const TravelTipsSection = ({ destination }: { destination: Destination }) => {
   const { copy } = useDestinationPageLocale();
-  const tips = [
+  const defaultTips = [
     {
       icon: <Sun className="w-5 h-5 sm:w-6 sm:h-6" />,
       title: copy.travelTipBestTime,
@@ -1965,14 +1984,21 @@ const TravelTipsSection = ({ destination }: { destination: Destination }) => {
     {
       icon: <Languages className="w-5 h-5 sm:w-6 sm:h-6" />,
       title: copy.travelTipLanguages,
-      content: copy.travelTipDefaultLanguages
+      content: destination.languagesSpoken?.join(', ') || copy.travelTipDefaultLanguages
     },
     {
       icon: <Phone className="w-5 h-5 sm:w-6 sm:h-6" />,
       title: copy.travelTipEmergency,
-      content: copy.travelTipDefaultEmergency
+      content: destination.emergencyNumber || copy.travelTipDefaultEmergency
     }
   ];
+  const tips = destination.travelTips && destination.travelTips.length > 0
+    ? destination.travelTips.map((tip) => ({
+        icon: <Compass className="w-5 h-5 sm:w-6 sm:h-6" />,
+        title: tip.title,
+        content: tip.content,
+      }))
+    : defaultTips;
 
   return (
     <section className="bg-gradient-to-br from-blue-50 to-indigo-50 py-12 sm:py-20">
@@ -2087,9 +2113,10 @@ const FaqItem = ({ item }: { item: { question: string; answer: string } }) => {
   );
 };
 
-const FAQSection = ({ destinationName }: { destinationName: string }) => {
+const FAQSection = ({ destination }: { destination: Destination }) => {
   const { copy } = useDestinationPageLocale();
-  const faqData = [
+  const destinationName = destination.name;
+  const fallbackFaqData = [
     {
       question: copy.faqBestTimeQ(destinationName),
       answer: copy.faqBestTimeA(destinationName)
@@ -2131,6 +2158,7 @@ const FAQSection = ({ destinationName }: { destinationName: string }) => {
       answer: copy.faqMeetingA
     }
   ];
+  const faqData = destination.faqs && destination.faqs.length > 0 ? destination.faqs : fallbackFaqData;
 
   return (
     <section className="bg-white py-12 sm:py-20 font-sans">
@@ -2344,8 +2372,11 @@ export default function DestinationPageClient({
     setTimeout(() => setSelectedTour(null), 300);
   };
 
-  const top10Tours = destinationTours.slice(0, 10);
-  const featuredTours = destinationTours.filter(tour => tour.isFeatured).slice(0, 5);
+  const { bestDeals: featuredTours, topTours: top10Tours } = curateDestinationTours(
+    destinationTours,
+    destination.bestDealTourIds,
+    destination.topTourIds,
+  );
   const destinationCategories = getDestinationCategories(destinationTours, allCategories).map(category => ({
     ...category,
     tourCount: destinationTours.filter(tour => 
@@ -2391,6 +2422,8 @@ export default function DestinationPageClient({
             </div>
           </div>
         </section>
+
+        <DestinationGallerySection destination={destination} />
         
         {featuredTours.length > 0 && (
           <section className="py-12 sm:py-20 bg-white overflow-hidden">
@@ -2476,11 +2509,13 @@ export default function DestinationPageClient({
           </section>
         )}
 
+        <DestinationPracticalSection destination={destination} />
+
         <TravelTipsSection destination={destination} />
 
         <ReviewsSection reviews={reviews} destinationName={destination.name} />
 
-        <FAQSection destinationName={destination.name} />
+        <FAQSection destination={destination} />
 
         <RelatedDestinationsSection destinations={relatedDestinations} />
 

@@ -63,7 +63,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 async function getPageData(slug: string, tenantId: string) {
   await dbConnect();
 
-  const category = await CategoryModel.findOne(buildStrictTenantQuery({ slug }, tenantId)).lean() as any;
+  const category = await CategoryModel.findOne(buildStrictTenantQuery({ slug }, tenantId))
+    .populate('popularDestinationIds', 'name slug image')
+    .lean() as any;
   if (!category) {
     return { category: null, categoryTours: [] };
   }

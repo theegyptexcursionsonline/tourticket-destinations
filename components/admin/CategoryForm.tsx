@@ -13,6 +13,11 @@ import Image from 'next/image';
 import TranslationEditor from '@/components/admin/TranslationEditor';
 import { categoryTranslationFields, normalizeTranslations } from '@/lib/i18n/translationFields';
 import { useAdminTenant } from '@/contexts/AdminTenantContext';
+import ImageSeoFields from '@/components/admin/ImageSeoFields';
+import { FaqEditor, TravelTipsEditor } from '@/components/admin/StructuredContentEditor';
+import { uploadImageFiles } from '@/lib/admin/uploadImages';
+import { ensureImageMetadata } from '@/lib/content/imageMetadata';
+import type { ContentFaq, ContentTravelTip, ImageMetadata, Destination } from '@/types';
 
 interface CategoryFormData {
   name: string;
@@ -21,8 +26,12 @@ interface CategoryFormData {
   longDescription: string;
   heroImage: string;
   images: string[];
+  imageMetadata: ImageMetadata[];
   highlights: string[];
   features: string[];
+  faqs: ContentFaq[];
+  travelTips: ContentTravelTip[];
+  popularDestinationIds: string[];
   metaTitle: string;
   metaDescription: string;
   keywords: string[];
@@ -45,8 +54,12 @@ const defaultFormData: CategoryFormData = {
   longDescription: '',
   heroImage: '',
   images: [],
+  imageMetadata: [],
   highlights: [],
   features: [],
+  faqs: [],
+  travelTips: [],
+  popularDestinationIds: [],
   metaTitle: '',
   metaDescription: '',
   keywords: [],
@@ -92,6 +105,7 @@ export default function CategoryForm({ categoryId }: CategoryFormProps) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [destinations, setDestinations] = useState<Destination[]>([]);
   const [entityTenantId, setEntityTenantId] = useState('');
   const activeTenantId = categoryId
     ? entityTenantId
@@ -119,8 +133,15 @@ export default function CategoryForm({ categoryId }: CategoryFormProps) {
           longDescription: category.longDescription || '',
           heroImage: category.heroImage || '',
           images: Array.isArray(category.images) ? category.images : [],
+          imageMetadata: ensureImageMetadata(
+            category.imageMetadata,
+            [category.heroImage || '', ...(category.images || [])],
+          ),
           highlights: Array.isArray(category.highlights) ? category.highlights : [],
           features: Array.isArray(category.features) ? category.features : [],
+          faqs: Array.isArray(category.faqs) ? category.faqs : [],
+          travelTips: Array.isArray(category.travelTips) ? category.travelTips : [],
+          popularDestinationIds: Array.isArray(category.popularDestinationIds) ? category.popularDestinationIds.map(String) : [],
           metaTitle: category.metaTitle || '',
           metaDescription: category.metaDescription || '',
           keywords: Array.isArray(category.keywords) ? category.keywords : [],
@@ -149,6 +170,17 @@ export default function CategoryForm({ categoryId }: CategoryFormProps) {
       fetchCategoryData();
     }
   }, [categoryId, fetchCategoryData]);
+
+  useEffect(() => {
+    if (!activeTenantId) {
+      setDestinations([]);
+      return;
+    }
+    fetch(`/api/admin/tours/destinations?tenantId=${encodeURIComponent(activeTenantId)}`)
+      .then((response) => response.json())
+      .then((data) => setDestinations(Array.isArray(data.data) ? data.data : []))
+      .catch(() => setDestinations([]));
+  }, [activeTenantId]);
 
   const generateSlug = (name: string) => {
     return name
@@ -188,37 +220,38 @@ export default function CategoryForm({ categoryId }: CategoryFormProps) {
   const removeFromArray = (field: 'highlights' | 'features' | 'images' | 'keywords', index: number) => {
     setFormData(prev => ({
       ...prev,
-      [field]: prev[field].filter((_, i) => i !== index)
+      [field]: prev[field].filter((_, i) => i !== index),
+      ...(field === 'images' ? {
+        imageMetadata: prev.imageMetadata.filter((item) => item.url !== prev.images[index]),
+      } : {}),
+    }));
+  };
+
+  const updateImageMetadata = (value: ImageMetadata) => {
+    setFormData((prev) => ({
+      ...prev,
+      imageMetadata: [...prev.imageMetadata.filter((item) => item.url !== value.url), value],
     }));
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, isMainImage = true) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
 
     setIsUploading(true);
-    const uploadFormData = new FormData();
-    uploadFormData.append('file', file);
-
-    const promise = fetch('/api/upload', { method: 'POST', body: uploadFormData })
-      .then(res => {
-        if (!res.ok) throw new Error('Network response was not ok');
-        return res.json();
-      })
-      .then(data => {
-        if (data.success && data.url) {
-          if (isMainImage) {
-            setFormData(prev => ({ ...prev, heroImage: data.url }));
-          } else {
-            setFormData(prev => ({
-              ...prev,
-              images: [...(prev.images || []), data.url]
-            }));
-          }
-          return 'Image uploaded successfully!';
-        } else {
-          throw new Error(data.error || 'Upload failed: Invalid response from server.');
-        }
+    const promise = uploadImageFiles(isMainImage ? files.slice(0, 1) : files)
+      .then((urls) => {
+        setFormData((prev) => {
+          const heroImage = isMainImage ? urls[0] : prev.heroImage;
+          const images = isMainImage ? prev.images : [...prev.images, ...urls];
+          return {
+            ...prev,
+            heroImage,
+            images,
+            imageMetadata: ensureImageMetadata(prev.imageMetadata, [heroImage, ...images]),
+          };
+        });
+        return `${urls.length} image${urls.length === 1 ? '' : 's'} uploaded successfully!`;
       });
 
     toast.promise(promise, {
@@ -252,6 +285,10 @@ export default function CategoryForm({ categoryId }: CategoryFormProps) {
         highlights: Array.isArray(formData.highlights) ? formData.highlights.filter(item => item && item.trim() !== '') : [],
         features: Array.isArray(formData.features) ? formData.features.filter(item => item && item.trim() !== '') : [],
         images: Array.isArray(formData.images) ? formData.images.filter(item => item && item.trim() !== '') : [],
+        imageMetadata: ensureImageMetadata(formData.imageMetadata, [formData.heroImage, ...formData.images].filter(Boolean)),
+        faqs: formData.faqs.filter((item) => item.question.trim() && item.answer.trim()),
+        travelTips: formData.travelTips.filter((item) => item.title.trim() && item.content.trim()),
+        popularDestinationIds: formData.popularDestinationIds,
         keywords: Array.isArray(formData.keywords) ? formData.keywords.filter(item => item && item.trim() !== '') : [],
       };
 
@@ -267,7 +304,9 @@ export default function CategoryForm({ categoryId }: CategoryFormProps) {
 
       if (data.success) {
         toast.success(`Category ${categoryId ? 'updated' : 'created'} successfully!`);
-        router.push('/admin/pages');
+        if (!categoryId && data.data?._id) {
+          router.replace(`/admin/categories/${data.data._id}/edit`);
+        }
         router.refresh();
       } else {
         setError(data.error || 'Failed to save category');
@@ -502,7 +541,11 @@ export default function CategoryForm({ categoryId }: CategoryFormProps) {
                               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
                                 <button 
                                   type="button" 
-                                  onClick={() => setFormData(prev => ({ ...prev, heroImage: '' }))} 
+                                  onClick={() => setFormData(prev => ({
+                                    ...prev,
+                                    heroImage: '',
+                                    imageMetadata: prev.imageMetadata.filter((item) => item.url !== prev.heroImage),
+                                  }))}
                                   className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-xl font-semibold hover:bg-red-600 transition-colors duration-200"
                                 >
                                   <Trash2 size={16} />
@@ -545,6 +588,13 @@ export default function CategoryForm({ categoryId }: CategoryFormProps) {
                               </div>
                             </div>
                           )}
+                          {formData.heroImage && (
+                            <ImageSeoFields
+                              url={formData.heroImage}
+                              value={formData.imageMetadata.find((item) => item.url === formData.heroImage)}
+                              onChange={updateImageMetadata}
+                            />
+                          )}
                         </div>
 
                         {/* Gallery Images */}
@@ -556,11 +606,12 @@ export default function CategoryForm({ categoryId }: CategoryFormProps) {
                               className="flex items-center gap-2 px-4 py-2 text-sm text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
                             >
                               <Plus className="h-4 w-4" />
-                              Add Image
+                              Add Images
                               <input 
                                 id="gallery-upload" 
                                 type="file" 
                                 accept="image/*" 
+                                multiple
                                 onChange={(e) => handleImageUpload(e, false)} 
                                 className="sr-only"
                                 disabled={isUploading}
@@ -605,7 +656,7 @@ export default function CategoryForm({ categoryId }: CategoryFormProps) {
                       <div className="space-y-8">
                         {/* Highlights */}
                         <div className="space-y-4">
-                          <FormLabel icon={Sparkles}>Highlights</FormLabel>
+                          <FormLabel icon={Sparkles}>Highlights <span className="font-normal text-slate-500">(What to Expect)</span></FormLabel>
                           <div className="space-y-3">
                             {formData.highlights.map((highlight, i) => (
                               <div key={i} className="flex items-center gap-3">
@@ -644,7 +695,7 @@ export default function CategoryForm({ categoryId }: CategoryFormProps) {
 
                         {/* Features */}
                         <div className="space-y-4">
-                          <FormLabel icon={Check}>Features</FormLabel>
+                          <FormLabel icon={Check}>Features <span className="font-normal text-slate-500">(Perfect For)</span></FormLabel>
                           <div className="space-y-3">
                             {formData.features.map((feature, i) => (
                               <div key={i} className="flex items-start gap-3">
@@ -681,6 +732,37 @@ export default function CategoryForm({ categoryId }: CategoryFormProps) {
                             </button>
                           </div>
                         </div>
+
+                        <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-4">
+                          <div>
+                            <h3 className="text-sm font-bold text-slate-800">Popular Destinations</h3>
+                            <p className="mt-1 text-xs text-slate-500">Choose the destinations displayed on this catalogue page.</p>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto">
+                            {destinations.map((destination) => {
+                              const selected = formData.popularDestinationIds.includes(destination._id);
+                              return (
+                                <label key={destination._id} className="flex items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 hover:bg-slate-50">
+                                  <input
+                                    type="checkbox"
+                                    checked={selected}
+                                    onChange={() => setFormData((prev) => ({
+                                      ...prev,
+                                      popularDestinationIds: selected
+                                        ? prev.popularDestinationIds.filter((id) => id !== destination._id)
+                                        : [...prev.popularDestinationIds, destination._id],
+                                    }))}
+                                    className="h-4 w-4 rounded border-slate-300 text-indigo-600"
+                                  />
+                                  <span className="text-sm text-slate-700">{destination.name}</span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        <FaqEditor value={formData.faqs} onChange={(faqs) => setFormData((prev) => ({ ...prev, faqs }))} />
+                        <TravelTipsEditor value={formData.travelTips} onChange={(travelTips) => setFormData((prev) => ({ ...prev, travelTips }))} />
                       </div>
                     )}
 

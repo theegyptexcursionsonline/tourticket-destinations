@@ -3,6 +3,8 @@
 import mongoose, { Document, Schema, Model } from 'mongoose';
 import crypto from 'crypto';
 import './Review';
+import type { ImageMetadata } from '@/lib/content/imageMetadata';
+import { ImageMetadataSchema } from '@/lib/models/schemas/ImageMetadataSchema';
 
 export interface IItineraryItem {
   time?: string;
@@ -91,6 +93,7 @@ export interface ITour extends Document {
   // Media
   image: string;
   images?: string[];
+  imageMetadata?: ImageMetadata[];
 
   // Lists and highlights
   includes?: string[];
@@ -120,6 +123,8 @@ export interface ITour extends Document {
   culturalInfo?: string[];
   seasonalVariations?: string;
   localCustoms?: string[];
+  notSuitableFor?: string[];
+  needToKnow?: string[];
   meetingPoint?: string;
   languages?: string[];
   ageRestriction?: string;
@@ -535,6 +540,10 @@ const TourSchema: Schema<ITour> = new Schema({
     type: String,
     trim: true,
   }],
+  imageMetadata: {
+    type: [ImageMetadataSchema],
+    default: [],
+  },
 
   // Lists
   includes: [{ 
@@ -682,6 +691,16 @@ const TourSchema: Schema<ITour> = new Schema({
     type: String,
     trim: true,
     maxlength: [500, 'Local custom cannot exceed 500 characters']
+  }],
+  notSuitableFor: [{
+    type: String,
+    trim: true,
+    maxlength: [500, 'Not suitable for item cannot exceed 500 characters']
+  }],
+  needToKnow: [{
+    type: String,
+    trim: true,
+    maxlength: [500, 'Need to know item cannot exceed 500 characters']
   }],
   meetingPoint: { 
     type: String,

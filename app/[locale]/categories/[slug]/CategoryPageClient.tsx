@@ -11,6 +11,7 @@ import RelatedInterests from '@/components/RelatedInterests';
 import { Tour, Category } from '@/types';
 import { useSettings } from '@/hooks/useSettings';
 import BookingSidebar from '@/components/BookingSidebar';
+import { imageMetadataFor } from '@/lib/content/imageMetadata';
 
 // --- SearchAndFilter Component ---
 const SearchAndFilter = ({
@@ -205,6 +206,7 @@ const AboutSection = ({ category }: { category: Category }) => {
 
   const highlights = rawHighlights.length > 0 ? rawHighlights : DEFAULT_HIGHLIGHTS;
   const features = rawFeatures.length > 0 ? rawFeatures : DEFAULT_FEATURES;
+  const faqItems = category.faqs && category.faqs.length > 0 ? category.faqs : DEFAULT_FAQ;
 
   return (
     <section className="py-12 bg-gray-50">
@@ -254,7 +256,7 @@ const AboutSection = ({ category }: { category: Category }) => {
           <div className="bg-white border border-gray-200 rounded-lg p-6">
             <h3 className="text-xl font-semibold text-gray-900 mb-4">Frequently asked questions</h3>
             <div className="space-y-4">
-              {DEFAULT_FAQ.map((item, index) => (
+              {faqItems.map((item, index) => (
                 <details key={index} className="group border-b border-gray-100 pb-3 last:border-0">
                   <summary className="cursor-pointer font-medium text-gray-800 flex items-center justify-between list-none">
                     <span>{item.question}</span>
@@ -271,9 +273,83 @@ const AboutSection = ({ category }: { category: Category }) => {
   );
 };
 
+const CategoryGallerySection = ({ category }: { category: Category }) => {
+  if (!category.images || category.images.length === 0) return null;
+
+  return (
+    <section className="py-12 bg-white">
+      <div className="container mx-auto px-4">
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-3xl font-bold text-slate-900 mb-6">Experience gallery</h2>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            {category.images.map((image, index) => {
+              const seo = imageMetadataFor(image, category.imageMetadata, `${category.name} experience ${index + 1}`);
+              return (
+                <div key={`${image}-${index}`} className={`relative overflow-hidden rounded-2xl ${index === 0 ? 'col-span-2 row-span-2 min-h-72' : 'min-h-36'}`}>
+                  <Image src={image} alt={seo.alt} title={seo.title} fill className="object-cover transition-transform duration-500 hover:scale-105" sizes="(max-width: 1024px) 50vw, 25vw" />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+const CategoryTravelTipsSection = ({ category }: { category: Category }) => {
+  if (!category.travelTips || category.travelTips.length === 0) return null;
+
+  return (
+    <section className="py-12 bg-slate-50">
+      <div className="container mx-auto px-4">
+        <div className="max-w-5xl mx-auto">
+          <h2 className="text-3xl font-bold text-slate-900 mb-6">Travel tips</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {category.travelTips.map((tip, index) => (
+              <article key={`${tip.title}-${index}`} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <h3 className="font-semibold text-slate-900">{tip.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-slate-600">{tip.content}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+const PopularDestinationsSection = ({ category }: { category: Category }) => {
+  const destinations = (category.popularDestinationIds || []).filter(
+    (destination): destination is Exclude<typeof destination, string> => typeof destination === 'object' && destination !== null,
+  );
+  if (destinations.length === 0) return null;
+
+  return (
+    <section className="py-12 bg-white">
+      <div className="container mx-auto px-4">
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-3xl font-bold text-slate-900 mb-6">Popular destinations</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {destinations.map((destination) => (
+              <Link key={destination._id || destination.slug} href={`/destinations/${destination.slug}`} className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <div className="relative h-44">
+                  <Image src={destination.image || '/hero2.jpg'} alt={destination.name} fill className="object-cover transition-transform duration-500 group-hover:scale-105" sizes="(max-width: 1024px) 50vw, 25vw" />
+                </div>
+                <div className="p-4 font-semibold text-slate-900 group-hover:text-red-600">{destination.name}</div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
 // --- Hero Section Component ---
 const CategoryHeroSection = ({ category, tourCount }: { category: Category; tourCount: number }) => {
   const heroImage = (category as any).heroImage || 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1200&q=80&fm=jpg';
+  const heroSeo = imageMetadataFor(heroImage, category.imageMetadata, category.name);
 
   return (
     <section className="relative w-full h-[70vh] sm:h-[75vh] md:h-[80vh] lg:h-screen max-h-[900px]">
@@ -281,7 +357,8 @@ const CategoryHeroSection = ({ category, tourCount }: { category: Category; tour
       <div className="absolute inset-0 z-0">
         <Image
           src={heroImage}
-          alt={category.name}
+          alt={heroSeo.alt}
+          title={heroSeo.title}
           fill
           className="object-cover"
           priority
@@ -470,6 +547,12 @@ export default function CategoryPageClient({ category, categoryTours }: { catego
 
                 {/* About Section */}
                 <AboutSection category={category} />
+
+                <CategoryGallerySection category={category} />
+
+                <PopularDestinationsSection category={category} />
+
+                <CategoryTravelTipsSection category={category} />
 
                 <div className="container mx-auto px-4 py-8">
                     <div className="max-w-7xl mx-auto">

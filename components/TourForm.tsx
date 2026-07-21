@@ -47,6 +47,9 @@ import {
     Minus,
     Building2
 } from 'lucide-react';
+import ImageSeoFields from '@/components/admin/ImageSeoFields';
+import { uploadImageFiles } from '@/lib/admin/uploadImages';
+import { ensureImageMetadata, type ImageMetadata } from '@/lib/content/imageMetadata';
 
 // --- Interface Definitions ---
 interface Category {
@@ -129,12 +132,28 @@ interface TourFormData {
     category: string[];
     image: string;
     images: string[];
+    imageMetadata: ImageMetadata[];
     highlights: string[];
     includes: string[];
     tags: string;
     isFeatured: boolean;
     whatsIncluded: string[];
     whatsNotIncluded: string[];
+    whatToBring: string[];
+    whatToWear: string[];
+    physicalRequirements: string;
+    accessibilityInfo: string[];
+    transportationDetails: string;
+    mealInfo: string;
+    weatherPolicy: string;
+    photoPolicy: string;
+    tipPolicy: string;
+    healthSafety: string[];
+    culturalInfo: string[];
+    seasonalVariations: string;
+    localCustoms: string[];
+    notSuitableFor: string[];
+    needToKnow: string[];
     itinerary: ItineraryItem[];
     faqs: FAQ[];
     bookingOptions: BookingOption[];
@@ -175,6 +194,32 @@ const FormLabel = ({ children, icon: Icon, required = false }: {
 
 const SmallHint = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
     <p className={`mt-2 text-xs text-slate-500 ${className}`}>{children}</p>
+);
+
+const ContentTextarea = ({
+    label,
+    value,
+    onChange,
+    placeholder,
+    list = false,
+}: {
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+    placeholder: string;
+    list?: boolean;
+}) => (
+    <div className="space-y-2">
+        <label className="text-sm font-semibold text-slate-700">{label}</label>
+        <textarea
+            value={value}
+            onChange={(event) => onChange(event.target.value)}
+            rows={list ? 4 : 3}
+            className={textareaBase}
+            placeholder={placeholder}
+        />
+        {list && <SmallHint>Enter one item per line.</SmallHint>}
+    </div>
 );
 
 const inputBase = "block w-full px-4 py-3 border border-slate-300 rounded-xl shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent sm:text-sm disabled:bg-slate-50 disabled:cursor-not-allowed transition-all duration-200 font-medium text-slate-700";
@@ -396,12 +441,28 @@ export default function TourForm({ tourToEdit, onSave, fullPage = false }: { tou
         category: [],
         image: '',
         images: [],
+        imageMetadata: [],
         highlights: [''],
         includes: [''],
         tags: '',
         isFeatured: false,
         whatsIncluded: [''],
         whatsNotIncluded: [''],
+        whatToBring: [''],
+        whatToWear: [''],
+        physicalRequirements: '',
+        accessibilityInfo: [''],
+        transportationDetails: '',
+        mealInfo: '',
+        weatherPolicy: '',
+        photoPolicy: '',
+        tipPolicy: '',
+        healthSafety: [''],
+        culturalInfo: [''],
+        seasonalVariations: '',
+        localCustoms: [''],
+        notSuitableFor: [''],
+        needToKnow: [''],
         itinerary: [],
         faqs: [],
         bookingOptions: [],
@@ -460,12 +521,28 @@ export default function TourForm({ tourToEdit, onSave, fullPage = false }: { tou
                     : ((tourToEdit.category as any)?._id?.toString() || tourToEdit.category ? [(tourToEdit.category as any)?._id?.toString() || tourToEdit.category] : []),
                 image: tourToEdit.image || '', 
                 images: tourToEdit.images || [],
+                imageMetadata: ensureImageMetadata(tourToEdit.imageMetadata, [tourToEdit.image || '', ...(tourToEdit.images || [])]),
                 highlights: (tourToEdit.highlights?.length ?? 0) > 0 ? tourToEdit.highlights : [''],
                 includes: (tourToEdit.includes?.length ?? 0) > 0 ? tourToEdit.includes : [''],
                 tags: Array.isArray(tourToEdit.tags) ? tourToEdit.tags.join(', ') : (tourToEdit.tags || ''),
                 isFeatured: tourToEdit.isFeatured || false,
                 whatsIncluded: (tourToEdit.whatsIncluded?.length ?? 0) > 0 ? tourToEdit.whatsIncluded : [''],
                 whatsNotIncluded: (tourToEdit.whatsNotIncluded?.length ?? 0) > 0 ? tourToEdit.whatsNotIncluded : [''],
+                whatToBring: (tourToEdit.whatToBring?.length ?? 0) > 0 ? tourToEdit.whatToBring! : [''],
+                whatToWear: (tourToEdit.whatToWear?.length ?? 0) > 0 ? tourToEdit.whatToWear! : [''],
+                physicalRequirements: tourToEdit.physicalRequirements || '',
+                accessibilityInfo: (tourToEdit.accessibilityInfo?.length ?? 0) > 0 ? tourToEdit.accessibilityInfo! : [''],
+                transportationDetails: tourToEdit.transportationDetails || '',
+                mealInfo: tourToEdit.mealInfo || '',
+                weatherPolicy: tourToEdit.weatherPolicy || '',
+                photoPolicy: tourToEdit.photoPolicy || '',
+                tipPolicy: tourToEdit.tipPolicy || '',
+                healthSafety: (tourToEdit.healthSafety?.length ?? 0) > 0 ? tourToEdit.healthSafety! : [''],
+                culturalInfo: (tourToEdit.culturalInfo?.length ?? 0) > 0 ? tourToEdit.culturalInfo! : [''],
+                seasonalVariations: tourToEdit.seasonalVariations || '',
+                localCustoms: (tourToEdit.localCustoms?.length ?? 0) > 0 ? tourToEdit.localCustoms! : [''],
+                notSuitableFor: (tourToEdit.notSuitableFor?.length ?? 0) > 0 ? tourToEdit.notSuitableFor! : [''],
+                needToKnow: (tourToEdit.needToKnow?.length ?? 0) > 0 ? tourToEdit.needToKnow! : [''],
                 itinerary: (tourToEdit.itinerary?.length ?? 0) > 0 ? tourToEdit.itinerary : [{ day: 1, title: '', description: '' }],
                 faqs: ((tourToEdit.faq || tourToEdit.faqs)?.length ?? 0) > 0 ? (tourToEdit.faq || tourToEdit.faqs) : [{ question: '', answer: '' }],
                 bookingOptions: (tourToEdit.bookingOptions?.length ?? 0) > 0
@@ -622,12 +699,28 @@ export default function TourForm({ tourToEdit, onSave, fullPage = false }: { tou
             category: [],
             image: '',
             images: [],
+            imageMetadata: [],
             highlights: [''],
             includes: [''],
             tags: '',
             isFeatured: false,
             whatsIncluded: [''],
             whatsNotIncluded: [''],
+            whatToBring: [''],
+            whatToWear: [''],
+            physicalRequirements: '',
+            accessibilityInfo: [''],
+            transportationDetails: '',
+            mealInfo: '',
+            weatherPolicy: '',
+            photoPolicy: '',
+            tipPolicy: '',
+            healthSafety: [''],
+            culturalInfo: [''],
+            seasonalVariations: '',
+            localCustoms: [''],
+            notSuitableFor: [''],
+            needToKnow: [''],
             itinerary: [{ day: 1, title: '', description: '' }],
             faqs: [{ question: '', answer: '' }],
             bookingOptions: [{ id: generateBookingOptionId(), type: 'Per Person', label: '', price: 0 }],
@@ -864,31 +957,23 @@ const addItineraryItem = () => {
     };
 
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, isMainImage = true) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+        const files = Array.from(e.target.files || []);
+        if (files.length === 0) return;
 
         setIsUploading(true);
-        const uploadFormData = new FormData();
-        uploadFormData.append('file', file);
-
-        const promise = fetch('/api/upload', { method: 'POST', body: uploadFormData })
-            .then(res => {
-                if (!res.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return res.json();
-            })
-            .then(data => {
-                if (data.success && data.url) {
-                    if (isMainImage) {
-                        setFormData((prevData) => ({ ...prevData, image: data.url }));
-                    } else {
-                        setFormData((prevData) => ({ ...prevData, images: [...prevData.images, data.url] }));
-                    }
-                    return 'Image uploaded successfully!';
-                } else {
-                    throw new Error(data.error || 'Upload failed: Invalid response from server.');
-                }
+        const promise = uploadImageFiles(isMainImage ? files.slice(0, 1) : files)
+            .then((urls) => {
+                setFormData((prevData) => {
+                    const image = isMainImage ? urls[0] : prevData.image;
+                    const images = isMainImage ? prevData.images : [...prevData.images, ...urls];
+                    return {
+                        ...prevData,
+                        image,
+                        images,
+                        imageMetadata: ensureImageMetadata(prevData.imageMetadata, [image, ...images]),
+                    };
+                });
+                return `${urls.length} image${urls.length === 1 ? '' : 's'} uploaded successfully!`;
             });
 
         toast.promise(promise, {
@@ -901,7 +986,21 @@ const addItineraryItem = () => {
     };
 
     const removeGalleryImage = (imageUrl: string) => {
-        setFormData((p) => ({ ...p, images: p.images.filter((u: string) => u !== imageUrl) }));
+        setFormData((p) => ({
+            ...p,
+            images: p.images.filter((u: string) => u !== imageUrl),
+            imageMetadata: p.imageMetadata.filter((item) => item.url !== imageUrl),
+        }));
+    };
+
+    const updateImageMetadata = (value: ImageMetadata) => {
+        setFormData((prev) => ({
+            ...prev,
+            imageMetadata: [
+                ...prev.imageMetadata.filter((item) => item.url !== value.url),
+                value,
+            ],
+        }));
     };
 
    const handleSubmit = async (e: React.FormEvent) => {
@@ -968,10 +1067,29 @@ const addItineraryItem = () => {
                 isFeatured: Boolean(cleanedData.isFeatured),
                 image: cleanedData.image || '/images/placeholder.png', // Provide fallback
                 images: Array.isArray(cleanedData.images) ? cleanedData.images : [],
+                imageMetadata: ensureImageMetadata(
+                    cleanedData.imageMetadata,
+                    [cleanedData.image, ...(cleanedData.images || [])].filter(Boolean),
+                ),
                 highlights: Array.isArray(cleanedData.highlights) ? cleanedData.highlights.filter((item: string) => item.trim() !== '') : [],
                 includes: Array.isArray(cleanedData.includes) ? cleanedData.includes.filter((item: string) => item.trim() !== '') : [],
                 whatsIncluded: Array.isArray(cleanedData.whatsIncluded) ? cleanedData.whatsIncluded.filter((item: string) => item.trim() !== '') : [],
                 whatsNotIncluded: Array.isArray(cleanedData.whatsNotIncluded) ? cleanedData.whatsNotIncluded.filter((item: string) => item.trim() !== '') : [],
+                whatToBring: cleanedData.whatToBring.filter((item) => item.trim()),
+                whatToWear: cleanedData.whatToWear.filter((item) => item.trim()),
+                physicalRequirements: cleanedData.physicalRequirements.trim(),
+                accessibilityInfo: cleanedData.accessibilityInfo.filter((item) => item.trim()),
+                transportationDetails: cleanedData.transportationDetails.trim(),
+                mealInfo: cleanedData.mealInfo.trim(),
+                weatherPolicy: cleanedData.weatherPolicy.trim(),
+                photoPolicy: cleanedData.photoPolicy.trim(),
+                tipPolicy: cleanedData.tipPolicy.trim(),
+                healthSafety: cleanedData.healthSafety.filter((item) => item.trim()),
+                culturalInfo: cleanedData.culturalInfo.filter((item) => item.trim()),
+                seasonalVariations: cleanedData.seasonalVariations.trim(),
+                localCustoms: cleanedData.localCustoms.filter((item) => item.trim()),
+                notSuitableFor: cleanedData.notSuitableFor.filter((item) => item.trim()),
+                needToKnow: cleanedData.needToKnow.filter((item) => item.trim()),
                 itinerary: Array.isArray(cleanedData.itinerary) ? cleanedData.itinerary.filter((item: ItineraryItem) => item.title?.trim() && item.description?.trim()) : [],
                 faq: Array.isArray(cleanedData.faqs) ? cleanedData.faqs.filter((faq: FAQ) => faq.question?.trim() && faq.answer?.trim()) : [],
                 bookingOptions: Array.isArray(cleanedData.bookingOptions) ? cleanedData.bookingOptions.filter((option: BookingOption) => option.label?.trim()) : [],
@@ -1015,11 +1133,7 @@ const addItineraryItem = () => {
                 toast.success(`Tour ${tourToEdit ? 'updated' : 'created'} successfully!`);
                 setIsPanelOpen(false);
                 if (onSave) onSave();
-                if (fullPage) {
-                    router.push('/admin/tours');
-                } else {
-                    router.refresh();
-                }
+                router.refresh();
             } else {
                 const errorMessage = responseData?.error || responseData?.message || `HTTP ${response.status}: ${response.statusText}`;
                 console.error('API Error:', errorMessage, responseData);
@@ -1430,12 +1544,12 @@ const addItineraryItem = () => {
                                                 <SmallHint>Select attractions related to this tour</SmallHint>
                                             </div>
 
-                                            {/* Interests */}
+                                            {/* Catalogue pages */}
                                             <div className="space-y-3">
-                                                <FormLabel icon={Star}>Interests</FormLabel>
+                                                <FormLabel icon={Star}>Catalogue</FormLabel>
                                                 <div className="border border-slate-300 rounded-xl p-4 max-h-48 overflow-y-auto bg-white">
                                                     {interests.length === 0 ? (
-                                                        <p className="text-sm text-slate-500">No interests available</p>
+                                                        <p className="text-sm text-slate-500">No catalogue pages available</p>
                                                     ) : (
                                                         <div className="space-y-2">
                                                             {interests.map((interest) => {
@@ -1456,7 +1570,7 @@ const addItineraryItem = () => {
                                                         </div>
                                                     )}
                                                 </div>
-                                                <SmallHint>Select interest categories for this tour</SmallHint>
+                                                <SmallHint>Select catalogue pages that should feature this tour</SmallHint>
                                             </div>
                                         </div>
                                     </div>
@@ -1582,7 +1696,11 @@ const addItineraryItem = () => {
                                                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
                                                         <button 
                                                             type="button" 
-                                                            onClick={() => setFormData((p) => ({ ...p, image: '' }))} 
+                                                            onClick={() => setFormData((p) => ({
+                                                                ...p,
+                                                                image: '',
+                                                                imageMetadata: p.imageMetadata.filter((item) => item.url !== p.image),
+                                                            }))}
                                                             className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-xl font-semibold hover:bg-red-600 transition-colors duration-200"
                                                         >
                                                             <Trash2 size={16} />
@@ -1626,6 +1744,13 @@ const addItineraryItem = () => {
                                                     </div>
                                                 </div>
                                             )}
+                                            {formData.image && (
+                                                <ImageSeoFields
+                                                    url={formData.image}
+                                                    value={formData.imageMetadata.find((item) => item.url === formData.image)}
+                                                    onChange={updateImageMetadata}
+                                                />
+                                            )}
                                         </div>
 
                                         {/* Gallery Images */}
@@ -1637,11 +1762,12 @@ const addItineraryItem = () => {
                                                     className="flex items-center gap-2 px-4 py-2 text-sm text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
                                                 >
                                                     <Plus className="h-4 w-4" />
-                                                    Add Image
+                                                    Add Images
                                                     <input 
                                                         id="gallery-upload" 
                                                         type="file" 
                                                         accept="image/*" 
+                                                        multiple
                                                         onChange={(e) => handleImageUpload(e, false)} 
                                                         className="sr-only"
                                                         disabled={isUploading}
@@ -1776,6 +1902,115 @@ const addItineraryItem = () => {
                                                     placeholder="Enter each item on a new line"
                                                 />
                                                 <SmallHint>Each line will be a separate item in the list.</SmallHint>
+                                            </div>
+                                        </div>
+
+                                        <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-5 sm:p-6 space-y-6">
+                                            <div>
+                                                <h3 className="text-lg font-bold text-slate-900">Practical information</h3>
+                                                <p className="mt-1 text-sm text-slate-600">
+                                                    These fields replace the generic storefront copy. Leave a field empty to hide that detail.
+                                                </p>
+                                            </div>
+                                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                                                <ContentTextarea
+                                                    label="What to Bring"
+                                                    value={formData.whatToBring.join('\n')}
+                                                    onChange={(value) => setFormData((prev) => ({ ...prev, whatToBring: value.split('\n') }))}
+                                                    placeholder="Hat and sunscreen\nValid ID"
+                                                    list
+                                                />
+                                                <ContentTextarea
+                                                    label="What to Wear"
+                                                    value={formData.whatToWear.join('\n')}
+                                                    onChange={(value) => setFormData((prev) => ({ ...prev, whatToWear: value.split('\n') }))}
+                                                    placeholder="Comfortable shoes\nModest clothing for religious sites"
+                                                    list
+                                                />
+                                                <ContentTextarea
+                                                    label="Not Suitable For"
+                                                    value={formData.notSuitableFor.join('\n')}
+                                                    onChange={(value) => setFormData((prev) => ({ ...prev, notSuitableFor: value.split('\n') }))}
+                                                    placeholder="Travelers with severe mobility limitations"
+                                                    list
+                                                />
+                                                <ContentTextarea
+                                                    label="Need to Know"
+                                                    value={formData.needToKnow.join('\n')}
+                                                    onChange={(value) => setFormData((prev) => ({ ...prev, needToKnow: value.split('\n') }))}
+                                                    placeholder="Bring the booking confirmation\nPickup time is confirmed the evening before"
+                                                    list
+                                                />
+                                                <ContentTextarea
+                                                    label="Accessibility Info"
+                                                    value={formData.accessibilityInfo.join('\n')}
+                                                    onChange={(value) => setFormData((prev) => ({ ...prev, accessibilityInfo: value.split('\n') }))}
+                                                    placeholder="Wheelchair access is available with advance notice"
+                                                    list
+                                                />
+                                                <ContentTextarea
+                                                    label="Health & Safety"
+                                                    value={formData.healthSafety.join('\n')}
+                                                    onChange={(value) => setFormData((prev) => ({ ...prev, healthSafety: value.split('\n') }))}
+                                                    placeholder="First-aid-trained guide\nEmergency procedures in place"
+                                                    list
+                                                />
+                                                <ContentTextarea
+                                                    label="Cultural Highlights"
+                                                    value={formData.culturalInfo.join('\n')}
+                                                    onChange={(value) => setFormData((prev) => ({ ...prev, culturalInfo: value.split('\n') }))}
+                                                    placeholder="Local history and traditions"
+                                                    list
+                                                />
+                                                <ContentTextarea
+                                                    label="Local Customs"
+                                                    value={formData.localCustoms.join('\n')}
+                                                    onChange={(value) => setFormData((prev) => ({ ...prev, localCustoms: value.split('\n') }))}
+                                                    placeholder="Dress respectfully at religious sites"
+                                                    list
+                                                />
+                                                <ContentTextarea
+                                                    label="Physical Requirements"
+                                                    value={formData.physicalRequirements}
+                                                    onChange={(value) => setFormData((prev) => ({ ...prev, physicalRequirements: value }))}
+                                                    placeholder="Describe walking, stairs, swimming, or fitness requirements"
+                                                />
+                                                <ContentTextarea
+                                                    label="Transportation Details"
+                                                    value={formData.transportationDetails}
+                                                    onChange={(value) => setFormData((prev) => ({ ...prev, transportationDetails: value }))}
+                                                    placeholder="Pickup area, vehicle type, and transfer details"
+                                                />
+                                                <ContentTextarea
+                                                    label="Meal Information"
+                                                    value={formData.mealInfo}
+                                                    onChange={(value) => setFormData((prev) => ({ ...prev, mealInfo: value }))}
+                                                    placeholder="Included meals and dietary options"
+                                                />
+                                                <ContentTextarea
+                                                    label="Weather Policy"
+                                                    value={formData.weatherPolicy}
+                                                    onChange={(value) => setFormData((prev) => ({ ...prev, weatherPolicy: value }))}
+                                                    placeholder="What happens in poor weather"
+                                                />
+                                                <ContentTextarea
+                                                    label="Photography Policy"
+                                                    value={formData.photoPolicy}
+                                                    onChange={(value) => setFormData((prev) => ({ ...prev, photoPolicy: value }))}
+                                                    placeholder="Photography rules and restrictions"
+                                                />
+                                                <ContentTextarea
+                                                    label="Gratuity Policy"
+                                                    value={formData.tipPolicy}
+                                                    onChange={(value) => setFormData((prev) => ({ ...prev, tipPolicy: value }))}
+                                                    placeholder="Whether gratuities are included or optional"
+                                                />
+                                                <ContentTextarea
+                                                    label="Seasonal Variations"
+                                                    value={formData.seasonalVariations}
+                                                    onChange={(value) => setFormData((prev) => ({ ...prev, seasonalVariations: value }))}
+                                                    placeholder="Explain seasonal schedule or experience changes"
+                                                />
                                             </div>
                                         </div>
 

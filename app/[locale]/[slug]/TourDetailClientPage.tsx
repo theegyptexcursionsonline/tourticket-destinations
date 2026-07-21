@@ -34,6 +34,7 @@ import toast from 'react-hot-toast';
 import { toDateOnlyString } from '@/utils/date';
 import { sanitizeRichHtml } from '@/lib/security/sanitizeRichHtml';
 import { formatExperienceDescription } from '@/lib/content/experienceDescription';
+import { imageMetadataFor } from '@/lib/content/imageMetadata';
 
 // Enhanced interfaces for additional tour data
 interface ItineraryItem {
@@ -80,6 +81,8 @@ interface TourEnhancement {
   culturalInfo?: string[];
   seasonalVariations?: string;
   localCustoms?: string[];
+  notSuitableFor?: string[];
+  needToKnow?: string[];
 }
 
 // Extract enhancement data from the actual tour object with SMART fallbacks
@@ -145,7 +148,9 @@ const extractEnhancementData = (tour: Tour): TourEnhancement => {
       "Follow guide instructions at all times", 
       "Be respectful of other tour participants",
       "Ask questions - guides love sharing knowledge!"
-    ]
+    ],
+    notSuitableFor: tour.notSuitableFor || [],
+    needToKnow: tour.needToKnow || [],
   };
 };
 
@@ -611,6 +616,37 @@ const PracticalInfoSection = ({ enhancement, sectionRef }: { enhancement: TourEn
         <p className="text-blue-800 text-sm leading-relaxed">{enhancement.physicalRequirements}</p>
       </div>
     )}
+
+    {(enhancement.notSuitableFor?.length || enhancement.needToKnow?.length) ? (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {enhancement.notSuitableFor && enhancement.notSuitableFor.length > 0 && (
+          <div className="bg-rose-50 p-6 rounded-xl border border-rose-200">
+            <h4 className="font-bold text-rose-900 mb-4">Not suitable for</h4>
+            <ul className="space-y-2">
+              {enhancement.notSuitableFor.map((item, index) => (
+                <li key={index} className="flex items-start gap-2 text-sm text-rose-800">
+                  <X size={16} className="mt-0.5 flex-shrink-0" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {enhancement.needToKnow && enhancement.needToKnow.length > 0 && (
+          <div className="bg-amber-50 p-6 rounded-xl border border-amber-200">
+            <h4 className="font-bold text-amber-900 mb-4">Need to know</h4>
+            <ul className="space-y-2">
+              {enhancement.needToKnow.map((item, index) => (
+                <li key={index} className="flex items-start gap-2 text-sm text-amber-900">
+                  <Info size={16} className="mt-0.5 flex-shrink-0" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    ) : null}
 
     {enhancement.groupSize && (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1142,6 +1178,7 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
   const tourImages = Array.from(
     new Set([tour.image, ...(tour.images || [])].map(getSafeTourImage))
   );
+  const selectedImageSeo = imageMetadataFor(tourImages[selectedImageIndex], tour.imageMetadata, `${tour.title} image ${selectedImageIndex + 1}`);
 
   const tabs = [
     { id: 'overview', label: t('overview'), icon: Eye },
@@ -1251,7 +1288,8 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
                   <SafeImage
                     src={tourImages[selectedImageIndex]}
                     fallbackSrc={TOUR_IMAGE_FALLBACK}
-                    alt={tour.title}
+                    alt={selectedImageSeo.alt}
+                    title={selectedImageSeo.title}
                     width={1200}
                     height={700}
                     className="w-full h-[420px] md:h-[500px] object-cover"
@@ -1284,7 +1322,9 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
 
                 {tourImages.length > 1 && (
                   <div className="flex flex-wrap gap-2 mb-6">
-                    {tourImages.map((image, index) => (
+                    {tourImages.map((image, index) => {
+                      const imageSeo = imageMetadataFor(image, tour.imageMetadata, `${tour.title} image ${index + 1}`);
+                      return (
                       <button
                         key={index}
                         onClick={() => setSelectedImageIndex(index)}
@@ -1298,13 +1338,15 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
                         <SafeImage
                           src={image}
                           fallbackSrc={TOUR_IMAGE_FALLBACK}
-                          alt={`${tour.title} image ${index + 1}`}
+                          alt={imageSeo.alt}
+                          title={imageSeo.title}
                           width={80}
                           height={64}
                           className="w-full h-full object-cover"
                         />
                       </button>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
 

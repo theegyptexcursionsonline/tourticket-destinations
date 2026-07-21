@@ -31,6 +31,11 @@ import {
 } from 'lucide-react';
 import { IDestination } from '@/lib/models/Destination';
 import { useAdminTenant } from '@/contexts/AdminTenantContext';
+import ImageSeoFields from '@/components/admin/ImageSeoFields';
+import { FaqEditor, TravelTipsEditor } from '@/components/admin/StructuredContentEditor';
+import { uploadImageFiles } from '@/lib/admin/uploadImages';
+import { ensureImageMetadata } from '@/lib/content/imageMetadata';
+import type { ContentFaq, ContentTravelTip, ImageMetadata } from '@/types';
 
 interface Tour {
   _id: string;
@@ -44,6 +49,7 @@ interface FormData {
   country: string;
   image: string;
   images: string[];
+  imageMetadata: ImageMetadata[];
   description: string;
   longDescription: string;
   coordinates: {
@@ -65,6 +71,10 @@ interface FormData {
   };
   climate: string;
   weatherWarnings: string[];
+  faqs: ContentFaq[];
+  travelTips: ContentTravelTip[];
+  bestDealTourIds: string[];
+  topTourIds: string[];
   featured: boolean;
   isPublished: boolean;
   metaTitle: string;
@@ -112,6 +122,7 @@ export default function DestinationManager({ initialDestinations }: { initialDes
     country: '',
     image: '',
     images: [],
+    imageMetadata: [],
     description: '',
     longDescription: '',
     coordinates: { lat: '', lng: '' },
@@ -127,6 +138,10 @@ export default function DestinationManager({ initialDestinations }: { initialDes
     averageTemperature: { summer: '', winter: '' },
     climate: '',
     weatherWarnings: [],
+    faqs: [],
+    travelTips: [],
+    bestDealTourIds: [],
+    topTourIds: [],
     featured: false,
     isPublished: true,
     metaTitle: '',
@@ -136,6 +151,7 @@ export default function DestinationManager({ initialDestinations }: { initialDes
   });
 
   const [availableTours, setAvailableTours] = useState<Tour[]>([]);
+  const [tourSearch, setTourSearch] = useState('');
 
   // Fetch available tours on component mount
   useEffect(() => {
@@ -164,6 +180,7 @@ export default function DestinationManager({ initialDestinations }: { initialDes
       country: '',
       image: '',
       images: [],
+      imageMetadata: [],
       description: '',
       longDescription: '',
       coordinates: { lat: '', lng: '' },
@@ -179,6 +196,10 @@ export default function DestinationManager({ initialDestinations }: { initialDes
       averageTemperature: { summer: '', winter: '' },
       climate: '',
       weatherWarnings: [],
+      faqs: [],
+      travelTips: [],
+      bestDealTourIds: [],
+      topTourIds: [],
       featured: false,
       isPublished: true,
       metaTitle: '',
@@ -207,6 +228,7 @@ export default function DestinationManager({ initialDestinations }: { initialDes
       country: dest.country || '',
       image: dest.image || '',
       images: dest.images || [],
+      imageMetadata: ensureImageMetadata(dest.imageMetadata, [dest.image || '', ...(dest.images || [])]),
       description: dest.description || '',
       longDescription: dest.longDescription || '',
       coordinates: {
@@ -228,6 +250,10 @@ export default function DestinationManager({ initialDestinations }: { initialDes
       },
       climate: dest.climate || '',
       weatherWarnings: dest.weatherWarnings || [],
+      faqs: dest.faqs || [],
+      travelTips: dest.travelTips || [],
+      bestDealTourIds: (dest.bestDealTourIds || []).map(String),
+      topTourIds: (dest.topTourIds || []).map(String),
       featured: dest.featured || false,
       isPublished: dest.isPublished ?? true,
       metaTitle: dest.metaTitle || '',
@@ -290,7 +316,12 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaE
       const isSelected = currentTours.includes(tourId);
 
       if (isSelected) {
-        return { ...prev, linkedTours: currentTours.filter(id => id !== tourId) };
+        return {
+          ...prev,
+          linkedTours: currentTours.filter(id => id !== tourId),
+          bestDealTourIds: prev.bestDealTourIds.filter(id => id !== tourId),
+          topTourIds: prev.topTourIds.filter(id => id !== tourId),
+        };
       } else {
         return { ...prev, linkedTours: [...currentTours, tourId] };
       }
@@ -318,23 +349,24 @@ const handleArrayChange = (field: keyof FormData, index: number, value: string) 
     }));
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, isMainImage = true) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
 
     setIsUploading(true);
-    const uploadFormData = new FormData();
-    uploadFormData.append('file', file);
-
-    const promise = fetch('/api/upload', { method: 'POST', body: uploadFormData })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          setFormData(prev => ({ ...prev, image: data.url }));
-          return 'Image uploaded successfully!';
-        } else {
-          throw new Error('Upload failed.');
-        }
+    const promise = uploadImageFiles(isMainImage ? files.slice(0, 1) : files)
+      .then((urls) => {
+        setFormData((prev) => {
+          const image = isMainImage ? urls[0] : prev.image;
+          const images = isMainImage ? prev.images : [...prev.images, ...urls];
+          return {
+            ...prev,
+            image,
+            images,
+            imageMetadata: ensureImageMetadata(prev.imageMetadata, [image, ...images]),
+          };
+        });
+        return `${urls.length} image${urls.length === 1 ? '' : 's'} uploaded successfully!`;
       });
 
     toast.promise(promise, {
@@ -344,6 +376,21 @@ const handleArrayChange = (field: keyof FormData, index: number, value: string) 
     }).finally(() => {
         setIsUploading(false)
     });
+  };
+
+  const updateImageMetadata = (value: ImageMetadata) => {
+    setFormData((prev) => ({
+      ...prev,
+      imageMetadata: [...prev.imageMetadata.filter((item) => item.url !== value.url), value],
+    }));
+  };
+
+  const removeGalleryImage = (url: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      images: prev.images.filter((image) => image !== url),
+      imageMetadata: prev.imageMetadata.filter((item) => item.url !== url),
+    }));
   };
 
   const validateForm = () => {
@@ -445,15 +492,20 @@ const handleSubmit = async (e: React.FormEvent) => {
     ]).catch(err => console.error('Error syncing tour relationships:', err));
   }
 
-  return `Destination ${editingDestination ? 'updated' : 'created'} successfully!`;
+  return {
+    message: `Destination ${editingDestination ? 'updated' : 'created'} successfully!`,
+    savedDestination,
+  };
 };
 
 const result = await saveOperation();
 
-// Close panel and reset state IMMEDIATELY
-setIsPanelOpen(false);
+// Keep the editing interface open after save so admins can continue working.
+if (result.savedDestination) {
+  setEditingDestination(result.savedDestination as IDestination);
+}
 setIsSubmitting(false);
-toast.success(result);
+toast.success(result.message);
 
 // Refresh in background (non-blocking)
 setTimeout(() => router.refresh(), 0);
@@ -489,6 +541,19 @@ setTimeout(() => router.refresh(), 0);
     { id: 'travel', label: 'Travel Info', icon: Globe },
     { id: 'seo', label: 'SEO', icon: Eye }
   ];
+  const filteredTours = availableTours.filter((tour) =>
+    !tourSearch.trim() || `${tour.title} ${tour.slug}`.toLowerCase().includes(tourSearch.trim().toLowerCase())
+  );
+
+  const toggleCuratedTour = (field: 'bestDealTourIds' | 'topTourIds', tourId: string) => {
+    setFormData((prev) => {
+      const selected = prev[field].includes(tourId);
+      const limit = field === 'bestDealTourIds' ? 5 : 10;
+      const next = selected ? prev[field].filter((id) => id !== tourId) : [...prev[field], tourId].slice(0, limit);
+      const otherField = field === 'bestDealTourIds' ? 'topTourIds' : 'bestDealTourIds';
+      return { ...prev, [field]: next, [otherField]: selected ? prev[otherField] : prev[otherField].filter((id) => id !== tourId) };
+    });
+  };
 
   return (
     <div className="space-y-8">
@@ -743,7 +808,11 @@ setTimeout(() => router.refresh(), 0);
                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
                               <button 
                                 type="button" 
-                                onClick={() => setFormData(p => ({...p, image: ''}))} 
+                                onClick={() => setFormData(p => ({
+                                  ...p,
+                                  image: '',
+                                  imageMetadata: p.imageMetadata.filter((item) => item.url !== p.image),
+                                }))}
                                 className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-xl font-semibold hover:bg-red-600 transition-colors duration-200"
                               >
                                 <Trash2 size={16} />
@@ -770,7 +839,7 @@ setTimeout(() => router.refresh(), 0);
                                       name="file-upload" 
                                       type="file" 
                                       className="sr-only" 
-                                      onChange={handleImageUpload} 
+                                      onChange={(event) => handleImageUpload(event, true)}
                                       accept="image/*" 
                                       disabled={isUploading} 
                                     />
@@ -788,6 +857,56 @@ setTimeout(() => router.refresh(), 0);
                           </div>
                         )}
                       </div>
+                      {formData.image && (
+                        <ImageSeoFields
+                          url={formData.image}
+                          value={formData.imageMetadata.find((item) => item.url === formData.image)}
+                          onChange={updateImageMetadata}
+                        />
+                      )}
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <label className="text-sm font-bold text-slate-700">Destination Gallery</label>
+                          <p className="mt-1 text-xs text-slate-500">Select one or multiple images.</p>
+                        </div>
+                        <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-indigo-50 px-3 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-100">
+                          <Plus className="h-4 w-4" /> Add Images
+                          <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            className="sr-only"
+                            disabled={isUploading}
+                            onChange={(event) => handleImageUpload(event, false)}
+                          />
+                        </label>
+                      </div>
+                      {formData.images.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          {formData.images.map((image, index) => (
+                            <div key={`${image}-${index}`} className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-2">
+                              <div className="relative h-36 overflow-hidden rounded-lg">
+                                <Image
+                                  src={image}
+                                  alt={formData.imageMetadata.find((item) => item.url === image)?.alt || `Destination gallery ${index + 1}`}
+                                  title={formData.imageMetadata.find((item) => item.url === image)?.title || undefined}
+                                  fill
+                                  className="object-cover"
+                                />
+                                <button type="button" onClick={() => removeGalleryImage(image)} className="absolute right-2 top-2 rounded-full bg-red-600 p-1.5 text-white" aria-label={`Remove gallery image ${index + 1}`}>
+                                  <X className="h-4 w-4" />
+                                </button>
+                              </div>
+                              <ImageSeoFields compact url={image} value={formData.imageMetadata.find((item) => item.url === image)} onChange={updateImageMetadata} />
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="rounded-xl border border-dashed border-slate-300 p-5 text-center text-sm text-slate-500">No gallery images yet.</div>
+                      )}
                     </div>
 
                     {/* Name Field */}
@@ -1082,7 +1201,7 @@ setTimeout(() => router.refresh(), 0);
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <Star className="h-4 w-4 text-indigo-500" />
-                          <label className="text-sm font-bold text-slate-700">Highlights</label>
+                          <label className="text-sm font-bold text-slate-700">Highlights <span className="font-normal text-slate-500">(Why visit)</span></label>
                           <span className="text-slate-400 text-sm">(optional)</span>
                         </div>
                         <button
@@ -1244,6 +1363,47 @@ setTimeout(() => router.refresh(), 0);
                         )}
                       </div>
                     </div>
+
+                    <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-4">
+                      <div>
+                        <h3 className="text-sm font-bold text-slate-800">Tour listings</h3>
+                        <p className="mt-1 text-xs text-slate-500">Link destination tours, then curate separate Best Deals and Top 10 sections. A tour can only appear in one curated section.</p>
+                      </div>
+                      <input
+                        value={tourSearch}
+                        onChange={(event) => setTourSearch(event.target.value)}
+                        className={inputStyles}
+                        placeholder="Search linked tours by title or slug"
+                      />
+                      <div className="max-h-80 overflow-y-auto rounded-xl border border-slate-200 divide-y divide-slate-100">
+                        {filteredTours.map((tour) => {
+                          const linked = (formData.linkedTours || []).includes(tour._id);
+                          const bestDeal = formData.bestDealTourIds.includes(tour._id);
+                          const topTour = formData.topTourIds.includes(tour._id);
+                          return (
+                            <div key={tour._id} className="grid grid-cols-[1fr_auto] gap-3 p-3 sm:grid-cols-[1fr_auto_auto_auto] sm:items-center">
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-medium text-slate-800">{tour.title}</p>
+                                <p className="truncate text-xs text-slate-500">{tour.slug}</p>
+                              </div>
+                              <label className="flex items-center gap-2 text-xs text-slate-600">
+                                <input type="checkbox" checked={linked} onChange={() => handleTourSelection(tour._id)} className="h-4 w-4 rounded border-slate-300 text-indigo-600" /> Linked
+                              </label>
+                              <label className="flex items-center gap-2 text-xs text-slate-600">
+                                <input type="checkbox" checked={bestDeal} disabled={!linked && !bestDeal} onChange={() => toggleCuratedTour('bestDealTourIds', tour._id)} className="h-4 w-4 rounded border-slate-300 text-indigo-600" /> Best Deal
+                              </label>
+                              <label className="flex items-center gap-2 text-xs text-slate-600">
+                                <input type="checkbox" checked={topTour} disabled={!linked && !topTour} onChange={() => toggleCuratedTour('topTourIds', tour._id)} className="h-4 w-4 rounded border-slate-300 text-indigo-600" /> Top 10
+                              </label>
+                            </div>
+                          );
+                        })}
+                        {filteredTours.length === 0 && <p className="p-4 text-sm text-slate-500">No tours match this search.</p>}
+                      </div>
+                    </div>
+
+                    <FaqEditor value={formData.faqs} onChange={(faqs) => setFormData((prev) => ({ ...prev, faqs }))} />
+                    <TravelTipsEditor value={formData.travelTips} onChange={(travelTips) => setFormData((prev) => ({ ...prev, travelTips }))} />
                   </div>
                 )}
 
@@ -1331,37 +1491,6 @@ setTimeout(() => router.refresh(), 0);
                 {/* SEO Tab */}
                 {activeTab === 'seo' && (
                   <div className="space-y-8">
-                    {/* Linked Tours Section */}
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-2">
-                        <Sparkles className="h-4 w-4 text-indigo-500" />
-                        <label className="text-sm font-bold text-slate-700">Linked Tours</label>
-                        <span className="text-slate-400 text-sm">(optional)</span>
-                      </div>
-                      <div className="border border-slate-300 rounded-xl p-4 max-h-64 overflow-y-auto bg-white">
-                        {availableTours.length === 0 ? (
-                          <p className="text-sm text-slate-500">No tours available</p>
-                        ) : (
-                          <div className="space-y-2">
-                            {availableTours.map((tour) => (
-                              <label key={tour._id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-2 rounded transition-colors">
-                                <input
-                                  type="checkbox"
-                                  checked={(formData.linkedTours || []).includes(tour._id)}
-                                  onChange={() => handleTourSelection(tour._id)}
-                                  className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500"
-                                />
-                                <span className="text-sm text-slate-700">{tour.title}</span>
-                              </label>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      <p className="text-xs text-slate-500 mt-2">
-                        Select tours that should be linked to this destination. When you save, these tours will be updated to reference this destination.
-                      </p>
-                    </div>
-
                 {/* Original SEO Fields */}
                   <div className="space-y-6">
                     {/* Meta Title */}
