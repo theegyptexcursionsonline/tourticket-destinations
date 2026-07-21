@@ -10,6 +10,7 @@ import {
   type AdminAuthContext,
 } from '@/lib/auth/adminAuth';
 import { pagePath } from '@/lib/attractionPages/pageUrl';
+import { combinePageFilters } from '@/lib/admin/pageFilters';
 
 const MAX_LIMIT = 50;
 const VALID_KINDS = ['all', 'attraction', 'category-landing', 'category'] as const;
@@ -100,29 +101,36 @@ export async function GET(request: NextRequest) {
     await dbConnect();
 
     const q = (searchParams.get('q') || '').trim();
+    if (q.length > 100) {
+      return NextResponse.json({ success: false, error: 'Search is too long' }, { status: 400 });
+    }
     const limit = Math.min(MAX_LIMIT, Math.max(1, Number(searchParams.get('limit')) || 20));
     const search = q ? new RegExp(escapeRegex(q), 'i') : null;
     const pageKind = kind as (typeof VALID_KINDS)[number];
     const wantPages = pageKind !== 'category';
     const wantCategories = pageKind === 'all' || pageKind === 'category';
 
-    const attractionFilter: Record<string, unknown> = {
-      ...scope,
-      ...cursorFilter(cursor),
-    };
-    if (pageKind === 'attraction') attractionFilter.pageType = 'attraction';
-    if (pageKind === 'category-landing') attractionFilter.pageType = 'category';
-    if (status === 'published') attractionFilter.isPublished = true;
-    if (status === 'draft') attractionFilter.isPublished = { $ne: true };
-    if (search) attractionFilter.$and = [{ $or: [{ title: search }, { slug: search }] }];
+    const attractionTypeFilter: Record<string, unknown> = {};
+    if (pageKind === 'attraction') attractionTypeFilter.pageType = 'attraction';
+    if (pageKind === 'category-landing') attractionTypeFilter.pageType = 'category';
+    if (status === 'published') attractionTypeFilter.isPublished = true;
+    if (status === 'draft') attractionTypeFilter.isPublished = { $ne: true };
+    const attractionFilter = combinePageFilters(
+      scope,
+      cursorFilter(cursor),
+      attractionTypeFilter,
+      search ? { $or: [{ title: search }, { slug: search }] } : {},
+    );
 
-    const categoryFilter: Record<string, unknown> = {
-      ...scope,
-      ...cursorFilter(cursor),
-    };
-    if (status === 'published') categoryFilter.isPublished = { $ne: false };
-    if (status === 'draft') categoryFilter.isPublished = false;
-    if (search) categoryFilter.$and = [{ $or: [{ name: search }, { slug: search }] }];
+    const categoryStatusFilter: Record<string, unknown> = {};
+    if (status === 'published') categoryStatusFilter.isPublished = { $ne: false };
+    if (status === 'draft') categoryStatusFilter.isPublished = false;
+    const categoryFilter = combinePageFilters(
+      scope,
+      cursorFilter(cursor),
+      categoryStatusFilter,
+      search ? { $or: [{ name: search }, { slug: search }] } : {},
+    );
 
     const fetchSize = limit + 1;
     const [pages, categories] = await Promise.all([

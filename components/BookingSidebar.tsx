@@ -20,6 +20,12 @@ import { useSettings } from '@/hooks/useSettings';
 import { toDateOnlyString } from '@/utils/date';
 import { loadCurrentBookingOptions } from '@/lib/bookings/liveBookingOptions';
 import { isPerPersonAddOn } from '@/lib/checkout/addOnPricing';
+import {
+  bindTimeSlotsToOption,
+  findSelectedBookingOption,
+  isSelectedTimeSlot,
+  nextAddOnSelectionQuantity,
+} from '@/lib/bookings/bookingSelection';
 
 // Enhanced Types with database compatibility
 interface Tour {
@@ -97,6 +103,7 @@ interface BookingOption {
 
 interface TimeSlot {
   id: string;
+  optionId?: string;
   time: string;
   available: number;
   price: number;
@@ -722,7 +729,7 @@ const TourOptionCard: React.FC<{
 
         <div className="grid grid-cols-1 gap-2">
           {option.timeSlots.map(timeSlot => {
-            const isSelected = selectedTimeSlot?.id === timeSlot.id;
+            const isSelected = isSelectedTimeSlot(selectedTimeSlot, option.id, timeSlot.id);
             const isLowAvailability = timeSlot.available <= 3;
             const isSoldOut = timeSlot.available === 0;
             const isDisabled = isSoldOut || Boolean(option.isStopSale);
@@ -827,7 +834,7 @@ const AddOnCard: React.FC<{
   };
 
   const handleToggle = () => {
-    onQuantityChange(addOn.id, isSelected ? 0 : calculatedQuantity);
+    onQuantityChange(addOn.id, nextAddOnSelectionQuantity(quantity));
   };
 
   return (
@@ -1053,8 +1060,9 @@ const BookingSummaryCard: React.FC<{
 
         {/* Selected Tour Option */}
         {(() => {
-          const selectedOption = availability?.tourOptions.find(option =>
-            option.timeSlots?.some(slot => slot.id === bookingData.selectedTimeSlot?.id)
+          const selectedOption = findSelectedBookingOption(
+            availability?.tourOptions,
+            bookingData.selectedTimeSlot,
           );
           
           if (selectedOption) {
@@ -1405,15 +1413,19 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
       if (bookingOptions.length > 0) {
         tourOptions = bookingOptions.map((option: any, index: number) => {
           const optionPrice = option.price || tourDisplayData?.discountPrice || 50;
+          const optionId = option.id || option._id || `option-${index}`;
           return {
-            id: option.id || option._id || `option-${index}`,
+            id: optionId,
             title: option.label || option.title || 'Tour Option',
             price: optionPrice,
             originalPrice: option.originalPrice || optionPrice,
             duration: option.duration || tourDisplayData?.duration || '3 hours',
             languages: option.languages || tourDisplayData?.languages || ['English'],
             description: option.description || 'Experience our tour',
-            timeSlots: option.timeSlots || generateTimeSlotsFromAvailability(optionPrice, index),
+            timeSlots: bindTimeSlotsToOption(
+              optionId,
+              option.timeSlots || generateTimeSlotsFromAvailability(optionPrice, index),
+            ),
             highlights: option.highlights || tourDisplayData?.highlights?.slice(0, 3) || ['Expert guide included', 'Small group experience', 'Photo opportunities'],
             included: option.included || tourDisplayData?.includes?.slice(0, 3) || ['Professional guide', 'Entry tickets', 'Group photos'],
             groupSize: option.groupSize || `Max ${tourDisplayData?.maxGroupSize || 15} people`,
@@ -1435,7 +1447,10 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
             duration: tourDisplayData?.duration || '3 hours',
             languages: tourDisplayData?.languages || ['English'],
             description: 'Perfect introduction to the destination with expert guide',
-            timeSlots: generateTimeSlotsFromAvailability(standardPrice, 0),
+            timeSlots: bindTimeSlotsToOption(
+              'standard-tour',
+              generateTimeSlotsFromAvailability(standardPrice, 0),
+            ),
             highlights: tourDisplayData?.highlights?.slice(0, 3) || ['Expert guide included', 'Small group experience', 'Photo opportunities'],
             included: tourDisplayData?.includes?.slice(0, 3) || ['Professional guide', 'Entry tickets', 'Group photos'],
             groupSize: `Max ${tourDisplayData?.maxGroupSize || 15} people`,
@@ -1527,8 +1542,9 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
     if (bookingData.selectedTimeSlot) {
       basePrice = bookingData.selectedTimeSlot.price;
       
-      const selectedOption = availability?.tourOptions.find(option =>
-        option.timeSlots?.some(slot => slot.id === bookingData.selectedTimeSlot?.id)
+      const selectedOption = findSelectedBookingOption(
+        availability?.tourOptions,
+        bookingData.selectedTimeSlot,
       );
       
       originalBasePrice = bookingData.selectedTimeSlot.originalPrice || 
@@ -1799,8 +1815,9 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
     );
 
     try {
-      const selectedOption = availability?.tourOptions.find(option =>
-        option.timeSlots?.some(slot => slot.id === bookingData.selectedTimeSlot?.id)
+      const selectedOption = findSelectedBookingOption(
+        availability?.tourOptions,
+        bookingData.selectedTimeSlot,
       );
 
       if (!selectedOption && !tourDisplayData) {

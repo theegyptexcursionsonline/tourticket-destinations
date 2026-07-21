@@ -25,6 +25,8 @@ import {
 import Image from 'next/image';
 import { TourActions } from './TourActions';
 import Link from 'next/link';
+import { useAdminTenant } from '@/contexts/AdminTenantContext';
+import { storefrontPreviewUrl } from '@/lib/admin/storefrontPreviewUrl';
 
 type TourType = {
   _id: string;
@@ -75,6 +77,7 @@ export function ToursListClient({
   const CurrencyIcon = selectedCurrency.code === 'USD' ? DollarSign : Euro;
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { tenants } = useAdminTenant();
 
   // Get initial tab and page from URL or defaults
   const initialTab = (searchParams.get('status') as TabFilter) || 'all';
@@ -122,6 +125,12 @@ export function ToursListClient({
     const queryString = params.toString();
     return `/admin/tours/edit/${tourId}${queryString ? `?returnTo=${encodeURIComponent(`/admin/tours?${queryString}`)}` : ''}`;
   };
+
+  const getPreviewUrl = (tour: TourType) => storefrontPreviewUrl(`/${tour.slug || ''}`, {
+    tenantDomain: tenants.find((tenant) => tenant.tenantId === tour.tenantId)?.domain,
+    configuredBaseUrl: process.env.NEXT_PUBLIC_BASE_URL,
+    adminOrigin: typeof window !== 'undefined' ? window.location.origin : null,
+  });
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -423,7 +432,21 @@ export function ToursListClient({
                       <span className="text-sm font-bold text-slate-900">{formatPrice(t.discountPrice ?? t.price)}</span>
                     </td>
                     <td className="px-6 py-4 text-end">
-                      <TourActions tourId={t._id} />
+                      <div className="flex items-center justify-end gap-2">
+                        {t.slug && (
+                          <a
+                            href={getPreviewUrl(t)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+                            title="Open public tour"
+                          >
+                            <Eye className="h-4 w-4" />
+                            <span>View</span>
+                          </a>
+                        )}
+                        <TourActions tourId={t._id} />
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -522,6 +545,18 @@ export function ToursListClient({
                     <TourActions tourId={t._id} />
                   </div>
                 </div>
+
+                {t.slug && (
+                  <a
+                    href={getPreviewUrl(t)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+                  >
+                    <Eye className="h-4 w-4" />
+                    <span>View public tour</span>
+                  </a>
+                )}
 
                 {/* Duration and Date */}
                 <div className="flex items-center justify-between pt-4 border-t border-slate-100">

@@ -9,6 +9,8 @@ import Link from 'next/link';
 import { Plus, Edit, Trash2, Eye, Search, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { useAdminTenant } from '@/contexts/AdminTenantContext';
+import { storefrontPreviewUrl } from '@/lib/admin/storefrontPreviewUrl';
+import { fetchJsonWithRetry } from '@/lib/admin/fetchJsonWithRetry';
 
 type PageKind = 'attraction' | 'category-landing' | 'category';
 
@@ -35,6 +37,14 @@ interface Counts {
   total: number;
 }
 
+interface PagesResponse {
+  success: boolean;
+  data?: UnifiedRow[];
+  nextCursor?: string | null;
+  counts?: Counts;
+  error?: string;
+}
+
 const KIND_LABELS: Record<PageKind, string> = {
   attraction: 'Attraction',
   'category-landing': 'Category Landing',
@@ -48,7 +58,7 @@ const KIND_BADGES: Record<PageKind, string> = {
 };
 
 export default function UnifiedPagesAdmin() {
-  const { selectedTenantId, getSelectedTenant } = useAdminTenant();
+  const { selectedTenantId, getSelectedTenant, tenants } = useAdminTenant();
   const [rows, setRows] = useState<UnifiedRow[]>([]);
   const [counts, setCounts] = useState<Counts | null>(null);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
@@ -59,6 +69,7 @@ export default function UnifiedPagesAdmin() {
   const [filterKind, setFilterKind] = useState<'all' | PageKind>('all');
   const [filterStatus, setFilterStatus] = useState<'all' | 'published' | 'draft'>('all');
   const requestSeq = useRef(0);
+  const activeRequest = useRef<AbortController | null>(null);
 
   const getAuthHeaders = useCallback((): HeadersInit => ({
     'Content-Type': 'application/json',
@@ -76,23 +87,28 @@ export default function UnifiedPagesAdmin() {
 
   const fetchPage = useCallback(async (cursor: string | null, append: boolean) => {
     const seq = ++requestSeq.current;
+    activeRequest.current?.abort();
+    const controller = new AbortController();
+    activeRequest.current = controller;
     if (!append) setLoading(true);
     else setLoadingMore(true);
     try {
-      const response = await fetch(`/api/admin/pages?${buildQuery(cursor)}`, {
+      const { response, data } = await fetchJsonWithRetry<PagesResponse>(`/api/admin/pages?${buildQuery(cursor)}`, {
         headers: getAuthHeaders(),
+        signal: controller.signal,
       });
-      const data = await response.json();
       if (seq !== requestSeq.current) return; // stale response
       if (!response.ok || !data.success) {
         setError(data.error || `Failed to fetch pages (${response.status})`);
         return;
       }
       setError(null);
-      setRows((prev) => (append ? [...prev, ...data.data] : data.data));
-      setNextCursor(data.nextCursor);
-      setCounts(data.counts);
+      const nextRows = data.data || [];
+      setRows((prev) => (append ? [...prev, ...nextRows] : nextRows));
+      setNextCursor(data.nextCursor || null);
+      setCounts(data.counts || null);
     } catch (err) {
+      if (controller.signal.aborted) return;
       if (seq === requestSeq.current) setError('Network error');
       console.error('Error fetching pages:', err);
     } finally {
@@ -100,6 +116,7 @@ export default function UnifiedPagesAdmin() {
         setLoading(false);
         setLoadingMore(false);
       }
+      if (activeRequest.current === controller) activeRequest.current = null;
     }
   }, [buildQuery, getAuthHeaders]);
 
@@ -288,8 +305,13 @@ export default function UnifiedPagesAdmin() {
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end gap-2">
                         <Link
-                          href={row.publicPath}
+                          href={storefrontPreviewUrl(row.publicPath, {
+                            tenantDomain: tenants.find((tenant) => tenant.tenantId === row.tenantId)?.domain,
+                            configuredBaseUrl: process.env.NEXT_PUBLIC_BASE_URL,
+                            adminOrigin: typeof window !== 'undefined' ? window.location.origin : null,
+                          })}
                           target="_blank"
+                          rel="noopener noreferrer"
                           className="text-gray-600 hover:text-gray-900 p-1 rounded"
                           title="View Page"
                         >
