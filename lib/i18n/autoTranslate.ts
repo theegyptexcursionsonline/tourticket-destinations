@@ -14,6 +14,10 @@ import {
   categoryTranslationFields,
   attractionPageTranslationFields,
 } from './translationFields';
+import {
+  buildTranslationLengthInstruction,
+  enforceTranslationFieldLimits,
+} from './translationLimits';
 
 type FieldValues = Record<string, string | string[]>;
 type TranslationsMap = Record<string, Record<string, string | string[]>>;
@@ -89,6 +93,8 @@ Rules:
 - For Arabic (ar), produce proper RTL text
 - Keep translations natural and fluent, not literal word-for-word
 - For SEO fields (metaTitle, metaDescription), optimize for the target language
+- Keep every field within its configured limit
+${buildTranslationLengthInstruction(fieldDefs)}
 - Array fields must remain arrays with the same number of items, each item translated
 - Return ONLY a JSON object with this locale-keyed structure: ${JSON.stringify(responseShape)}`;
 
@@ -112,7 +118,7 @@ Rules:
     const validated: TranslationsMap = {};
     for (const locale of translatableLocales) {
       if (parsed[locale] && typeof parsed[locale] === 'object') {
-        validated[locale] = parsed[locale];
+        validated[locale] = enforceTranslationFieldLimits(parsed[locale], fieldDefs);
       }
     }
 
@@ -171,6 +177,8 @@ Rules:
 - Keep proper nouns (city names, brand names) in their commonly known local form (e.g. Cairo → القاهرة in Arabic)
 ${locale === 'ar' ? '- Produce proper RTL text for Arabic\n' : ''}- Keep translations natural and fluent, not literal word-for-word
 - For SEO fields (metaTitle, metaDescription), optimize for the target language
+- Keep every field within its configured limit
+${buildTranslationLengthInstruction(fieldDefs)}
 - Array fields must remain arrays with the same number of items, each item translated
 - For any missing fields you generate, create high-quality relevant content based on the title/description context
 - Return a JSON object with ALL fields (both translated and generated): { "fieldName": "translated value", ... }`;
@@ -193,7 +201,11 @@ ${locale === 'ar' ? '- Produce proper RTL text for Arabic\n' : ''}- Keep transla
     if (typeof parsed !== 'object' || parsed === null || Object.keys(parsed).length === 0) {
       throw new Error('Translation model returned no fields');
     }
-    return parsed;
+    const localeBucket = parsed[locale];
+    const candidate = localeBucket && typeof localeBucket === 'object' && !Array.isArray(localeBucket)
+      ? localeBucket as Record<string, unknown>
+      : parsed;
+    return enforceTranslationFieldLimits(candidate, fieldDefs);
   } catch (error) {
     console.error(`Auto-translate failed for ${entityContext} (${locale}):`, error);
     throw error instanceof Error ? error : new Error('Translation failed');
