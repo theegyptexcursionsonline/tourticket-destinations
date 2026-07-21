@@ -19,7 +19,7 @@ import {
   tenantMegaMenuCategories,
   tenantMegaMenuDestinations,
 } from '@/lib/tenantNavigation';
-import { filterSearchHitsByTenant } from '@/lib/tenantSearchHitFilter';
+import { filterTourSearchHitsByTenant } from '@/lib/tenantSearchHitFilter';
 import { useLocale } from 'next-intl';
 import { liteClient as algoliasearch } from 'algoliasearch/lite';
 import { InstantSearch, Index, useSearchBox, useHits, Configure } from 'react-instantsearch';
@@ -436,13 +436,15 @@ function TourHits({
   onHitClick,
   limit = 5,
   tenantId,
+  locale,
 }: {
   onHitClick?: () => void;
   limit?: number;
   tenantId?: string;
+  locale: string;
 }) {
   const { hits } = useHits();
-  const tenantHits = filterSearchHitsByTenant(hits as any[], tenantId);
+  const tenantHits = filterTourSearchHitsByTenant(hits as any[], tenantId, locale);
   const limitedHits = tenantHits.slice(0, limit);
 
   if (limitedHits.length === 0) return null;
@@ -529,6 +531,7 @@ const MobileInlineSearch: FC<{ isOpen: boolean; onClose: () => void }> = React.m
   const [searchQuery, setSearchQuery] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
   const { tenant, getSiteName } = useTenant();
+  const locale = useLocale();
   const tenantId = tenant?.tenantId || 'default';
   const tenantName = getSiteName();
 
@@ -608,7 +611,7 @@ const MobileInlineSearch: FC<{ isOpen: boolean; onClose: () => void }> = React.m
                     <CustomSearchBox searchQuery={searchQuery} onSearchChange={setSearchQuery} />
                     <Index indexName={INDEX_TOURS}>
                       <Configure hitsPerPage={10} />
-                      <TourHits onHitClick={onClose} limit={10} tenantId={tenantId} />
+                      <TourHits onHitClick={onClose} limit={10} tenantId={tenantId} locale={locale} />
                     </Index>
                   </InstantSearch>
                   <TenantSearchScopeNote tenantName={tenantName} />

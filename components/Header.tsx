@@ -56,7 +56,10 @@ import {
   tenantMegaMenuCategories,
   tenantMegaMenuDestinations,
 } from '@/lib/tenantNavigation';
-import { filterSearchHitsByTenant } from '@/lib/tenantSearchHitFilter';
+import {
+  filterSearchHitsByTenant,
+  filterTourSearchHitsByTenant,
+} from '@/lib/tenantSearchHitFilter';
 import 'instantsearch.css/themes/satellite.css';
 import { isRTL } from '@/i18n/config';
 import { tourSearchHref } from '@/lib/search/tourSearchHref';
@@ -216,13 +219,16 @@ function TourHits({
   onHitClick,
   limit = 5,
   locale,
+  tenantId,
 }: {
   hits: LiveTourHit[];
   onHitClick?: () => void;
   limit?: number;
   locale: string;
+  tenantId?: string;
 }) {
-  const limitedHits = hits.slice(0, limit);
+  const localizedHits = filterTourSearchHitsByTenant(hits, tenantId, locale);
+  const limitedHits = localizedHits.slice(0, limit);
 
   if (limitedHits.length === 0) return null;
 
@@ -237,7 +243,7 @@ function TourHits({
             Tours
           </span>
           <span className="ms-auto text-[10px] md:text-xs font-medium text-gray-400 bg-gray-100/80 backdrop-blur-sm px-2 md:px-2.5 py-0.5 md:py-1 rounded-full">
-            {hits.length}
+            {localizedHits.length}
           </span>
         </div>
       </div>
@@ -1009,7 +1015,7 @@ const MobileInlineSearch: FC<{ isOpen: boolean; onClose: () => void }> = React.m
                           {[0, 1].map((item) => <TourResultSkeleton key={item} />)}
                         </div>
                       ) : (
-                        <TourHits hits={tourResults} onHitClick={onClose} limit={5} locale={locale} />
+                        <TourHits hits={tourResults} onHitClick={onClose} limit={5} locale={locale} tenantId={tenantId} />
                       )}
                       <InstantSearch searchClient={searchClient} indexName={INDEX_TOURS}>
                         <CustomSearchBox searchQuery={searchQuery} onSearchChange={setSearchQuery} />
