@@ -1778,22 +1778,32 @@ const addItineraryItem = () => {
                                             {formData.images.length > 0 ? (
                                                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                                                     {formData.images.map((img: string, i: number) => (
-                                                        <div key={i} className="relative group h-32">
-                                                            <Image
-                                                                src={img} 
-                                                                alt={`Gallery ${i}`} 
-                                                                fill
-                                                                unoptimized
-                                                                sizes="(max-width: 768px) 50vw, 25vw"
-                                                                className="object-cover rounded-xl border-2 border-slate-200 shadow-sm group-hover:shadow-md transition-all"
+                                                        <div key={`${img}-${i}`} className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-2">
+                                                            <div className="relative group h-32">
+                                                                <Image
+                                                                    src={img}
+                                                                    alt={formData.imageMetadata.find((item) => item.url === img)?.alt || `Gallery ${i + 1}`}
+                                                                    title={formData.imageMetadata.find((item) => item.url === img)?.title || undefined}
+                                                                    fill
+                                                                    unoptimized
+                                                                    sizes="(max-width: 768px) 50vw, 25vw"
+                                                                    className="object-cover rounded-lg shadow-sm group-hover:shadow-md transition-all"
+                                                                />
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => removeGalleryImage(img)}
+                                                                    className="absolute -top-2 -end-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600 transition-all shadow-lg"
+                                                                    aria-label={`Remove gallery image ${i + 1}`}
+                                                                >
+                                                                    <X className="w-3 h-3" />
+                                                                </button>
+                                                            </div>
+                                                            <ImageSeoFields
+                                                                compact
+                                                                url={img}
+                                                                value={formData.imageMetadata.find((item) => item.url === img)}
+                                                                onChange={updateImageMetadata}
                                                             />
-                                                            <button 
-                                                                type="button" 
-                                                                onClick={() => removeGalleryImage(img)}
-                                                                className="absolute -top-2 -end-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600 transition-all shadow-lg opacity-0 group-hover:opacity-100"
-                                                            >
-                                                                <X className="w-3 h-3" />
-                                                            </button>
                                                         </div>
                                                     ))}
                                                 </div>

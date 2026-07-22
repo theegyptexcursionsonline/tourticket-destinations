@@ -31,6 +31,12 @@ import {
 } from 'lucide-react';
 import { IBlog } from '@/lib/models/Blog';
 import { useAdminTenant } from '@/contexts/AdminTenantContext';
+import ImageSeoFields from '@/components/admin/ImageSeoFields';
+import {
+  ensureImageMetadata,
+  imageMetadataFor,
+  type ImageMetadata,
+} from '@/lib/content/imageMetadata';
 
 interface FormData {
   title: string;
@@ -39,6 +45,7 @@ interface FormData {
   content: string; // HTML from editor
   featuredImage: string;
   images: string[];
+  imageMetadata: ImageMetadata[];
   category: string;
   tags: string[];
   author: string;
@@ -95,6 +102,11 @@ function RichTextEditor({
 }) {
   const editorRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [pendingImage, setPendingImage] = useState<{
+    file: File;
+    alt: string;
+    title: string;
+  } | null>(null);
 
   useEffect(() => {
     if (editorRef.current && value !== editorRef.current.innerHTML) {
@@ -139,16 +151,39 @@ function RichTextEditor({
     insertHTML(safeText);
   };
 
-  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    const suggestedAlt = file.name
+      .replace(/\.[^.]+$/, '')
+      .replace(/[-_]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    setPendingImage({ file, alt: suggestedAlt, title: '' });
+    e.target.value = '';
+  };
+
+  const escapeAttribute = (value: string) => value
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+  const insertPendingImage = async () => {
+    if (!pendingImage?.alt.trim()) return;
+
     try {
-      const url = await onUpload(file);
-      // Insert responsive image with figure wrapper
-      const html = `<figure class="editor-image"><img src="${url}" alt="Image" /><figcaption contenteditable="true">Caption (optional)</figcaption></figure><p><br/></p>`;
+      const url = await onUpload(pendingImage.file);
+      const safeUrl = escapeAttribute(url);
+      const safeAlt = escapeAttribute(pendingImage.alt.trim());
+      const safeTitle = pendingImage.title.trim()
+        ? ` title="${escapeAttribute(pendingImage.title.trim())}"`
+        : '';
+      const html = `<figure class="editor-image"><img src="${safeUrl}" alt="${safeAlt}"${safeTitle} /><figcaption contenteditable="true">Caption (optional)</figcaption></figure><p><br/></p>`;
       insertHTML(html);
       toast.success('Image inserted');
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      setPendingImage(null);
     } catch (err) {
       console.error(err);
       toast.error('Image upload failed');
@@ -187,6 +222,45 @@ function RichTextEditor({
         </label>
         <button type="button" onClick={handleClearFormat} className="px-2 py-1 rounded-md border text-sm">Clear</button>
       </div>
+
+      {pendingImage && (
+        <div className="rounded-xl border border-indigo-200 bg-indigo-50/60 p-4" role="group" aria-label="Inline image details">
+          <div className="mb-3 flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-slate-800">Image details</p>
+              <p className="mt-0.5 max-w-md truncate text-xs text-slate-500">{pendingImage.file.name}</p>
+            </div>
+            <button type="button" onClick={() => setPendingImage(null)} className="rounded-lg p-1 text-slate-500 hover:bg-white hover:text-slate-800" aria-label="Cancel inline image">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            <label className="space-y-1">
+              <span className="text-xs font-semibold text-slate-700">Image alt text *</span>
+              <input
+                value={pendingImage.alt}
+                onChange={(event) => setPendingImage((current) => current ? { ...current, alt: event.target.value } : current)}
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                placeholder="Describe this specific image"
+              />
+            </label>
+            <label className="space-y-1">
+              <span className="text-xs font-semibold text-slate-700">Image title</span>
+              <input
+                value={pendingImage.title}
+                onChange={(event) => setPendingImage((current) => current ? { ...current, title: event.target.value } : current)}
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                placeholder="Optional image title"
+              />
+            </label>
+          </div>
+          <div className="mt-3 flex justify-end">
+            <button type="button" onClick={insertPendingImage} disabled={!pendingImage.alt.trim()} className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50">
+              Insert image
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* editable area */}
       <div
@@ -248,6 +322,7 @@ export default function BlogManager({ initialBlogs }: { initialBlogs: IBlog[] })
     content: '',
     featuredImage: '',
     images: [],
+    imageMetadata: [],
     category: 'travel-tips',
     tags: [],
     author: '',
@@ -272,6 +347,7 @@ export default function BlogManager({ initialBlogs }: { initialBlogs: IBlog[] })
       content: '',
       featuredImage: '',
       images: [],
+      imageMetadata: [],
       category: 'travel-tips',
       tags: [],
       author: '',
@@ -305,6 +381,7 @@ export default function BlogManager({ initialBlogs }: { initialBlogs: IBlog[] })
       content: blog.content || '',
       featuredImage: blog.featuredImage || '',
       images: blog.images || [],
+      imageMetadata: ensureImageMetadata(blog.imageMetadata, [blog.featuredImage, ...(blog.images || [])]),
       category: blog.category || 'travel-tips',
       tags: blog.tags || [],
       author: blog.author || '',
@@ -369,9 +446,25 @@ export default function BlogManager({ initialBlogs }: { initialBlogs: IBlog[] })
   };
 
   const removeArrayItem = (field: keyof FormData, index: number) => {
+    setFormData(prev => {
+      const nextValues = (prev[field] as string[]).filter((_, i) => i !== index);
+      return {
+        ...prev,
+        [field]: nextValues,
+        ...(field === 'images' ? {
+          imageMetadata: ensureImageMetadata(prev.imageMetadata, [prev.featuredImage, ...nextValues]),
+        } : {}),
+      };
+    });
+  };
+
+  const updateImageMetadata = (next: ImageMetadata) => {
     setFormData(prev => ({
       ...prev,
-      [field]: (prev[field] as string[]).filter((_, i) => i !== index)
+      imageMetadata: ensureImageMetadata(
+        [...prev.imageMetadata.filter((item) => item.url !== next.url), next],
+        [prev.featuredImage, ...prev.images],
+      ),
     }));
   };
 
@@ -389,9 +482,20 @@ export default function BlogManager({ initialBlogs }: { initialBlogs: IBlog[] })
       .then(data => {
         if (data.success) {
           if (field === 'featuredImage') {
-            setFormData(prev => ({ ...prev, featuredImage: data.url }));
+            setFormData(prev => ({
+              ...prev,
+              featuredImage: data.url,
+              imageMetadata: ensureImageMetadata(prev.imageMetadata, [data.url, ...prev.images]),
+            }));
           } else {
-            setFormData(prev => ({ ...prev, images: [...prev.images, data.url] }));
+            setFormData(prev => {
+              const images = [...prev.images, data.url];
+              return {
+                ...prev,
+                images,
+                imageMetadata: ensureImageMetadata(prev.imageMetadata, [prev.featuredImage, ...images]),
+              };
+            });
           }
           return 'Image uploaded successfully!';
         } else {
@@ -448,11 +552,13 @@ export default function BlogManager({ initialBlogs }: { initialBlogs: IBlog[] })
     setIsSubmitting(true);
 
     // Prepare data for submission
+    const filteredImages = formData.images.filter(img => img.trim());
     const submitData = {
       ...formData,
       status: action === 'publish' ? 'published' : formData.status,
       tags: formData.tags.filter(t => t.trim()),
-      images: formData.images.filter(img => img.trim()),
+      images: filteredImages,
+      imageMetadata: ensureImageMetadata(formData.imageMetadata, [formData.featuredImage, ...filteredImages]),
       relatedDestinations: formData.relatedDestinations.filter(d => d.trim()),
       relatedTours: formData.relatedTours.filter(t => t.trim()),
       scheduledFor: formData.scheduledFor ? new Date(formData.scheduledFor) : undefined
@@ -995,27 +1101,39 @@ export default function BlogManager({ initialBlogs }: { initialBlogs: IBlog[] })
                         <span className="text-red-500 text-sm">*</span>
                       </div>
 
-                      <div className="relative">
+                      <div>
                         {formData.featuredImage ? (
-                          <div className="group relative h-64 overflow-hidden rounded-2xl border-2 border-slate-200">
-                            <Image
-                              src={formData.featuredImage}
-                              alt="Featured image preview"
-                              fill
-                              unoptimized
-                              sizes="(max-width: 768px) 100vw, 768px"
-                              className="object-cover"
-                            />
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
-                              <button
-                                type="button"
-                                onClick={() => setFormData(p => ({ ...p, featuredImage: '' }))}
-                                className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-xl font-semibold hover:bg-red-600 transition-colors duration-200"
-                              >
-                                <Trash2 size={16} />
-                                Remove Image
-                              </button>
+                          <div className="space-y-3 rounded-2xl border-2 border-slate-200 p-3">
+                            <div className="group relative h-64 overflow-hidden rounded-xl">
+                              <Image
+                                src={formData.featuredImage}
+                                alt={imageMetadataFor(formData.featuredImage, formData.imageMetadata, formData.title || 'Featured image').alt}
+                                title={imageMetadataFor(formData.featuredImage, formData.imageMetadata, formData.title || 'Featured image').title}
+                                fill
+                                unoptimized
+                                sizes="(max-width: 768px) 100vw, 768px"
+                                className="object-cover"
+                              />
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                                <button
+                                  type="button"
+                                  onClick={() => setFormData(prev => ({
+                                    ...prev,
+                                    featuredImage: '',
+                                    imageMetadata: ensureImageMetadata(prev.imageMetadata, prev.images),
+                                  }))}
+                                  className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-xl font-semibold hover:bg-red-600 transition-colors duration-200"
+                                >
+                                  <Trash2 size={16} />
+                                  Remove Image
+                                </button>
+                              </div>
                             </div>
+                            <ImageSeoFields
+                              url={formData.featuredImage}
+                              value={formData.imageMetadata.find((item) => item.url === formData.featuredImage)}
+                              onChange={updateImageMetadata}
+                            />
                           </div>
                         ) : (
                           <div className="border-2 border-dashed border-slate-300 rounded-2xl p-8 text-center hover:border-indigo-400 hover:bg-indigo-50/50 transition-all duration-200">
@@ -1081,26 +1199,31 @@ export default function BlogManager({ initialBlogs }: { initialBlogs: IBlog[] })
                         </label>
                       </div>
 
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {formData.images.map((image, index) => (
-                          <div key={index} className="group relative h-32 overflow-hidden rounded-xl border-2 border-slate-200">
-                            <Image
-                              src={image}
-                              alt={`Additional image ${index + 1}`}
-                              fill
-                              unoptimized
-                              sizes="(max-width: 768px) 50vw, 33vw"
-                              className="object-cover"
-                            />
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
-                              <button
-                                type="button"
-                                onClick={() => removeArrayItem('images', index)}
-                                className="flex items-center justify-center w-8 h-8 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors duration-200"
-                              >
-                                <Trash2 size={14} />
-                              </button>
+                          <div key={`${image}-${index}`} className="space-y-2 rounded-xl border-2 border-slate-200 p-2">
+                            <div className="group relative h-32 overflow-hidden rounded-lg">
+                              <Image
+                                src={image}
+                                alt={imageMetadataFor(image, formData.imageMetadata, `${formData.title || 'Blog'} image ${index + 1}`).alt}
+                                title={imageMetadataFor(image, formData.imageMetadata, `${formData.title || 'Blog'} image ${index + 1}`).title}
+                                fill
+                                unoptimized
+                                sizes="(max-width: 768px) 100vw, 50vw"
+                                className="object-cover"
+                              />
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                                <button
+                                  type="button"
+                                  onClick={() => removeArrayItem('images', index)}
+                                  className="flex items-center justify-center w-8 h-8 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors duration-200"
+                                  aria-label={`Remove additional image ${index + 1}`}
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
                             </div>
+                            <ImageSeoFields compact url={image} value={formData.imageMetadata.find((item) => item.url === image)} onChange={updateImageMetadata} />
                           </div>
                         ))}
                         {formData.images.length === 0 && (

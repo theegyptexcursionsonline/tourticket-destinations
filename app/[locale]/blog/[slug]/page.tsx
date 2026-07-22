@@ -76,7 +76,7 @@ async function getBlogPost(slug: string) {
   })
     .limit(3)
     .sort({ publishedAt: -1 })
-    .select('title slug excerpt featuredImage author publishedAt readTime')
+    .select('title slug excerpt featuredImage imageMetadata author publishedAt readTime')
     .lean();
 
   return {

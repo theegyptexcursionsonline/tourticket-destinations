@@ -1,4 +1,6 @@
 import mongoose, { Document, Schema, Model } from 'mongoose';
+import type { ImageMetadata } from '@/lib/content/imageMetadata';
+import { ImageMetadataSchema } from '@/lib/models/schemas/ImageMetadataSchema';
 
 export interface IBlog extends Document {
   // Multi-tenant support
@@ -13,6 +15,7 @@ export interface IBlog extends Document {
   // Media
   featuredImage: string;
   images?: string[];
+  imageMetadata?: ImageMetadata[];
   
   // Categorization
   category: string;
@@ -102,6 +105,10 @@ const BlogSchema: Schema<IBlog> = new Schema({
     type: String,
     trim: true,
   }],
+  imageMetadata: {
+    type: [ImageMetadataSchema],
+    default: [],
+  },
   
   // Categorization
   category: {

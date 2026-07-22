@@ -181,6 +181,10 @@ const handleSetActiveImage = async (imageIndex: number) => {
 
 const handleSaveSettings = async () => {
   if (!editingSettings) return;
+  if (editingSettings.backgroundImages.some((image) => !image.alt?.trim())) {
+    toast.error('Add alt text for every hero image before saving.');
+    return;
+  }
 
   try {
     setIsSaving(true);
@@ -459,7 +463,21 @@ const handleImageUpload = async (file: File, type: 'desktop' | 'mobile') => {
 
                   {/* Image Details */}
                   <div className="p-4 bg-white">
-                    <p className="text-sm text-slate-600 line-clamp-2">{image.alt}</p>
+                    <label className="block space-y-1">
+                      <span className="text-xs font-semibold text-slate-600">Image alt text</span>
+                      <input
+                        value={image.alt}
+                        required
+                        onChange={(event) => setEditingSettings((current) => current ? {
+                          ...current,
+                          backgroundImages: current.backgroundImages.map((item, imageIndex) => imageIndex === index
+                            ? { ...item, alt: event.target.value }
+                            : item),
+                        } : current)}
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                        placeholder="Describe this specific hero image"
+                      />
+                    </label>
                     <div className="flex items-center gap-4 mt-2 text-xs text-slate-500">
                       <div className="flex items-center gap-1">
                         <Monitor className="h-3 w-3" />

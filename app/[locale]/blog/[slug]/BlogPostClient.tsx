@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { sanitizeRichHtml } from '@/lib/security/sanitizeRichHtml';
+import { imageMetadataFor } from '@/lib/content/imageMetadata';
 
 type IBlog = any;
 type ITour = any;
@@ -301,7 +302,14 @@ export default function BlogPostClient({ blog, relatedPosts }: Props) {
       {/* Hero */}
       <header className="relative h-96 md:h-[420px]">
         {blog.featuredImage ? (
-          <Image src={blog.featuredImage} alt={blog.title} fill className="object-cover" priority />
+          <Image
+            src={blog.featuredImage}
+            alt={imageMetadataFor(blog.featuredImage, blog.imageMetadata, blog.title).alt}
+            title={imageMetadataFor(blog.featuredImage, blog.imageMetadata, blog.title).title}
+            fill
+            className="object-cover"
+            priority
+          />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-emerald-500" />
         )}

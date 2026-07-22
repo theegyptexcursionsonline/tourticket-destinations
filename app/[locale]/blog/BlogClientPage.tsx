@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { Calendar, Clock, User, Tag, Eye, Heart, Search, Filter } from 'lucide-react';
 import { IBlog } from '@/lib/models/Blog';
+import { imageMetadataFor } from '@/lib/content/imageMetadata';
 
 interface BlogClientPageProps {
   blogs: IBlog[];
@@ -17,7 +18,8 @@ const BlogCard = ({ blog }: { blog: IBlog }) => (
     <div className="relative h-64 overflow-hidden">
       <Image
         src={blog.featuredImage}
-        alt={blog.title}
+        alt={imageMetadataFor(blog.featuredImage, blog.imageMetadata, blog.title).alt}
+        title={imageMetadataFor(blog.featuredImage, blog.imageMetadata, blog.title).title}
         fill
         className="object-cover transition-transform duration-500 group-hover:scale-110"
       />
@@ -97,7 +99,8 @@ const FeaturedBlogCard = ({ blog }: { blog: IBlog }) => (
   <Link href={`/blog/${blog.slug}`} className="group block relative h-96 rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300">
     <Image
       src={blog.featuredImage}
-      alt={blog.title}
+      alt={imageMetadataFor(blog.featuredImage, blog.imageMetadata, blog.title).alt}
+      title={imageMetadataFor(blog.featuredImage, blog.imageMetadata, blog.title).title}
       fill
       className="object-cover transition-transform duration-500 group-hover:scale-105"
     />

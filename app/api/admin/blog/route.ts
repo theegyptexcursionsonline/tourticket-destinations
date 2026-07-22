@@ -4,6 +4,7 @@ import { revalidateStorefrontContent } from '@/lib/storefront/revalidateTourStor
 import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 import dbConnect from '@/lib/dbConnect';
 import Blog from '@/lib/models/Blog';
+import { ensureImageMetadata } from '@/lib/content/imageMetadata';
 
 export async function GET(request: NextRequest) {
   const auth = await requireAdminAuth(request, { permissions: ['manageContent'] });
@@ -37,6 +38,7 @@ export async function POST(request: NextRequest) {
   try {
     await dbConnect();
     const data = await request.json();
+    data.imageMetadata = ensureImageMetadata(data.imageMetadata, [data.featuredImage, ...(data.images || [])]);
 
     // Tenant guard: if a tenantId scope is passed (from AdminTenantContext),
     // require body.tenantId to match — or set it from the scope if missing.

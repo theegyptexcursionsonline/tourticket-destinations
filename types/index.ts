@@ -462,6 +462,7 @@ export interface BlogPost {
   content: string;
   featuredImage: string;
   images?: string[];
+  imageMetadata?: ImageMetadata[];
   category: string;
   tags: string[];
   author: string;

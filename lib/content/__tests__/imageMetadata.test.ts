@@ -26,4 +26,20 @@ describe('image metadata', () => {
       title: 'Luxor gallery',
     });
   });
+
+  it('keeps independent alt text and titles for every attached image', () => {
+    const metadata = ensureImageMetadata([
+      { url: '/gallery-one.jpg', alt: 'First gallery image', title: 'First title' },
+      { url: '/gallery-two.jpg', alt: 'Second gallery image', title: 'Second title' },
+    ], ['/gallery-one.jpg', '/gallery-two.jpg']);
+
+    expect(imageMetadataFor('/gallery-one.jpg', metadata, 'Fallback')).toEqual({
+      alt: 'First gallery image',
+      title: 'First title',
+    });
+    expect(imageMetadataFor('/gallery-two.jpg', metadata, 'Fallback')).toEqual({
+      alt: 'Second gallery image',
+      title: 'Second title',
+    });
+  });
 });
