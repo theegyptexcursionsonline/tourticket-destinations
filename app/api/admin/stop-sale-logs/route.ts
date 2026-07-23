@@ -4,6 +4,7 @@ import dbConnect from '@/lib/dbConnect';
 import StopSaleLog from '@/lib/models/StopSaleLog';
 import Tour from '@/lib/models/Tour';
 import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
+import { canViewAllBrands, listTenantClause } from '@/lib/admin/tenantListScope';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,7 +24,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const tenantId = searchParams.get('tenantId');
     if (tenantId && tenantId !== 'all' && !canAccessTenant(authResult, tenantId)) return tenantForbiddenResponse();
-    if ((!tenantId || tenantId === 'all') && authResult.role !== 'super_admin') return tenantForbiddenResponse();
+    if ((!tenantId || tenantId === 'all') && !canViewAllBrands(authResult)) return tenantForbiddenResponse();
     const tourId = searchParams.get('tourId');
     const status = searchParams.get('status'); // 'active', 'removed', or 'all'
     const startDate = searchParams.get('startDate');
@@ -36,8 +37,9 @@ export async function GET(request: NextRequest) {
     // Build query
     const query: Record<string, unknown> = {};
 
-    if (tenantId && tenantId !== 'all') {
-      query.tenantId = tenantId;
+    const tenantClause = listTenantClause(authResult, tenantId);
+    if (tenantClause !== null) {
+      query.tenantId = tenantClause;
     }
 
     if (tourId && tourId !== 'all') {

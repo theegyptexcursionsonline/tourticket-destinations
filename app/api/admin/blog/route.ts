@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidateStorefrontContent } from '@/lib/storefront/revalidateTourStorefront';
 import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
+import { canViewAllBrands, listTenantClause } from '@/lib/admin/tenantListScope';
 import dbConnect from '@/lib/dbConnect';
 import Blog from '@/lib/models/Blog';
 import { ensureImageMetadata } from '@/lib/content/imageMetadata';
@@ -15,14 +16,12 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const tenantId = searchParams.get('tenantId');
     if (tenantId && tenantId !== 'all' && !canAccessTenant(auth, tenantId)) return tenantForbiddenResponse();
-    if ((!tenantId || tenantId === 'all') && auth.role !== 'super_admin') return tenantForbiddenResponse();
-    const filter: Record<string, unknown> = {};
-    if (tenantId && tenantId !== 'all') {
-      filter.tenantId = tenantId;
-    } else {
-      // "All brands" — exclude default (eeo) blog posts
-      filter.tenantId = { $nin: ['default', null, undefined] };
-    }
+    if ((!tenantId || tenantId === 'all') && !canViewAllBrands(auth)) return tenantForbiddenResponse();
+    const filter: Record<string, unknown> = {
+      // "All brands" — super_admin excludes default (eeo) posts, network admins
+      // scope to their own tenant set
+      tenantId: listTenantClause(auth, tenantId, { superAdminAllExcludesDefault: true }),
+    };
 
     const posts = await Blog.find(filter).sort({ createdAt: -1 }).lean();
     return NextResponse.json({ success: true, data: posts }, { status: 200 });

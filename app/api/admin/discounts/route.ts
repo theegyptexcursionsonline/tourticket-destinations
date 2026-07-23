@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Discount from '@/lib/models/Discount';
 import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
+import { canViewAllBrands, listTenantClause } from '@/lib/admin/tenantListScope';
 
 export async function GET(request: NextRequest) {
   const auth = await requireAdminAuth(request, { permissions: ['manageDiscounts'] });
@@ -14,12 +15,13 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const tenantId = searchParams.get('tenantId');
     if (tenantId && tenantId !== 'all' && !canAccessTenant(auth, tenantId)) return tenantForbiddenResponse();
-    if ((!tenantId || tenantId === 'all') && auth.role !== 'super_admin') return tenantForbiddenResponse();
-    
+    if ((!tenantId || tenantId === 'all') && !canViewAllBrands(auth)) return tenantForbiddenResponse();
+
     // Build query with optional tenant filter
     const query: Record<string, unknown> = {};
-    if (tenantId && tenantId !== 'all') {
-      query.tenantId = tenantId;
+    const tenantClause = listTenantClause(auth, tenantId);
+    if (tenantClause !== null) {
+      query.tenantId = tenantClause;
     }
 
     const discounts = await Discount.find(query).sort({ createdAt: -1 });

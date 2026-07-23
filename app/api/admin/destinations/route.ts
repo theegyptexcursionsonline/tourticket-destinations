@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { revalidateStorefrontContent } from '@/lib/storefront/revalidateTourStorefront';
 import { MongoError } from 'mongodb';
 import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
+import { canViewAllBrands, listTenantClause } from '@/lib/admin/tenantListScope';
 
 export async function GET(request: NextRequest) {
   const auth = await requireAdminAuth(request, { permissions: ['manageContent'] });
@@ -14,10 +15,11 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const tenantId = searchParams.get('tenantId');
     if (tenantId && tenantId !== 'all' && !canAccessTenant(auth, tenantId)) return tenantForbiddenResponse();
-    if ((!tenantId || tenantId === 'all') && auth.role !== 'super_admin') return tenantForbiddenResponse();
+    if ((!tenantId || tenantId === 'all') && !canViewAllBrands(auth)) return tenantForbiddenResponse();
     const filter: Record<string, unknown> = {};
-    if (tenantId && tenantId !== 'all') {
-      filter.tenantId = tenantId;
+    const tenantClause = listTenantClause(auth, tenantId);
+    if (tenantClause !== null) {
+      filter.tenantId = tenantClause;
     }
     const destinations = await Destination.find(filter).sort({ name: 1 });
     return NextResponse.json({ success: true, data: destinations });
