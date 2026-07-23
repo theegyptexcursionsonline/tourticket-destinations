@@ -998,7 +998,7 @@ setTimeout(() => router.refresh(), 0);
                       <div className="space-y-3">
                         <div className="flex items-center gap-2">
                           <Info className="h-4 w-4 text-indigo-500" />
-                          <label htmlFor="longDescription" className="text-sm font-bold text-slate-700">Long Description</label>
+                          <label htmlFor="longDescription" className="text-sm font-bold text-slate-700">Long Description <span className="font-normal text-slate-500">(Your Local Guide In)</span></label>
                           <span className="text-slate-400 text-sm">(optional)</span>
                         </div>
                         <textarea 
