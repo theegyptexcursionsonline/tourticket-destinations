@@ -35,8 +35,11 @@ const UsersPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const { token } = useAdminAuth();
+  const { token, user: adminUser } = useAdminAuth();
   const { selectedTenantId } = useAdminTenant();
+  // User deletion is a hard cascade delete — the API only allows super_admin,
+  // so don't render a control that can never succeed for network admins.
+  const canDeleteUsers = adminUser?.role === 'super_admin';
 
   const fetchUsers = useCallback(async () => {
     if (!token) return;
@@ -305,9 +308,11 @@ const UsersPage = () => {
                   <th className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Bookings
                   </th>
-                  <th className="px-6 py-3 text-end text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Actions
-                  </th>
+                  {canDeleteUsers && (
+                    <th className="px-6 py-3 text-end text-xs font-medium text-slate-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-slate-200">
@@ -360,6 +365,7 @@ const UsersPage = () => {
                         </div>
                       </td>
                       
+                      {canDeleteUsers && (
                       <td className="px-6 py-4 whitespace-nowrap text-end">
                         <button
                           onClick={() => handleDeleteUser(user._id, user.email)}
@@ -380,6 +386,7 @@ const UsersPage = () => {
                           )}
                         </button>
                       </td>
+                      )}
                     </tr>
                   );
                 })}

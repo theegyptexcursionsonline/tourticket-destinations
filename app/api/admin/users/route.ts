@@ -3,6 +3,7 @@ import dbConnect from '@/lib/dbConnect';
 import User from '@/lib/models/user';
 import Booking from '@/lib/models/Booking';
 import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
+import { canViewAllBrandUsers, usersBookingTenantFilter } from '@/lib/admin/userListScope';
 
 export async function GET(request: NextRequest) {
   const auth = await requireAdminAuth(request, { permissions: ['manageUsers'] });
@@ -20,18 +21,11 @@ export async function GET(request: NextRequest) {
     if (tenantId && tenantId !== 'all' && !canAccessTenant(auth, tenantId)) {
       return tenantForbiddenResponse();
     }
-    if ((!tenantId || tenantId === 'all') && auth.role !== 'super_admin') {
+    if ((!tenantId || tenantId === 'all') && !canViewAllBrandUsers(auth)) {
       return tenantForbiddenResponse();
     }
 
-    // Build booking tenant filter
-    const bookingTenantFilter: Record<string, unknown> = {};
-    if (tenantId && tenantId !== 'all') {
-      bookingTenantFilter.tenantId = tenantId;
-    } else {
-      // "All brands" — exclude default (eeo) bookings
-      bookingTenantFilter.tenantId = { $nin: ['default', null, undefined] };
-    }
+    const bookingTenantFilter = usersBookingTenantFilter(auth, tenantId);
 
     // Find user IDs that have at least one booking matching the tenant filter
     const userIdsWithBookings = await Booking.distinct('user', bookingTenantFilter);
