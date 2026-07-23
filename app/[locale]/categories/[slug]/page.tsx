@@ -108,7 +108,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
         url={`/categories/${resolvedParams.slug}`}
         items={(localizedTours as any[]).map((t: any) => ({
           name: t.title,
-          url: `/tour/${t.slug}`,
+          url: `/${t.slug}`,
           image: t.image,
         }))}
         breadcrumbs={[
