@@ -30,11 +30,11 @@ export async function GET() {
         success: true,
         data: {
           backgroundImages: [
-            { desktop: '/hero2.png', alt: 'Pyramids of Giza at sunrise', isActive: true },
+            { desktop: '/hero2.jpg', alt: 'Pyramids of Giza at sunrise', isActive: true },
             { desktop: '/hero1.jpg', alt: 'Felucca on the Nile at sunset', isActive: false },
-            { desktop: '/hero3.png', alt: 'Luxor temple columns at golden hour', isActive: false }
+            { desktop: '/hero3.jpg', alt: 'Luxor temple columns at golden hour', isActive: false }
           ],
-          currentActiveImage: '/hero2.png',
+          currentActiveImage: '/hero2.jpg',
           title: {
             main: 'Explore Egypt\'s Pyramids & Nile',
             highlight: 'Incredible',

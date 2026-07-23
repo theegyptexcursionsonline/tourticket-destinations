@@ -47,6 +47,15 @@ test.describe('Contact form', () => {
   });
 
   test('form accepts valid input and submits', async ({ page }) => {
+    // Validate the browser workflow without sending a real client email from CI.
+    await page.route('**/api/contact', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, message: 'Message sent successfully!' }),
+      });
+    });
+
     const nameInput = page.locator('input[name="name"], input[placeholder*="name" i]').first();
     const emailInput = page.locator('input[type="email"], input[name="email"]').first();
     const messageInput = page.locator('textarea').first();

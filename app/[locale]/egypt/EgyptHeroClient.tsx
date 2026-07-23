@@ -56,7 +56,7 @@ export default function EgyptHeroClient() {
           style={{ transform: 'translate3d(0,0,0) scale(1.02)' }}
         >
           <Image
-            src="/hero3.png"
+            src="/hero3.jpg"
             alt="Pyramids and Nile"
             fill
             className="object-cover object-center"
@@ -113,7 +113,7 @@ export default function EgyptHeroClient() {
 
       <noscript>
         <div className="absolute inset-0">
-          <Image src="/hero3.png" alt="Pyramids of Egypt" fill className="object-cover" />
+          <Image src="/hero3.jpg" alt="Pyramids of Egypt" fill className="object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
         </div>
       </noscript>

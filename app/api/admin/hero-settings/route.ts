@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
         tenantId: defaultTenantId,
         backgroundImages: [
           {
-            desktop: '/hero2.png',
+            desktop: '/hero2.jpg',
             alt: 'Pyramids of Giza at sunrise',
             isActive: true,
           },
@@ -39,12 +39,12 @@ export async function GET(request: NextRequest) {
             isActive: false,
           },
           {
-            desktop: '/hero3.png',
+            desktop: '/hero3.jpg',
             alt: 'Luxor temple columns at golden hour',
             isActive: false,
           }
         ],
-        currentActiveImage: '/hero2.png',
+        currentActiveImage: '/hero2.jpg',
         title: {
           main: 'Explore Egypt\'s Pyramids & Nile',
         },

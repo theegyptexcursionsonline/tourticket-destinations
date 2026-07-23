@@ -60,7 +60,12 @@ test.describe('Full site page crawl', () => {
     // Test up to 30 URLs to keep runtime reasonable
     for (const url of urls.slice(0, 30)) {
       try {
-        const res = await request.get(url, { timeout: 15_000 });
+        // Sitemap URLs are canonical production URLs. Exercise the same path
+        // against this isolated build so CI never leaks into production.
+        const parsedUrl = new URL(url);
+        const res = await request.get(`${parsedUrl.pathname}${parsedUrl.search}`, {
+          timeout: 15_000,
+        });
         if (res.status() >= 400) {
           failures.push(`[${res.status()}] ${url}`);
         }

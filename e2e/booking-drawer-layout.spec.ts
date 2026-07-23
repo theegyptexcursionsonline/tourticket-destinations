@@ -231,6 +231,17 @@ test.describe('Booking drawer overflow containment', () => {
       // Measure stable layout, not Framer Motion's entrance transform.
       await page.waitForTimeout(1_200);
 
+      // Force a deterministic overflow condition so this test exercises the
+      // real fixed-header/footer contract even with a minimal CI tour fixture.
+      await scroller.evaluate((element) => {
+        const probe = document.createElement('div');
+        probe.dataset.testid = 'forced-overflow-probe';
+        probe.setAttribute('aria-hidden', 'true');
+        probe.style.height = '600px';
+        probe.style.flex = '0 0 600px';
+        element.appendChild(probe);
+      });
+
       const scrollMetrics = await scroller.evaluate((element) => ({
         scrollHeight: element.scrollHeight,
         clientHeight: element.clientHeight,
