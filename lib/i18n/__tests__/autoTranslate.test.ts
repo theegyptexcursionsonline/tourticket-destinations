@@ -95,10 +95,16 @@ describe('translateEntityFieldsForLocale — fail-loud', () => {
   });
 
   it('throws on an empty model response instead of green-checking nothing', async () => {
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
     mockCreate.mockResolvedValue({ choices: [{ message: { content: null } }] });
-    await expect(
-      translateEntityFieldsForLocale({ title: 'Pyramid Tour' }, tourTranslationFields, 'tour', 'ar')
-    ).rejects.toThrow();
+    try {
+      await expect(
+        translateEntityFieldsForLocale({ title: 'Pyramid Tour' }, tourTranslationFields, 'tour', 'ar')
+      ).rejects.toThrow();
+      expect(errorSpy).toHaveBeenCalled();
+    } finally {
+      errorSpy.mockRestore();
+    }
   });
 
   it('returns parsed fields for a single locale on success', async () => {
@@ -117,6 +123,7 @@ describe('translateEntityFieldsForLocale — fail-loud', () => {
 
 describe('autoTranslateTour — per-locale saves', () => {
   it('saves every translated locale under translations.<locale>', async () => {
+    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => undefined);
     const Tour = jest.requireMock('@/lib/models/Tour');
     Tour.findById.mockReturnValue({
       lean: jest.fn().mockResolvedValue({ _id: 'tour123', title: 'Pyramid Tour' }),
@@ -124,17 +131,24 @@ describe('autoTranslateTour — per-locale saves', () => {
     Tour.findByIdAndUpdate.mockResolvedValue({});
     mockPerLocaleResponses();
 
-    const { autoTranslateTour } = await import('../autoTranslate');
-    await autoTranslateTour('tour123');
+    try {
+      const { autoTranslateTour } = await import('../autoTranslate');
+      await autoTranslateTour('tour123');
 
-    const expectedSet: Record<string, unknown> = {};
-    for (const locale of translatableLocales) {
-      expectedSet[`translations.${locale}`] = { title: localeTitles[locale] };
+      const expectedSet: Record<string, unknown> = {};
+      for (const locale of translatableLocales) {
+        expectedSet[`translations.${locale}`] = { title: localeTitles[locale] };
+      }
+      expect(Tour.findByIdAndUpdate).toHaveBeenCalledWith('tour123', { $set: expectedSet });
+      expect(logSpy).toHaveBeenCalled();
+    } finally {
+      logSpy.mockRestore();
     }
-    expect(Tour.findByIdAndUpdate).toHaveBeenCalledWith('tour123', { $set: expectedSet });
   });
 
   it('still saves the locales that succeeded when one locale fails (no all-or-nothing)', async () => {
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => undefined);
     const Tour = jest.requireMock('@/lib/models/Tour');
     Tour.findById.mockReturnValue({
       lean: jest.fn().mockResolvedValue({ _id: 'tour123', title: 'Pyramid Tour' }),
@@ -142,15 +156,22 @@ describe('autoTranslateTour — per-locale saves', () => {
     Tour.findByIdAndUpdate.mockResolvedValue({});
     mockPerLocaleResponses(['ru']);
 
-    const { autoTranslateTour } = await import('../autoTranslate');
-    await autoTranslateTour('tour123');
+    try {
+      const { autoTranslateTour } = await import('../autoTranslate');
+      await autoTranslateTour('tour123');
 
-    expect(Tour.findByIdAndUpdate).toHaveBeenCalledTimes(1);
-    const setArg = Tour.findByIdAndUpdate.mock.calls[0][1].$set as Record<string, unknown>;
-    expect(Object.keys(setArg)).not.toContain('translations');
-    expect(Object.keys(setArg)).not.toContain('translations.ru');
-    for (const locale of translatableLocales.filter((l: string) => l !== 'ru')) {
-      expect(setArg[`translations.${locale}`]).toEqual({ title: localeTitles[locale] });
+      expect(Tour.findByIdAndUpdate).toHaveBeenCalledTimes(1);
+      const setArg = Tour.findByIdAndUpdate.mock.calls[0][1].$set as Record<string, unknown>;
+      expect(Object.keys(setArg)).not.toContain('translations');
+      expect(Object.keys(setArg)).not.toContain('translations.ru');
+      for (const locale of translatableLocales.filter((l: string) => l !== 'ru')) {
+        expect(setArg[`translations.${locale}`]).toEqual({ title: localeTitles[locale] });
+      }
+      expect(errorSpy).toHaveBeenCalled();
+      expect(logSpy).toHaveBeenCalled();
+    } finally {
+      errorSpy.mockRestore();
+      logSpy.mockRestore();
     }
   });
 

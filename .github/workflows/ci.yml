@@ -10,8 +10,12 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 env:
   NODE_VERSION: '20'
+  NEXT_TELEMETRY_DISABLED: '1'
 
 jobs:
   # ─────────────────────────────────────────────
@@ -34,8 +38,14 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - name: Run TypeScript checks
+        run: pnpm typecheck
+
+      - name: Run lint
+        run: pnpm lint
+
       - name: Run Jest tests
-        run: pnpm exec jest --ci --forceExit --maxWorkers=2
+        run: pnpm exec jest --ci --maxWorkers=2
 
   # ─────────────────────────────────────────────
   # 2. API integration tests (Supertest)
@@ -160,7 +170,7 @@ jobs:
             sleep 1
           done
 
-          PLAYWRIGHT_BASE_URL=http://localhost:3000 pnpm test:e2e || TEST_EXIT=$?
+          env -u NO_COLOR PLAYWRIGHT_BASE_URL=http://localhost:3000 pnpm test:e2e || TEST_EXIT=$?
 
           kill $SERVER_PID 2>/dev/null || true
           exit ${TEST_EXIT:-0}

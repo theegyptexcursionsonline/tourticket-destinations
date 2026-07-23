@@ -47,6 +47,10 @@ jest.mock('next/headers', () => ({
 // Mock database connection
 jest.mock('@/lib/dbConnect', () => jest.fn().mockResolvedValue(undefined));
 
+jest.mock('@/lib/auth/loginAudit', () => ({
+  recordLoginAudit: jest.fn().mockResolvedValue(undefined),
+}));
+
 jest.mock('mongoose', () => ({
   __esModule: true,
   default: { Types: { ObjectId: { isValid: jest.fn().mockReturnValue(false) } } },
