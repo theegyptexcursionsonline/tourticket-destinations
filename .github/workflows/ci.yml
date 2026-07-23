@@ -44,6 +44,16 @@ jobs:
     name: Supertest API Tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    services:
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 }).ok'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - uses: actions/checkout@v4
@@ -57,10 +67,15 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - name: Seed isolated CI database
+        run: node scripts/seed-ci-fixtures.mjs
+        env:
+          MONGODB_URI: mongodb://127.0.0.1:27017/eeo_ci
+
       - name: Build Next.js
         run: pnpm build
         env:
-          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          MONGODB_URI: mongodb://127.0.0.1:27017/eeo_ci
           JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-test-jwt-secret-32chars-long!!' }}
           NEXT_PUBLIC_BASE_URL: http://localhost:3000
 
@@ -83,7 +98,7 @@ jobs:
           kill $SERVER_PID 2>/dev/null || true
           exit ${TEST_EXIT:-0}
         env:
-          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          MONGODB_URI: mongodb://127.0.0.1:27017/eeo_ci
           JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-test-jwt-secret-32chars-long!!' }}
           TEST_BASE_URL: http://localhost:3000
 
@@ -94,6 +109,16 @@ jobs:
     name: Playwright E2E Tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    services:
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 }).ok'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - uses: actions/checkout@v4
@@ -110,10 +135,15 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
 
+      - name: Seed isolated CI database
+        run: node scripts/seed-ci-fixtures.mjs
+        env:
+          MONGODB_URI: mongodb://127.0.0.1:27017/eeo_ci
+
       - name: Build Next.js
         run: pnpm build
         env:
-          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          MONGODB_URI: mongodb://127.0.0.1:27017/eeo_ci
           JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-test-jwt-secret-32chars-long!!' }}
           NEXT_PUBLIC_BASE_URL: http://localhost:3000
 
@@ -135,7 +165,7 @@ jobs:
           kill $SERVER_PID 2>/dev/null || true
           exit ${TEST_EXIT:-0}
         env:
-          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          MONGODB_URI: mongodb://127.0.0.1:27017/eeo_ci
           JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-test-jwt-secret-32chars-long!!' }}
           CI: true
 
