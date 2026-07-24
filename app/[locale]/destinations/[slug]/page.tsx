@@ -44,11 +44,16 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       };
     }
 
+    // Country is optional — never let a blank one print "undefined" in the title.
+    const namePart = destination.country
+      ? `${destination.name}, ${destination.country}`
+      : destination.name;
+
     return {
-      title: `${destination.name}, ${destination.country} - Tours & Activities | ${siteName}`,
+      title: `${namePart} - Tours & Activities | ${siteName}`,
       description: destination.description?.substring(0, 160) || `Discover the best tours and activities in ${destination.name} with ${siteName}`,
       openGraph: {
-        title: `${destination.name}, ${destination.country}`,
+        title: namePart,
         description: destination.description?.substring(0, 160),
         images: destination.image ? [destination.image] : (tenant?.seo.ogImage ? [tenant.seo.ogImage] : []),
         type: 'website',
@@ -106,6 +111,28 @@ async function getPageData(slug: string, tenantId: string) {
       }).limit(4).lean()
     ]);
 
+    const relatedDestinationIds = relatedDestinationsRaw.map((related: any) => related._id);
+    const relatedTourCounts = relatedDestinationIds.length > 0
+      ? await TourModel.aggregate([
+          {
+            $match: buildStrictTenantQuery({
+              destination: { $in: relatedDestinationIds },
+              isPublished: true,
+            }, tenantId),
+          },
+          { $group: { _id: '$destination', count: { $sum: 1 } } },
+        ]).catch(() => [])
+      : [];
+    const relatedTourCountMap = new Map(
+      relatedTourCounts.map((item: any) => [String(item._id), Number(item.count) || 0])
+    );
+    const relatedDestinations = relatedDestinationsRaw
+      .map((related: any) => ({
+        ...related,
+        tourCount: relatedTourCountMap.get(String(related._id)) || 0,
+      }))
+      .filter((related: any) => related.tourCount > 0);
+
     // Fetch reviews only if we have tours
     let reviews: any[] = [];
     if (destinationTours.length > 0) {
@@ -124,7 +151,7 @@ async function getPageData(slug: string, tenantId: string) {
       destinationTours: JSON.parse(JSON.stringify(destinationTours)),
       allCategories: JSON.parse(JSON.stringify(allCategories)),
       reviews: JSON.parse(JSON.stringify(reviews)),
-      relatedDestinations: JSON.parse(JSON.stringify(relatedDestinationsRaw))
+      relatedDestinations: JSON.parse(JSON.stringify(relatedDestinations))
     };
   } catch (error) {
     console.error(`[Destination] Error fetching page data for ${slug}:`, error);
