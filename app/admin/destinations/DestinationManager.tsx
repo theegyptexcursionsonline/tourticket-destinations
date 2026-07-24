@@ -411,6 +411,14 @@ const handleSubmit = async (e: React.FormEvent) => {
     return;
   }
 
+  // A new destination must belong to a specific brand. Without one the create
+  // API falls back to the dashboard host tenant, which a network admin cannot
+  // access — a silent 403. Force the choice instead of failing on save.
+  if (!editingDestination && (!selectedTenantId || selectedTenantId === 'all')) {
+    toast.error('Select a specific brand (top-right) before creating a destination.');
+    return;
+  }
+
   setIsSubmitting(true);
 
   try {
@@ -419,6 +427,10 @@ const handleSubmit = async (e: React.FormEvent) => {
   const { linkedTours, ...destinationData } = formData;
   const submitData = {
     ...destinationData,
+    // Scope a new destination to the brand selected in the dashboard. The
+    // create endpoint reads tenantId from the body (the GET sends it as a
+    // query param); omitting it 403'd network admins. Edits keep their tenant.
+    ...(editingDestination ? {} : { tenantId: selectedTenantId }),
     // Only include coordinates if both lat and lng are provided
     ...(formData.coordinates.lat && formData.coordinates.lng ? {
       coordinates: {
