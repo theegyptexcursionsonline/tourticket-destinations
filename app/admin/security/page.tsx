@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Check, Copy, Download, KeyRound, Loader2, ShieldCheck, ShieldOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 import withAuth from '@/components/admin/withAuth';
+import { useAdminAuth } from '@/contexts/AdminAuthContext';
 
 interface SetupData {
   qrCodeDataUrl: string;
@@ -12,6 +13,7 @@ interface SetupData {
 }
 
 function SecurityPage() {
+  const { refreshUser } = useAdminAuth();
   const [enabled, setEnabled] = useState(false);
   const [enabledAt, setEnabledAt] = useState<string | null>(null);
   const [setup, setSetup] = useState<SetupData | null>(null);
@@ -74,6 +76,7 @@ function SecurityPage() {
       setSetup(null);
       setCode('');
       setRecoveryCodes(data.recoveryCodes || []);
+      await refreshUser();
       toast.success('Two-factor authentication is now enabled.');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Could not enable two-factor authentication.');
@@ -88,20 +91,6 @@ function SecurityPage() {
       toast.success('New recovery codes generated. Previous codes no longer work.');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Could not regenerate recovery codes.');
-    }
-  };
-
-  const disableTwoFactor = async () => {
-    if (!window.confirm('Disable two-factor authentication for your admin account?')) return;
-    try {
-      await postAction('disable', code);
-      setEnabled(false);
-      setEnabledAt(null);
-      setCode('');
-      setRecoveryCodes([]);
-      toast.success('Two-factor authentication has been disabled.');
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Could not disable two-factor authentication.');
     }
   };
 
@@ -141,6 +130,20 @@ function SecurityPage() {
         </p>
       </header>
 
+      {!enabled && (
+        <section className="rounded-2xl border border-violet-200 bg-violet-50 p-5 text-violet-950 shadow-sm">
+          <div className="flex items-start gap-3">
+            <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-violet-700" />
+            <div>
+              <h2 className="font-bold">Two-step verification is required</h2>
+              <p className="mt-1 text-sm leading-6 text-violet-800">
+                Complete this one-time setup before accessing the admin portal. You will use a fresh authenticator code for future sign-ins.
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
+
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="flex flex-col gap-4 border-b border-slate-100 p-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-4">
@@ -157,7 +160,7 @@ function SecurityPage() {
             </div>
           </div>
           <span className={`w-fit rounded-full px-3 py-1 text-xs font-bold ${enabled ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
-            {enabled ? 'Protected' : 'Action recommended'}
+            {enabled ? 'Protected · Required' : 'Setup required'}
           </span>
         </div>
 
@@ -216,10 +219,10 @@ function SecurityPage() {
                   <KeyRound className="h-4 w-4" />
                   Generate new recovery codes
                 </button>
-                <button onClick={disableTwoFactor} disabled={pendingAction !== null || !code.trim()} className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 px-5 py-3 text-sm font-bold text-red-700 transition hover:bg-red-50 disabled:opacity-50">
-                  <ShieldOff className="h-4 w-4" />
-                  Disable 2FA
-                </button>
+                <span className="inline-flex items-center justify-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-5 py-3 text-sm font-bold text-violet-800">
+                  <ShieldCheck className="h-4 w-4" />
+                  Required for admin access
+                </span>
               </div>
             </div>
           )}

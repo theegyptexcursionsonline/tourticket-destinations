@@ -18,6 +18,7 @@ interface AdminUser {
   name?: string;
   role: string;
   permissions: string[];
+  twoFactorEnabled: boolean;
   isActive?: boolean;
 }
 
@@ -50,7 +51,12 @@ function readSessionProfile(): AdminUser | null {
     const raw = sessionStorage.getItem(SESSION_PROFILE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as AdminUser;
-    return parsed && parsed.id && parsed.role ? parsed : null;
+    return parsed
+      && parsed.id
+      && parsed.role
+      && typeof parsed.twoFactorEnabled === 'boolean'
+      ? parsed
+      : null;
   } catch {
     return null;
   }

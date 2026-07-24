@@ -1,14 +1,20 @@
 jest.mock('@/lib/jwt', () => ({ verifyToken: jest.fn() }));
 jest.mock('@/lib/dbConnect', () => ({ __esModule: true, default: jest.fn().mockResolvedValue(undefined) }));
+let mockAdminRecord = {
+  _id: 'admin-id',
+  email: 'admin@example.com',
+  role: 'admin',
+  permissions: ['manageDashboard'],
+  tenantIds: ['hurghada-speedboat'],
+  isActive: true,
+  twoFactorEnabled: true,
+};
 jest.mock('@/lib/models/user', () => ({
   __esModule: true,
   default: {
     findById: jest.fn(() => ({
       select: jest.fn(() => ({
-        lean: jest.fn().mockResolvedValue({
-          _id: 'admin-id', email: 'admin@example.com', role: 'admin',
-          permissions: ['manageDashboard'], tenantIds: ['hurghada-speedboat'], isActive: true,
-        }),
+        lean: jest.fn().mockImplementation(() => Promise.resolve(mockAdminRecord)),
       })),
     })),
   },
@@ -34,7 +40,13 @@ import { requireAdminAuth } from '../adminAuth';
 const mockedVerifyToken = verifyToken as jest.MockedFunction<typeof verifyToken>;
 
 describe('requireAdminAuth', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockAdminRecord = {
+      ...mockAdminRecord,
+      twoFactorEnabled: true,
+    };
+  });
 
   it('does not accept browser-visible bearer credentials', async () => {
     const request = {
@@ -67,5 +79,33 @@ describe('requireAdminAuth', () => {
     expect(result).not.toBeInstanceOf(NextResponse);
     expect(mockedVerifyToken).toHaveBeenCalledWith('cookie-token');
     expect(result).toMatchObject({ userId: 'admin-id', tenantIds: ['hurghada-speedboat'] });
+  });
+
+  it('blocks normal admin APIs until two-factor enrollment is complete', async () => {
+    mockAdminRecord = { ...mockAdminRecord, twoFactorEnabled: false };
+    mockedVerifyToken.mockResolvedValue({ sub: 'admin-id', scope: 'admin' } as any);
+    const request = {
+      headers: new Headers(),
+      cookies: { get: jest.fn().mockReturnValue({ value: 'cookie-token' }) },
+      nextUrl: new URL('https://dashboard.egypt-excursionsonline.com/api/admin/dashboard'),
+    } as any;
+
+    const result = await requireAdminAuth(request);
+    expect(result).toBeInstanceOf(NextResponse);
+    expect((result as NextResponse).status).toBe(403);
+  });
+
+  it('allows only the enrollment endpoints to authenticate an unenrolled admin', async () => {
+    mockAdminRecord = { ...mockAdminRecord, twoFactorEnabled: false };
+    mockedVerifyToken.mockResolvedValue({ sub: 'admin-id', scope: 'admin' } as any);
+    const request = {
+      headers: new Headers(),
+      cookies: { get: jest.fn().mockReturnValue({ value: 'cookie-token' }) },
+      nextUrl: new URL('https://dashboard.egypt-excursionsonline.com/api/admin/2fa'),
+    } as any;
+
+    const result = await requireAdminAuth(request, { allowTwoFactorEnrollment: true });
+    expect(result).not.toBeInstanceOf(NextResponse);
+    expect(result).toMatchObject({ userId: 'admin-id', twoFactorEnabled: false });
   });
 });

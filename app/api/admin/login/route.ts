@@ -38,6 +38,7 @@ function buildAdminUserPayload(user: any, permissions: AdminPermission[]) {
     role: user.role,
     permissions,
     tenantIds: resolveAdminNetworkTenantIds(user.role, serializeTenantIds(user.tenantIds)),
+    twoFactorEnabled: user._id === 'env-admin' ? true : Boolean(user.twoFactorEnabled),
   };
 }
 

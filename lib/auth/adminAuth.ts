@@ -14,11 +14,13 @@ export interface AdminAuthContext {
   role: AdminRole;
   permissions: AdminPermission[];
   tenantIds: string[];
+  twoFactorEnabled: boolean;
 }
 
 interface RequireAdminOptions {
   permissions?: AdminPermission[];
   requireAll?: boolean;
+  allowTwoFactorEnrollment?: boolean;
 }
 
 function unauthorizedResponse() {
@@ -31,6 +33,17 @@ function unauthorizedResponse() {
 function forbiddenResponse() {
   return NextResponse.json(
     { success: false, error: 'You do not have permission to perform this action.' },
+    { status: 403 },
+  );
+}
+
+function twoFactorSetupRequiredResponse() {
+  return NextResponse.json(
+    {
+      success: false,
+      error: 'Two-factor authentication setup is required before using the admin portal.',
+      code: 'TWO_FACTOR_SETUP_REQUIRED',
+    },
     { status: 403 },
   );
 }
@@ -61,7 +74,7 @@ export async function requireAdminAuth(
   ]);
   await dbConnect();
   const user = await User.findById(String(payload.sub))
-    .select('email role permissions tenantIds adminPortalScopes isActive')
+    .select('email role permissions tenantIds adminPortalScopes isActive twoFactorEnabled')
     .lean<any>();
   if (!user || !user.isActive || !user.role || user.role === 'customer') {
     return unauthorizedResponse();
@@ -77,12 +90,17 @@ export async function requireAdminAuth(
     return forbiddenResponse();
   }
 
+  if (!user.twoFactorEnabled && !options.allowTwoFactorEnrollment) {
+    return twoFactorSetupRequiredResponse();
+  }
+
   const authContext: AdminAuthContext = {
     userId: String(payload.sub),
     email: typeof user.email === 'string' ? user.email : undefined,
     role,
     permissions: permissionsFromToken,
     tenantIds,
+    twoFactorEnabled: Boolean(user.twoFactorEnabled),
   };
 
   const requestedTenantId = request.nextUrl.searchParams.get('tenantId')

@@ -5,7 +5,7 @@ import { requireAdminAuth } from '@/lib/auth/adminAuth';
 import { getDefaultPermissions } from '@/lib/constants/adminPermissions';
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAdminAuth(request);
+  const auth = await requireAdminAuth(request, { allowTwoFactorEnrollment: true });
   if (auth instanceof NextResponse) {
     return auth;
   }
@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
         role: 'super_admin',
         permissions: auth.permissions,
         tenantIds: [],
+        twoFactorEnabled: true,
       },
     });
   }
@@ -54,6 +55,7 @@ export async function GET(request: NextRequest) {
       role: user.role,
       permissions,
       tenantIds: user.tenantIds || [],
+      twoFactorEnabled: Boolean(user.twoFactorEnabled),
       isActive: user.isActive,
       lastLoginAt: user.lastLoginAt,
     },

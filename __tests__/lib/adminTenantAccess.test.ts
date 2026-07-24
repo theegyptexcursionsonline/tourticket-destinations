@@ -11,6 +11,7 @@ describe('admin tenant access', () => {
     role: 'admin' as const,
     permissions: [],
     tenantIds: ['brand-a'],
+    twoFactorEnabled: true,
   };
 
   it('allows only explicitly assigned tenants for non-super admins', () => {

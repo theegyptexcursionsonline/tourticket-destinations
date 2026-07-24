@@ -1,7 +1,9 @@
 // components/admin/withAuth.tsx
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { ShieldCheck } from 'lucide-react';
 import Login from './Login';
 import AccessDenied from './AccessDenied';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
@@ -19,10 +21,22 @@ const withAuth = <P extends object>(
     const {
       isAuthenticated,
       isLoading,
-      refreshUser: _refreshUser,
+      user,
       hasPermission,
       hasAnyPermission,
     } = useAdminAuth();
+    const pathname = usePathname();
+    const router = useRouter();
+    const requiresTwoFactorSetup =
+      isAuthenticated
+      && user?.twoFactorEnabled !== true
+      && pathname !== '/admin/security';
+
+    useEffect(() => {
+      if (requiresTwoFactorSetup) {
+        router.replace('/admin/security?required=1');
+      }
+    }, [requiresTwoFactorSetup, router]);
 
     const { permissions = [], requireAll = true } = options;
 
@@ -52,6 +66,18 @@ const withAuth = <P extends object>(
 
     if (!isAuthenticated) {
       return <Login onLoginSuccess={() => {}} />;
+    }
+
+    if (requiresTwoFactorSetup) {
+      return (
+        <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-slate-50 px-6 text-center">
+          <ShieldCheck className="h-10 w-10 text-violet-600" />
+          <div>
+            <p className="font-semibold text-slate-900">Two-step verification is required</p>
+            <p className="mt-1 text-sm text-slate-500">Opening the secure setup page…</p>
+          </div>
+        </div>
+      );
     }
 
     if (!hasRequiredPermissions) {
