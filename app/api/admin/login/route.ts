@@ -18,6 +18,7 @@ import {
   serializeTenantIds,
 } from '@/lib/auth/serializeAdminIdentity';
 import { resolveAdminNetworkTenantIds } from '@/lib/auth/adminNetworkScope';
+import { verifyAndConsumeUserSecondFactor } from '@/lib/auth/userSecondFactor';
 
 function invalidCredentialsResponse() {
   return NextResponse.json(
@@ -42,7 +43,7 @@ function buildAdminUserPayload(user: any, permissions: AdminPermission[]) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, username, password } = await request.json();
+    const { email, username, password, twoFactorCode } = await request.json();
 
     if (!password || (!email && !username)) {
       return NextResponse.json(
@@ -104,7 +105,8 @@ export async function POST(request: NextRequest) {
     await dbConnect();
 
     const user = await User.findOne({ email: identifier }).select(
-      '+password +failedLoginAttempts +loginLockedUntil',
+      '+password +failedLoginAttempts +loginLockedUntil +twoFactorSecret '
+      + '+twoFactorRecoveryCodeHashes +twoFactorLastUsedStep',
     );
     if (!user) {
       // Keep nonexistent-account timing close to a real password comparison.
@@ -176,6 +178,31 @@ export async function POST(request: NextRequest) {
         { success: false, error: 'This account is not assigned to this admin portal.' },
         { status: 403 },
       );
+    }
+
+    if (user.twoFactorEnabled) {
+      if (typeof twoFactorCode !== 'string' || !twoFactorCode.trim()) {
+        await recordLoginAudit(request.headers, identifier, 'two_factor_required');
+        return NextResponse.json({ success: true, requiresTwoFactor: true });
+      }
+      if (twoFactorCode.length > 64 || !await verifyAndConsumeUserSecondFactor(user, twoFactorCode)) {
+        const updatedUser = await User.findOneAndUpdate(
+          { _id: user._id },
+          { $inc: { failedLoginAttempts: 1 } },
+          { new: true, select: '+failedLoginAttempts' },
+        );
+        const updatedAttempts = updatedUser?.failedLoginAttempts
+          ?? (user.failedLoginAttempts || 0) + 1;
+        const protection = failedAdminLoginUpdate(updatedAttempts - 1);
+        if (protection.loginLockedUntil) {
+          await User.updateOne(
+            { _id: user._id },
+            { $set: { loginLockedUntil: protection.loginLockedUntil } },
+          );
+        }
+        await recordLoginAudit(request.headers, identifier, 'wrong_second_factor');
+        return invalidCredentialsResponse();
+      }
     }
 
     const permissions =

@@ -9,6 +9,8 @@ export const LOGIN_AUDIT_OUTCOMES = [
   'inactive',
   'not_admin',
   'portal_rejected',
+  'two_factor_required',
+  'wrong_second_factor',
   'error',
 ] as const;
 

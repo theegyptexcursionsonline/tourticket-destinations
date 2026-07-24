@@ -55,6 +55,12 @@ export interface IUser extends Document {
   // Multi-tenant support — which brands this team member can access
   tenantIds?: string[];
   adminPortalScopes?: AdminPortalScope[];
+  twoFactorEnabled: boolean;
+  twoFactorSecret?: string;
+  twoFactorPendingSecret?: string;
+  twoFactorRecoveryCodeHashes?: string[];
+  twoFactorEnabledAt?: Date;
+  twoFactorLastUsedStep?: number;
 }
 
 const UserSchema: Schema<IUser> = new Schema({
@@ -153,6 +159,15 @@ const UserSchema: Schema<IUser> = new Schema({
     enum: ['main', 'multiTenant'],
     default: undefined,
   },
+  twoFactorEnabled: {
+    type: Boolean,
+    default: false,
+  },
+  twoFactorSecret: { type: String, select: false },
+  twoFactorPendingSecret: { type: String, select: false },
+  twoFactorRecoveryCodeHashes: { type: [String], select: false, default: undefined },
+  twoFactorEnabledAt: { type: Date },
+  twoFactorLastUsedStep: { type: Number, select: false },
   createdAt: {
     type: Date,
     default: Date.now,

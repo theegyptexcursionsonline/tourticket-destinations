@@ -26,11 +26,15 @@ interface AdminAuthContextValue {
   token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, twoFactorCode?: string) => Promise<LoginResult>;
   logout: () => void;
   refreshUser: () => Promise<void>;
   hasPermission: (permission: string) => boolean;
   hasAnyPermission: (permissions: string[]) => boolean;
+}
+
+interface LoginResult {
+  requiresTwoFactor: boolean;
 }
 
 const STORAGE_TOKEN_KEY = 'admin-auth-token';
@@ -139,7 +143,7 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
   }, [refreshUserWithToken]);
 
   const login = useCallback(
-    async (email: string, password: string) => {
+    async (email: string, password: string, twoFactorCode?: string): Promise<LoginResult> => {
       setIsLoading(true);
       const startedAt = Date.now();
       const controller = new AbortController();
@@ -152,7 +156,7 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ email, username: email, password }),
+            body: JSON.stringify({ email, username: email, password, twoFactorCode }),
             signal: controller.signal,
           });
         } catch (fetchError) {
@@ -185,6 +189,14 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
           throw new Error(data?.error || `Login failed (${response.status})`);
         }
 
+        if (data.requiresTwoFactor) {
+          return { requiresTwoFactor: true };
+        }
+
+        if (!data.user) {
+          throw new Error('Login succeeded without an admin profile');
+        }
+
         const normalizedUser: AdminUser = {
           ...data.user,
           id: data.user.id || data.user._id,
@@ -193,6 +205,7 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
 
         persistSession(normalizedUser);
         toast.success('Welcome back!');
+        return { requiresTwoFactor: false };
       } catch (error: any) {
         toast.error(error.message || 'Failed to log in');
         throw error;
