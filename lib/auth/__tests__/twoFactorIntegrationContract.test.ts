@@ -16,6 +16,7 @@ describe('two-factor authentication integration contract', () => {
   it('protects setup endpoints with current admin authorization', () => {
     const source = read('app/api/admin/2fa/route.ts');
     expect(source).toContain('const auth = await requireAdminAuth(request)');
+    expect(source).toContain('if (!isSameOriginMutation(request))');
     expect(source).toContain('encryptTwoFactorSecret(secret)');
     expect(source).toContain('twoFactorRecoveryCodeHashes = recoveryCodes.map(hashRecoveryCode)');
     expect(source).not.toContain('twoFactorSecret: secret');

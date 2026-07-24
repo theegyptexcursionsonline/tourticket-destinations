@@ -20,6 +20,19 @@ function invalidCodeResponse() {
   );
 }
 
+function isSameOriginMutation(request: NextRequest): boolean {
+  const origin = request.headers.get('origin');
+  const publicHost =
+    request.headers.get('x-forwarded-host')?.split(',')[0]?.trim()
+    || request.headers.get('host')
+    || request.nextUrl.host;
+  try {
+    return Boolean(origin && new URL(origin).host === publicHost);
+  } catch {
+    return false;
+  }
+}
+
 export async function GET(request: NextRequest) {
   const auth = await requireAdminAuth(request);
   if (auth instanceof NextResponse) return auth;
@@ -33,6 +46,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  if (!isSameOriginMutation(request)) {
+    return NextResponse.json({ success: false, error: 'Invalid request origin.' }, { status: 403 });
+  }
   const auth = await requireAdminAuth(request);
   if (auth instanceof NextResponse) return auth;
   const body = await request.json().catch(() => null) as { action?: unknown; code?: unknown } | null;
