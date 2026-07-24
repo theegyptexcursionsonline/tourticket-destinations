@@ -188,7 +188,14 @@ function ListingPicker({
                   ) : (
                     <div className="w-8 h-8 rounded-lg bg-slate-100 flex-shrink-0" />
                   )}
-                  <span className="flex-1 truncate font-medium text-slate-700">{option.title}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-medium text-slate-700">{option.title}</span>
+                    {optionsKind === 'tours' && (
+                      <span className="block truncate font-mono text-[10px] text-slate-400">
+                        Tour ID: {option.id}
+                      </span>
+                    )}
+                  </span>
                   {option.kind && (
                     <span className="text-[10px] uppercase tracking-wide text-slate-400">{option.kind.replace('-', ' ')}</span>
                   )}
@@ -212,7 +219,14 @@ function ListingPicker({
               ) : (
                 <div className="w-8 h-8 rounded-lg bg-slate-200 flex-shrink-0" />
               )}
-              <span className="flex-1 truncate text-sm font-medium text-slate-700">{item.title}</span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-medium text-slate-700">{item.title}</span>
+                {optionsKind === 'tours' && (
+                  <span className="block truncate font-mono text-[10px] text-slate-400">
+                    Tour ID: {item.id}
+                  </span>
+                )}
+              </span>
               {item.kind && (
                 <span className="text-[10px] uppercase tracking-wide text-slate-400">{item.kind.replace('-', ' ')}</span>
               )}
@@ -1079,7 +1093,7 @@ export default function AttractionPageForm({ pageId, initialPageType = 'attracti
                         <ListingPicker
                           label="Tour listings"
                           hint="Hand-pick the tours shown on this page, in this order. Leave empty to let the page auto-match tours (linked attractions, keywords, then featured tours)."
-                          placeholder="Search tours by name…"
+                          placeholder="Search tours by name or Tour ID…"
                           optionsKind="tours"
                           tenantId={activeTenantId}
                           selected={selectedTours}

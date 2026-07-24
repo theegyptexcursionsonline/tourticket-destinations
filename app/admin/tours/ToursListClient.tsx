@@ -152,7 +152,13 @@ export function ToursListClient({
         const title = (t.title || t.name || '').toLowerCase();
         const dest = (t.destination?.name || '').toLowerCase();
         const category = (t.category?.name || '').toLowerCase();
-        return title.includes(q) || dest.includes(q) || category.includes(q);
+        const tourId = String(t._id || '').toLowerCase();
+        return (
+          title.includes(q) ||
+          dest.includes(q) ||
+          category.includes(q) ||
+          tourId.includes(q)
+        );
       });
     }
 

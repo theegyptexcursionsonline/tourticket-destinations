@@ -58,7 +58,13 @@ export async function GET(request: NextRequest) {
     if (kind === 'tours') {
       const filter: Record<string, unknown> = { ...scope };
       if (explicitIds) filter._id = { $in: ids };
-      else if (search) filter.$or = [{ title: search }, { slug: search }];
+      else if (search) {
+        filter.$or = [
+          { title: search },
+          { slug: search },
+          ...(Types.ObjectId.isValid(q) ? [{ _id: new Types.ObjectId(q) }] : []),
+        ];
+      }
       const tours = await Tour.find(filter)
         .select('tenantId title slug image isPublished')
         .sort({ isFeatured: -1, rating: -1 })

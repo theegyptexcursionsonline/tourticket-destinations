@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useParams } from 'next/navigation';
 import withAuth from '@/components/admin/withAuth';
-import { Calendar, ArrowLeft, Loader2 } from 'lucide-react';
+import { Calendar, ArrowLeft, Loader2, Copy, Check } from 'lucide-react';
 import 'react-day-picker/dist/style.css';
 import TourForm from '@/components/TourForm';
 
@@ -13,9 +13,17 @@ const EditTourPage = () => {
     const [tourData, setTourData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [copiedTourId, setCopiedTourId] = useState(false);
     const params = useParams();
     const router = useRouter();
     const slug = params.slug as string;
+
+    const copyTourId = async () => {
+        if (!tourData?._id) return;
+        await navigator.clipboard.writeText(tourData._id);
+        setCopiedTourId(true);
+        window.setTimeout(() => setCopiedTourId(false), 1800);
+    };
 
     useEffect(() => {
         if (slug) {
@@ -170,15 +178,29 @@ const EditTourPage = () => {
                     </div>
 
                     {/* Status Bar */}
-                    <div className="flex items-center gap-4 p-4 bg-white/80 backdrop-blur-sm border border-slate-200/60 rounded-xl shadow-sm">
+                    <div className="flex flex-col gap-3 p-4 bg-white/80 backdrop-blur-sm border border-slate-200/60 rounded-xl shadow-sm sm:flex-row sm:items-center sm:gap-4">
                         <div className="flex items-center gap-2 text-sm text-slate-600">
                             <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
                             <span>Last updated: {new Date().toLocaleDateString()}</span>
                         </div>
                         <div className="w-px h-4 bg-slate-300"></div>
-                        <div className="flex items-center gap-2 text-sm text-slate-600">
+                        <div className="flex min-w-0 flex-1 items-center gap-2 text-sm text-slate-600">
                             <Calendar className="h-4 w-4" />
-                            <span>Tour ID: {tourData._id?.slice(-8) || 'N/A'}</span>
+                            <span className="shrink-0 font-semibold">Tour ID</span>
+                            <code className="min-w-0 flex-1 break-all rounded-md bg-slate-100 px-2 py-1 font-mono text-xs text-slate-700">
+                                {tourData._id || 'N/A'}
+                            </code>
+                            {tourData._id && (
+                                <button
+                                    type="button"
+                                    onClick={copyTourId}
+                                    className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-indigo-300 hover:text-indigo-600"
+                                    aria-label="Copy Tour ID"
+                                >
+                                    {copiedTourId ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                                    {copiedTourId ? 'Copied' : 'Copy'}
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
