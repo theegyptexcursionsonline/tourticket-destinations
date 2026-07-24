@@ -994,27 +994,6 @@ setTimeout(() => router.refresh(), 0);
                           {formData.description.length}/500 characters
                         </div>
                       </div>
-
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-2">
-                          <Info className="h-4 w-4 text-indigo-500" />
-                          <label htmlFor="longDescription" className="text-sm font-bold text-slate-700">Long Description <span className="font-normal text-slate-500">(Your Local Guide In)</span></label>
-                          <span className="text-slate-400 text-sm">(optional)</span>
-                        </div>
-                        <textarea 
-                          name="longDescription" 
-                          id="longDescription" 
-                          value={formData.longDescription} 
-                          onChange={handleInputChange} 
-                          placeholder="Detailed description for destination pages (max 2000 characters)"
-                          maxLength={2000}
-                          className={textareaStyles}
-                          rows={5}
-                        />
-                        <div className="text-xs text-slate-500 text-end">
-                          {formData.longDescription.length}/2000 characters
-                        </div>
-                      </div>
                     </div>
 
                     {/* Status Toggles */}
@@ -1196,6 +1175,28 @@ setTimeout(() => router.refresh(), 0);
                 {/* Content Tab */}
                 {activeTab === 'content' && (
                   <div className="space-y-8">
+                    {/* Long Description — renders as "Your Local Guide In {city}" on the live page */}
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Info className="h-4 w-4 text-indigo-500" />
+                        <label htmlFor="longDescription" className="text-sm font-bold text-slate-700">Long Description <span className="font-normal text-slate-500">(Your Local Guide In)</span></label>
+                        <span className="text-slate-400 text-sm">(optional)</span>
+                      </div>
+                      <textarea
+                        name="longDescription"
+                        id="longDescription"
+                        value={formData.longDescription}
+                        onChange={handleInputChange}
+                        placeholder="Detailed description for destination pages (max 2000 characters)"
+                        maxLength={2000}
+                        className={textareaStyles}
+                        rows={5}
+                      />
+                      <div className="text-xs text-slate-500 text-end">
+                        {formData.longDescription.length}/2000 characters
+                      </div>
+                    </div>
+
                     {/* Highlights Section */}
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
