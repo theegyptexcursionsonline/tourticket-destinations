@@ -6,6 +6,7 @@ import { syncTourToAlgolia } from '@/lib/algolia';
 import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 import { translateTourInBackground } from '@/lib/translation/translateService';
 import { revalidateTourStorefront } from '@/lib/storefront/revalidateTourStorefront';
+import { collectTourOptionIds } from '@/lib/admin/tourOptionIdentifiers';
 
 const ADMIN_TOUR_LIST_PROJECTION = [
   'title',
@@ -23,6 +24,9 @@ const ADMIN_TOUR_LIST_PROJECTION = [
   'duration',
   'rating',
   'reviews',
+  'bookingOptions._id',
+  'bookingOptions.id',
+  'bookingOptions.pricingKey',
   'tenantId',
   'tenantIds',
   'createdAt',
@@ -32,10 +36,11 @@ const ADMIN_TOUR_LIST_PROJECTION = [
 function addReviewCounts(tours: unknown[]) {
   return tours.map((tour) => {
     if (!tour || typeof tour !== 'object') return tour;
-    const { reviews, ...listFields } = tour as Record<string, unknown>;
+    const { reviews, bookingOptions, ...listFields } = tour as Record<string, unknown>;
     return {
       ...listFields,
       reviewCount: Array.isArray(reviews) ? reviews.length : 0,
+      optionIds: collectTourOptionIds(bookingOptions),
     };
   });
 }

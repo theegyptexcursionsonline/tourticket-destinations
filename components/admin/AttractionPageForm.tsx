@@ -40,6 +40,7 @@ interface PickerOption {
   image?: string;
   kind?: string;
   isPublished?: boolean;
+  matchedOptionIds?: string[];
 }
 
 const defaultFormData: AttractionPageFormData = {
@@ -195,6 +196,11 @@ function ListingPicker({
                         Tour ID: {option.id}
                       </span>
                     )}
+                    {option.matchedOptionIds?.length ? (
+                      <span className="block truncate font-mono text-[10px] font-semibold text-indigo-600">
+                        Matched Option ID: {option.matchedOptionIds.join(', ')}
+                      </span>
+                    ) : null}
                   </span>
                   {option.kind && (
                     <span className="text-[10px] uppercase tracking-wide text-slate-400">{option.kind.replace('-', ' ')}</span>
@@ -1093,7 +1099,7 @@ export default function AttractionPageForm({ pageId, initialPageType = 'attracti
                         <ListingPicker
                           label="Tour listings"
                           hint="Hand-pick the tours shown on this page, in this order. Leave empty to let the page auto-match tours (linked attractions, keywords, then featured tours)."
-                          placeholder="Search tours by name or Tour ID…"
+                          placeholder="Search tours by name, Tour ID or Option ID…"
                           optionsKind="tours"
                           tenantId={activeTenantId}
                           selected={selectedTours}

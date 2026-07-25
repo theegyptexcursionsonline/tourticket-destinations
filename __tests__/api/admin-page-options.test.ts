@@ -99,6 +99,29 @@ describe('GET /api/admin/pages/options tenant tour search', () => {
       'makadi-bay',
     );
     expect(filter.tenantId).toBe('makadi-bay');
-    expect(String(filter.$or[2]._id)).toBe(tourId);
+    expect(filter.$or.some((condition: Record<string, unknown>) => String(condition._id || '') === tourId))
+      .toBe(true);
+  });
+
+  it('keeps brand scope when searching by Option ID', async () => {
+    const { GET } = await import('@/app/api/admin/pages/options/route');
+    const optionId = '263173ac-25a6-46ca-a675-ffe907847c12';
+    mockLean.mockResolvedValue([{
+      _id: '64b64c9bfc13ae1f19e8a001',
+      tenantId: 'makadi-bay',
+      title: 'Makadi Option Tour',
+      bookingOptions: [{ id: optionId }],
+    }]);
+    const nextUrl = new URL(
+      `https://dashboard.egypt-excursionsonline.com/api/admin/pages/options?kind=tours&tenantId=makadi-bay&q=${optionId}`,
+    );
+
+    const response = await GET({ nextUrl } as never);
+    const body = await response.json();
+    const filter = mockTourFind.mock.calls[0][0];
+
+    expect(filter.tenantId).toBe('makadi-bay');
+    expect(filter.$or).toContainEqual({ 'bookingOptions.id': optionId });
+    expect(body.data[0].matchedOptionIds).toEqual([optionId]);
   });
 });

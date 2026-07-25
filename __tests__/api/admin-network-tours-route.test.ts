@@ -46,6 +46,7 @@ describe('EEO Network GET /api/admin/tours list payload', () => {
     mockLean.mockResolvedValue([{
       _id: 'tour-1', title: 'Network Tour', tenantId: 'makadi-bay',
       reviews: [{ _id: 'review-1', comment: 'never return this' }],
+      bookingOptions: [{ id: '263173ac-25a6-46ca-a675-ffe907847c12' }],
     }]);
   });
 
@@ -61,8 +62,12 @@ describe('EEO Network GET /api/admin/tours list payload', () => {
       ],
     });
     expect(body.data[0].reviewCount).toBe(1);
+    expect(body.data[0].optionIds).toEqual(['263173ac-25a6-46ca-a675-ffe907847c12']);
     expect(body.data[0].reviews).toBeUndefined();
+    expect(body.data[0].bookingOptions).toBeUndefined();
     expect(mockSelect.mock.calls[0][0]).not.toContain('description');
+    expect(mockSelect.mock.calls[0][0]).toContain('bookingOptions.id');
+    expect(mockSelect.mock.calls[0][0]).not.toContain('bookingOptions.description');
     expect(mockPopulate).toHaveBeenCalledTimes(2);
     expect(mockPopulate).toHaveBeenNthCalledWith(1, { path: 'category', select: 'name title slug' });
     expect(mockPopulate).toHaveBeenNthCalledWith(2, { path: 'destination', select: 'name title slug' });

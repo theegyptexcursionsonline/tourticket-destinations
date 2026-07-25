@@ -10,6 +10,7 @@ import {
   tenantForbiddenResponse,
   type AdminAuthContext,
 } from '@/lib/auth/adminAuth';
+import { findMatchingTourOptionIds } from '@/lib/admin/tourOptionIdentifiers';
 
 const LIMIT = 20;
 const VALID_KINDS = ['tours', 'pages', 'categories'] as const;
@@ -62,11 +63,16 @@ export async function GET(request: NextRequest) {
         filter.$or = [
           { title: search },
           { slug: search },
+          { 'bookingOptions.id': q },
+          { 'bookingOptions.pricingKey': q },
           ...(Types.ObjectId.isValid(q) ? [{ _id: new Types.ObjectId(q) }] : []),
+          ...(Types.ObjectId.isValid(q)
+            ? [{ 'bookingOptions._id': new Types.ObjectId(q) }]
+            : []),
         ];
       }
       const tours = await Tour.find(filter)
-        .select('tenantId title slug image isPublished')
+        .select('tenantId title slug image isPublished bookingOptions.id bookingOptions.pricingKey bookingOptions._id')
         .sort({ isFeatured: -1, rating: -1 })
         .limit(explicitIds ? ids.length : LIMIT)
         .lean();
@@ -79,6 +85,7 @@ export async function GET(request: NextRequest) {
           slug: String(tour.slug || ''),
           image: tour.image ? String(tour.image) : undefined,
           isPublished: tour.isPublished === true,
+          matchedOptionIds: findMatchingTourOptionIds(tour.bookingOptions, q),
         })),
       });
     }

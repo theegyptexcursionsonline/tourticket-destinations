@@ -27,6 +27,7 @@ import { TourActions } from './TourActions';
 import Link from 'next/link';
 import { useAdminTenant } from '@/contexts/AdminTenantContext';
 import { storefrontPreviewUrl } from '@/lib/admin/storefrontPreviewUrl';
+import { matchesTourAdminSearch } from '@/lib/admin/tourOptionIdentifiers';
 
 type TourType = {
   _id: string;
@@ -44,6 +45,7 @@ type TourType = {
   isPublished?: boolean;
   isFeatured?: boolean;
   tenantId?: string;
+  optionIds?: string[];
   // UI-only field set by ToursPageClient when "All Brands" is selected.
   // Lists every tenantId that has a copy of this slug (German translations + originals).
   tenantCopies?: string[];
@@ -148,18 +150,7 @@ export function ToursListClient({
 
     // Apply search filter
     if (q) {
-      list = list.filter((t) => {
-        const title = (t.title || t.name || '').toLowerCase();
-        const dest = (t.destination?.name || '').toLowerCase();
-        const category = (t.category?.name || '').toLowerCase();
-        const tourId = String(t._id || '').toLowerCase();
-        return (
-          title.includes(q) ||
-          dest.includes(q) ||
-          category.includes(q) ||
-          tourId.includes(q)
-        );
-      });
+      list = list.filter((tour) => matchesTourAdminSearch(tour, q));
     }
 
     // Apply sorting
@@ -258,7 +249,7 @@ export function ToursListClient({
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search tours, destinations, categories..."
+                placeholder="Search tours, destinations, Tour ID or Option ID..."
                 className="w-full ps-12 pe-4 py-3.5 bg-white border border-slate-300 rounded-xl shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 text-slate-700 font-medium"
               />
             </div>
