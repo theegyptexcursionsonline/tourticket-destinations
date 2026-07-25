@@ -389,13 +389,12 @@ export function ToursListClient({
                           </div>
                         )}
                         <div className="min-w-0 flex-1 space-y-2">
-                          <Link
-                            href={getEditUrl(t._id)}
-                            className="block text-sm font-semibold text-slate-900 hover:text-indigo-600 transition-colors truncate group-hover:text-indigo-600"
+                          <div
+                            className="block text-sm font-semibold text-slate-900 truncate"
                             title={t.title || t.name}
                           >
                             {t.title || t.name}
-                          </Link>
+                          </div>
                           <div className="flex items-center gap-2 text-xs text-slate-500 flex-wrap">
                             <Calendar className="h-3 w-3" />
                             <span>{t.duration}</span>
@@ -442,6 +441,13 @@ export function ToursListClient({
                             <span>View</span>
                           </a>
                         )}
+                        <Link
+                          href={getEditUrl(t._id)}
+                          className="inline-flex items-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm font-semibold text-indigo-700 transition-colors hover:bg-indigo-100"
+                        >
+                          <Edit3 className="h-4 w-4" />
+                          <span>Edit</span>
+                        </Link>
                         <TourActions tourId={t._id} />
                       </div>
                     </td>
@@ -517,13 +523,12 @@ export function ToursListClient({
                 {/* Title and Actions */}
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <Link
-                      href={getEditUrl(t._id)}
-                      className="block text-lg font-bold text-slate-900 hover:text-indigo-600 transition-colors truncate group-hover:text-indigo-600 mb-2"
+                    <div
+                      className="block text-lg font-bold text-slate-900 truncate mb-2"
                       title={t.title || t.name}
                     >
                       {t.title || t.name}
-                    </Link>
+                    </div>
                     
                     {/* Location and Category */}
                     <div className="space-y-1">
@@ -554,6 +559,15 @@ export function ToursListClient({
                     <span>View public tour</span>
                   </a>
                 )}
+
+                {/* Primary action */}
+                <Link
+                  href={getEditUrl(t._id)}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm font-semibold text-indigo-700 transition-colors hover:bg-indigo-100"
+                >
+                  <Edit3 className="h-4 w-4" />
+                  <span>Edit tour</span>
+                </Link>
 
                 {/* Duration and Date */}
                 <div className="flex items-center justify-between pt-4 border-t border-slate-100">

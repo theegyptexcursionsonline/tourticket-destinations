@@ -8,7 +8,7 @@ import Footer from '@/components/Footer';
 import AISearchWidget from '@/components/AISearchWidget';
 import DestinationsClientPage from './DestinationsClientPage';
 import { IDestination } from '@/lib/models/Destination';
-import { getTenantFromRequest, getTenantConfig, buildTenantQuery } from '@/lib/tenant';
+import { getTenantFromRequest, getTenantConfig, buildStrictTenantQuery } from '@/lib/tenant';
 import CollectionSchema from '@/components/schema/CollectionSchema';
 
 // ISR: revalidate every 60s — cached pages served instantly, refreshed in background
@@ -36,25 +36,14 @@ export async function generateMetadata(): Promise<Metadata> {
 async function getDestinationsWithTourCounts(tenantId: string): Promise<IDestination[]> {
   await dbConnect();
 
-  // Smart tenant detection: if tenant has own destinations, show only those
-  const ownDestCount = await Destination.countDocuments({ tenantId });
-  const destinationQuery = ownDestCount > 0
-    ? { tenantId }
-    : buildTenantQuery({}, tenantId);
-
-  const destinations = await Destination.find(destinationQuery).lean();
-
-  // Smart tenant detection for tours too
-  const ownTourCount = await Tour.countDocuments({ tenantId });
+  const destinations = await Destination.find(buildStrictTenantQuery({}, tenantId)).lean();
 
   // For each destination, count the number of published tours for this tenant
   const destinationsWithCounts = await Promise.all(
     destinations.map(async (dest) => {
-      const tourQuery = ownTourCount > 0
-        ? { destination: dest._id, isPublished: true, tenantId }
-        : buildTenantQuery({ destination: dest._id, isPublished: true }, tenantId);
-
-      const tourCount = await Tour.countDocuments(tourQuery);
+      const tourCount = await Tour.countDocuments(
+        buildStrictTenantQuery({ destination: dest._id, isPublished: true }, tenantId)
+      );
       return {
         ...dest,
         tourCount: tourCount,

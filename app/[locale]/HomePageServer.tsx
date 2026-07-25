@@ -30,7 +30,7 @@ import PopularInterestServer from '@/components/PopularInterestServer';
 import DayTripsServer from '@/components/DayTripsServer';
 
 // Import tenant utilities
-import { getTenantFromRequest, getTenantConfig, buildTenantQuery } from '@/lib/tenant';
+import { getTenantFromRequest, getTenantConfig, buildStrictTenantQuery } from '@/lib/tenant';
 import { getLocale } from 'next-intl/server';
 import { localizeAndDedupeTours } from '@/lib/translation/localizeTourCollection';
 import { localizeEntityFields } from '@/lib/i18n/contentLocalization';
@@ -47,23 +47,7 @@ async function getHomePageDataInternal(tenantId: string) {
     await dbConnect();
 
     // Build base query with tenant filter
-    const tenantFilter = { tenantId };
-    const tenantFilterOrAll = tenantId ? { tenantId } : {};
-
-    // Check if tenant has its own content - if so, use strict filtering (no default fallback)
-    const [ownDestCount, ownCatCount, ownTourCount] = await Promise.all([
-      Destination.countDocuments({ tenantId }),
-      Category.countDocuments({ tenantId }),
-      Tour.countDocuments({ tenantId }),
-    ]);
-    const hasOwnDests = ownDestCount > 0;
-    const hasOwnCats = ownCatCount > 0;
-    const hasOwnTours = ownTourCount > 0;
-
-    // Smart query: use strict tenant filter when own content exists, otherwise fallback to default
-    const destQuery = (base: Record<string, any>) => hasOwnDests ? { ...base, tenantId } : buildTenantQuery(base, tenantId);
-    const catQuery = (base: Record<string, any>) => hasOwnCats ? { ...base, tenantId } : buildTenantQuery(base, tenantId);
-    const tourQuery = (base: Record<string, any>) => hasOwnTours ? { ...base, tenantId } : buildTenantQuery(base, tenantId);
+    const tenantQuery = (base: Record<string, any>) => buildStrictTenantQuery(base, tenantId);
 
     // Fetch all data in parallel for speed
     const [
@@ -79,83 +63,53 @@ async function getHomePageDataInternal(tenantId: string) {
       dayTrips
     ] = await Promise.all([
       // Destinations with tour count (filtered by tenant)
-      Destination.find(destQuery({ isPublished: true }))
+      Destination.find(tenantQuery({ isPublished: true }))
         .select('name slug image description country tenantId')
         .limit(8)
         .lean()
-        .catch(() =>
-          // Fallback: try without tenant filter for backward compatibility
-          Destination.find({ isPublished: true })
-            .select('name slug image description country')
-            .limit(8)
-            .lean()
-        ),
+        .catch(() => []),
 
       // Featured tours (filtered by tenant)
-      Tour.find(tourQuery({ isPublished: true, isFeatured: true }))
+      Tour.find(tenantQuery({ isPublished: true, isFeatured: true }))
         .populate('destination', 'name')
         .select('title slug image discountPrice originalPrice duration rating reviewCount bookings tenantId translations')
         .limit(8)
         .lean()
-        .catch(() =>
-          Tour.find({ isPublished: true, isFeatured: true })
-            .populate('destination', 'name')
-            .select('title slug image discountPrice originalPrice duration rating reviewCount bookings translations')
-            .limit(8)
-            .lean()
-        ),
+        .catch(() => []),
 
       // Categories for InterestGrid (filtered by tenant)
-      Category.find(catQuery({ isPublished: true }))
+      Category.find(tenantQuery({ isPublished: true }))
         .select('name slug icon description tenantId')
         .limit(12)
         .lean()
-        .catch(() =>
-          Category.find({ isPublished: true })
-            .select('name slug icon description')
-            .limit(12)
-            .lean()
-        ),
+        .catch(() => []),
 
       // All categories for PopularInterest (filtered by tenant)
-      Category.find(hasOwnCats ? tenantFilter : tenantFilterOrAll).lean()
-        .catch(() => Category.find({}).lean()),
+      Category.find(tenantQuery({ isPublished: true })).lean()
+        .catch(() => []),
 
       // Attraction pages for PopularInterest (filtered by tenant)
-      AttractionPage.find(buildTenantQuery({ isPublished: true, pageType: 'attraction' }, tenantId)).lean()
-        .catch(() => AttractionPage.find({ isPublished: true, pageType: 'attraction' }).lean()),
+      AttractionPage.find(tenantQuery({ isPublished: true, pageType: 'attraction' })).lean()
+        .catch(() => []),
 
       // Category pages for PopularInterest (filtered by tenant)
-      AttractionPage.find(buildTenantQuery({ isPublished: true, pageType: 'category' }, tenantId))
+      AttractionPage.find(tenantQuery({ isPublished: true, pageType: 'category' }))
         .populate('categoryId', 'name slug')
         .sort({ featured: -1, createdAt: -1 })
         .lean()
-        .catch(() =>
-          AttractionPage.find({ isPublished: true, pageType: 'category' })
-            .populate('categoryId', 'name slug')
-            .sort({ featured: -1, createdAt: -1 })
-            .lean()
-        ),
+        .catch(() => []),
 
       // Header destinations (filtered by tenant)
-      Destination.find(destQuery({ isPublished: true }))
+      Destination.find(tenantQuery({ isPublished: true }))
         .select('name slug image description country tenantId')
         .lean()
-        .catch(() =>
-          Destination.find({ isPublished: true, featured: true })
-            .select('name slug image description country')
-            .lean()
-        ),
+        .catch(() => []),
 
       // Header categories (filtered by tenant)
-      Category.find(catQuery({ isPublished: true }))
+      Category.find(tenantQuery({ isPublished: true }))
         .select('name slug icon description tenantId')
         .lean()
-        .catch(() =>
-          Category.find({ isPublished: true, featured: true })
-            .select('name slug icon description')
-            .lean()
-        ),
+        .catch(() => []),
 
       // Hero settings - STRICT tenant match first, then fallback to default
       HeroSettings.findOne({ isActive: true, tenantId })
@@ -176,16 +130,11 @@ async function getHomePageDataInternal(tenantId: string) {
         ),
 
       // Day trips (all published tours, filtered by tenant, limited to 12)
-      Tour.find(tourQuery({ isPublished: true }))
+      Tour.find(tenantQuery({ isPublished: true }))
         .select('title slug image discountPrice originalPrice duration rating reviewCount bookings tags tenantId translations')
         .limit(12)
         .lean()
-        .catch(() =>
-          Tour.find({ isPublished: true })
-            .select('title slug image discountPrice originalPrice duration rating reviewCount bookings tags translations')
-            .limit(12)
-            .lean()
-        )
+        .catch(() => [])
     ]);
 
     // Get all destination IDs for batch counting
@@ -197,12 +146,10 @@ async function getHomePageDataInternal(tenantId: string) {
       Tour.aggregate([
         { 
           $match: { 
-            isPublished: true,
-            destination: { $in: destinationIds },
-            $or: [
-              { tenantId: { $in: [tenantId, 'default'] } },
-              { tenantId: { $exists: false } }
-            ]
+            ...tenantQuery({
+              isPublished: true,
+              destination: { $in: destinationIds },
+            }),
           } 
         },
         { $group: { _id: '$destination', count: { $sum: 1 } } }
@@ -212,11 +159,7 @@ async function getHomePageDataInternal(tenantId: string) {
       Tour.aggregate([
         { 
           $match: { 
-            isPublished: true,
-            $or: [
-              { tenantId: { $in: [tenantId, 'default'] } },
-              { tenantId: { $exists: false } }
-            ]
+            ...tenantQuery({ isPublished: true }),
           } 
         },
         { $unwind: { path: '$category', preserveNullAndEmptyArrays: false } },
@@ -508,7 +451,9 @@ export default async function HomePageServer() {
     destinations.map((d: any) => localizeEntityFields(d, locale, destFields))
   );
   const localizedCategories = dedupeTaxonomyEntries(
-    categories.map((c: any) => localizeEntityFields(c, locale, catFields))
+    categories
+      .filter((category: any) => (Number(category.tourCount) || 0) > 0)
+      .map((c: any) => localizeEntityFields(c, locale, catFields))
   );
   const localizedHeaderDests = dedupeTaxonomyEntries(
     headerDestinations.map((d: any) => localizeEntityFields(d, locale, destFields))

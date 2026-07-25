@@ -16,6 +16,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import { isRTL } from '@/i18n/config';
+import { filterSearchHitsByTenant } from '@/lib/tenantSearchHitFilter';
 import 'instantsearch.css/themes/satellite.css';
 
 // --- Types and Constants ---
@@ -107,10 +108,19 @@ function CustomSearchBox({ searchQuery, onSearchChange: _onSearchChange }: { sea
   return null;
 }
 
-function TourHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: number }) {
+function TourHits({
+  onHitClick,
+  limit = 5,
+  tenantId,
+}: {
+  onHitClick?: () => void;
+  limit?: number;
+  tenantId?: string;
+}) {
   const t = useTranslations();
   const { hits } = useHits();
-  const limitedHits = hits.slice(0, limit);
+  const scopedHits = filterSearchHitsByTenant(hits as any[], tenantId);
+  const limitedHits = scopedHits.slice(0, limit);
   const sliderRef = useRef<HTMLDivElement>(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(true);
@@ -177,7 +187,7 @@ function TourHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: 
             </span>
           </div>
           <span className="ms-auto text-[10px] md:text-xs font-bold text-blue-700 bg-white/50 backdrop-blur-md px-3 md:px-3.5 py-1 md:py-1.5 rounded-full border border-white/40 shadow-sm">
-            {hits.length} {t('search.found')}
+            {scopedHits.length} {t('search.found')}
           </span>
         </div>
       </div>
@@ -312,10 +322,20 @@ function TourHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: 
   );
 }
 
-function DestinationHits({ onHitClick, limit = 3 }: { onHitClick?: () => void; limit?: number }) {
+function DestinationHits({
+  onHitClick,
+  limit = 3,
+  tenantId,
+}: {
+  onHitClick?: () => void;
+  limit?: number;
+  tenantId?: string;
+}) {
   const t = useTranslations();
   const { hits } = useHits();
-  const limitedHits = hits.slice(0, limit);
+  const scopedHits = filterSearchHitsByTenant(hits as any[], tenantId)
+    .filter((hit: any) => (Number(hit.tourCount) || 0) > 0);
+  const limitedHits = scopedHits.slice(0, limit);
 
   if (limitedHits.length === 0) return null;
 
@@ -339,7 +359,7 @@ function DestinationHits({ onHitClick, limit = 3 }: { onHitClick?: () => void; l
             </span>
           </div>
           <span className="ms-auto text-[10px] md:text-xs font-bold text-emerald-700 bg-white/50 backdrop-blur-md px-3 md:px-3.5 py-1 md:py-1.5 rounded-full border border-white/40 shadow-sm">
-            {hits.length} {t('search.found')}
+            {scopedHits.length} {t('search.found')}
           </span>
         </div>
       </div>
@@ -387,10 +407,20 @@ function DestinationHits({ onHitClick, limit = 3 }: { onHitClick?: () => void; l
   );
 }
 
-function CategoryHits({ onHitClick, limit = 3 }: { onHitClick?: () => void; limit?: number }) {
+function CategoryHits({
+  onHitClick,
+  limit = 3,
+  tenantId,
+}: {
+  onHitClick?: () => void;
+  limit?: number;
+  tenantId?: string;
+}) {
   const t = useTranslations();
   const { hits } = useHits();
-  const limitedHits = hits.slice(0, limit);
+  const scopedHits = filterSearchHitsByTenant(hits as any[], tenantId)
+    .filter((hit: any) => (Number(hit.tourCount) || 0) > 0);
+  const limitedHits = scopedHits.slice(0, limit);
 
   if (limitedHits.length === 0) return null;
 
@@ -414,7 +444,7 @@ function CategoryHits({ onHitClick, limit = 3 }: { onHitClick?: () => void; limi
             </span>
           </div>
           <span className="ms-auto text-[10px] md:text-xs font-bold text-purple-700 bg-white/50 backdrop-blur-md px-3 md:px-3.5 py-1 md:py-1.5 rounded-full border border-white/40 shadow-sm">
-            {hits.length} {t('search.found')}
+            {scopedHits.length} {t('search.found')}
           </span>
         </div>
       </div>
@@ -776,10 +806,14 @@ const DestinationSlider = ({ destinations }: { destinations: any[] }) => {
                 </p>
               )}
               <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-                <div className="flex items-center gap-1.5 text-gray-500 text-xs">
-                  <MapPin className="w-3.5 h-3.5 text-emerald-500" strokeWidth={2.5} />
-                  <span className="font-medium">{t('destinations.toursAvailable', { count: destination.tourCount || 0 })}</span>
-                </div>
+                {(Number(destination.tourCount) || 0) > 0 && (
+                  <div className="flex items-center gap-1.5 text-gray-500 text-xs">
+                    <MapPin className="w-3.5 h-3.5 text-emerald-500" strokeWidth={2.5} />
+                    <span className="font-medium">
+                      {t('destinations.toursAvailable', { count: destination.tourCount })}
+                    </span>
+                  </div>
+                )}
                 <span className="text-emerald-600 text-xs font-semibold group-hover:translate-x-1 transition-transform">
                   {t('destinations.exploreAll')} →
                 </span>
@@ -794,7 +828,7 @@ const DestinationSlider = ({ destinations }: { destinations: any[] }) => {
 
 // --- Reusable Components ---
 const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
-  const { getSiteName } = useTenant();
+  const { getSiteName, tenantId } = useTenant();
   const locale = useLocale();
   const rtl = isRTL(locale);
   const BackToSearchIcon = rtl ? ArrowRight : ArrowLeft;
@@ -983,24 +1017,26 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
               indexName: INDEX_TOURS,
               params: {
                 query: tourTitle,
-                hitsPerPage: 1,
+                hitsPerPage: 5,
               }
             }]);
             let firstResult = response.results[0] as any;
+            let scopedHits = filterSearchHitsByTenant((firstResult?.hits || []) as any[], tenantId);
 
-            if (!firstResult?.hits?.length) {
+            if (!scopedHits.length) {
               const keywords = tourTitle.split(/\s+/).filter(w => w.length > 3).slice(0, 4).join(' ');
               response = await searchClient.search([{
                 indexName: INDEX_TOURS,
                 params: {
                   query: keywords,
-                  hitsPerPage: 1,
+                  hitsPerPage: 5,
                 }
               }]);
               firstResult = response.results[0] as any;
+              scopedHits = filterSearchHitsByTenant((firstResult?.hits || []) as any[], tenantId);
             }
 
-            return firstResult?.hits?.[0];
+            return scopedHits[0] || null;
           } catch (error) {
             console.error('Error searching for tour:', tourTitle, error);
             return null;
@@ -1036,7 +1072,7 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
       console.error('Error detecting tours:', error);
     }
     return [];
-  }, []);
+  }, [tenantId]);
 
   // Parse destination information from text and fetch from Algolia
   const detectAndFetchDestinations = useCallback(async (text: string) => {
@@ -1066,11 +1102,11 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
               indexName: INDEX_DESTINATIONS,
               params: {
                 query: destName,
-                hitsPerPage: 1,
+                hitsPerPage: 5,
               }
             }]);
             const firstResult = response.results[0] as any;
-            return firstResult?.hits?.[0];
+            return filterSearchHitsByTenant((firstResult?.hits || []) as any[], tenantId)[0] || null;
           } catch (error) {
             console.error('Error searching for destination:', destName, error);
             return null;
@@ -1092,7 +1128,7 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
             name: dest.name || 'Untitled Destination',
             image: dest.image || dest.images?.[0] || dest.primaryImage,
             description: dest.description,
-            tourCount: dest.tourCount || 0,
+            tourCount: dest.tourCount,
             isFeatured: dest.isFeatured,
           }));
         }
@@ -1101,17 +1137,21 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
       console.error('Error detecting destinations:', error);
     }
     return [];
-  }, []);
+  }, [tenantId]);
 
   // Render tool outputs (tours) - enhanced version
   const renderToolOutput = useCallback((obj: any) => {
     if (Array.isArray(obj)) {
-      const tours = obj.filter(item => item.title && item.slug);
+      const tours = filterSearchHitsByTenant(obj, tenantId)
+        .filter(item => item.title && item.slug);
       if (tours.length > 0) return <TourSlider tours={tours} />;
     }
-    if (obj.title && obj.slug) return <TourSlider tours={[obj]} />;
+    if (obj.title && obj.slug && filterSearchHitsByTenant([obj], tenantId).length > 0) {
+      return <TourSlider tours={[obj]} />;
+    }
     if (obj.hits && Array.isArray(obj.hits)) {
-      const tours = obj.hits.filter((item: any) => item.title && item.slug);
+      const tours = filterSearchHitsByTenant(obj.hits, tenantId)
+        .filter((item: any) => item.title && item.slug);
       if (tours.length > 0) return <TourSlider tours={tours} />;
     }
     return (
@@ -1119,7 +1159,7 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
         {JSON.stringify(obj, null, 2)}
       </pre>
     );
-  }, []);
+  }, [tenantId]);
 
   // Detect tours and destinations in messages
   useEffect(() => {
@@ -1686,19 +1726,19 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
                     {/* Tours Index */}
                     <Index indexName={INDEX_TOURS}>
                       <Configure hitsPerPage={5} />
-                      <TourHits onHitClick={handleCloseDropdown} limit={5} />
+                      <TourHits onHitClick={handleCloseDropdown} limit={5} tenantId={tenantId} />
                     </Index>
 
                     {/* Destinations Index */}
                     <Index indexName={INDEX_DESTINATIONS}>
                       <Configure hitsPerPage={3} />
-                      <DestinationHits onHitClick={handleCloseDropdown} limit={3} />
+                      <DestinationHits onHitClick={handleCloseDropdown} limit={3} tenantId={tenantId} />
                     </Index>
 
                     {/* Categories Index */}
                     <Index indexName={INDEX_CATEGORIES}>
                       <Configure hitsPerPage={3} />
-                      <CategoryHits onHitClick={handleCloseDropdown} limit={3} />
+                      <CategoryHits onHitClick={handleCloseDropdown} limit={3} tenantId={tenantId} />
                     </Index>
                   </InstantSearch>
                 ) : (

@@ -571,12 +571,14 @@ const DestinationSlider = ({ destinations }: { destinations: any[] }) => {
                   {destination.description}
                 </p>
               )}
-              <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-                <div className="flex items-center gap-1 text-gray-500 text-[11px]">
-                  <MapPin className="w-3 h-3 text-blue-500" />
-                  <span>{destination.tourCount || 0} tours</span>
+              {(Number(destination.tourCount) || 0) > 0 && (
+                <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                  <div className="flex items-center gap-1 text-gray-500 text-[11px]">
+                    <MapPin className="w-3 h-3 text-blue-500" />
+                    <span>{destination.tourCount} tours</span>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </a>
         ))}
@@ -987,7 +989,7 @@ export default function AISearchWidget() {
             name: dest.name || 'Untitled Destination',
             image: dest.image || dest.images?.[0] || dest.primaryImage,
             description: dest.description,
-            tourCount: dest.tourCount || 0,
+            tourCount: dest.tourCount,
             isFeatured: dest.isFeatured,
           }));
         }

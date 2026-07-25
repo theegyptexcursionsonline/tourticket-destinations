@@ -70,3 +70,13 @@ IMPLEMENTATION_SUMMARY.md
 MULTI_TENANT_GUIDE.md
 UPGRADE_SUMMARY.md
 docs/SPECIAL_OFFERS_GUIDE.md
+
+# internal reference docs — not for publication
+INFRA.md
+ENV.md
+RUNBOOK.md
+DECISIONS.md
+GLOSSARY.md
+PROJECT-TRACKER.md
+docs/claude-memory.md
+qa-screenshots/

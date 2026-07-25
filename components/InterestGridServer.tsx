@@ -830,14 +830,16 @@ export default function InterestGridServer({ categories }: InterestGridServerPro
   }, [renderToolOutput, detectedToursByMessage]);
 
   // Convert categories to interests format
-  const interests: Interest[] = categories.map(cat => ({
-    _id: cat._id,
-    type: 'category' as const,
-    name: cat.name,
-    slug: cat.slug,
-    products: (cat as any).tourCount || 0,
-    featured: (cat as any).featured || false
-  }));
+  const interests: Interest[] = categories
+    .map(cat => ({
+      _id: cat._id,
+      type: 'category' as const,
+      name: cat.name,
+      slug: cat.slug,
+      products: (cat as any).tourCount || 0,
+      featured: (cat as any).featured || false
+    }))
+    .filter(interest => interest.products > 0);
 
   // Filter interests based on search (only when not in AI mode)
   const filteredInterests = !isExpanded || chatMode ? interests : interests.filter(interest =>
