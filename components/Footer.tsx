@@ -6,7 +6,7 @@ import Image from "next/image";
 import QRCode from "qrcode";
 import { Link } from '@/i18n/navigation';
 import { Destination } from '@/types';
-import toast, { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 import { useTenant } from '@/contexts/TenantContext';
 import { useLocale, useTranslations } from 'next-intl';
 import { isRTL } from '@/i18n/config';
@@ -309,7 +309,6 @@ export default function Footer() {
   
   return (
     <footer className="bg-white text-slate-700 pb-20 md:pb-24">
-      <Toaster position="top-center" />
       <div className="container mx-auto px-4 py-12">
 
         {/* App Download Banner */}

@@ -7,7 +7,7 @@ import { SettingsProvider } from '@/contexts/SettingsContext';
 import withAuth from '@/components/admin/withAuth';
 import { AdminAuthProvider } from '@/contexts/AdminAuthContext';
 import { AdminTenantProvider } from '@/contexts/AdminTenantContext';
-import { Toaster } from 'react-hot-toast';
+import AppToaster from '@/components/ui/AppToaster';
 
 // Admin panel always renders LTR, English-only — no locale routing needed
 const ProtectedAdminContent = ({ children }: { children: React.ReactNode }) => {
@@ -39,39 +39,7 @@ export default function AdminClientLayout({
                         <AuthenticatedAdminLayout>
                             {children}
                         </AuthenticatedAdminLayout>
-                        <Toaster
-                          position="top-right"
-                          reverseOrder={false}
-                          gutter={8}
-                          toastOptions={{
-                            duration: 4000,
-                            style: {
-                              background: '#fff',
-                              color: '#333',
-                              border: '1px solid #e5e7eb',
-                              borderRadius: '12px',
-                              padding: '12px 16px',
-                              fontSize: '14px',
-                              maxWidth: '500px',
-                            },
-                            success: {
-                              duration: 4000,
-                              style: {
-                                background: '#f0fdf4',
-                                color: '#166534',
-                                border: '1px solid #bbf7d0',
-                              },
-                            },
-                            error: {
-                              duration: 6000,
-                              style: {
-                                background: '#fef2f2',
-                                color: '#b91c1c',
-                                border: '1px solid #fecaca',
-                              },
-                            },
-                          }}
-                        />
+                        <AppToaster />
                     </AdminTenantProvider>
                 </AdminAuthProvider>
             </SettingsProvider>

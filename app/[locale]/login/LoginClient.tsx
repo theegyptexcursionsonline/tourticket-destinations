@@ -5,7 +5,7 @@ import { Eye, EyeOff, Mail, Lock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from '@/i18n/navigation';
 import { Link } from '@/i18n/navigation';
-import toast, { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 import { useTranslations } from 'next-intl';
 
 export default function LoginClient() {
@@ -82,7 +82,6 @@ export default function LoginClient() {
 
   return (
     <div className="bg-white text-slate-800 min-h-screen flex flex-col">
-      <Toaster position="top-center" />
       <main className="flex-grow flex items-center justify-center py-12 px-4 bg-[#E9ECEE]">
         <div className="w-full max-w-lg bg-white p-8 sm:p-12 rounded-lg shadow-lg">
           <h1 className="text-3xl sm:text-4xl font-bold text-center text-slate-900 mb-2">
@@ -229,4 +228,3 @@ export default function LoginClient() {
     </div>
   );
 }
-
