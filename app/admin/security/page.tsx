@@ -1,8 +1,9 @@
 'use client';
 
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
-import { Check, Copy, Download, KeyRound, Loader2, ShieldCheck, ShieldOff } from 'lucide-react';
+import { AlertTriangle, Check, Copy, Download, KeyRound, Loader2, RotateCcw, ShieldCheck, ShieldOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 import withAuth from '@/components/admin/withAuth';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
@@ -13,11 +14,13 @@ interface SetupData {
 }
 
 function SecurityPage() {
-  const { refreshUser } = useAdminAuth();
+  const router = useRouter();
+  const { logout, refreshUser } = useAdminAuth();
   const [enabled, setEnabled] = useState(false);
   const [enabledAt, setEnabledAt] = useState<string | null>(null);
   const [setup, setSetup] = useState<SetupData | null>(null);
   const [code, setCode] = useState('');
+  const [confirmReset, setConfirmReset] = useState(false);
   const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
@@ -91,6 +94,20 @@ function SecurityPage() {
       toast.success('New recovery codes generated. Previous codes no longer work.');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Could not regenerate recovery codes.');
+    }
+  };
+
+  const resetTwoFactor = async () => {
+    if (!confirmReset || !code.trim()) return;
+    try {
+      await postAction('reset', code);
+      setCode('');
+      setConfirmReset(false);
+      toast.success('Authenticator reset. Sign in again to set up two-step verification.');
+      logout();
+      router.replace('/admin');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not reset two-factor authentication.');
     }
   };
 
@@ -223,6 +240,35 @@ function SecurityPage() {
                   <ShieldCheck className="h-4 w-4" />
                   Required for admin access
                 </span>
+              </div>
+              <div className="rounded-2xl border border-red-200 bg-red-50 p-4 sm:p-5">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-700" />
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-bold text-red-950">Replace or disable this authenticator</h3>
+                    <p className="mt-1 text-sm leading-6 text-red-900">
+                      This revokes the current authenticator and every recovery code, then signs you out. Because two-step verification is required for admins, you must set up a new authenticator before accessing the portal again.
+                    </p>
+                    <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-red-200 bg-white p-3 text-sm font-semibold text-slate-800">
+                      <input
+                        type="checkbox"
+                        checked={confirmReset}
+                        onChange={(event) => setConfirmReset(event.target.checked)}
+                        className="mt-0.5 h-4 w-4 rounded border-slate-300 text-red-600 focus:ring-red-500"
+                      />
+                      <span>I understand that I will be signed out and must enroll again.</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={resetTwoFactor}
+                      disabled={pendingAction !== null || !code.trim() || !confirmReset}
+                      className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-red-300 bg-white px-5 py-3 text-sm font-bold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                    >
+                      {pendingAction === 'reset' ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
+                      Disable and set up again
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           )}

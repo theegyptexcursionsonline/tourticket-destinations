@@ -38,11 +38,15 @@ describe('two-factor authentication integration contract', () => {
     expect(security).toContain('await refreshUser()');
   });
 
-  it('does not permit mandatory two-factor authentication to be disabled', () => {
+  it('only resets mandatory two-factor authentication after a fresh code and signs the account out', () => {
     const source = read('app/api/admin/2fa/route.ts');
-    expect(source).toContain("code: 'TWO_FACTOR_REQUIRED'");
-    expect(source).toContain('cannot be disabled');
-    expect(source).not.toContain('user.twoFactorEnabled = false');
+    expect(source).toContain("action === 'reset'");
+    expect(source).toContain('verifyAndConsumeUserSecondFactor(user, code)');
+    expect(source).toContain('buildMandatoryTwoFactorResetUpdate()');
+    expect(source).toContain("'two_factor_reset'");
+    expect(source).toContain("response.cookies.set('admin-auth-token', ''");
+    expect(source.indexOf('verifyAndConsumeUserSecondFactor(user, code)'))
+      .toBeLessThan(source.indexOf("if (action === 'reset')"));
   });
 
   it('includes both the login challenge and account security UI', () => {
@@ -52,5 +56,7 @@ describe('two-factor authentication integration contract', () => {
     expect(login).toContain('autoComplete="one-time-code"');
     expect(security).toContain('Set up 2FA');
     expect(security).toContain('recovery codes');
+    expect(security).toContain('Disable and set up again');
+    expect(security).toContain('I understand that I will be signed out and must enroll again.');
   });
 });

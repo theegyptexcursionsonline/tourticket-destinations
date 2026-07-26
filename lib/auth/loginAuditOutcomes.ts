@@ -11,6 +11,7 @@ export const LOGIN_AUDIT_OUTCOMES = [
   'portal_rejected',
   'two_factor_required',
   'wrong_second_factor',
+  'two_factor_reset',
   'error',
 ] as const;
 

@@ -11,6 +11,8 @@ import {
   hashRecoveryCode,
   verifyTotpCode,
 } from '@/lib/auth/twoFactor';
+import { recordLoginAudit } from '@/lib/auth/loginAudit';
+import { buildMandatoryTwoFactorResetUpdate } from '@/lib/auth/mandatoryTwoFactorReset';
 import { verifyAndConsumeUserSecondFactor } from '@/lib/auth/userSecondFactor';
 
 function invalidCodeResponse() {
@@ -55,18 +57,8 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null) as { action?: unknown; code?: unknown } | null;
   const action = typeof body?.action === 'string' ? body.action : '';
   const code = typeof body?.code === 'string' ? body.code.trim() : '';
-  if (!['setup', 'enable', 'regenerate', 'disable'].includes(action) || code.length > 64) {
+  if (!['setup', 'enable', 'regenerate', 'reset'].includes(action) || code.length > 64) {
     return NextResponse.json({ success: false, error: 'Invalid request.' }, { status: 400 });
-  }
-  if (action === 'disable') {
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Two-factor authentication is required for every admin account and cannot be disabled.',
-        code: 'TWO_FACTOR_REQUIRED',
-      },
-      { status: 403 },
-    );
   }
   const user = await User.findById(auth.userId)
     .select('+twoFactorSecret +twoFactorPendingSecret +twoFactorRecoveryCodeHashes +twoFactorLastUsedStep');
@@ -116,6 +108,33 @@ export async function POST(request: NextRequest) {
     user.twoFactorRecoveryCodeHashes = recoveryCodes.map(hashRecoveryCode);
     await user.save({ validateBeforeSave: false });
     return NextResponse.json({ success: true, recoveryCodes });
+  }
+  if (action === 'reset') {
+    const reset = await User.updateOne(
+      { _id: user._id, twoFactorEnabled: true },
+      buildMandatoryTwoFactorResetUpdate(),
+    );
+    if (reset.modifiedCount !== 1) {
+      return NextResponse.json(
+        { success: false, error: 'Two-factor authentication changed before the reset completed. Please sign in and try again.' },
+        { status: 409 },
+      );
+    }
+    await recordLoginAudit(request.headers, user.email, 'two_factor_reset');
+    const response = NextResponse.json({
+      success: true,
+      enabled: false,
+      requiresSetup: true,
+    });
+    response.cookies.set('admin-auth-token', '', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      expires: new Date(0),
+      maxAge: 0,
+    });
+    return response;
   }
   return NextResponse.json({ success: false, error: 'Invalid request.' }, { status: 400 });
 }
