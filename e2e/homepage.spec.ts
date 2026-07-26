@@ -99,8 +99,9 @@ test.describe('Homepage', () => {
     await form.evaluate((newsletterForm: HTMLFormElement) => newsletterForm.requestSubmit());
 
     await expect(
-      footer.locator('text=/subscribed|success|thank/i').first(),
+      page.getByText('Successfully subscribed!', { exact: true }),
     ).toBeVisible({ timeout: 10_000 });
+    await expect(form).toHaveCount(0);
 
     await page.unroute('**/api/subscribe');
   });
