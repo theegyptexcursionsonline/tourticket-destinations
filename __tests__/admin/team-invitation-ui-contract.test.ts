@@ -9,8 +9,8 @@ describe('English network team invitation UI contract', () => {
   const acceptancePage = read('app/[locale]/accept-invitation/page.tsx');
 
   it('keeps the invite card sticky only on desktop-sized layouts', () => {
-    expect(teamPage).toContain('lg:sticky lg:top-24 lg:self-start');
-    expect(teamPage).not.toContain('sticky top-24');
+    expect(teamPage).toContain('lg:sticky lg:top-4 lg:self-start');
+    expect(teamPage).not.toContain('sticky top-4');
   });
 
   it('presents pending invitations as offers, not active access', () => {

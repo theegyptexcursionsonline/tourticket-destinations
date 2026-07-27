@@ -380,7 +380,7 @@ const TeamPage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         <form
           onSubmit={handleInvite}
-          className="bg-white border border-slate-200 rounded-2xl shadow-sm p-4 md:p-6 space-y-4 lg:col-span-1 lg:sticky lg:top-24 lg:self-start"
+          className="bg-white border border-slate-200 rounded-2xl shadow-sm p-4 md:p-6 space-y-4 lg:col-span-1 lg:sticky lg:top-4 lg:self-start"
         >
           <div className="flex items-start gap-3 mb-4">
             <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-500 flex-shrink-0">
