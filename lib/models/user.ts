@@ -50,6 +50,16 @@ export interface IUser extends Document {
   invitationToken?: string;
   invitationExpires?: Date;
   requirePasswordChange?: boolean;
+  // Admin access an invitee has been offered but has NOT yet accepted. Nothing
+  // here grants access: the grant only moves onto role/permissions/scopes when
+  // the invitation is accepted, so an existing customer keeps shopping with the
+  // account they already had until then.
+  pendingAdminRole?: AdminRole;
+  pendingAdminPermissions?: AdminPermission[];
+  pendingAdminScopes?: AdminPortalScope[];
+  pendingAdminTenantIds?: string[];
+  pendingAdminInvitedAt?: Date;
+  pendingAdminInvitedBy?: string;
   wishlist?: mongoose.Types.ObjectId[]; // Array of Tour IDs
   cart?: ICartItem[]; // Array of cart items
   // Multi-tenant support — which brands this team member can access
@@ -148,6 +158,26 @@ const UserSchema: Schema<IUser> = new Schema({
     type: Boolean,
     default: false,
   },
+  pendingAdminRole: {
+    type: String,
+    enum: ADMIN_ROLES.filter((role) => role !== 'customer'),
+  },
+  pendingAdminPermissions: {
+    type: [String],
+    enum: ADMIN_PERMISSIONS,
+    default: undefined,
+  },
+  pendingAdminScopes: {
+    type: [String],
+    enum: ['main', 'multiTenant'],
+    default: undefined,
+  },
+  pendingAdminTenantIds: {
+    type: [String],
+    default: undefined,
+  },
+  pendingAdminInvitedAt: { type: Date },
+  pendingAdminInvitedBy: { type: String, trim: true, maxlength: 255 },
   // Multi-tenant support — array of brand IDs this team member can access
   tenantIds: {
     type: [String],

@@ -15,20 +15,31 @@ import { EmailService } from '@/lib/email/emailService';
 import { getInvitationBaseUrl } from '@/lib/auth/invitationBaseUrl';
 import Tenant from '@/lib/models/Tenant';
 import { getTenantEmailBranding } from '@/lib/tenant';
+import {
+  clearPendingAdminGrant,
+  hasPortalMembership,
+} from '@/lib/admin/teamMembership';
 
-const sanitize = (user: any) => ({
-  id: user._id.toString(),
-  _id: user._id.toString(),
-  firstName: user.firstName,
-  lastName: user.lastName,
-  email: user.email,
-  role: user.role,
-  permissions: user.permissions || [],
-  isActive: user.isActive,
-  lastLoginAt: user.lastLoginAt,
-  createdAt: user.createdAt,
-  tenantIds: user.tenantIds || [],
-});
+const sanitize = (user: any) => {
+  // A pending invitee holds no admin access yet. Show the access they were
+  // offered so the list reads sensibly, but never as though it were live.
+  const invitationPending = Boolean(user.pendingAdminRole);
+
+  return {
+    id: user._id.toString(),
+    _id: user._id.toString(),
+    firstName: user.firstName,
+    lastName: user.lastName,
+    email: user.email,
+    role: user.pendingAdminRole || user.role,
+    permissions: user.pendingAdminPermissions || user.permissions || [],
+    isActive: invitationPending ? false : user.isActive,
+    invitationPending,
+    lastLoginAt: user.lastLoginAt,
+    createdAt: user.createdAt,
+    tenantIds: (invitationPending && user.pendingAdminTenantIds) || user.tenantIds || [],
+  };
+};
 
 function normalizePermissions(
   requested: unknown,
@@ -63,55 +74,6 @@ const getSupportEmail = () =>
   process.env.MAILGUN_FROM_EMAIL ||
   'support@egypt-excursionsonline.com';
 
-async function linkExistingAdminAccount(
-  existing: any,
-  assignedTenantIds: string[],
-) {
-  if (!existing.isActive) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'This admin account is inactive. Restore the existing account before assigning brands.',
-      },
-      { status: 409 },
-    );
-  }
-
-  // Missing scopes are legacy accounts whose effective access was unrestricted.
-  // Infer the account's original portal from existing tenant assignments, then
-  // make the new network assignment explicit.
-  const existingScopes = Array.isArray(existing.adminPortalScopes)
-    ? existing.adminPortalScopes
-    : Array.isArray(existing.tenantIds) && existing.tenantIds.length > 0
-      ? ['multiTenant']
-      : ['main'];
-  const linked = await User.findOneAndUpdate(
-    { _id: existing._id, isActive: true, role: { $ne: 'customer' } },
-    {
-      $addToSet: {
-        tenantIds: { $each: assignedTenantIds },
-        adminPortalScopes: {
-          $each: Array.from(new Set([...existingScopes, 'multiTenant'])),
-        },
-      },
-    },
-    { new: true, runValidators: true },
-  );
-
-  if (!linked) {
-    return NextResponse.json(
-      { success: false, error: 'The existing account changed. Refresh and try again.' },
-      { status: 409 },
-    );
-  }
-
-  return NextResponse.json({
-    success: true,
-    data: sanitize(linked),
-    linkedExistingAccount: true,
-  });
-}
-
 export async function GET(request: NextRequest) {
   const auth = await requireAdminAuth(request, { permissions: ['manageUsers'] });
   if (auth instanceof NextResponse) {
@@ -123,16 +85,31 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const tenantId = searchParams.get('tenantId') || searchParams.get('brandId');
 
-  const filter: Record<string, unknown> = { role: { $ne: 'customer' } };
-  if (tenantId && tenantId !== 'all') {
-    // requireAdminAuth has already verified that this brand belongs to the
-    // current admin's network scope.
-    filter.tenantIds = tenantId;
-  } else {
-    // "All brands" is still tenant-scoped. This lets a network admin use the
-    // page without exposing users assigned only to another admin network.
-    filter.tenantIds = { $in: auth.tenantIds };
-  }
+  // requireAdminAuth has already verified that an explicit brand belongs to the
+  // current admin's network scope. "All brands" stays tenant-scoped so a network
+  // admin never sees users assigned only to another admin network.
+  const tenantScope: unknown = tenantId && tenantId !== 'all'
+    ? tenantId
+    : { $in: auth.tenantIds };
+
+  const filter: Record<string, unknown> = {
+    $and: [
+      {
+        $or: [
+          { role: { $ne: 'customer' } },
+          // Customers holding an unaccepted invitation belong on the list so
+          // the invite stays visible and can be resent or withdrawn.
+          { pendingAdminRole: { $exists: true } },
+        ],
+      },
+      {
+        $or: [
+          { tenantIds: tenantScope },
+          { pendingAdminTenantIds: tenantScope },
+        ],
+      },
+    ],
+  };
 
   const teamMembers = await User.find(filter)
     .sort({ createdAt: -1 })
@@ -186,10 +163,6 @@ export async function POST(request: NextRequest) {
   const invitationExpires = new Date();
   invitationExpires.setDate(invitationExpires.getDate() + 7); // 7 days from now
 
-  // Create a temporary password - user must set their own via invitation link
-  const temporaryPassword = crypto.randomBytes(16).toString('hex');
-  const hashedPassword = await bcrypt.hash(temporaryPassword, 10);
-
   // Assign team member to selected brand(s)
   // Accepts tenantIds (array) or tenantId (single string) for backward compatibility
   let assignedTenantIds: string[] = [];
@@ -205,51 +178,66 @@ export async function POST(request: NextRequest) {
     return tenantForbiddenResponse();
   }
 
-  const existing = await User.findOne({ email: normalizedEmail });
-  let convertedCustomer = false;
-  let originalCustomerState: {
-    permissions: AdminPermission[];
-    tenantIds: string[];
-    adminPortalScopes?: string[];
-    requirePasswordChange: boolean;
-  } | null = null;
+  const existing = await User.findOne({ email: normalizedEmail })
+    .select('+invitationToken +invitationExpires');
+  let existingAccountInvitation = false;
   let user;
 
   if (existing) {
-    if (existing.role !== 'customer') {
-      return linkExistingAdminAccount(existing, assignedTenantIds);
-    }
     if (!existing.isActive) {
       return NextResponse.json(
         {
           success: false,
-          error: 'This customer account is inactive and cannot be added to the team.',
+          error: 'This account is inactive. Restore it before sending a portal invitation.',
+        },
+        { status: 409 },
+      );
+    }
+    const currentTenantIds = (existing.tenantIds || []).map(String);
+    const missingTenantIds = assignedTenantIds.filter((id) => !currentTenantIds.includes(id));
+    if (
+      existing.role === 'super_admin'
+      || (hasPortalMembership(existing, 'multiTenant') && missingTenantIds.length === 0)
+    ) {
+      return NextResponse.json(
+        { success: false, error: 'This account already has access to the selected brands.' },
+        { status: 409 },
+      );
+    }
+    if (existing.pendingAdminRole && existing.invitationExpires && existing.invitationExpires > new Date()) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'A team invitation is already pending for this account. Use Resend invite instead.',
         },
         { status: 409 },
       );
     }
 
-    originalCustomerState = {
-      permissions: [...(existing.permissions || [])],
-      tenantIds: [...(existing.tenantIds || [])],
-      adminPortalScopes: Array.isArray(existing.adminPortalScopes)
-        ? [...existing.adminPortalScopes]
-        : undefined,
-      requirePasswordChange: Boolean(existing.requirePasswordChange),
-    };
+    // Offer access without changing the existing account. Current roles,
+    // passwords, portal scopes and brand assignments stay live exactly as-is
+    // until the invitee accepts this one-time invitation.
     user = await User.findOneAndUpdate(
-      { _id: existing._id, role: 'customer', isActive: true },
+      {
+        _id: existing._id,
+        isActive: true,
+        $or: [
+          { pendingAdminRole: { $exists: false } },
+          { invitationExpires: { $lte: new Date() } },
+        ],
+      },
       {
         $set: {
-          role: normalizedRole,
-          permissions: effectivePermissions,
           invitationToken,
           invitationExpires,
-          requirePasswordChange: true,
-        },
-        $addToSet: {
-          tenantIds: { $each: assignedTenantIds },
-          adminPortalScopes: 'multiTenant',
+          pendingAdminRole: normalizedRole,
+          pendingAdminPermissions: effectivePermissions,
+          pendingAdminScopes: ['multiTenant'],
+          pendingAdminTenantIds: missingTenantIds.length > 0
+            ? missingTenantIds
+            : assignedTenantIds,
+          pendingAdminInvitedAt: new Date(),
+          pendingAdminInvitedBy: auth.email || 'Admin Team',
         },
       },
       { new: true, runValidators: true },
@@ -260,24 +248,30 @@ export async function POST(request: NextRequest) {
         { status: 409 },
       );
     }
-    convertedCustomer = true;
+    existingAccountInvitation = true;
   }
 
   if (!user) {
     try {
+      const temporaryPassword = crypto.randomBytes(16).toString('hex');
+      const hashedPassword = await bcrypt.hash(temporaryPassword, 10);
       user = await User.create({
         firstName,
         lastName,
         email: normalizedEmail,
         password: hashedPassword,
-        role: normalizedRole,
-        permissions: effectivePermissions,
+        role: 'customer',
+        permissions: [],
         isActive: false, // Inactive until they accept invitation
         invitationToken,
         invitationExpires,
         requirePasswordChange: true,
-        tenantIds: assignedTenantIds,
-        adminPortalScopes: ['multiTenant'],
+        pendingAdminRole: normalizedRole,
+        pendingAdminPermissions: effectivePermissions,
+        pendingAdminScopes: ['multiTenant'],
+        pendingAdminTenantIds: assignedTenantIds,
+        pendingAdminInvitedAt: new Date(),
+        pendingAdminInvitedBy: auth.email || 'Admin Team',
       });
     } catch (error) {
     // Surface validation/duplicate errors as a clean 400 instead of crashing.
@@ -285,7 +279,15 @@ export async function POST(request: NextRequest) {
     if (err?.code === 11000) {
       const racedExisting = await User.findOne({ email: normalizedEmail });
       if (racedExisting) {
-        return linkExistingAdminAccount(racedExisting, assignedTenantIds);
+        return NextResponse.json(
+          {
+            success: false,
+            error: racedExisting.pendingAdminRole
+              ? 'A team invitation is already pending for this account.'
+              : 'This account already exists. Refresh and invite it again.',
+          },
+          { status: 409 },
+        );
       }
       return NextResponse.json(
         { success: false, error: 'An account with this email already exists.' },
@@ -337,34 +339,23 @@ export async function POST(request: NextRequest) {
       tenantBranding,
     });
   } catch (emailError) {
-    console.error('Failed to send admin invite email, rolling back user creation:', emailError);
-    if (convertedCustomer && originalCustomerState) {
-      const rollback: {
-        $set: Record<string, unknown>;
-        $unset: Record<string, 1>;
-      } = {
-        $set: {
-          role: 'customer',
-          permissions: originalCustomerState.permissions,
-          tenantIds: originalCustomerState.tenantIds,
-          requirePasswordChange: originalCustomerState.requirePasswordChange,
-        },
-        $unset: {
-          invitationToken: 1,
-          invitationExpires: 1,
-        },
-      };
-      if (originalCustomerState.adminPortalScopes) {
-        rollback.$set.adminPortalScopes = originalCustomerState.adminPortalScopes;
-      } else {
-        rollback.$unset.adminPortalScopes = 1;
-      }
+    console.error('Failed to send admin invite email, rolling back invitation:', emailError);
+    if (existingAccountInvitation) {
+      // Withdraw only the invitation this request wrote. The customer's
+      // identity, bookings and profile must survive an email outage.
       await User.updateOne(
         { _id: user._id, invitationToken },
-        rollback,
+        {
+          $unset: {
+            invitationToken: 1,
+            invitationExpires: 1,
+            pendingAdminTenantIds: 1,
+            ...clearPendingAdminGrant(1),
+          },
+        },
       );
     } else {
-      await User.findByIdAndDelete(user._id);
+      await User.findOneAndDelete({ _id: user._id, invitationToken });
     }
     return NextResponse.json(
       { 
@@ -379,8 +370,9 @@ export async function POST(request: NextRequest) {
     {
       success: true,
       data: sanitize(user),
-      convertedExistingCustomer: convertedCustomer,
+      existingAccountInvitation,
+      convertedExistingCustomer: existingAccountInvitation,
     },
-    { status: convertedCustomer ? 200 : 201 },
+    { status: existingAccountInvitation ? 200 : 201 },
   );
 }

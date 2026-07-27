@@ -13,6 +13,7 @@ interface InvitationData {
   email: string;
   role: string;
   expiresAt: string;
+  requiresPasswordSetup: boolean;
 }
 
 function AcceptInvitationContent() {
@@ -79,12 +80,12 @@ function AcceptInvitationContent() {
     e.preventDefault();
     setError(null);
 
-    if (password.length < 8) {
+    if (invitationData?.requiresPasswordSetup && password.length < 8) {
       setError('Password must be at least 8 characters long.');
       return;
     }
 
-    if (password !== confirmPassword) {
+    if (invitationData?.requiresPasswordSetup && password !== confirmPassword) {
       setError('Passwords do not match.');
       return;
     }
@@ -95,7 +96,10 @@ function AcceptInvitationContent() {
       const response = await fetch('/api/admin/accept-invitation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, password }),
+        body: JSON.stringify({
+          token,
+          ...(invitationData?.requiresPasswordSetup ? { password } : {}),
+        }),
       });
 
       const data = await response.json();
@@ -107,7 +111,7 @@ function AcceptInvitationContent() {
       }
 
       setSuccess(true);
-      toast.success('Account activated successfully!');
+      toast.success('Invitation accepted successfully!');
       
       // Redirect to login after 2 seconds
       setTimeout(() => {
@@ -162,7 +166,7 @@ function AcceptInvitationContent() {
               <CheckCircle2 className="h-8 w-8 text-green-600" />
             </div>
             <h1 className="text-2xl font-bold text-slate-900 mb-2">Welcome to the Team!</h1>
-            <p className="text-slate-600 mb-2">Your account has been activated successfully.</p>
+            <p className="text-slate-600 mb-2">Your team access is ready.</p>
             <p className="text-sm text-slate-500 mb-6">Redirecting to login...</p>
             <Loader2 className="h-6 w-6 text-blue-600 animate-spin mx-auto" />
           </div>
@@ -180,7 +184,11 @@ function AcceptInvitationContent() {
             <Shield className="h-8 w-8 text-white" />
           </div>
           <h1 className="text-3xl font-bold text-slate-900 mb-2">Accept Invitation</h1>
-          <p className="text-slate-600">Set your password to activate your account</p>
+          <p className="text-slate-600">
+            {invitationData?.requiresPasswordSetup
+              ? 'Create your password to join the team'
+              : 'Review and accept your team access'}
+          </p>
         </div>
 
         {/* Invitation Info Card */}
@@ -208,8 +216,10 @@ function AcceptInvitationContent() {
         {/* Password Form */}
         <div className="bg-white rounded-2xl shadow-lg p-8 border border-slate-200">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Password Field */}
-            <div>
+            {invitationData?.requiresPasswordSetup && (
+              <>
+              {/* Password Field */}
+              <div>
               <label htmlFor="password" className="block text-sm font-semibold text-slate-700 mb-2">
                 Create Password
               </label>
@@ -234,10 +244,10 @@ function AcceptInvitationContent() {
                 </button>
               </div>
               <p className="text-xs text-slate-500 mt-2">Must be at least 8 characters</p>
-            </div>
+              </div>
 
             {/* Confirm Password Field */}
-            <div>
+              <div>
               <label htmlFor="confirmPassword" className="block text-sm font-semibold text-slate-700 mb-2">
                 Confirm Password
               </label>
@@ -261,7 +271,15 @@ function AcceptInvitationContent() {
                   {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
-            </div>
+              </div>
+              </>
+            )}
+
+            {!invitationData?.requiresPasswordSetup && (
+              <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+                Your existing password and customer account will not change. Access begins only after you accept.
+              </div>
+            )}
 
             {/* Error Message */}
             {error && (
@@ -285,7 +303,9 @@ function AcceptInvitationContent() {
               ) : (
                 <>
                   <Shield className="h-5 w-5" />
-                  <span>Activate Account</span>
+                  <span>
+                    {invitationData?.requiresPasswordSetup ? 'Create Account & Accept' : 'Accept Invitation'}
+                  </span>
                 </>
               )}
             </button>

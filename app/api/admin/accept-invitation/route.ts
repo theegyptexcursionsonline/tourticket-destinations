@@ -3,39 +3,40 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import dbConnect from '@/lib/dbConnect';
 import User from '@/lib/models/user';
+import {
+  PENDING_ADMIN_FIELDS,
+  applyPendingAdminGrant,
+} from '@/lib/admin/teamMembership';
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('[ACCEPT-INVITATION] Step 1: Connecting to database...');
     await dbConnect();
 
-    console.log('[ACCEPT-INVITATION] Step 2: Parsing request body...');
-    const body = await request.json();
+    let body: Record<string, unknown>;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { success: false, error: 'Invalid request body.' },
+        { status: 400 },
+      );
+    }
     const { token, password } = body;
 
-    if (!token || !password) {
+    if (typeof token !== 'string' || !/^[a-f0-9]{64}$/i.test(token)) {
       return NextResponse.json(
-        { success: false, error: 'Token and password are required.' },
+        { success: false, error: 'A valid invitation token is required.' },
         { status: 400 },
       );
     }
 
-    if (password.length < 8) {
-      return NextResponse.json(
-        { success: false, error: 'Password must be at least 8 characters long.' },
-        { status: 400 },
-      );
-    }
-
-    console.log('[ACCEPT-INVITATION] Step 3: Finding user by token...');
-    // Find user with this invitation token
     const user = await User.findOne({
       invitationToken: token,
-      invitationExpires: { $gt: new Date() }, // Token not expired
+      invitationExpires: { $gt: new Date() },
+      pendingAdminRole: { $exists: true },
     }).select('+invitationToken +invitationExpires +password');
 
     if (!user) {
-      console.log('[ACCEPT-INVITATION] User not found or token expired');
       return NextResponse.json(
         {
           success: false,
@@ -45,39 +46,70 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('[ACCEPT-INVITATION] Step 4: User found');
-    console.log('[ACCEPT-INVITATION] Current isActive:', user.isActive);
-    console.log('[ACCEPT-INVITATION] Current role:', user.role);
-    console.log('[ACCEPT-INVITATION] Has password:', !!user.password);
+    const granted = applyPendingAdminGrant(user);
+    if (!granted) {
+      return NextResponse.json(
+        { success: false, error: 'This invitation is no longer pending.' },
+        { status: 409 },
+      );
+    }
 
-    // Hash the new password
-    console.log('[ACCEPT-INVITATION] Step 5: Hashing password...');
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const requiresPasswordSetup = Boolean(user.requirePasswordChange || !user.isActive);
+    if (
+      requiresPasswordSetup
+      && (typeof password !== 'string' || password.length < 8)
+    ) {
+      return NextResponse.json(
+        { success: false, error: 'Password must be at least 8 characters long.' },
+        { status: 400 },
+      );
+    }
 
-    // Update user: set password, activate account, clear invitation token
-    console.log('[ACCEPT-INVITATION] Step 6: Updating user fields...');
-    user.password = hashedPassword;
-    user.isActive = true;
-    user.invitationToken = undefined;
-    user.invitationExpires = undefined;
-    user.requirePasswordChange = false;
-    
-    console.log('[ACCEPT-INVITATION] Step 7: Saving user...');
-    console.log('[ACCEPT-INVITATION] About to save - isActive:', user.isActive, 'role:', user.role);
-    // Bypass validation since we're just updating password and flags
-    await user.save({ validateBeforeSave: false });
-    
-    console.log('[ACCEPT-INVITATION] Step 8: User saved successfully');
-    console.log('[ACCEPT-INVITATION] Final isActive:', user.isActive);
+    const set: Record<string, unknown> = {
+      role: granted.role,
+      permissions: granted.permissions,
+      adminPortalScopes: granted.adminPortalScopes,
+      isActive: true,
+      requirePasswordChange: false,
+    };
+    if (granted.tenantIds) set.tenantIds = granted.tenantIds;
+    if (requiresPasswordSetup) {
+      set.password = await bcrypt.hash(password as string, 10);
+    }
+
+    const accepted = await User.findOneAndUpdate(
+      {
+        _id: user._id,
+        invitationToken: token,
+        invitationExpires: { $gt: new Date() },
+        pendingAdminRole: user.pendingAdminRole,
+      },
+      {
+        $set: set,
+        $unset: {
+          invitationToken: 1,
+          invitationExpires: 1,
+          ...Object.fromEntries(PENDING_ADMIN_FIELDS.map((field) => [field, 1])),
+          pendingAdminTenantIds: 1,
+        },
+      },
+      { new: true, runValidators: true },
+    );
+    if (!accepted) {
+      return NextResponse.json(
+        { success: false, error: 'This invitation was already accepted, withdrawn, or replaced.' },
+        { status: 409 },
+      );
+    }
 
     return NextResponse.json({
       success: true,
-      message: 'Account activated successfully. You can now log in.',
-      email: user.email,
+      message: 'Invitation accepted successfully. You can now sign in to the admin portal.',
+      email: accepted.email,
+      existingAccount: !requiresPasswordSetup,
     });
   } catch (error) {
     console.error('[ACCEPT-INVITATION] Error accepting invitation:', error);
-    console.error('[ACCEPT-INVITATION] Error details:', error instanceof Error ? error.message : String(error));
     return NextResponse.json(
       {
         success: false,
@@ -107,7 +139,7 @@ export async function GET(request: NextRequest) {
     const user = await User.findOne({
       invitationToken: token,
       invitationExpires: { $gt: new Date() },
-    }).select('firstName lastName email role +invitationExpires');
+    }).select('firstName lastName email role pendingAdminRole requirePasswordChange isActive +invitationExpires');
 
     if (!user) {
       return NextResponse.json(
@@ -125,8 +157,9 @@ export async function GET(request: NextRequest) {
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
-        role: user.role,
+        role: user.pendingAdminRole || user.role,
         expiresAt: user.invitationExpires,
+        requiresPasswordSetup: Boolean(user.requirePasswordChange || !user.isActive),
       },
     });
   } catch (error) {

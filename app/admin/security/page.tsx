@@ -16,6 +16,9 @@ interface SetupData {
 function SecurityPage() {
   const router = useRouter();
   const { logout, refreshUser } = useAdminAuth();
+  const requiredEnrollment =
+    typeof window !== 'undefined' &&
+    new URLSearchParams(window.location.search).get('required') === '1';
   const [enabled, setEnabled] = useState(false);
   const [enabledAt, setEnabledAt] = useState<string | null>(null);
   const [setup, setSetup] = useState<SetupData | null>(null);
@@ -44,6 +47,15 @@ function SecurityPage() {
     const timeoutId = window.setTimeout(() => void loadStatus(), 0);
     return () => window.clearTimeout(timeoutId);
   }, [loadStatus]);
+
+  useEffect(() => {
+    // Recovery codes must be shown once after enrollment. Once they have been
+    // acknowledged—or if this required page is revisited after setup—return
+    // the user to the dashboard instead of leaving them trapped here.
+    if (!loading && enabled && recoveryCodes.length === 0 && requiredEnrollment) {
+      router.replace('/admin');
+    }
+  }, [enabled, loading, recoveryCodes.length, requiredEnrollment, router]);
 
   const postAction = async (action: string, actionCode = '') => {
     setPendingAction(action);
@@ -288,8 +300,11 @@ function SecurityPage() {
                 <button onClick={downloadRecoveryCodes} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 px-5 py-3 text-sm font-bold text-slate-800 hover:bg-white">
                   <Download className="h-4 w-4" /> Download codes
                 </button>
-                <button onClick={() => setRecoveryCodes([])} className="inline-flex items-center justify-center rounded-xl px-5 py-3 text-sm font-bold text-violet-700 hover:bg-violet-50">
-                  I have saved them
+                <button onClick={() => {
+                  setRecoveryCodes([]);
+                  if (requiredEnrollment) router.replace('/admin');
+                }} className="inline-flex items-center justify-center rounded-xl px-5 py-3 text-sm font-bold text-violet-700 hover:bg-violet-50">
+                  {requiredEnrollment ? 'I have saved them · Continue' : 'I have saved them'}
                 </button>
               </div>
             </div>

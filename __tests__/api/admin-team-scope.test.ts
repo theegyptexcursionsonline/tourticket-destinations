@@ -42,7 +42,10 @@ jest.mock('@/lib/models/user', () => ({
   __esModule: true,
   default: {
     find: mockUserFind,
-    findOne: mockUserFindOne,
+    findOne: (...args: unknown[]) => {
+      const result = mockUserFindOne(...args);
+      return Object.assign(result, { select: () => result });
+    },
     findOneAndUpdate: mockUserFindOneAndUpdate,
     updateOne: mockUserUpdateOne,
     create: mockUserCreate,
@@ -91,8 +94,20 @@ describe('EEO Network GET /api/admin/team tenant scope', () => {
 
     expect(response.status).toBe(200);
     expect(mockUserFind).toHaveBeenCalledWith({
-      role: { $ne: 'customer' },
-      tenantIds: { $in: ['makadi-bay', 'hurghada-speedboat'] },
+      $and: [
+        {
+          $or: [
+            { role: { $ne: 'customer' } },
+            { pendingAdminRole: { $exists: true } },
+          ],
+        },
+        {
+          $or: [
+            { tenantIds: { $in: ['makadi-bay', 'hurghada-speedboat'] } },
+            { pendingAdminTenantIds: { $in: ['makadi-bay', 'hurghada-speedboat'] } },
+          ],
+        },
+      ],
     });
     expect(body.data).toHaveLength(1);
   });
@@ -104,13 +119,25 @@ describe('EEO Network GET /api/admin/team tenant scope', () => {
     } as never);
 
     expect(mockUserFind).toHaveBeenCalledWith({
-      role: { $ne: 'customer' },
-      tenantIds: 'makadi-bay',
+      $and: [
+        {
+          $or: [
+            { role: { $ne: 'customer' } },
+            { pendingAdminRole: { $exists: true } },
+          ],
+        },
+        {
+          $or: [
+            { tenantIds: 'makadi-bay' },
+            { pendingAdminTenantIds: 'makadi-bay' },
+          ],
+        },
+      ],
     });
   });
 });
 
-describe('EEO Network POST /api/admin/team existing-account linking', () => {
+describe('EEO Network POST /api/admin/team pending invitations', () => {
   const request = (body: unknown) => ({
     json: jest.fn().mockResolvedValue(body),
     headers: new Headers({ host: 'dashboard.egypt-excursionsonline.com' }),
@@ -127,7 +154,7 @@ describe('EEO Network POST /api/admin/team existing-account linking', () => {
     mockSendAdminInviteEmail.mockResolvedValue(undefined);
   });
 
-  it('links an existing main-portal admin without creating a duplicate account', async () => {
+  it('invites an existing main-portal admin without granting network access yet', async () => {
     mockUserFindOne.mockResolvedValue({
       _id: 'existing-1',
       role: 'admin',
@@ -144,8 +171,12 @@ describe('EEO Network POST /api/admin/team existing-account linking', () => {
       role: 'admin',
       isActive: true,
       permissions: ['manageBookings'],
-      tenantIds: ['makadi-bay'],
-      adminPortalScopes: ['main', 'multiTenant'],
+      tenantIds: [],
+      adminPortalScopes: ['main'],
+      pendingAdminRole: 'operations',
+      pendingAdminPermissions: ['manageTours'],
+      pendingAdminScopes: ['multiTenant'],
+      pendingAdminTenantIds: ['makadi-bay'],
     });
 
     const { POST } = await import('@/app/api/admin/team/route');
@@ -159,50 +190,48 @@ describe('EEO Network POST /api/admin/team existing-account linking', () => {
     const body = await response.json();
 
     expect(response.status).toBe(200);
-    expect(body.linkedExistingAccount).toBe(true);
-    expect(mockUserFindOneAndUpdate).toHaveBeenCalledWith(
-      { _id: 'existing-1', isActive: true, role: { $ne: 'customer' } },
-      {
-        $addToSet: {
-          tenantIds: { $each: ['makadi-bay'] },
-          adminPortalScopes: { $each: ['main', 'multiTenant'] },
-        },
-      },
-      { new: true, runValidators: true },
-    );
+    expect(body.existingAccountInvitation).toBe(true);
+    const [, update] = mockUserFindOneAndUpdate.mock.calls[0];
+    expect(update.$set).toEqual(expect.objectContaining({
+      pendingAdminRole: 'operations',
+      pendingAdminPermissions: ['manageTours'],
+      pendingAdminScopes: ['multiTenant'],
+      pendingAdminTenantIds: ['makadi-bay'],
+    }));
+    expect(update.$set).not.toHaveProperty('role');
+    expect(update.$set).not.toHaveProperty('permissions');
+    expect(update.$set).not.toHaveProperty('tenantIds');
+    expect(update.$set).not.toHaveProperty('adminPortalScopes');
+    expect(update).not.toHaveProperty('$addToSet');
     expect(mockUserCreate).not.toHaveBeenCalled();
-    expect(mockSendAdminInviteEmail).not.toHaveBeenCalled();
+    expect(mockSendAdminInviteEmail).toHaveBeenCalledWith(
+      expect.objectContaining({ inviteeEmail: 'ahmed@example.com' }),
+    );
   });
 
-  it('promotes an existing customer identity and sends a password-setup invitation', async () => {
-    mockUserFindOne.mockResolvedValue({
+  it('invites an existing customer without granting any admin access yet', async () => {
+    const existingCustomer = {
       _id: 'customer-1',
-      firstName: 'Sara',
-      lastName: 'Sameh',
-      email: 'sara@example.com',
+      firstName: 'Existing',
+      lastName: 'Shopper',
+      email: 'existing.customer@example.com',
       role: 'customer',
       isActive: true,
       permissions: [],
       tenantIds: [],
-      requirePasswordChange: false,
-    });
+    };
+    mockUserFindOne.mockResolvedValue(existingCustomer);
     mockUserFindOneAndUpdate.mockResolvedValue({
-      _id: 'customer-1',
-      firstName: 'Sara',
-      lastName: 'Sameh',
-      email: 'sara@example.com',
-      role: 'operations',
-      isActive: true,
-      permissions: ['manageTours'],
-      tenantIds: ['makadi-bay'],
-      adminPortalScopes: ['multiTenant'],
+      ...existingCustomer,
+      pendingAdminRole: 'operations',
+      pendingAdminPermissions: ['manageTours'],
     });
 
     const { POST } = await import('@/app/api/admin/team/route');
     const response = await POST(request({
-      firstName: 'Sara',
-      lastName: 'Sameh',
-      email: 'sara@example.com',
+      firstName: 'Existing',
+      lastName: 'Shopper',
+      email: 'existing.customer@example.com',
       permissions: ['manageTours'],
       tenantIds: ['makadi-bay'],
     }) as never);
@@ -210,26 +239,24 @@ describe('EEO Network POST /api/admin/team existing-account linking', () => {
 
     expect(response.status).toBe(200);
     expect(body.convertedExistingCustomer).toBe(true);
-    expect(mockUserFindOneAndUpdate).toHaveBeenCalledWith(
-      { _id: 'customer-1', role: 'customer', isActive: true },
-      {
-        $set: expect.objectContaining({
-          role: 'operations',
-          permissions: ['manageTours'],
-          requirePasswordChange: true,
-        }),
-        $addToSet: {
-          tenantIds: { $each: ['makadi-bay'] },
-          adminPortalScopes: 'multiTenant',
-        },
-      },
-      { new: true, runValidators: true },
-    );
+
+    const [, update] = mockUserFindOneAndUpdate.mock.calls[0];
+    // The whole point: the invitation records an offer and touches nothing
+    // that could let the account act as an admin before accepting it.
+    expect(update.$set).toEqual(expect.objectContaining({
+      pendingAdminRole: 'operations',
+      pendingAdminPermissions: ['manageTours'],
+      pendingAdminScopes: ['multiTenant'],
+      pendingAdminTenantIds: ['makadi-bay'],
+    }));
+    expect(update.$set).not.toHaveProperty('role');
+    expect(update.$set).not.toHaveProperty('permissions');
+    expect(update.$set).not.toHaveProperty('isActive');
+    expect(update.$set).not.toHaveProperty('tenantIds');
+    expect(update).not.toHaveProperty('$addToSet');
+
     expect(mockSendAdminInviteEmail).toHaveBeenCalledWith(
-      expect.objectContaining({
-        inviteeName: 'Sara Sameh',
-        inviteeEmail: 'sara@example.com',
-      }),
+      expect.objectContaining({ inviteeEmail: 'existing.customer@example.com' }),
     );
   });
 
@@ -247,33 +274,44 @@ describe('EEO Network POST /api/admin/team existing-account linking', () => {
     expect(mockUserFindOneAndUpdate).not.toHaveBeenCalled();
   });
 
-  it('marks newly invited accounts as network-only until explicitly linked elsewhere', async () => {
+  it('keeps newly invited accounts access-free until they accept', async () => {
     mockUserFindOne.mockResolvedValue(null);
     mockUserCreate.mockResolvedValue({
       _id: 'new-1',
-      firstName: 'Sara',
+      firstName: 'Existing',
       lastName: 'Ahmed',
-      email: 'sara@example.com',
-      role: 'operations',
-      permissions: ['manageBookings'],
+      email: 'existing.customer@example.com',
+      role: 'customer',
+      permissions: [],
       isActive: false,
-      tenantIds: ['makadi-bay'],
+      pendingAdminRole: 'operations',
+      pendingAdminPermissions: ['manageBookings'],
+      pendingAdminScopes: ['multiTenant'],
+      pendingAdminTenantIds: ['makadi-bay'],
     });
 
     const { POST } = await import('@/app/api/admin/team/route');
     const response = await POST(request({
-      firstName: 'Sara',
+      firstName: 'Existing',
       lastName: 'Ahmed',
-      email: 'sara@example.com',
+      email: 'existing.customer@example.com',
       permissions: ['manageBookings'],
       tenantIds: ['makadi-bay'],
     }) as never);
 
     expect(response.status).toBe(201);
     expect(mockUserCreate).toHaveBeenCalledWith(expect.objectContaining({
-      email: 'sara@example.com',
-      tenantIds: ['makadi-bay'],
-      adminPortalScopes: ['multiTenant'],
+      email: 'existing.customer@example.com',
+      role: 'customer',
+      permissions: [],
+      isActive: false,
+      pendingAdminRole: 'operations',
+      pendingAdminPermissions: ['manageBookings'],
+      pendingAdminScopes: ['multiTenant'],
+      pendingAdminTenantIds: ['makadi-bay'],
     }));
+    const [created] = mockUserCreate.mock.calls[0];
+    expect(created).not.toHaveProperty('tenantIds');
+    expect(created).not.toHaveProperty('adminPortalScopes');
   });
 });

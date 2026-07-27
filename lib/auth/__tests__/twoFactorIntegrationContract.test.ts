@@ -59,4 +59,12 @@ describe('two-factor authentication integration contract', () => {
     expect(security).toContain('Disable and set up again');
     expect(security).toContain('I understand that I will be signed out and must enroll again.');
   });
+
+  it('returns required enrollment to the dashboard after recovery codes are acknowledged', () => {
+    const security = read('app/admin/security/page.tsx');
+    expect(security).toContain("new URLSearchParams(window.location.search).get('required') === '1'");
+    expect(security).toContain('recoveryCodes.length === 0 && requiredEnrollment');
+    expect(security).toContain("router.replace('/admin')");
+    expect(security).toContain('I have saved them · Continue');
+  });
 });

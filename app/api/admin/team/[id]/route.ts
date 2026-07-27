@@ -12,6 +12,10 @@ import {
   getDefaultPermissions,
 } from '@/lib/constants/adminPermissions';
 import { EmailService } from '@/lib/email/emailService';
+import {
+  clearPendingAdminGrant,
+  revokePortalScope,
+} from '@/lib/admin/teamMembership';
 import { guardTeamMutation } from '@/lib/auth/teamMutationGuards';
 
 const sanitize = (user: any) => ({
@@ -103,6 +107,12 @@ export async function PATCH(
     return NextResponse.json(
       { success: false, error: 'Team member not found' },
       { status: 404 },
+    );
+  }
+  if (user.pendingAdminScopes?.includes('multiTenant')) {
+    return NextResponse.json(
+      { success: false, error: 'Accept or withdraw the pending invitation before editing access.' },
+      { status: 409 },
     );
   }
   if (user.role === 'super_admin' && auth.role !== 'super_admin') {
@@ -222,21 +232,79 @@ export async function DELETE(
     );
   }
 
-  const user = await User.findById(id);
-  if (!user || user.role === 'customer') {
+  const user = await User.findById(id).select('+invitationToken +invitationExpires');
+  if (!user || (user.role === 'customer' && !user.pendingAdminRole)) {
     return NextResponse.json(
       { success: false, error: 'Team member not found' },
       { status: 404 },
     );
   }
+  const hasPendingNetworkInvite = Boolean(
+    user.pendingAdminRole && user.pendingAdminScopes?.includes('multiTenant'),
+  );
   if (user.role === 'super_admin' && auth.role !== 'super_admin') {
     return NextResponse.json(
       { success: false, error: 'Only super administrators can delete this account.' },
       { status: 403 },
     );
   }
-  if (auth.role !== 'super_admin' && !(user.tenantIds || []).some((tenantId) => auth.tenantIds.includes(tenantId))) {
+  // Brands the caller is entitled to withdraw, covering both live assignments
+  // and an invitation that has not been accepted yet.
+  const targetTenantIds = [
+    ...(user.tenantIds || []),
+    ...(user.pendingAdminTenantIds || []),
+  ].map(String);
+  const requestedTenantId = request.nextUrl.searchParams.get('tenantId');
+  const candidateTenantIds = requestedTenantId && requestedTenantId !== 'all'
+    ? targetTenantIds.filter((tenantId) => tenantId === requestedTenantId)
+    : targetTenantIds;
+  const removableTenantIds = auth.role === 'super_admin'
+    ? Array.from(new Set(candidateTenantIds))
+    : Array.from(new Set(candidateTenantIds.filter((tenantId) => auth.tenantIds.includes(tenantId))));
+
+  if (removableTenantIds.length === 0) {
     return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+  }
+
+  if (hasPendingNetworkInvite) {
+    const pendingTenantIds = (user.pendingAdminTenantIds || []).map(String);
+    const remainingPendingTenantIds = pendingTenantIds.filter(
+      (tenantId) => !removableTenantIds.includes(tenantId),
+    );
+    const update = remainingPendingTenantIds.length > 0
+      ? { $set: { pendingAdminTenantIds: remainingPendingTenantIds } }
+      : {
+          $unset: {
+            invitationToken: 1,
+            invitationExpires: 1,
+            pendingAdminTenantIds: 1,
+            ...clearPendingAdminGrant(1),
+          },
+        };
+    const withdrawn = await User.updateOne(
+      {
+        _id: user._id,
+        pendingAdminRole: user.pendingAdminRole,
+        pendingAdminScopes: 'multiTenant',
+      },
+      update,
+    );
+    if (withdrawn.modifiedCount === 0) {
+      return NextResponse.json(
+        { success: false, error: 'The invitation changed. Refresh and try again.' },
+        { status: 409 },
+      );
+    }
+    return NextResponse.json({
+      success: true,
+      outcome: remainingPendingTenantIds.length > 0
+        ? 'pending_brands_removed'
+        : 'invitation_withdrawn',
+      removedTenantIds: removableTenantIds,
+      message: remainingPendingTenantIds.length > 0
+        ? 'Selected brands removed from the pending invitation. Existing access is unchanged.'
+        : 'Invitation withdrawn. The existing account and access remain unchanged.',
+    });
   }
 
   // Prevent self-deletion and deletion of the last active super administrator.
@@ -260,7 +328,33 @@ export async function DELETE(
     return NextResponse.json({ success: false, error: guard.error }, { status: guard.status });
   }
 
-  // Send notification email before deleting
+  const revocation = revokePortalScope(user, 'multiTenant', {
+    removeTenantIds: removableTenantIds,
+  });
+
+  const update: Record<string, unknown> = {
+    $unset: {
+      invitationToken: 1,
+      invitationExpires: 1,
+      pendingAdminTenantIds: 1,
+      ...clearPendingAdminGrant(1),
+    },
+  };
+
+  if (revocation.outcome === 'reverted_to_customer') {
+    // Never delete the person. Bookings, profile and storefront sign-in belong
+    // to them, not to the admin role being removed.
+    update.$set = { role: 'customer', permissions: [], tenantIds: [] };
+    (update.$unset as Record<string, unknown>).adminPortalScopes = 1;
+  } else {
+    update.$set = {
+      adminPortalScopes: revocation.adminPortalScopes,
+      tenantIds: revocation.tenantIds,
+    };
+  }
+
+  await User.updateOne({ _id: user._id }, update);
+
   EmailService.sendAdminAccessUpdateEmail({
     inviteeName: formatName(user) || user.email,
     inviteeEmail: user.email,
@@ -270,14 +364,15 @@ export async function DELETE(
     portalLink: getPortalLink(),
     supportEmail: getSupportEmail(),
   }).catch((error) => {
-    console.error('Failed to send admin deletion email', error);
+    console.error('Failed to send admin access removal email', error);
   });
-
-  // Permanently delete the user
-  await User.findByIdAndDelete(id);
 
   return NextResponse.json({
     success: true,
-    message: 'Team member permanently deleted.',
+    outcome: revocation.outcome,
+    removedTenantIds: removableTenantIds,
+    message: revocation.outcome === 'reverted_to_customer'
+        ? 'Removed from the team. The account keeps its customer profile, bookings and sign-in.'
+        : 'Removed from the selected brands. Their other brands and portals are unchanged.',
   });
 }
