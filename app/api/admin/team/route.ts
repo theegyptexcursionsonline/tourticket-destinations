@@ -63,6 +63,55 @@ const getSupportEmail = () =>
   process.env.MAILGUN_FROM_EMAIL ||
   'support@egypt-excursionsonline.com';
 
+async function linkExistingAdminAccount(
+  existing: any,
+  assignedTenantIds: string[],
+) {
+  if (!existing.isActive) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'This admin account is inactive. Restore the existing account before assigning brands.',
+      },
+      { status: 409 },
+    );
+  }
+
+  // Missing scopes are legacy accounts whose effective access was unrestricted.
+  // Infer the account's original portal from existing tenant assignments, then
+  // make the new network assignment explicit.
+  const existingScopes = Array.isArray(existing.adminPortalScopes)
+    ? existing.adminPortalScopes
+    : Array.isArray(existing.tenantIds) && existing.tenantIds.length > 0
+      ? ['multiTenant']
+      : ['main'];
+  const linked = await User.findOneAndUpdate(
+    { _id: existing._id, isActive: true, role: { $ne: 'customer' } },
+    {
+      $addToSet: {
+        tenantIds: { $each: assignedTenantIds },
+        adminPortalScopes: {
+          $each: Array.from(new Set([...existingScopes, 'multiTenant'])),
+        },
+      },
+    },
+    { new: true, runValidators: true },
+  );
+
+  if (!linked) {
+    return NextResponse.json(
+      { success: false, error: 'The existing account changed. Refresh and try again.' },
+      { status: 409 },
+    );
+  }
+
+  return NextResponse.json({
+    success: true,
+    data: sanitize(linked),
+    linkedExistingAccount: true,
+  });
+}
+
 export async function GET(request: NextRequest) {
   const auth = await requireAdminAuth(request, { permissions: ['manageUsers'] });
   if (auth instanceof NextResponse) {
@@ -120,14 +169,6 @@ export async function POST(request: NextRequest) {
       { status: 400 },
     );
   }
-  const existing = await User.findOne({ email: normalizedEmail });
-  if (existing) {
-    return NextResponse.json(
-      { success: false, error: 'An account with this email already exists.' },
-      { status: 409 },
-    );
-  }
-
   const normalizedRole = normalizeRole(role);
   const effectivePermissions = normalizePermissions(permissions, normalizedRole);
   if (
@@ -164,25 +205,88 @@ export async function POST(request: NextRequest) {
     return tenantForbiddenResponse();
   }
 
+  const existing = await User.findOne({ email: normalizedEmail });
+  let convertedCustomer = false;
+  let originalCustomerState: {
+    permissions: AdminPermission[];
+    tenantIds: string[];
+    adminPortalScopes?: string[];
+    requirePasswordChange: boolean;
+  } | null = null;
   let user;
-  try {
-    user = await User.create({
-      firstName,
-      lastName,
-      email: normalizedEmail,
-      password: hashedPassword,
-      role: normalizedRole,
-      permissions: effectivePermissions,
-      isActive: false, // Inactive until they accept invitation
-      invitationToken,
-      invitationExpires,
-      requirePasswordChange: true,
-      tenantIds: assignedTenantIds,
-    });
-  } catch (error) {
+
+  if (existing) {
+    if (existing.role !== 'customer') {
+      return linkExistingAdminAccount(existing, assignedTenantIds);
+    }
+    if (!existing.isActive) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'This customer account is inactive and cannot be added to the team.',
+        },
+        { status: 409 },
+      );
+    }
+
+    originalCustomerState = {
+      permissions: [...(existing.permissions || [])],
+      tenantIds: [...(existing.tenantIds || [])],
+      adminPortalScopes: Array.isArray(existing.adminPortalScopes)
+        ? [...existing.adminPortalScopes]
+        : undefined,
+      requirePasswordChange: Boolean(existing.requirePasswordChange),
+    };
+    user = await User.findOneAndUpdate(
+      { _id: existing._id, role: 'customer', isActive: true },
+      {
+        $set: {
+          role: normalizedRole,
+          permissions: effectivePermissions,
+          invitationToken,
+          invitationExpires,
+          requirePasswordChange: true,
+        },
+        $addToSet: {
+          tenantIds: { $each: assignedTenantIds },
+          adminPortalScopes: 'multiTenant',
+        },
+      },
+      { new: true, runValidators: true },
+    );
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: 'The existing account changed. Refresh and try again.' },
+        { status: 409 },
+      );
+    }
+    convertedCustomer = true;
+  }
+
+  if (!user) {
+    try {
+      user = await User.create({
+        firstName,
+        lastName,
+        email: normalizedEmail,
+        password: hashedPassword,
+        role: normalizedRole,
+        permissions: effectivePermissions,
+        isActive: false, // Inactive until they accept invitation
+        invitationToken,
+        invitationExpires,
+        requirePasswordChange: true,
+        tenantIds: assignedTenantIds,
+        adminPortalScopes: ['multiTenant'],
+      });
+    } catch (error) {
     // Surface validation/duplicate errors as a clean 400 instead of crashing.
     const err = error as { name?: string; code?: number; message?: string };
     if (err?.code === 11000) {
+      const racedExisting = await User.findOne({ email: normalizedEmail });
+      if (racedExisting) {
+        return linkExistingAdminAccount(racedExisting, assignedTenantIds);
+      }
       return NextResponse.json(
         { success: false, error: 'An account with this email already exists.' },
         { status: 409 },
@@ -194,14 +298,15 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
-    console.error('Failed to create team member:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to create team member.' },
-      { status: 500 },
-    );
+      console.error('Failed to create team member:', error);
+      return NextResponse.json(
+        { success: false, error: 'Failed to create team member.' },
+        { status: 500 },
+      );
+    }
   }
 
-  const inviteeName = `${firstName} ${lastName}`.trim();
+  const inviteeName = `${user.firstName} ${user.lastName}`.trim();
   const inviterName = auth.email || 'Admin Team';
   
   // Generate invitation link on the same (branded) host the admin is using.
@@ -233,8 +338,34 @@ export async function POST(request: NextRequest) {
     });
   } catch (emailError) {
     console.error('Failed to send admin invite email, rolling back user creation:', emailError);
-    // Rollback: delete the user that was just created
-    await User.findByIdAndDelete(user._id);
+    if (convertedCustomer && originalCustomerState) {
+      const rollback: {
+        $set: Record<string, unknown>;
+        $unset: Record<string, 1>;
+      } = {
+        $set: {
+          role: 'customer',
+          permissions: originalCustomerState.permissions,
+          tenantIds: originalCustomerState.tenantIds,
+          requirePasswordChange: originalCustomerState.requirePasswordChange,
+        },
+        $unset: {
+          invitationToken: 1,
+          invitationExpires: 1,
+        },
+      };
+      if (originalCustomerState.adminPortalScopes) {
+        rollback.$set.adminPortalScopes = originalCustomerState.adminPortalScopes;
+      } else {
+        rollback.$unset.adminPortalScopes = 1;
+      }
+      await User.updateOne(
+        { _id: user._id, invitationToken },
+        rollback,
+      );
+    } else {
+      await User.findByIdAndDelete(user._id);
+    }
     return NextResponse.json(
       { 
         success: false, 
@@ -245,7 +376,11 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json(
-    { success: true, data: sanitize(user) },
-    { status: 201 },
+    {
+      success: true,
+      data: sanitize(user),
+      convertedExistingCustomer: convertedCustomer,
+    },
+    { status: convertedCustomer ? 200 : 201 },
   );
 }
