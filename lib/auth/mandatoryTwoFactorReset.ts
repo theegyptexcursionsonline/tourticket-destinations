@@ -2,6 +2,7 @@ export function buildMandatoryTwoFactorResetUpdate() {
   return {
     $set: {
       twoFactorEnabled: false,
+      twoFactorRecoveryPending: false,
     },
     $unset: {
       twoFactorSecret: 1,

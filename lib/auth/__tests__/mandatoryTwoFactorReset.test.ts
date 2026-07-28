@@ -5,7 +5,7 @@ describe('mandatory two-factor reset', () => {
     const update = buildMandatoryTwoFactorResetUpdate();
 
     expect(update).toEqual({
-      $set: { twoFactorEnabled: false },
+      $set: { twoFactorEnabled: false, twoFactorRecoveryPending: false },
       $unset: {
         twoFactorSecret: 1,
         twoFactorPendingSecret: 1,

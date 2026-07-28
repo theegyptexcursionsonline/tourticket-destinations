@@ -29,7 +29,7 @@ const withAuth = <P extends object>(
     const router = useRouter();
     const requiresTwoFactorSetup =
       isAuthenticated
-      && user?.twoFactorEnabled !== true
+      && (user?.twoFactorEnabled !== true || user?.twoFactorRecoveryPending === true)
       && pathname !== '/admin/security';
 
     useEffect(() => {

@@ -7,6 +7,7 @@ import {
 } from '@/lib/constants/adminPermissions';
 import { canAccessMultiTenantAdmin } from '@/lib/auth/serializeAdminIdentity';
 import { resolveAdminNetworkTenantIds } from '@/lib/auth/adminNetworkScope';
+import { ADMIN_ENROLLMENT_SCOPE, ADMIN_SESSION_SCOPE } from '@/lib/auth/adminSession';
 
 export interface AdminAuthContext {
   userId: string;
@@ -15,6 +16,7 @@ export interface AdminAuthContext {
   permissions: AdminPermission[];
   tenantIds: string[];
   twoFactorEnabled: boolean;
+  twoFactorRecoveryPending?: boolean;
 }
 
 interface RequireAdminOptions {
@@ -48,6 +50,17 @@ function twoFactorSetupRequiredResponse() {
   );
 }
 
+function recoveryAcknowledgementRequiredResponse() {
+  return NextResponse.json(
+    {
+      success: false,
+      error: 'Save and confirm your recovery codes before using the admin portal.',
+      code: 'TWO_FACTOR_RECOVERY_ACK_REQUIRED',
+    },
+    { status: 403 },
+  );
+}
+
 export async function requireAdminAuth(
   request: NextRequest,
   options: RequireAdminOptions = {},
@@ -61,7 +74,9 @@ export async function requireAdminAuth(
   }
 
   const payload = await verifyToken(token);
-  if (!payload || payload.scope !== 'admin') {
+  const scope = payload?.scope;
+  const enrollmentSession = scope === ADMIN_ENROLLMENT_SCOPE;
+  if (!payload || (scope !== ADMIN_SESSION_SCOPE && !enrollmentSession)) {
     return unauthorizedResponse();
   }
 
@@ -74,7 +89,7 @@ export async function requireAdminAuth(
   ]);
   await dbConnect();
   const user = await User.findById(String(payload.sub))
-    .select('email role permissions tenantIds adminPortalScopes isActive twoFactorEnabled')
+    .select('email role permissions tenantIds adminPortalScopes isActive twoFactorEnabled twoFactorRecoveryPending')
     .lean<any>();
   if (!user || !user.isActive || !user.role || user.role === 'customer') {
     return unauthorizedResponse();
@@ -90,17 +105,25 @@ export async function requireAdminAuth(
     return forbiddenResponse();
   }
 
+  const recoveryPending = Boolean(user.twoFactorRecoveryPending);
+  if (enrollmentSession && user.twoFactorEnabled && !recoveryPending) {
+    return unauthorizedResponse();
+  }
   if (!user.twoFactorEnabled && !options.allowTwoFactorEnrollment) {
     return twoFactorSetupRequiredResponse();
+  }
+  if (recoveryPending && !options.allowTwoFactorEnrollment) {
+    return recoveryAcknowledgementRequiredResponse();
   }
 
   const authContext: AdminAuthContext = {
     userId: String(payload.sub),
     email: typeof user.email === 'string' ? user.email : undefined,
     role,
-    permissions: permissionsFromToken,
-    tenantIds,
+    permissions: enrollmentSession ? [] : permissionsFromToken,
+    tenantIds: enrollmentSession ? [] : tenantIds,
     twoFactorEnabled: Boolean(user.twoFactorEnabled),
+    twoFactorRecoveryPending: recoveryPending,
   };
 
   const requestedTenantId = request.nextUrl.searchParams.get('tenantId')

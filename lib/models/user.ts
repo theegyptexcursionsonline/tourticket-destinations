@@ -71,6 +71,7 @@ export interface IUser extends Document {
   twoFactorSecret?: string;
   twoFactorPendingSecret?: string;
   twoFactorRecoveryCodeHashes?: string[];
+  twoFactorRecoveryPending?: boolean;
   twoFactorEnabledAt?: Date;
   twoFactorLastUsedStep?: number;
 }
@@ -209,6 +210,7 @@ const UserSchema: Schema<IUser> = new Schema({
   twoFactorSecret: { type: String, select: false },
   twoFactorPendingSecret: { type: String, select: false },
   twoFactorRecoveryCodeHashes: { type: [String], select: false, default: undefined },
+  twoFactorRecoveryPending: { type: Boolean, default: false },
   twoFactorEnabledAt: { type: Date },
   twoFactorLastUsedStep: { type: Number, select: false },
   createdAt: {

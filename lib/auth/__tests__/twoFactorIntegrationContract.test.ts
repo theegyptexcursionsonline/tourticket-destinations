@@ -10,7 +10,7 @@ describe('two-factor authentication integration contract', () => {
     expect(source).toContain('verifyAndConsumeUserSecondFactor(user, twoFactorCode)');
     const secondFactorIndex = source.indexOf('if (user.twoFactorEnabled)');
     expect(secondFactorIndex).toBeGreaterThan(-1);
-    expect(source.indexOf('const token = await signToken', secondFactorIndex)).toBeGreaterThan(secondFactorIndex);
+    expect(source.indexOf('const token = await signAdminSessionToken', secondFactorIndex)).toBeGreaterThan(secondFactorIndex);
   });
 
   it('protects setup endpoints with current admin authorization', () => {
@@ -20,6 +20,8 @@ describe('two-factor authentication integration contract', () => {
     expect(source).toContain('encryptTwoFactorSecret(secret)');
     expect(source).toContain('twoFactorRecoveryCodeHashes = recoveryCodes.map(hashRecoveryCode)');
     expect(source).not.toContain('twoFactorSecret: secret');
+    expect(source).toContain('user.twoFactorRecoveryPending = true');
+    expect(source).toContain("action === 'acknowledge'");
   });
 
   it('forces unenrolled admins into setup and blocks normal admin APIs', () => {
@@ -29,6 +31,8 @@ describe('two-factor authentication integration contract', () => {
     const security = read('app/admin/security/page.tsx');
 
     expect(authorization).toContain("code: 'TWO_FACTOR_SETUP_REQUIRED'");
+    expect(authorization).toContain("code: 'TWO_FACTOR_RECOVERY_ACK_REQUIRED'");
+    expect(authorization).toContain('ADMIN_ENROLLMENT_SCOPE');
     expect(authorization).toContain('!user.twoFactorEnabled && !options.allowTwoFactorEnrollment');
     expect(profile).toContain('allowTwoFactorEnrollment: true');
     expect(profile).toContain('twoFactorEnabled: Boolean(user.twoFactorEnabled)');
@@ -60,11 +64,13 @@ describe('two-factor authentication integration contract', () => {
     expect(security).toContain('I understand that I will be signed out and must enroll again.');
   });
 
-  it('returns required enrollment to the dashboard after recovery codes are acknowledged', () => {
+  it('unlocks the dashboard only after the server acknowledges recovery codes', () => {
     const security = read('app/admin/security/page.tsx');
-    expect(security).toContain("new URLSearchParams(window.location.search).get('required') === '1'");
-    expect(security).toContain('recoveryCodes.length === 0 && requiredEnrollment');
+    const layout = read('app/admin/AdminClientLayout.tsx');
+    expect(security).toContain("postAction('acknowledge')");
+    expect(security).toContain('I have saved them · Unlock dashboard');
     expect(security).toContain("router.replace('/admin')");
-    expect(security).toContain('I have saved them · Continue');
+    expect(layout).toContain('MandatoryTwoFactorShell');
+    expect(layout).toContain('user?.twoFactorRecoveryPending === true');
   });
 });

@@ -25,6 +25,7 @@ function SecurityPage() {
   const [code, setCode] = useState('');
   const [confirmReset, setConfirmReset] = useState(false);
   const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
+  const [recoveryPending, setRecoveryPending] = useState(false);
   const [loading, setLoading] = useState(true);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
 
@@ -36,6 +37,7 @@ function SecurityPage() {
       if (!response.ok) throw new Error(data.error || 'Could not load security settings.');
       setEnabled(Boolean(data.enabled));
       setEnabledAt(data.enabledAt || null);
+      setRecoveryPending(Boolean(data.recoveryPending));
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Could not load security settings.');
     } finally {
@@ -52,10 +54,10 @@ function SecurityPage() {
     // Recovery codes must be shown once after enrollment. Once they have been
     // acknowledged—or if this required page is revisited after setup—return
     // the user to the dashboard instead of leaving them trapped here.
-    if (!loading && enabled && recoveryCodes.length === 0 && requiredEnrollment) {
+    if (!loading && enabled && !recoveryPending && recoveryCodes.length === 0 && requiredEnrollment) {
       router.replace('/admin');
     }
-  }, [enabled, loading, recoveryCodes.length, requiredEnrollment, router]);
+  }, [enabled, loading, recoveryCodes.length, recoveryPending, requiredEnrollment, router]);
 
   const postAction = async (action: string, actionCode = '') => {
     setPendingAction(action);
@@ -91,6 +93,7 @@ function SecurityPage() {
       setSetup(null);
       setCode('');
       setRecoveryCodes(data.recoveryCodes || []);
+      setRecoveryPending(true);
       await refreshUser();
       toast.success('Two-factor authentication is now enabled.');
     } catch (error) {
@@ -106,6 +109,30 @@ function SecurityPage() {
       toast.success('New recovery codes generated. Previous codes no longer work.');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Could not regenerate recovery codes.');
+    }
+  };
+
+  const resumeRecoveryCodes = async () => {
+    try {
+      const data = await postAction('resume-recovery', code);
+      setRecoveryCodes(data.recoveryCodes || []);
+      setCode('');
+      toast.success('Replacement recovery codes generated.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not restore recovery codes.');
+    }
+  };
+
+  const acknowledgeRecoveryCodes = async () => {
+    try {
+      await postAction('acknowledge');
+      setRecoveryPending(false);
+      setRecoveryCodes([]);
+      await refreshUser();
+      toast.success('Account protection complete.');
+      router.replace('/admin');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not complete account protection.');
     }
   };
 
@@ -234,7 +261,24 @@ function SecurityPage() {
             </div>
           )}
 
-          {enabled && recoveryCodes.length === 0 && (
+          {enabled && recoveryPending && recoveryCodes.length === 0 && (
+            <div className="space-y-5">
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
+                Recovery-code confirmation is still required. Enter a current authenticator code
+                to generate a fresh set; all previously generated recovery codes will stop working.
+              </div>
+              <div>
+                <label htmlFor="resumeSecurityCode" className="text-sm font-semibold text-slate-700">Current authenticator code</label>
+                <input id="resumeSecurityCode" value={code} onChange={(event) => setCode(event.target.value)} autoComplete="one-time-code" inputMode="numeric" maxLength={6} placeholder="000000" className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-center text-lg font-bold tracking-[0.35em] outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-100" />
+              </div>
+              <button onClick={resumeRecoveryCodes} disabled={pendingAction !== null || !/^\d{6}$/.test(code)} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-800 disabled:opacity-50 sm:w-auto">
+                {pendingAction === 'resume-recovery' ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
+                Generate replacement recovery codes
+              </button>
+            </div>
+          )}
+
+          {enabled && !recoveryPending && recoveryCodes.length === 0 && (
             <div className="space-y-5">
               <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-6 text-emerald-900">
                 Your account is protected. Keep your authenticator app available whenever you sign in.
@@ -301,10 +345,17 @@ function SecurityPage() {
                   <Download className="h-4 w-4" /> Download codes
                 </button>
                 <button onClick={() => {
+                  if (recoveryPending) {
+                    void acknowledgeRecoveryCodes();
+                    return;
+                  }
                   setRecoveryCodes([]);
-                  if (requiredEnrollment) router.replace('/admin');
-                }} className="inline-flex items-center justify-center rounded-xl px-5 py-3 text-sm font-bold text-violet-700 hover:bg-violet-50">
-                  {requiredEnrollment ? 'I have saved them · Continue' : 'I have saved them'}
+                }} disabled={pendingAction !== null} className="inline-flex items-center justify-center rounded-xl px-5 py-3 text-sm font-bold text-violet-700 hover:bg-violet-50 disabled:opacity-50">
+                  {pendingAction === 'acknowledge'
+                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                    : recoveryPending
+                      ? 'I have saved them · Unlock dashboard'
+                      : 'I have saved them'}
                 </button>
               </div>
             </div>

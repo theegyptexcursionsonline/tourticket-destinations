@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import dbConnect from '@/lib/dbConnect';
 import User from '@/lib/models/user';
-import { signToken } from '@/lib/jwt';
+import {
+  ADMIN_ENROLLMENT_MAX_AGE_SECONDS,
+  ADMIN_SESSION_MAX_AGE_SECONDS,
+  signAdminSessionToken,
+} from '@/lib/auth/adminSession';
 import {
   ADMIN_PERMISSIONS,
   AdminPermission,
@@ -39,6 +43,8 @@ function buildAdminUserPayload(user: any, permissions: AdminPermission[]) {
     permissions,
     tenantIds: resolveAdminNetworkTenantIds(user.role, serializeTenantIds(user.tenantIds)),
     twoFactorEnabled: user._id === 'env-admin' ? true : Boolean(user.twoFactorEnabled),
+    twoFactorRecoveryPending:
+      user._id === 'env-admin' ? false : Boolean(user.twoFactorRecoveryPending),
   };
 }
 
@@ -75,19 +81,15 @@ export async function POST(request: NextRequest) {
       };
       const permissions = [...ADMIN_PERMISSIONS];
 
-      const token = await signToken(
-        {
-          sub: pseudoUser._id,
-          email: pseudoUser.email,
-          given_name: pseudoUser.firstName,
-          family_name: pseudoUser.lastName,
-          role: pseudoUser.role,
-          permissions,
-          tenantIds: [],
-          scope: 'admin',
-        },
-        { expiresIn: '8h' },
-      );
+      const token = await signAdminSessionToken({
+        userId: pseudoUser._id,
+        email: pseudoUser.email || '',
+        firstName: pseudoUser.firstName,
+        lastName: pseudoUser.lastName,
+        role: pseudoUser.role,
+        permissions,
+        tenantIds: [],
+      });
 
       const response = NextResponse.json({
         success: true,
@@ -98,7 +100,7 @@ export async function POST(request: NextRequest) {
         secure: false,
         sameSite: 'lax',
         path: '/',
-        maxAge: 8 * 60 * 60,
+        maxAge: ADMIN_SESSION_MAX_AGE_SECONDS,
       });
       return response;
     }
@@ -225,30 +227,31 @@ export async function POST(request: NextRequest) {
     );
     await recordLoginAudit(request.headers, identifier, 'success');
 
-    const token = await signToken(
-      {
-        sub: (user._id as any).toString(),
-        email: user.email,
-        given_name: user.firstName,
-        family_name: user.lastName,
-        role: user.role,
-        permissions,
-        tenantIds,
-        scope: 'admin',
-      },
-      { expiresIn: '8h' },
-    );
+    const enrollmentOnly =
+      !user.twoFactorEnabled || Boolean(user.twoFactorRecoveryPending);
+    const token = await signAdminSessionToken({
+      userId: (user._id as any).toString(),
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      permissions,
+      tenantIds,
+    }, enrollmentOnly);
 
     const response = NextResponse.json({
       success: true,
-      user: buildAdminUserPayload(user, permissions),
+      user: buildAdminUserPayload(user, enrollmentOnly ? [] : permissions),
+      requiresTwoFactorSetup: enrollmentOnly,
     });
     response.cookies.set('admin-auth-token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 8 * 60 * 60,
+      maxAge: enrollmentOnly
+        ? ADMIN_ENROLLMENT_MAX_AGE_SECONDS
+        : ADMIN_SESSION_MAX_AGE_SECONDS,
     });
     return response;
   } catch (error) {

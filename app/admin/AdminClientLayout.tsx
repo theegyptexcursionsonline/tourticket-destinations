@@ -1,11 +1,15 @@
 'use client';
 
+import { useEffect } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { ShieldCheck } from 'lucide-react';
 import Sidebar from '@/components/admin/Sidebar';
 import Header from '@/components/admin/Header';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { SettingsProvider } from '@/contexts/SettingsContext';
-import withAuth from '@/components/admin/withAuth';
-import { AdminAuthProvider } from '@/contexts/AdminAuthContext';
+import Login from '@/components/admin/Login';
+import MandatoryTwoFactorShell from '@/components/admin/MandatoryTwoFactorShell';
+import { AdminAuthProvider, useAdminAuth } from '@/contexts/AdminAuthContext';
 import { AdminTenantProvider } from '@/contexts/AdminTenantContext';
 import AppToaster from '@/components/ui/AppToaster';
 
@@ -24,7 +28,51 @@ const ProtectedAdminContent = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-const AuthenticatedAdminLayout = withAuth(ProtectedAdminContent);
+function AdminApplicationBoundary({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading, user } = useAdminAuth();
+  const pathname = usePathname();
+  const router = useRouter();
+  const enrollmentIncomplete =
+    isAuthenticated
+    && (user?.twoFactorEnabled !== true || user?.twoFactorRecoveryPending === true);
+
+  useEffect(() => {
+    if (enrollmentIncomplete && pathname !== '/admin/security') {
+      router.replace('/admin/security?required=1');
+    }
+  }, [enrollmentIncomplete, pathname, router]);
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-5 bg-slate-50">
+        <div className="relative h-14 w-14">
+          <div className="absolute inset-0 rounded-full border-4 border-slate-200" />
+          <div className="absolute inset-0 animate-spin rounded-full border-4 border-transparent border-t-red-600" />
+        </div>
+        <p className="font-semibold text-slate-800">Opening your secure session…</p>
+      </div>
+    );
+  }
+  if (!isAuthenticated) return <Login onLoginSuccess={() => {}} />;
+  if (enrollmentIncomplete) {
+    if (pathname !== '/admin/security') {
+      return (
+        <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-slate-50 px-6 text-center">
+          <ShieldCheck className="h-10 w-10 text-violet-600" />
+          <p className="font-semibold text-slate-900">Opening secure account setup…</p>
+        </div>
+      );
+    }
+    return <MandatoryTwoFactorShell>{children}</MandatoryTwoFactorShell>;
+  }
+  return (
+    <SettingsProvider>
+      <AdminTenantProvider>
+        <ProtectedAdminContent>{children}</ProtectedAdminContent>
+      </AdminTenantProvider>
+    </SettingsProvider>
+  );
+}
 
 export default function AdminClientLayout({
     children,
@@ -32,17 +80,11 @@ export default function AdminClientLayout({
     children: React.ReactNode
 }) {
     return (
-        <AuthProvider>
-            <SettingsProvider>
-                <AdminAuthProvider>
-                    <AdminTenantProvider>
-                        <AuthenticatedAdminLayout>
-                            {children}
-                        </AuthenticatedAdminLayout>
-                        <AppToaster />
-                    </AdminTenantProvider>
-                </AdminAuthProvider>
-            </SettingsProvider>
-        </AuthProvider>
+      <AuthProvider>
+        <AdminAuthProvider>
+          <AdminApplicationBoundary>{children}</AdminApplicationBoundary>
+          <AppToaster />
+        </AdminAuthProvider>
+      </AuthProvider>
     );
 }
