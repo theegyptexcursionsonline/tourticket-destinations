@@ -116,12 +116,18 @@ export async function requireAdminAuth(
     return recoveryAcknowledgementRequiredResponse();
   }
 
+  const enrollmentBoundary = enrollmentSession
+    || !user.twoFactorEnabled
+    || recoveryPending;
+
   const authContext: AdminAuthContext = {
     userId: String(payload.sub),
     email: typeof user.email === 'string' ? user.email : undefined,
     role,
-    permissions: enrollmentSession ? [] : permissionsFromToken,
-    tenantIds: enrollmentSession ? [] : tenantIds,
+    // An older full-session cookie may predate mandatory 2FA. Keep even the
+    // profile response least-privileged until setup is fully acknowledged.
+    permissions: enrollmentBoundary ? [] : permissionsFromToken,
+    tenantIds: enrollmentBoundary ? [] : tenantIds,
     twoFactorEnabled: Boolean(user.twoFactorEnabled),
     twoFactorRecoveryPending: recoveryPending,
   };

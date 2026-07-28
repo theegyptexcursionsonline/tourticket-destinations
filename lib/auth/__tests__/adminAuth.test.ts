@@ -106,6 +106,11 @@ describe('requireAdminAuth', () => {
 
     const result = await requireAdminAuth(request, { allowTwoFactorEnrollment: true });
     expect(result).not.toBeInstanceOf(NextResponse);
-    expect(result).toMatchObject({ userId: 'admin-id', twoFactorEnabled: false });
+    expect(result).toMatchObject({
+      userId: 'admin-id',
+      permissions: [],
+      tenantIds: [],
+      twoFactorEnabled: false,
+    });
   });
 });
