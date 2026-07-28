@@ -99,12 +99,14 @@ describe('EEO Network GET /api/admin/team tenant scope', () => {
           $or: [
             { role: { $ne: 'customer' } },
             { pendingAdminRole: { $exists: true } },
+            { formerAdminScopes: 'multiTenant' },
           ],
         },
         {
           $or: [
             { tenantIds: { $in: ['makadi-bay', 'hurghada-speedboat'] } },
-            { pendingAdminTenantIds: { $in: ['makadi-bay', 'hurghada-speedboat'] } },
+          { pendingAdminTenantIds: { $in: ['makadi-bay', 'hurghada-speedboat'] } },
+          { formerAdminTenantIds: { $in: ['makadi-bay', 'hurghada-speedboat'] } },
           ],
         },
       ],
@@ -124,12 +126,14 @@ describe('EEO Network GET /api/admin/team tenant scope', () => {
           $or: [
             { role: { $ne: 'customer' } },
             { pendingAdminRole: { $exists: true } },
+            { formerAdminScopes: 'multiTenant' },
           ],
         },
         {
           $or: [
             { tenantIds: 'makadi-bay' },
-            { pendingAdminTenantIds: 'makadi-bay' },
+          { pendingAdminTenantIds: 'makadi-bay' },
+          { formerAdminTenantIds: 'makadi-bay' },
           ],
         },
       ],

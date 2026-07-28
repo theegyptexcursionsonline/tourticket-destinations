@@ -31,6 +31,8 @@ interface TeamMember {
   isActive: boolean;
   /** Invited but not yet accepted — holds no access on this portal yet. */
   invitationPending?: boolean;
+  /** Admin access was removed, while the underlying account was preserved. */
+  accessRemoved?: boolean;
   lastLoginAt?: string;
   createdAt?: string;
   tenantIds?: string[];
@@ -285,6 +287,59 @@ const TeamPage = () => {
     }
   };
 
+  const inviteFormerMember = async (member: TeamMember) => {
+    if (!token) return;
+    if (!confirm(`Send a new secure invitation to ${member.email}?\n\nAccess stays off until they accept and complete two-step verification.`)) return;
+    try {
+      const response = await authorizedFetch('/api/admin/team', {
+        method: 'POST',
+        body: JSON.stringify({
+          firstName: member.firstName,
+          lastName: member.lastName,
+          email: member.email,
+          role: 'operations',
+          permissions: member.permissions.length ? member.permissions : ['manageBookings'],
+          tenantIds: member.tenantIds || [],
+          restoreInactive: true,
+        }),
+      });
+      const data = await readJsonResponse<{ error?: string }>(response, 'Failed to send invitation.');
+      if (!response.ok) throw new Error(data.error || 'Failed to send invitation');
+      await fetchMembers();
+      toast.success('Secure invitation sent. Access begins only after acceptance.');
+    } catch (error: any) {
+      toast.error(error.message || 'Unable to send invitation');
+    }
+  };
+
+  const permanentlyDeleteMember = async (member: TeamMember) => {
+    if (!token) return;
+    const typed = prompt(
+      `Permanently delete ${member.email}?\n\nDeletion is blocked if any business record or other portal access exists.\n\nType DELETE to continue.`,
+    );
+    if (typed !== 'DELETE') return;
+    try {
+      const response = await authorizedFetch(`/api/admin/team/${member._id}/permanent`, {
+        method: 'DELETE',
+      });
+      const data = await readJsonResponse<{
+        error?: string;
+        message?: string;
+        dependencies?: Record<string, number>;
+      }>(response, 'Failed to permanently delete account.');
+      if (!response.ok) {
+        const linked = data.dependencies
+          ? Object.entries(data.dependencies).filter(([, count]) => count > 0).map(([name, count]) => `${name}: ${count}`).join(', ')
+          : '';
+        throw new Error(linked ? `${data.error} (${linked})` : data.error || 'Permanent deletion was blocked');
+      }
+      await fetchMembers();
+      toast.success(data.message || 'Account permanently deleted');
+    } catch (error: any) {
+      toast.error(error.message || 'Unable to permanently delete account');
+    }
+  };
+
   const handleResetPassword = async () => {
     if (!token || !passwordResetModal.member) return;
 
@@ -346,7 +401,9 @@ const TeamPage = () => {
   };
 
   const activeMembers = useMemo(
-    () => members.filter((member) => member.isActive),
+    () => members.filter(
+      (member) => member.isActive && !member.invitationPending && !member.accessRemoved,
+    ),
     [members],
   );
 
@@ -572,6 +629,11 @@ const TeamPage = () => {
                           Invitation pending — no access yet
                         </span>
                       )}
+                      {member.accessRemoved && (
+                        <span className="mt-1 inline-flex items-center rounded-full border border-slate-300 bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-700">
+                          Access removed — account preserved
+                        </span>
+                      )}
                       <p className="text-xs md:text-sm text-slate-500 truncate">{member.email}</p>
                     </div>
                   </div>
@@ -588,15 +650,17 @@ const TeamPage = () => {
                           <button
                             key={permission}
                             type="button"
-                            disabled={member.invitationPending}
+                            disabled={member.invitationPending || member.accessRemoved}
                             onClick={() => togglePermission(member, permission)}
                             className={`px-2.5 md:px-3 py-1 md:py-1.5 rounded-full text-xs font-medium border transition ${
                               active
                                 ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
                                 : 'border-slate-200 text-slate-500 hover:border-slate-300'
-                            } ${member.invitationPending ? 'cursor-default opacity-80' : ''}`}
+                            } ${member.invitationPending || member.accessRemoved ? 'cursor-default opacity-80' : ''}`}
                             title={member.invitationPending
                               ? 'Offered permission. It becomes active only after acceptance.'
+                              : member.accessRemoved
+                                ? 'This account currently has no admin access.'
                               : 'Update this team member permission'}
                           >
                             {permissionLabels[permission] || permission}
@@ -641,7 +705,7 @@ const TeamPage = () => {
                       </button>
                     )}
                     
-                    {!member.invitationPending && (
+                    {!member.invitationPending && !member.accessRemoved && (
                     <button
                       onClick={() => setPasswordResetModal({ isOpen: true, member, newPassword: '', showPassword: false, isResetting: false })}
                       className="inline-flex items-center justify-center gap-2 px-3 md:px-4 py-2 text-xs md:text-sm font-medium rounded-xl border border-purple-200 text-purple-600 hover:bg-purple-50 transition"
@@ -652,7 +716,7 @@ const TeamPage = () => {
                     </button>
                     )}
 
-                    {!member.invitationPending && (
+                    {!member.invitationPending && !member.accessRemoved && (
                     <button
                       onClick={() => toggleStatus(member)}
                       className={`inline-flex items-center justify-center gap-2 px-3 md:px-4 py-2 text-xs md:text-sm font-medium rounded-xl border transition ${
@@ -677,6 +741,7 @@ const TeamPage = () => {
                     </button>
                     )}
                     
+                    {!member.accessRemoved && (
                     <button
                       onClick={() => removeMember(member)}
                       className="inline-flex items-center justify-center gap-2 px-3 md:px-4 py-2 text-xs md:text-sm font-medium rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 hover:border-slate-400 transition"
@@ -685,8 +750,28 @@ const TeamPage = () => {
                         : 'Remove admin access to the brands you manage. The account and other portals are not affected.'}
                     >
                       <Trash2 className="h-3.5 w-3.5 md:h-4 md:w-4" /> 
-                      <span>{member.invitationPending ? 'Withdraw invite' : 'Remove'}</span>
+                      <span>{member.invitationPending ? 'Withdraw invite' : 'Remove access'}</span>
                     </button>
+                    )}
+                    {member.accessRemoved && (
+                      <button
+                        onClick={() => inviteFormerMember(member)}
+                        className="inline-flex items-center justify-center gap-2 px-3 md:px-4 py-2 text-xs md:text-sm font-medium rounded-xl border border-blue-200 text-blue-700 hover:bg-blue-50 transition"
+                      >
+                        <RefreshCw className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                        Invite again
+                      </button>
+                    )}
+                    {member.accessRemoved && user?.role === 'super_admin' && (
+                      <button
+                        onClick={() => permanentlyDeleteMember(member)}
+                        className="inline-flex items-center justify-center gap-2 px-3 md:px-4 py-2 text-xs md:text-sm font-medium rounded-xl border border-red-200 text-red-700 hover:bg-red-50 transition"
+                        title="Permanently delete only if there are no linked business records or other portal access"
+                      >
+                        <Trash2 className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                        Permanently delete account
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}

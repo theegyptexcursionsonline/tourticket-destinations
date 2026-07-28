@@ -20,10 +20,21 @@ import {
   hasPortalMembership,
 } from '@/lib/admin/teamMembership';
 
-const sanitize = (user: any) => {
+const sanitize = (user: any, visibleTenantIds?: string[]) => {
   // A pending invitee holds no admin access yet. Show the access they were
   // offered so the list reads sensibly, but never as though it were live.
   const invitationPending = Boolean(user.pendingAdminRole);
+  const currentTenantIds = (user.tenantIds || []).map(String);
+  const formerTenantIds = (user.formerAdminTenantIds || []).map(String);
+  const relevantTenantIds = visibleTenantIds || Array.from(new Set([
+    ...currentTenantIds,
+    ...formerTenantIds,
+  ]));
+  const accessRemoved = Boolean(
+    !invitationPending
+    && formerTenantIds.some((id: string) => relevantTenantIds.includes(id))
+    && !currentTenantIds.some((id: string) => relevantTenantIds.includes(id)),
+  );
 
   return {
     id: user._id.toString(),
@@ -35,9 +46,13 @@ const sanitize = (user: any) => {
     permissions: user.pendingAdminPermissions || user.permissions || [],
     isActive: invitationPending ? false : user.isActive,
     invitationPending,
+    accessRemoved,
     lastLoginAt: user.lastLoginAt,
     createdAt: user.createdAt,
-    tenantIds: (invitationPending && user.pendingAdminTenantIds) || user.tenantIds || [],
+    tenantIds: (invitationPending && user.pendingAdminTenantIds)
+      || (accessRemoved && formerTenantIds.filter((id: string) => relevantTenantIds.includes(id)))
+      || user.tenantIds
+      || [],
   };
 };
 
@@ -100,12 +115,14 @@ export async function GET(request: NextRequest) {
           // Customers holding an unaccepted invitation belong on the list so
           // the invite stays visible and can be resent or withdrawn.
           { pendingAdminRole: { $exists: true } },
+          { formerAdminScopes: 'multiTenant' },
         ],
       },
       {
         $or: [
           { tenantIds: tenantScope },
           { pendingAdminTenantIds: tenantScope },
+          { formerAdminTenantIds: tenantScope },
         ],
       },
     ],
@@ -115,9 +132,10 @@ export async function GET(request: NextRequest) {
     .sort({ createdAt: -1 })
     .lean();
 
+  const visibleTenantIds = tenantId && tenantId !== 'all' ? [tenantId] : auth.tenantIds;
   return NextResponse.json({
     success: true,
-    data: teamMembers.map(sanitize),
+    data: teamMembers.map((member) => sanitize(member, visibleTenantIds)),
   });
 }
 
@@ -130,7 +148,13 @@ export async function POST(request: NextRequest) {
   await dbConnect();
 
   const body = await request.json();
-  const { firstName, lastName, email, role = 'operations', permissions } = body;
+  const {
+    firstName,
+    lastName,
+    email,
+    role = 'operations',
+    permissions,
+  } = body;
 
   if (!firstName || !lastName || !email) {
     return NextResponse.json(
@@ -184,15 +208,6 @@ export async function POST(request: NextRequest) {
   let user;
 
   if (existing) {
-    if (!existing.isActive) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'This account is inactive. Restore it before sending a portal invitation.',
-        },
-        { status: 409 },
-      );
-    }
     const currentTenantIds = (existing.tenantIds || []).map(String);
     const missingTenantIds = assignedTenantIds.filter((id) => !currentTenantIds.includes(id));
     if (
@@ -220,7 +235,7 @@ export async function POST(request: NextRequest) {
     user = await User.findOneAndUpdate(
       {
         _id: existing._id,
-        isActive: true,
+        ...(existing.isActive ? { isActive: true } : { isActive: false }),
         $or: [
           { pendingAdminRole: { $exists: false } },
           { invitationExpires: { $lte: new Date() } },

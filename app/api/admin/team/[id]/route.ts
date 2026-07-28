@@ -352,6 +352,10 @@ export async function DELETE(
       tenantIds: revocation.tenantIds,
     };
   }
+  update.$addToSet = {
+    formerAdminScopes: 'multiTenant',
+    formerAdminTenantIds: { $each: removableTenantIds },
+  };
 
   await User.updateOne({ _id: user._id }, update);
 

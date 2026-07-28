@@ -86,6 +86,10 @@ export async function POST(request: NextRequest) {
       },
       {
         $set: set,
+        $pull: {
+          formerAdminScopes: 'multiTenant',
+          formerAdminTenantIds: { $in: granted.tenantIds || [] },
+        },
         $unset: {
           invitationToken: 1,
           invitationExpires: 1,

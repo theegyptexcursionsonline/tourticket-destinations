@@ -65,6 +65,8 @@ export interface IUser extends Document {
   // Multi-tenant support — which brands this team member can access
   tenantIds?: string[];
   adminPortalScopes?: AdminPortalScope[];
+  formerAdminScopes?: AdminPortalScope[];
+  formerAdminTenantIds?: string[];
   twoFactorEnabled: boolean;
   twoFactorSecret?: string;
   twoFactorPendingSecret?: string;
@@ -187,6 +189,17 @@ const UserSchema: Schema<IUser> = new Schema({
   adminPortalScopes: {
     type: [String],
     enum: ['main', 'multiTenant'],
+    default: undefined,
+  },
+  // Revoking team access preserves the customer identity. These markers keep
+  // former members recoverable and make permanent deletion an explicit action.
+  formerAdminScopes: {
+    type: [String],
+    enum: ['main', 'multiTenant'],
+    default: undefined,
+  },
+  formerAdminTenantIds: {
+    type: [String],
     default: undefined,
   },
   twoFactorEnabled: {
