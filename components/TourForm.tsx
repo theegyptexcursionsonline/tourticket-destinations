@@ -649,7 +649,7 @@ export default function TourForm({ tourToEdit, onSave, fullPage = false }: { tou
                 const tenantQuery = `tenantId=${encodeURIComponent(lookupTenantId)}`;
                 const [destRes, catRes, attractionsRes] = await Promise.all([
                     fetch(`/api/admin/tours/destinations?${tenantQuery}`),
-                    fetch(`/api/categories?${tenantQuery}`),
+                    fetch(`/api/categories?${tenantQuery}&includeEmpty=true`),
                     fetch(`/api/attractions-interests?${tenantQuery}`)
                 ]);
 

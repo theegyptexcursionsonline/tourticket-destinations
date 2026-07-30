@@ -18,6 +18,9 @@ export async function GET(request: NextRequest) {
     const tenantId = (explicitTenantId && explicitTenantId !== 'all') ? explicitTenantId : await getTenantFromRequest();
     const featuredOnly = searchParams.get('featured') === 'true';
     const locale = searchParams.get('locale') || 'en';
+    // Admin pickers need brand-new categories too; the storefront still hides
+    // empty ones by default.
+    const includeEmpty = searchParams.get('includeEmpty') === 'true';
     await dbConnect(tenantId);
     
     const categories = await Category.find({
@@ -63,7 +66,7 @@ export async function GET(request: NextRequest) {
     );
 
     const visibleCategories = filterVisibleTaxonomyEntries(categoriesWithCounts, {
-      requireTours: true,
+      requireTours: !includeEmpty,
     }).sort((a: any, b: any) => {
       const orderA = typeof a.order === 'number' ? a.order : Number.MAX_SAFE_INTEGER;
       const orderB = typeof b.order === 'number' ? b.order : Number.MAX_SAFE_INTEGER;

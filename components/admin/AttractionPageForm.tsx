@@ -771,7 +771,7 @@ export default function AttractionPageForm({ pageId, initialPageType = 'attracti
                             <div className="grid grid-cols-2 gap-2 rounded-xl bg-slate-100 p-1">
                               {([
                                 ['attraction', 'Attraction'],
-                                ['category', 'Category'],
+                                ['category', 'Catalogue'],
                               ] as const).map(([value, label]) => (
                                 <button
                                   key={value}
@@ -788,9 +788,9 @@ export default function AttractionPageForm({ pageId, initialPageType = 'attracti
                               ))}
                             </div>
                             <SmallHint>
-                              Need a Catalogue (tour collection with its own URL type and filters)?{' '}
+                              Need a Category (tour collection with its own URL type and filters)?{' '}
                               <Link href="/admin/pages/create?type=category" className="text-indigo-600 hover:underline font-medium">
-                                Create a Catalogue instead
+                                Create a Category instead
                               </Link>
                             </SmallHint>
                           </div>

@@ -153,11 +153,17 @@ export default function DestinationManager({ initialDestinations }: { initialDes
   const [availableTours, setAvailableTours] = useState<Tour[]>([]);
   const [tourSearch, setTourSearch] = useState('');
 
-  // Fetch available tours on component mount
+  // Tours offered by the picker must belong to the brand being edited; an
+  // unscoped fetch listed every tenant's tours (and every language).
   useEffect(() => {
     const fetchTours = async () => {
       try {
-        const response = await fetch('/api/admin/tours');
+        const params = new URLSearchParams();
+        if (selectedTenantId && selectedTenantId !== 'all') {
+          params.set('tenantId', selectedTenantId);
+        }
+        const query = params.toString();
+        const response = await fetch(`/api/admin/tours${query ? `?${query}` : ''}`);
         const data = await response.json();
         if (data.success) {
           setAvailableTours(data.data.map((tour: any) => ({
@@ -171,7 +177,7 @@ export default function DestinationManager({ initialDestinations }: { initialDes
       }
     };
     fetchTours();
-  }, []);
+  }, [selectedTenantId]);
 
   const resetForm = () => {
     setFormData({
@@ -264,7 +270,7 @@ export default function DestinationManager({ initialDestinations }: { initialDes
 
     // Fetch tours for this destination
     if (dest._id) {
-      fetch(`/api/admin/tours`)
+      fetch(`/api/admin/tours${selectedTenantId && selectedTenantId !== 'all' ? `?tenantId=${encodeURIComponent(selectedTenantId)}` : ''}`)
         .then(res => res.json())
         .then(data => {
           if (data.success) {

@@ -8,7 +8,7 @@ import Destination from '@/lib/models/Destination';
 import Category from '@/lib/models/Category';
 import Blog from '@/lib/models/Blog';
 import AttractionPage from '@/lib/models/AttractionPage';
-import { getTenantFromRequest, getTenantConfig } from '@/lib/tenant';
+import { getTenantFromRequest, getTenantConfig, getTenantByDomain, getTenantDomainFromRequest } from '@/lib/tenant';
 
 // The sitemap is tenant/domain-specific and therefore depends on request
 // headers. Declare that explicitly so Next.js does not attempt static output.
@@ -18,15 +18,29 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     await dbConnect();
     
-    // Get tenant from request
-    const tenantId = await getTenantFromRequest();
-    const tenantConfig = await getTenantConfig(tenantId);
-    
-    // Determine base URL
-    const baseUrl = tenantConfig 
+    // Get tenant from request, falling back to the host that was actually
+    // requested. Without this, a tenant whose header never reached the sitemap
+    // published another brand's URLs — telling search engines to index that
+    // brand instead of itself.
+    const requestHost = (await getTenantDomainFromRequest()).split(':')[0];
+    let tenantId = await getTenantFromRequest();
+    let tenantConfig = await getTenantConfig(tenantId);
+
+    if (!tenantConfig && requestHost && requestHost !== 'localhost') {
+      const byDomain = await getTenantByDomain(requestHost);
+      if (byDomain) {
+        tenantConfig = byDomain;
+        tenantId = byDomain.tenantId;
+      }
+    }
+
+    // The host that served this request is always the right host to publish.
+    const baseUrl = tenantConfig?.domain
       ? `https://${tenantConfig.domain}`
-      : process.env.NEXT_PUBLIC_APP_URL || 'https://egypt-excursionsonline.com';
-    
+      : requestHost && requestHost !== 'localhost'
+        ? `https://${requestHost}`
+        : process.env.NEXT_PUBLIC_APP_URL || 'https://egypt-excursionsonline.com';
+
     // Build tenant filter
     const tenantFilter = tenantId ? { tenantId } : {};
     

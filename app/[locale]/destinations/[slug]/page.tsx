@@ -34,7 +34,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     const destination = await DestinationModel.findOne(
       buildStrictTenantQuery({ slug }, tenantId)
     )
-      .select('name description image country')
+      .select('name description image country metaTitle metaDescription')
       .lean() as any;
 
     if (!destination) {
@@ -49,12 +49,20 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       ? `${destination.name}, ${destination.country}`
       : destination.name;
 
+    // What the editor typed wins; the generated title is only a fallback.
+    const metaTitle = destination.metaTitle?.trim();
+    const metaDescription = destination.metaDescription?.trim();
+    const title = metaTitle || `${namePart} - Tours & Activities | ${siteName}`;
+    const description = metaDescription
+      || destination.description?.substring(0, 160)
+      || `Discover the best tours and activities in ${destination.name} with ${siteName}`;
+
     return {
-      title: `${namePart} - Tours & Activities | ${siteName}`,
-      description: destination.description?.substring(0, 160) || `Discover the best tours and activities in ${destination.name} with ${siteName}`,
+      title,
+      description,
       openGraph: {
-        title: namePart,
-        description: destination.description?.substring(0, 160),
+        title: metaTitle || namePart,
+        description,
         images: destination.image ? [destination.image] : (tenant?.seo.ogImage ? [tenant.seo.ogImage] : []),
         type: 'website',
         siteName: siteName,

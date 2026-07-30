@@ -962,10 +962,10 @@ const ExperienceDescription = ({ html }: { html: string }) => {
   const isGerman = useLocale() === 'de';
 
   return (
-    <div className="mb-8 max-w-[68ch]">
+    <div className="mb-8 w-full">
       <div className="relative">
         <div
-          className={`prose prose-slate text-[16px] leading-7 text-slate-600 transition-[max-height] duration-300 md:text-[17px] md:leading-8 [&_p]:mb-5 [&_p:last-child]:mb-0 ${isExpanded ? 'max-h-[80rem]' : 'max-h-72 overflow-hidden'}`}
+          className={`prose prose-slate max-w-none text-[16px] leading-7 text-slate-600 transition-[max-height] duration-300 md:text-[17px] md:leading-8 [&_p]:mb-5 [&_p:last-child]:mb-0 ${isExpanded ? 'max-h-[80rem]' : 'max-h-72 overflow-hidden'}`}
           dangerouslySetInnerHTML={{ __html: html }}
         />
         {!isExpanded && <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-white to-transparent" />}

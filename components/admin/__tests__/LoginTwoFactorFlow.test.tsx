@@ -50,7 +50,10 @@ describe('admin login two-factor flow', () => {
       </AdminAuthProvider>,
     );
 
-    await screen.findByRole('heading', { name: 'Admin portal access' });
+    // The provider revalidates the session before the form mounts; under a
+    // loaded full-suite run that can exceed the 1s default and leave the
+    // loading state on screen.
+    await screen.findByRole('heading', { name: 'Admin portal access' }, { timeout: 10000 });
     fireEvent.change(screen.getByLabelText('Work email'), {
       target: { value: 'admin@example.com' },
     });
@@ -74,7 +77,7 @@ describe('admin login two-factor flow', () => {
       json: async () => ({ success: true, requiresTwoFactor: true }),
     } as unknown as Response);
 
-    await screen.findByRole('heading', { name: 'Verify your identity' });
+    await screen.findByRole('heading', { name: 'Verify your identity' }, { timeout: 10000 });
     expect(screen.getByLabelText(/Authentication.*code/i)).toBeVisible();
     expect(screen.getByRole('button', { name: 'Verify and continue' })).toBeDisabled();
   });

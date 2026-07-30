@@ -60,32 +60,34 @@ const QuickInfo = ({ attraction }: { attraction: AttractionData }) => {
   const avgRating = 4.8;
   const totalReviews = attraction.reviews?.length || 0;
   
+  // Sits on the dark hero image, so the palette has to be light — the slate
+  // greys here were unreadable against the photo.
   return (
     <div className="flex flex-wrap items-center gap-6 text-sm">
       <div className="flex items-center gap-2">
         <div className="flex items-center gap-1">
           <Star className="w-5 h-5 text-yellow-400 fill-current" />
-          <span className="font-bold text-lg">{avgRating}</span>
+          <span className="font-bold text-lg text-white">{avgRating}</span>
         </div>
-        <span className="text-slate-600">
+        <span className="text-white/80">
           ({totalReviews} {totalReviews === 1 ? 'review' : 'reviews'})
         </span>
       </div>
-      
-      <div className="h-4 w-px bg-slate-300" />
-      
+
+      <div className="h-4 w-px bg-white/40" />
+
       <div className="flex items-center gap-2">
-        <Target className="w-5 h-5 text-slate-600" />
-        <span className="text-slate-700 font-medium">
+        <Target className="w-5 h-5 text-white/90" />
+        <span className="text-white font-medium">
           {attraction.totalTours} {attraction.totalTours === 1 ? 'activity' : 'activities'}
         </span>
       </div>
-      
-      <div className="h-4 w-px bg-slate-300" />
-      
+
+      <div className="h-4 w-px bg-white/40" />
+
       <div className="flex items-center gap-2">
-        <Clock className="w-5 h-5 text-slate-600" />
-        <span className="text-slate-700 font-medium">Flexible duration</span>
+        <Clock className="w-5 h-5 text-white/90" />
+        <span className="text-white font-medium">Flexible duration</span>
       </div>
     </div>
   );
