@@ -4,6 +4,7 @@ import { extractStructuredSpecContent } from '@/lib/i18n/structuredContent';
 import { localizeStructuredEntries } from '@/lib/i18n/contentLocalization';
 import {
   attractionPageStructuredFields,
+  categoryStructuredFields,
   destinationStructuredFields,
   destinationTranslationFields,
   imageMetadataStructuredField,
@@ -41,6 +42,7 @@ describe('complete translation workflow', () => {
       imageMetadata: [{ url: 'hero.jpg', alt: 'Hero', title: 'Cairo' }],
     });
     expect(destinationStructuredFields).toContainEqual(imageMetadataStructuredField);
+    expect(categoryStructuredFields).toContainEqual(imageMetadataStructuredField);
   });
 
   it('matches translated image captions by URL after gallery reordering', () => {
@@ -66,12 +68,28 @@ describe('complete translation workflow', () => {
     expect(route).toContain('extractStructuredSpecContent');
     expect(route).toContain('translateStructuredSpecContentForLocale');
     expect(route).toContain('destinationStructuredFields');
+    expect(route).toContain('categoryStructuredFields');
     expect(route).toContain('attractionPageStructuredFields');
   });
 
   it('applies structured translations on destination and page storefronts', () => {
     expect(read('app/[locale]/destinations/[slug]/page.tsx')).toContain('localizeStructuredEntries');
+    expect(read('app/[locale]/categories/[slug]/page.tsx')).toContain('localizeStructuredEntries');
     expect(read('app/[locale]/attraction/[slug]/page.tsx')).toContain('localizeStructuredEntries');
+  });
+
+  it('renders manual controls for structured page, category, destination, and tour content', () => {
+    const editor = read('components/admin/ContentStructuredTranslationEditor.tsx');
+    expect(editor).toContain('FAQs');
+    expect(editor).toContain('Travel tips');
+    expect(editor).toContain('Image alt text and titles');
+
+    for (const file of [
+      'components/admin/AttractionPageForm.tsx',
+      'components/admin/CategoryForm.tsx',
+      'app/admin/destinations/DestinationManager.tsx',
+      'components/admin/TourStructuredTranslationEditor.tsx',
+    ]) expect(read(file)).toContain('ContentStructuredTranslationEditor');
   });
 
   it('keeps the English page picker deduplicated and free of German legacy rows', () => {

@@ -34,6 +34,7 @@ import { useAdminTenant } from '@/contexts/AdminTenantContext';
 import ImageSeoFields from '@/components/admin/ImageSeoFields';
 import { FaqEditor, TravelTipsEditor } from '@/components/admin/StructuredContentEditor';
 import TranslationEditor from '@/components/admin/TranslationEditor';
+import ContentStructuredTranslationEditor from '@/components/admin/ContentStructuredTranslationEditor';
 import { destinationTranslationFields, normalizeTranslations } from '@/lib/i18n/translationFields';
 import { uploadImageFiles } from '@/lib/admin/uploadImages';
 import { ensureImageMetadata } from '@/lib/content/imageMetadata';
@@ -1527,6 +1528,16 @@ setTimeout(() => router.refresh(), 0);
                       onChange={(translations) => setFormData(prev => ({ ...prev, translations }))}
                       modelType="destination"
                       entityId={editingDestination?._id ? String(editingDestination._id) : undefined}
+                    />
+                    <ContentStructuredTranslationEditor
+                      value={formData.translations}
+                      onChange={(translations) => setFormData(prev => ({ ...prev, translations }))}
+                      faqs={formData.faqs}
+                      travelTips={formData.travelTips}
+                      imageMetadata={ensureImageMetadata(
+                        formData.imageMetadata,
+                        [formData.image, ...formData.images].filter(Boolean),
+                      )}
                     />
                   </div>
                 )}

@@ -2844,6 +2844,10 @@ const addItineraryItem = () => {
                                             faqs={formData.faqs}
                                             bookingOptions={formData.bookingOptions}
                                             addOns={formData.addOns}
+                                            imageMetadata={ensureImageMetadata(
+                                                formData.imageMetadata,
+                                                [formData.image, ...formData.images].filter(Boolean),
+                                            )}
                                         />
                                     </div>
                                 )}

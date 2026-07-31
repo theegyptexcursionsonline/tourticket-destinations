@@ -14,6 +14,7 @@ import {
   categoryTranslationFields,
   attractionPageTranslationFields,
   destinationStructuredFields,
+  categoryStructuredFields,
   attractionPageStructuredFields,
   type StructuredTranslationSpec,
 } from './translationFields';
@@ -563,9 +564,14 @@ export async function autoTranslateCategory(categoryId: string): Promise<void> {
   if (!cat) throw new Error('Category not found');
 
   const fields = extractFields(cat as Record<string, unknown>, categoryTranslationFields);
-  const translations = await translateLocalesSettled(
-    (locale) => translateEntityFieldsForLocale(fields, categoryTranslationFields, 'category', locale)
-  );
+  const structured = extractStructuredSpecContent(cat as Record<string, unknown>, categoryStructuredFields);
+  const translations = await translateLocalesSettled(async (locale) => {
+    const [flat, blocks] = await Promise.all([
+      translateEntityFieldsForLocale(fields, categoryTranslationFields, 'category', locale),
+      translateStructuredSpecContentForLocale(structured, 'category', locale, categoryStructuredFields),
+    ]);
+    return { ...flat, ...blocks };
+  });
   if (Object.keys(translations).length === 0) throw new Error('No category translations were generated');
 
   await Category.findByIdAndUpdate(categoryId, { $set: buildTranslationsSetOps(translations) });

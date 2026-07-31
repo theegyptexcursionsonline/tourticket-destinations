@@ -11,8 +11,8 @@ import {
 } from '@/lib/tenant';
 import { getLocale } from 'next-intl/server';
 import { localizeAndDedupeTours } from '@/lib/translation/localizeTourCollection';
-import { localizeEntityFields } from '@/lib/i18n/contentLocalization';
-import { categoryTranslationFields } from '@/lib/i18n/translationFields';
+import { localizeEntityFields, localizeStructuredEntries } from '@/lib/i18n/contentLocalization';
+import { categoryStructuredFields, categoryTranslationFields } from '@/lib/i18n/translationFields';
 import CollectionSchema from '@/components/schema/CollectionSchema';
 
 // Force dynamic rendering to fix ISR caching issues on Netlify
@@ -98,7 +98,11 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
   // Apply translations for the current locale
   const localizedTours = localizeAndDedupeTours(categoryTours as any[], locale);
   const catFields = categoryTranslationFields.map(f => f.key);
-  const localizedCategory = localizeEntityFields(category, locale, catFields);
+  const localizedCategory = localizeStructuredEntries(
+    localizeEntityFields(category, locale, catFields),
+    locale,
+    categoryStructuredFields,
+  );
 
   return (
     <>

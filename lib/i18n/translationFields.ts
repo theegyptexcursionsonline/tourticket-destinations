@@ -110,6 +110,12 @@ export const categoryTranslationFields: TranslationFieldDef[] = [
   { key: 'features', label: 'Features', type: 'array', maxLength: 300 },
 ];
 
+export const categoryStructuredFields: StructuredTranslationSpec[] = [
+  { key: 'faqs', fields: ['question', 'answer'] },
+  { key: 'travelTips', fields: ['title', 'content'] },
+  imageMetadataStructuredField,
+];
+
 // ── Attraction/landing page translatable fields (matches AttractionPageTranslationSchema) ──
 
 export const attractionPageTranslationFields: TranslationFieldDef[] = [

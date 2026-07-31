@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Layers3, ListChecks, MessageSquareQuote, PackagePlus, Globe2 } from 'lucide-react';
+import ContentStructuredTranslationEditor from '@/components/admin/ContentStructuredTranslationEditor';
 import {
   translatableLocales,
   localeNames,
@@ -40,6 +41,7 @@ interface Props {
   faqs?: FAQSource[];
   bookingOptions?: BookingOptionSource[];
   addOns?: AddOnSource[];
+  imageMetadata?: Array<{ url?: string; alt?: string; title?: string }>;
 }
 
 const inputStyles =
@@ -89,6 +91,7 @@ export default function TourStructuredTranslationEditor({
   faqs = [],
   bookingOptions = [],
   addOns = [],
+  imageMetadata = [],
 }: Props) {
   const [activeLocale, setActiveLocale] = useState(translatableLocales[0]);
   const localeData = (value[activeLocale] || {}) as Record<string, unknown>;
@@ -300,6 +303,11 @@ export default function TourStructuredTranslationEditor({
           )}
         </section>
       </div>
+      <ContentStructuredTranslationEditor
+        value={value}
+        onChange={onChange}
+        imageMetadata={imageMetadata}
+      />
     </div>
   );
 }
