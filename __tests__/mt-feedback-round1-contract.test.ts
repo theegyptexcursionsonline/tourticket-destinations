@@ -96,3 +96,49 @@ describe('each tenant sitemap publishes its own domain', () => {
     );
   });
 });
+
+describe('catalogue page creation reports what actually went wrong', () => {
+  const route = read('app/api/admin/attraction-pages/route.ts');
+
+  it('maps a duplicate slug to a conflict instead of an unknown failure', () => {
+    expect(route).toContain('mongoError?.code === 11000');
+    expect(route).toContain('status: 409');
+  });
+
+  it('does not report a saved page as failed because populate threw', () => {
+    expect(route).toContain('Created page but could not populate category');
+  });
+
+  it('shows the reason in the admin form rather than a generic message', () => {
+    expect(read('components/admin/AttractionPageForm.tsx'))
+      .toContain("[data.error, data.details].filter(Boolean).join(' — ')");
+  });
+});
+
+describe('curated content reaches the live site promptly', () => {
+  it('tags storefront responses so they can be purged', () => {
+    expect(read('proxy.ts')).toContain("'Netlify-Cache-Tag'");
+  });
+
+  it('purges the edge cache on save without blocking or failing it', () => {
+    const revalidate = read('lib/storefront/revalidateTourStorefront.ts');
+    expect(revalidate).toContain('void purgeStorefrontCdnCache(tenantId)');
+    const purge = read('lib/storefront/purgeCdnCache.ts');
+    expect(purge).toContain('NETLIFY_PURGE_TOKEN');
+    // missing config must degrade, not throw
+    expect(purge).toContain('return false;');
+  });
+});
+
+describe('destinations can be translated from the admin', () => {
+  const manager = read('app/admin/destinations/DestinationManager.tsx');
+
+  it('offers a Translations tab', () => {
+    expect(manager).toContain("{ id: 'translations', label: 'Translations'");
+    expect(manager).toContain('<TranslationEditor');
+  });
+
+  it('never blanks existing locales from a form that did not load them', () => {
+    expect(manager).toContain('hasTranslations ? { translations } : {}');
+  });
+});

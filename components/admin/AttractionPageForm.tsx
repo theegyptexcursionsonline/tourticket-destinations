@@ -547,8 +547,11 @@ export default function AttractionPageForm({ pageId, initialPageType = 'attracti
         }
         router.refresh();
       } else {
-        setError(data.error || 'Failed to save page');
-        toast.error(data.error || 'Failed to save page');
+        // The API sends `details` for validation problems; showing only the
+        // headline turned every one of them into "failed to create a page".
+        const message = [data.error, data.details].filter(Boolean).join(' — ') || 'Failed to save page';
+        setError(message);
+        toast.error(message);
       }
     } catch (err) {
       const errorMessage = err instanceof Error

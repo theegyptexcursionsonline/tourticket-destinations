@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Booking from '@/lib/models/Booking';
 import Tour from '@/lib/models/Tour';
+import { authoritativeBasePrice } from '@/lib/pricing/authoritativePrice';
 import User from '@/lib/models/user';
 import Discount from '@/lib/models/Discount';
 import { EmailService } from '@/lib/email/emailService';
@@ -532,7 +533,10 @@ export async function POST(request: Request) {
 
         // Calculate the correct total price including add-ons and fees
         const calculateItemTotal = () => {
-          const basePrice = cartItem.selectedBookingOption?.price || cartItem.discountPrice || cartItem.price || 0;
+          // Priced from the stored tour, not from the submitted cart: the
+          // discount lives on the tour as a percentage and the browser has no
+          // authority over what a guest is charged.
+          const basePrice = authoritativeBasePrice(tour, cartItem);
           const adultPrice = basePrice * (cartItem.quantity || 1);
           const childPrice = (basePrice / 2) * (cartItem.childQuantity || 0);
           let tourTotal = adultPrice + childPrice;

@@ -13,11 +13,16 @@ import {
   destinationTranslationFields,
   categoryTranslationFields,
   attractionPageTranslationFields,
+  destinationStructuredFields,
+  attractionPageStructuredFields,
 } from './translationFields';
+import { extractStructuredSpecContent } from './structuredContent';
 import {
   buildTranslationLengthInstruction,
   enforceTranslationFieldLimits,
 } from './translationLimits';
+
+export { extractStructuredSpecContent };
 
 type FieldValues = Record<string, string | string[]>;
 type TranslationsMap = Record<string, Record<string, string | string[]>>;
@@ -46,11 +51,18 @@ interface StructuredAddOnItem {
   description?: string;
 }
 
+interface StructuredImageMetadataItem {
+  url?: string;
+  alt?: string;
+  title?: string;
+}
+
 interface StructuredTourContent {
   itinerary: StructuredItineraryItem[];
   faq: StructuredFaqItem[];
   bookingOptions: StructuredBookingOptionItem[];
   addOns: StructuredAddOnItem[];
+  imageMetadata: StructuredImageMetadataItem[];
 }
 
 const hasText = (value: unknown): value is string =>
@@ -159,9 +171,11 @@ export async function translateEntityFieldsForLocale(
 
   const localeName = localeNames[locale] || locale;
 
-  // Identify which defined fields are missing so AI can generate them
+  // Identify which defined fields are missing so AI can generate them.
+  // Policy and operational fields are excluded: writing a weather or gratuity
+  // policy that exists in no language is how a translation becomes a promise.
   const missingFields = fieldDefs
-    .filter((def) => !fieldsToTranslate[def.key])
+    .filter((def) => !fieldsToTranslate[def.key] && !def.neverGenerate)
     .map((def) => `${def.key} (${def.type === 'array' ? 'array of strings' : def.type}, ${def.label})`);
 
   const missingSection = missingFields.length > 0
@@ -201,6 +215,8 @@ ${buildTranslationLengthInstruction(fieldDefs)}
     if (typeof parsed !== 'object' || parsed === null || Object.keys(parsed).length === 0) {
       throw new Error('Translation model returned no fields');
     }
+    // The per-locale prompt asks for a flat object, but tolerate a model that
+    // wraps the answer in the locale key instead of treating the run as empty.
     const localeBucket = parsed[locale];
     const candidate = localeBucket && typeof localeBucket === 'object' && !Array.isArray(localeBucket)
       ? localeBucket as Record<string, unknown>
@@ -258,14 +274,30 @@ export function extractStructuredTourContent(doc: Record<string, unknown>): Stru
       })
     : [];
 
-  return { itinerary, faq, bookingOptions, addOns };
+  // url is carried through untranslated so the storefront can match each
+  // caption back to its image even after the gallery is reordered.
+  const imageMetadata = Array.isArray(doc.imageMetadata)
+    ? doc.imageMetadata
+        .map((item) => {
+          const record = (item || {}) as Record<string, unknown>;
+          return {
+            url: hasText(record.url) ? record.url : undefined,
+            alt: hasText(record.alt) ? record.alt : undefined,
+            title: hasText(record.title) ? record.title : undefined,
+          };
+        })
+        .filter((entry) => entry.url && (entry.alt || entry.title))
+    : [];
+
+  return { itinerary, faq, bookingOptions, addOns, imageMetadata };
 }
 
 const hasStructuredTourContent = (content: StructuredTourContent) =>
   content.itinerary.some((item) => Object.values(item).some((value) => hasText(value) || (Array.isArray(value) && value.length > 0))) ||
   content.faq.some((item) => Object.values(item).some((value) => hasText(value))) ||
   content.bookingOptions.some((item) => Object.values(item).some((value) => hasText(value))) ||
-  content.addOns.some((item) => Object.values(item).some((value) => hasText(value)));
+  content.addOns.some((item) => Object.values(item).some((value) => hasText(value))) ||
+  content.imageMetadata.some((item) => hasText(item.alt) || hasText(item.title));
 
 export async function translateStructuredTourContentForLocale(
   content: StructuredTourContent,
@@ -281,11 +313,68 @@ export async function translateStructuredTourContentForLocale(
   if (content.faq.length > 0) contentToTranslate.faq = content.faq;
   if (content.bookingOptions.length > 0) contentToTranslate.bookingOptions = content.bookingOptions;
   if (content.addOns.length > 0) contentToTranslate.addOns = content.addOns;
+  if (content.imageMetadata.length > 0) contentToTranslate.imageMetadata = content.imageMetadata;
 
   const prompt = `You are a professional translator for a tour booking website. Translate the following structured English tour content into ${localeName} (${locale}).
 
 Content to translate:
 ${JSON.stringify(contentToTranslate, null, 2)}
+
+Rules:
+- Preserve the same JSON keys and array order exactly
+- Translate only text values that customers can read
+- Keep proper nouns in their commonly used local form
+${locale === 'ar' ? '- Produce proper RTL text for Arabic\n' : ''}- Keep the wording natural for a tourism website
+- Keep empty values empty
+- In imageMetadata, translate only alt and title; copy every url through unchanged
+- Return only a valid JSON object`;
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      response_format: { type: 'json_object' },
+      messages: [
+        { role: 'system', content: 'You are a translation API. Return only valid JSON.' },
+        { role: 'user', content: prompt },
+      ],
+      temperature: 0.3,
+    });
+
+    const text = response.choices[0]?.message?.content;
+    if (!text) throw new Error('Empty response from translation model');
+
+    const parsed = JSON.parse(text) as StructuredTranslationMap;
+    if (typeof parsed !== 'object' || parsed === null) {
+      throw new Error('Translation model returned invalid structured content');
+    }
+    // The url is the join key back to the image, so never trust a rewritten
+    // one — restore it from the source by position.
+    if (Array.isArray(parsed.imageMetadata)) {
+      parsed.imageMetadata = (parsed.imageMetadata as Array<Record<string, unknown>>).map((entry, index) => ({
+        ...entry,
+        url: content.imageMetadata[index]?.url,
+      })).filter((entry) => entry.url);
+    }
+    return parsed;
+  } catch (error) {
+    console.error(`Auto-translate failed for structured tour content (${locale}):`, error);
+    throw error instanceof Error ? error : new Error('Translation failed');
+  }
+}
+
+export async function translateStructuredSpecContentForLocale(
+  content: Record<string, Array<Record<string, string>>>,
+  entityLabel: string,
+  locale: string
+): Promise<StructuredTranslationMap> {
+  const openai = getOpenAIClient();
+  if (!openai || Object.keys(content).length === 0) return {};
+
+  const localeName = localeNames[locale] || locale;
+  const prompt = `You are a professional translator for a tour booking website. Translate the following structured English ${entityLabel} content into ${localeName} (${locale}).
+
+Content to translate:
+${JSON.stringify(content, null, 2)}
 
 Rules:
 - Preserve the same JSON keys and array order exactly
@@ -315,7 +404,7 @@ ${locale === 'ar' ? '- Produce proper RTL text for Arabic\n' : ''}- Keep the wor
     }
     return parsed;
   } catch (error) {
-    console.error(`Auto-translate failed for structured tour content (${locale}):`, error);
+    console.error(`Auto-translate failed for structured ${entityLabel} content (${locale}):`, error);
     throw error instanceof Error ? error : new Error('Translation failed');
   }
 }
@@ -347,10 +436,21 @@ const FIELD_FALLBACKS: Record<string, { from: string; transform?: (v: string) =>
   metaDescription: { from: 'description', transform: (v) => v.length > 160 ? v.slice(0, 157) + '...' : v },
 };
 
+// A few translatable values live one level down (destination temperatures are
+// stored as averageTemperature.summer/winter), so the flat field list reaches
+// them through a synthetic key.
+const NESTED_SOURCES: Record<string, [string, string]> = {
+  summerTemperature: ['averageTemperature', 'summer'],
+  winterTemperature: ['averageTemperature', 'winter'],
+};
+
 export function extractFields(doc: Record<string, unknown>, fieldDefs: TranslationFieldDef[]): FieldValues {
   const fields: FieldValues = {};
   for (const def of fieldDefs) {
-    let val = doc[def.key];
+    const nested = NESTED_SOURCES[def.key];
+    let val = nested
+      ? (doc[nested[0]] as Record<string, unknown> | undefined)?.[nested[1]]
+      : doc[def.key];
 
     // Apply fallback if field is empty
     if ((!val || (typeof val === 'string' && !val.trim()) || (Array.isArray(val) && val.length === 0)) && FIELD_FALLBACKS[def.key]) {
@@ -429,9 +529,14 @@ export async function autoTranslateDestination(destinationId: string): Promise<v
   if (!dest) throw new Error('Destination not found');
 
   const fields = extractFields(dest as Record<string, unknown>, destinationTranslationFields);
-  const translations = await translateLocalesSettled(
-    (locale) => translateEntityFieldsForLocale(fields, destinationTranslationFields, 'destination', locale)
-  );
+  const structured = extractStructuredSpecContent(dest as Record<string, unknown>, destinationStructuredFields);
+  const translations = await translateLocalesSettled(async (locale) => {
+    const [flat, blocks] = await Promise.all([
+      translateEntityFieldsForLocale(fields, destinationTranslationFields, 'destination', locale),
+      translateStructuredSpecContentForLocale(structured, 'destination', locale),
+    ]);
+    return { ...flat, ...blocks };
+  });
   if (Object.keys(translations).length === 0) throw new Error('No destination translations were generated');
 
   await Destination.findByIdAndUpdate(destinationId, { $set: buildTranslationsSetOps(translations) });
@@ -461,9 +566,14 @@ export async function autoTranslateAttractionPage(pageId: string): Promise<void>
   if (!page) throw new Error('Page not found');
 
   const fields = extractFields(page as Record<string, unknown>, attractionPageTranslationFields);
-  const translations = await translateLocalesSettled(
-    (locale) => translateEntityFieldsForLocale(fields, attractionPageTranslationFields, 'landing page', locale)
-  );
+  const structured = extractStructuredSpecContent(page as Record<string, unknown>, attractionPageStructuredFields);
+  const translations = await translateLocalesSettled(async (locale) => {
+    const [flat, blocks] = await Promise.all([
+      translateEntityFieldsForLocale(fields, attractionPageTranslationFields, 'landing page', locale),
+      translateStructuredSpecContentForLocale(structured, 'landing page', locale),
+    ]);
+    return { ...flat, ...blocks };
+  });
   if (Object.keys(translations).length === 0) throw new Error('No page translations were generated');
 
   await AttractionPage.findByIdAndUpdate(pageId, { $set: buildTranslationsSetOps(translations) });

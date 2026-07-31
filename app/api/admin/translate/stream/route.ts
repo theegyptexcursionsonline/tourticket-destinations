@@ -126,6 +126,7 @@ export async function POST(request: NextRequest) {
               ? await translateTourContentForLocale(fields, structuredTourContent || {
                   itinerary: [],
                   faq: [],
+                  imageMetadata: [],
                   bookingOptions: [],
                   addOns: [],
                 }, locale)

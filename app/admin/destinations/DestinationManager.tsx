@@ -33,6 +33,8 @@ import { IDestination } from '@/lib/models/Destination';
 import { useAdminTenant } from '@/contexts/AdminTenantContext';
 import ImageSeoFields from '@/components/admin/ImageSeoFields';
 import { FaqEditor, TravelTipsEditor } from '@/components/admin/StructuredContentEditor';
+import TranslationEditor from '@/components/admin/TranslationEditor';
+import { destinationTranslationFields, normalizeTranslations } from '@/lib/i18n/translationFields';
 import { uploadImageFiles } from '@/lib/admin/uploadImages';
 import { ensureImageMetadata } from '@/lib/content/imageMetadata';
 import type { ContentFaq, ContentTravelTip, ImageMetadata } from '@/types';
@@ -44,6 +46,7 @@ interface Tour {
 }
 
 interface FormData {
+  translations: Record<string, Record<string, unknown>>;
   name: string;
   slug: string;
   country: string;
@@ -117,6 +120,7 @@ export default function DestinationManager({ initialDestinations }: { initialDes
   }, [selectedTenantId]);
   
   const [formData, setFormData] = useState<FormData>({
+    translations: {},
     name: '',
     slug: '',
     country: '',
@@ -181,6 +185,7 @@ export default function DestinationManager({ initialDestinations }: { initialDes
 
   const resetForm = () => {
     setFormData({
+      translations: {},
       name: '',
       slug: '',
       country: '',
@@ -229,6 +234,7 @@ export default function DestinationManager({ initialDestinations }: { initialDes
     }
     setEditingDestination(dest);
     setFormData({
+      translations: normalizeTranslations(dest.translations),
       name: dest.name || '',
       slug: dest.slug || '',
       country: dest.country || '',
@@ -430,9 +436,13 @@ const handleSubmit = async (e: React.FormEvent) => {
   try {
    const saveOperation = async () => {
   // Prepare data for submission
-  const { linkedTours, ...destinationData } = formData;
+  const { linkedTours, translations, ...destinationData } = formData;
+  const hasTranslations = Object.keys(translations || {}).length > 0;
   const submitData = {
     ...destinationData,
+    // Never send an empty map: that would wipe existing locales on a save
+    // made from a form that had not loaded them.
+    ...(hasTranslations ? { translations } : {}),
     // Scope a new destination to the brand selected in the dashboard. The
     // create endpoint reads tenantId from the body (the GET sends it as a
     // query param); omitting it 403'd network admins. Edits keep their tenant.
@@ -557,6 +567,7 @@ setTimeout(() => router.refresh(), 0);
     { id: 'location', label: 'Location', icon: MapPin },
     { id: 'content', label: 'Content', icon: Sparkles },
     { id: 'travel', label: 'Travel Info', icon: Globe },
+    { id: 'translations', label: 'Translations', icon: Globe },
     { id: 'seo', label: 'SEO', icon: Eye }
   ];
   const filteredTours = availableTours.filter((tour) =>
@@ -1508,6 +1519,18 @@ setTimeout(() => router.refresh(), 0);
                 )}
 
                 {/* SEO Tab */}
+                {activeTab === 'translations' && (
+                  <div className="space-y-6">
+                    <TranslationEditor
+                      fields={destinationTranslationFields}
+                      value={formData.translations}
+                      onChange={(translations) => setFormData(prev => ({ ...prev, translations }))}
+                      modelType="destination"
+                      entityId={editingDestination?._id ? String(editingDestination._id) : undefined}
+                    />
+                  </div>
+                )}
+
                 {activeTab === 'seo' && (
                   <div className="space-y-8">
                 {/* Original SEO Fields */}

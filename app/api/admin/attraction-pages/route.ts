@@ -198,11 +198,13 @@ export async function POST(request: NextRequest) {
     await page.save();
     revalidateStorefrontContent();
 
-    // Populate the category for response
-    await page.populate({
-      path: 'categoryId',
-      select: 'name slug'
-    });
+    // The record is already saved; a populate failure must not be reported
+    // as a failed creation.
+    try {
+      await page.populate({ path: 'categoryId', select: 'name slug' });
+    } catch (populateError) {
+      console.warn('Created page but could not populate category:', populateError);
+    }
 
     console.log('Attraction page created successfully:', page._id);
 
@@ -216,6 +218,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: error.message }, { status: 400 });
     }
     
+    // A slug collision surfaced by the database rather than the pre-check
+    // means a uniqueness rule wider than the tenant is in play. Say so
+    // instead of returning an unexplained failure.
+    const mongoError = error as { code?: number; keyPattern?: Record<string, unknown> };
+    if (mongoError?.code === 11000) {
+      const field = Object.keys(mongoError.keyPattern || {}).join(', ') || 'slug';
+      return NextResponse.json({
+        success: false,
+        error: `A page with this URL slug already exists (${field}). Choose a different slug.`,
+      }, { status: 409 });
+    }
+
     // Handle validation errors
     if (error instanceof Error && error.name === 'ValidationError') {
       return NextResponse.json({

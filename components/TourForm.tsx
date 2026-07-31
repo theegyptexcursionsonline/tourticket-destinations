@@ -46,7 +46,8 @@ import {
     Edit,
     PlusCircle,
     Minus,
-    Building2
+    Building2,
+    Percent,
 } from 'lucide-react';
 import ImageSeoFields from '@/components/admin/ImageSeoFields';
 import { uploadImageFiles } from '@/lib/admin/uploadImages';
@@ -96,6 +97,7 @@ interface BookingOption {
     badge?: string;
     discount?: number;
     isRecommended?: boolean;
+    applyTourDiscount?: boolean;
 }
 
 interface ItineraryItem {
@@ -128,6 +130,7 @@ interface TourFormData {
     longDescription: string;
     duration: string;
     discountPrice: string | number;
+    discountPercent: string | number;
     originalPrice: string | number;
     destination: string;
     category: string[];
@@ -437,6 +440,7 @@ export default function TourForm({ tourToEdit, onSave, fullPage = false }: { tou
         longDescription: '',
         duration: '',
         discountPrice: '',
+        discountPercent: '',
         originalPrice: '',
         destination: '',
         category: [],
@@ -515,6 +519,7 @@ export default function TourForm({ tourToEdit, onSave, fullPage = false }: { tou
                 longDescription: tourToEdit.longDescription || '',
                 duration: tourToEdit.duration || '',
                 discountPrice: tourToEdit.discountPrice || tourToEdit.price || '',
+                discountPercent: tourToEdit.discountPercent ?? '',
                 originalPrice: tourToEdit.originalPrice || '',
                 destination: (tourToEdit.destination as any)?._id?.toString() || tourToEdit.destination || '',
                 category: Array.isArray(tourToEdit.category)
@@ -561,6 +566,7 @@ export default function TourForm({ tourToEdit, onSave, fullPage = false }: { tou
                         difficulty: option.difficulty || '',
                         badge: option.badge || '',
                         discount: option.discount || 0,
+                        applyTourDiscount: (option as any).applyTourDiscount || false,
                         isRecommended: option.isRecommended || false
                     }))
                     : [{ 
@@ -577,6 +583,7 @@ export default function TourForm({ tourToEdit, onSave, fullPage = false }: { tou
                         difficulty: '',
                         badge: '',
                         discount: 0,
+                        applyTourDiscount: false,
                         isRecommended: false
                     }],
                 addOns: (tourToEdit.addOns?.length ?? 0) > 0
@@ -695,6 +702,7 @@ export default function TourForm({ tourToEdit, onSave, fullPage = false }: { tou
             longDescription: '',
             duration: '',
             discountPrice: '',
+            discountPercent: '',
             originalPrice: '',
             destination: '',
             category: [],
@@ -1058,6 +1066,10 @@ const addItineraryItem = () => {
                 duration: cleanedData.duration.trim(),
                 price: parseFloat(String(cleanedData.discountPrice)) || 0,
                 discountPrice: parseFloat(String(cleanedData.discountPrice)) || 0,
+                // Blank means "no percentage discount", not zero-priced.
+                discountPercent: String(cleanedData.discountPercent ?? '').trim() === ''
+                    ? undefined
+                    : Math.max(0, Math.min(100, parseFloat(String(cleanedData.discountPercent)) || 0)),
                 longDescription: cleanedData.longDescription?.trim() || cleanedData.description.trim(),
                 originalPrice: cleanedData.originalPrice ? parseFloat(String(cleanedData.originalPrice)) : undefined,
                 destination: cleanedData.destination,
@@ -1596,6 +1608,24 @@ const addItineraryItem = () => {
                                                         required 
                                                     />
                                                 </div>
+                                            </div>
+                                            <div className="space-y-3">
+                                                <FormLabel icon={Percent}>Discount %</FormLabel>
+                                                <input
+                                                    name="discountPercent"
+                                                    type="number"
+                                                    min="0"
+                                                    max="100"
+                                                    step="1"
+                                                    value={formData.discountPercent}
+                                                    onChange={handleChange}
+                                                    className={inputBase}
+                                                    placeholder="e.g. 15"
+                                                />
+                                                <SmallHint>
+                                                    Applies to any booking option you tick “Apply tour discount” on.
+                                                    Customers still see a discounted price, not a percentage.
+                                                </SmallHint>
                                             </div>
                                             <div className="space-y-3">
                                                 <FormLabel icon={CurrencyIcon}>Original Price ({selectedCurrency.symbol})</FormLabel>
@@ -2327,6 +2357,18 @@ const addItineraryItem = () => {
                                                                             required
                                                                         />
                                                                     </div>
+                                                                    <label className="flex items-center gap-2 pt-1 cursor-pointer">
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            checked={Boolean(option.applyTourDiscount)}
+                                                                            onChange={(e) => handleBookingOptionChange(index, 'applyTourDiscount', e.target.checked)}
+                                                                            className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500"
+                                                                        />
+                                                                        <span className="text-sm text-slate-700">
+                                                                            Apply tour discount
+                                                                            {formData.discountPercent ? ` (${formData.discountPercent}% off)` : ''}
+                                                                        </span>
+                                                                    </label>
                                                                 </div>
                                                             </div>
 

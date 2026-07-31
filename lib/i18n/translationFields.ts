@@ -8,6 +8,12 @@ export interface TranslationFieldDef {
   type: TranslationFieldType;
   maxLength?: number;
   rows?: number;
+  /**
+   * When the English source is empty, the translator is allowed to write this
+   * field from context (useful for SEO copy). Never set it on operational or
+   * policy content: an invented Arabic cancellation policy is worse than none.
+   */
+  neverGenerate?: boolean;
 }
 
 /** Locales that need translations (everything except 'en' which is the source) */
@@ -18,30 +24,13 @@ export const localeNames: Record<string, string> = {
   ar: 'Arabic',
   es: 'Spanish',
   fr: 'French',
-  ru: 'Russian',
   de: 'German',
+  ru: 'Russian',
 };
 
 export { isRTL };
 
-// ── Tour translatable fields ──
-
-export const tourTranslationFields: TranslationFieldDef[] = [
-  { key: 'title', label: 'Title', type: 'input', maxLength: 200 },
-  { key: 'description', label: 'Description', type: 'textarea', maxLength: 1000, rows: 3 },
-  { key: 'longDescription', label: 'Long Description', type: 'textarea', maxLength: 5000, rows: 6 },
-  { key: 'location', label: 'Location', type: 'input', maxLength: 200 },
-  { key: 'duration', label: 'Duration', type: 'input', maxLength: 100 },
-  { key: 'metaTitle', label: 'Meta Title', type: 'input', maxLength: 60 },
-  { key: 'metaDescription', label: 'Meta Description', type: 'textarea', maxLength: 160, rows: 2 },
-  { key: 'includes', label: 'Includes', type: 'array', maxLength: 300 },
-  { key: 'highlights', label: 'Highlights', type: 'array', maxLength: 300 },
-  { key: 'whatsIncluded', label: "What's Included", type: 'array', maxLength: 300 },
-  { key: 'whatsNotIncluded', label: "What's Not Included", type: 'array', maxLength: 300 },
-  { key: 'tags', label: 'Tags', type: 'array', maxLength: 50 },
-];
-
-// ── Destination translatable fields ──
+// ── Destination translatable fields (matches DestinationTranslationSchema) ──
 
 export const destinationTranslationFields: TranslationFieldDef[] = [
   { key: 'name', label: 'Name', type: 'input', maxLength: 100 },
@@ -58,10 +47,58 @@ export const destinationTranslationFields: TranslationFieldDef[] = [
   { key: 'languagesSpoken', label: 'Languages Spoken', type: 'array', maxLength: 50 },
   { key: 'highlights', label: 'Highlights', type: 'array', maxLength: 200 },
   { key: 'thingsToDo', label: 'Things to Do', type: 'array', maxLength: 300 },
-  { key: 'localCustoms', label: 'Local Customs', type: 'array', maxLength: 500 },
+  { key: 'localCustoms', label: 'Local Customs', type: 'array', maxLength: 500, neverGenerate: true },
+  { key: 'weatherWarnings', label: 'Weather Warnings', type: 'array', maxLength: 300 },
+  { key: 'summerTemperature', label: 'Summer Temperature', type: 'input', maxLength: 100, neverGenerate: true },
+  { key: 'winterTemperature', label: 'Winter Temperature', type: 'input', maxLength: 100, neverGenerate: true },
 ];
 
-// ── Category translatable fields ──
+// ── Tour translatable fields (matches TourTranslationSchema) ──
+
+export const tourTranslationFields: TranslationFieldDef[] = [
+  { key: 'title', label: 'Title', type: 'input', maxLength: 200 },
+  { key: 'description', label: 'Description', type: 'textarea', maxLength: 1000, rows: 3 },
+  { key: 'longDescription', label: 'Long Description', type: 'textarea', maxLength: 5000, rows: 6 },
+  { key: 'location', label: 'Location', type: 'input', maxLength: 200 },
+  { key: 'duration', label: 'Duration', type: 'input', maxLength: 100 },
+  { key: 'metaTitle', label: 'Meta Title', type: 'input', maxLength: 60 },
+  { key: 'metaDescription', label: 'Meta Description', type: 'textarea', maxLength: 160, rows: 2 },
+  { key: 'includes', label: 'Includes', type: 'array', maxLength: 300 },
+  { key: 'highlights', label: 'Highlights', type: 'array', maxLength: 300 },
+  { key: 'whatsIncluded', label: "What's Included", type: 'array', maxLength: 300 },
+  { key: 'whatsNotIncluded', label: "What's Not Included", type: 'array', maxLength: 300 },
+  { key: 'tags', label: 'Tags', type: 'array', maxLength: 50 },
+  { key: 'difficulty', label: 'Difficulty', type: 'input', maxLength: 50, neverGenerate: true },
+  { key: 'keywords', label: 'Keywords', type: 'array', maxLength: 100, neverGenerate: true },
+  { key: 'whatToBring', label: 'What to Bring', type: 'array', maxLength: 300, neverGenerate: true },
+  { key: 'whatToWear', label: 'What to Wear', type: 'array', maxLength: 300, neverGenerate: true },
+  { key: 'notSuitableFor', label: 'Not Suitable For', type: 'array', maxLength: 300, neverGenerate: true },
+  { key: 'needToKnow', label: 'Need to Know', type: 'array', maxLength: 300, neverGenerate: true },
+  { key: 'accessibilityInfo', label: 'Accessibility Info', type: 'array', maxLength: 300, neverGenerate: true },
+  { key: 'healthSafety', label: 'Health & Safety', type: 'array', maxLength: 300, neverGenerate: true },
+  { key: 'culturalInfo', label: 'Cultural Highlights', type: 'array', maxLength: 300, neverGenerate: true },
+  { key: 'localCustoms', label: 'Local Customs', type: 'array', maxLength: 300, neverGenerate: true },
+  { key: 'physicalRequirements', label: 'Physical Requirements', type: 'textarea', maxLength: 500, rows: 2, neverGenerate: true },
+  { key: 'transportationDetails', label: 'Transportation Details', type: 'textarea', maxLength: 500, rows: 2, neverGenerate: true },
+  { key: 'mealInfo', label: 'Meal Information', type: 'textarea', maxLength: 500, rows: 2, neverGenerate: true },
+  { key: 'weatherPolicy', label: 'Weather Policy', type: 'textarea', maxLength: 500, rows: 2, neverGenerate: true },
+  { key: 'photoPolicy', label: 'Photography Policy', type: 'textarea', maxLength: 500, rows: 2, neverGenerate: true },
+  { key: 'tipPolicy', label: 'Gratuity Policy', type: 'textarea', maxLength: 500, rows: 2, neverGenerate: true },
+  { key: 'seasonalVariations', label: 'Seasonal Variations', type: 'textarea', maxLength: 500, rows: 2, neverGenerate: true },
+];
+
+/**
+ * Per-image alt text and title. Shared by every model that stores
+ * `imageMetadata`, and matched by `url` rather than position because gallery
+ * order changes independently of the translations.
+ */
+export const imageMetadataStructuredField: StructuredTranslationSpec = {
+  key: 'imageMetadata',
+  fields: ['alt', 'title'],
+  matchKey: 'url',
+};
+
+// ── Category translatable fields (matches CategoryTranslationSchema) ──
 
 export const categoryTranslationFields: TranslationFieldDef[] = [
   { key: 'name', label: 'Name', type: 'input', maxLength: 100 },
@@ -72,6 +109,8 @@ export const categoryTranslationFields: TranslationFieldDef[] = [
   { key: 'highlights', label: 'Highlights', type: 'array', maxLength: 200 },
   { key: 'features', label: 'Features', type: 'array', maxLength: 300 },
 ];
+
+// ── Attraction/landing page translatable fields (matches AttractionPageTranslationSchema) ──
 
 export const attractionPageTranslationFields: TranslationFieldDef[] = [
   { key: 'title', label: 'Title', type: 'input', maxLength: 200 },
@@ -103,3 +142,25 @@ export const normalizeTranslations = (
     return {};
   }
 };
+
+// ── Repeated sub-document blocks ──
+// FAQs and travel tips are arrays of objects, so they can't be edited through
+// the flat field editor. Auto-translate still covers them: these specs tell the
+// translator which sub-fields carry customer-readable text.
+
+export interface StructuredTranslationSpec {
+  key: string;
+  fields: string[];
+  /** Merge translated entries by this field instead of by array position. */
+  matchKey?: string;
+}
+
+export const destinationStructuredFields: StructuredTranslationSpec[] = [
+  { key: 'faqs', fields: ['question', 'answer'] },
+  { key: 'travelTips', fields: ['title', 'content'] },
+];
+
+export const attractionPageStructuredFields: StructuredTranslationSpec[] = [
+  { key: 'faqs', fields: ['question', 'answer'] },
+  { key: 'travelTips', fields: ['title', 'content'] },
+];

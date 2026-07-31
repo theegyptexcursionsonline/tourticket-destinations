@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { effectiveOptionPrice } from '@/lib/pricing/effectivePrice';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from '@/i18n/navigation';
 import Image from 'next/image';
@@ -35,6 +36,7 @@ interface Tour {
   image: string;
   originalPrice?: number;
   discountPrice: number;
+  discountPercent?: number;
   destination?: {
     _id: string;
     name: string;
@@ -1000,6 +1002,7 @@ const BookingSummaryCard: React.FC<{
     destination: typeof tour.destination === 'string' 
       ? tour.destination 
       : tour.destination?.name || 'Unknown',
+    discountPercent: tour.discountPercent,
   } : null;
 
   return (
@@ -1395,6 +1398,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
         ? tour.destination 
         : tour.destination?.name || 'Unknown',
       discountPrice: tour.discountPrice,
+      discountPercent: tour.discountPercent,
       originalPrice: tour.originalPrice,
       maxGroupSize: tour.maxGroupSize || 15,
       highlights: tour.highlights || [],
@@ -1451,13 +1455,18 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
       let tourOptions: TourOption[];
       if (bookingOptions.length > 0) {
         tourOptions = bookingOptions.map((option: any, index: number) => {
-          const optionPrice = option.price || tourDisplayData?.discountPrice || 50;
+          // Same helper the server charges with, so the quoted price and the
+          // charged price cannot drift apart.
+          const pricing = effectiveOptionPrice(tourDisplayData, option);
+          const optionPrice = pricing.price || tourDisplayData?.discountPrice || 50;
           const optionId = option.id || option._id || `option-${index}`;
           return {
             id: optionId,
             title: option.label || option.title || 'Tour Option',
             price: optionPrice,
-            originalPrice: option.originalPrice || optionPrice,
+            originalPrice: pricing.discountApplied
+              ? pricing.originalPrice
+              : (option.originalPrice || optionPrice),
             duration: option.duration || tourDisplayData?.duration || '3 hours',
             languages: option.languages || tourDisplayData?.languages || ['English'],
             description: option.description || 'Experience our tour',

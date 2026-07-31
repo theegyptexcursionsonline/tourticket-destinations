@@ -52,6 +52,10 @@ export interface IBookingOption {
   badge?: string;
   discount?: number;
   isRecommended?: boolean;
+  /** Opt this option into the tour's discount percentage. */
+  applyTourDiscount?: boolean;
+  /** Optional per-slot pricing; a blank price inherits the option's base. */
+  timeSlots?: Array<{ time: string; capacity?: number; price?: number }>;
 }
 
 export interface IAddOn {
@@ -85,6 +89,8 @@ export interface ITour extends Document {
   price?: number;
   originalPrice?: number;
   discountPrice: number;
+  /** Whole-number percentage applied to opted-in booking options. */
+  discountPercent?: number;
   duration: string;
   difficulty?: string;
   maxGroupSize?: number;
@@ -336,6 +342,14 @@ const BookingOptionSchema = new Schema<IBookingOption>({
     min: [0, 'Original price cannot be negative'],
     max: [999999, 'Original price cannot exceed 999999']
   },
+  applyTourDiscount: { type: Boolean, default: false },
+  timeSlots: [{
+    _id: false,
+    time: { type: String, trim: true, required: true },
+    capacity: { type: Number, min: 0 },
+    // Blank means "use the option's base price".
+    price: { type: Number, min: 0, max: 999999 },
+  }],
   description: { 
     type: String, 
     trim: true,
@@ -506,6 +520,13 @@ const TourSchema: Schema<ITour> = new Schema({
     min: [0, 'Discount price cannot be negative'],
     max: [999999, 'Discount price cannot exceed 999999'],
     index: true
+  },
+  // Percentage form of the discount, applied to booking options that opt in.
+  // The displayed price stays a money amount; only the input changes.
+  discountPercent: {
+    type: Number,
+    min: [0, 'Discount percent cannot be negative'],
+    max: [100, 'Discount percent cannot exceed 100'],
   },
   duration: { 
     type: String, 

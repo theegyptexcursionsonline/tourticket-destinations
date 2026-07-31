@@ -372,6 +372,9 @@ function applyTenantToResponse(
       'Netlify-CDN-Cache-Control',
       'public, durable, s-maxage=900, stale-while-revalidate=86400',
     );
+    // Tagging the durable entries is what makes an admin save able to purge
+    // them; without it a curated change waits out s-maxage before appearing.
+    response.headers.set('Netlify-Cache-Tag', `storefront,tenant-${tenantId}`);
     response.headers.set('Netlify-Vary', 'cookie=tenantId|NEXT_LOCALE');
     return response;
   }
