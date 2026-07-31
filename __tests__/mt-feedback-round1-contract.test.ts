@@ -142,3 +142,23 @@ describe('destinations can be translated from the admin', () => {
     expect(manager).toContain('hasTranslations ? { translations } : {}');
   });
 });
+
+describe('tour editor pickers are searchable', () => {
+  const form = read('components/TourForm.tsx');
+
+  it.each(['categories', 'attractions', 'catalogue pages'])(
+    'offers a search box for %s',
+    (label) => {
+      expect(form).toContain(`searchPlaceholder="Search ${label}…"`);
+    },
+  );
+
+  it('shows the search box regardless of how short the list is', () => {
+    // a box that disappears on short lists is the same complaint again
+    expect(read('components/admin/SearchableCheckboxList.tsx')).toContain('searchThreshold = 0');
+  });
+
+  it('no longer renders the unfiltered scrolling checkbox list', () => {
+    expect(form).not.toContain('{categories.map((cat) => {');
+  });
+});
