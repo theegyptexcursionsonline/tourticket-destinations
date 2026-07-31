@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
-import { Star, Clock, ShoppingCart, Search, MapPin, Users, Award, TrendingUp, CheckCircle2, Tag } from 'lucide-react';
+import { Star, Clock, ShoppingCart, Search, MapPin, Users, Award, TrendingUp, CheckCircle2, Tag, Compass, ChevronDown } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import AISearchWidget from '@/components/AISearchWidget';
@@ -11,7 +11,233 @@ import RelatedInterests from '@/components/RelatedInterests';
 import { Tour, Category } from '@/types';
 import { useSettings } from '@/hooks/useSettings';
 import BookingSidebar from '@/components/BookingSidebar';
+import { useLocale } from 'next-intl';
+import { isRTL } from '@/i18n/config';
 import { imageMetadataFor } from '@/lib/content/imageMetadata';
+
+type CategoryPageCopy = {
+  searchToursPlaceholder: string;
+  allDurations: string;
+  halfDay: string;
+  fullDay: string;
+  multiDay: string;
+  allPrices: string;
+  under50: string;
+  price50to100: string;
+  price100to200: string;
+  price200Plus: string;
+  recommended: string;
+  priceLowToHigh: string;
+  priceHighToLow: string;
+  highestRated: string;
+  duration: string;
+  toursAvailable: string;
+  averageRating: string;
+  happyCustomers: string;
+  expertGuides: string;
+  aboutCategory: (name: string) => string;
+  highlights: string;
+  features: string;
+  essentialInformation: string;
+  discover: string;
+  tourCount: (count: number) => string;
+  addToCartAria: string;
+  viewDetails: string;
+  availableTours: string;
+  noToursMatchFilters: string;
+  adjustSearchFilters: string;
+  clearAllFilters: string;
+  noToursFound: string;
+  noToursInCategory: (name: string) => string;
+  exploreAllTours: string;
+  exploreRelatedCategories: string;
+  discoverMoreExperiences: string;
+  quickFacts: string;
+  whatToExpect: string;
+  popularDestinations: string;
+  perfectFor: string;
+  categoryFaq: string;
+  startingFrom: string;
+  priceRange: string;
+  tripLengths: string;
+  destinationsCovered: string;
+  browseDestination: string;
+  learnMore: string;
+  topPicks: string;
+  handpickedTours: string;
+};
+
+const CATEGORY_PAGE_COPY: Record<'en' | 'ar', CategoryPageCopy> = {
+  en: {
+    searchToursPlaceholder: 'Search tours...',
+    allDurations: 'All Durations',
+    halfDay: 'Half Day',
+    fullDay: 'Full Day',
+    multiDay: 'Multi-Day',
+    allPrices: 'All Prices',
+    under50: 'Under $50',
+    price50to100: '$50 - $100',
+    price100to200: '$100 - $200',
+    price200Plus: '$200+',
+    recommended: 'Recommended',
+    priceLowToHigh: 'Price: Low to High',
+    priceHighToLow: 'Price: High to Low',
+    highestRated: 'Highest Rated',
+    duration: 'Duration',
+    toursAvailable: 'Tours Available',
+    averageRating: 'Average Rating',
+    happyCustomers: 'Happy Customers',
+    expertGuides: 'Expert Guides',
+    aboutCategory: (name: string) => `About ${name}`,
+    highlights: 'Highlights',
+    features: 'Features',
+    essentialInformation: 'Essential Information',
+    discover: 'DISCOVER',
+    tourCount: (count: number) => `${count}+ Tours`,
+    addToCartAria: 'Add to cart',
+    viewDetails: 'View Details',
+    availableTours: 'Available Tours',
+    noToursMatchFilters: 'No Tours Match Your Filters',
+    adjustSearchFilters: 'Try adjusting your search or filter criteria.',
+    clearAllFilters: 'Clear All Filters',
+    noToursFound: 'No Tours Found',
+    noToursInCategory: (name: string) =>
+      `There are currently no tours available in the "${name}" category.`,
+    exploreAllTours: 'Explore All Tours',
+    exploreRelatedCategories: 'Explore Related Categories',
+    discoverMoreExperiences: 'Discover more amazing experiences',
+    quickFacts: 'Quick Facts',
+    whatToExpect: 'What to Expect',
+    popularDestinations: 'Popular Destinations',
+    perfectFor: 'Perfect For',
+    categoryFaq: 'Frequently Asked Questions',
+    startingFrom: 'Starting From',
+    priceRange: 'Price Range',
+    tripLengths: 'Trip Lengths',
+    destinationsCovered: 'Destinations Covered',
+    browseDestination: 'Browse Destination',
+    learnMore: 'Learn More',
+    topPicks: 'Top Picks In This Category',
+    handpickedTours: 'Handpicked tours worth shortlisting first',
+  },
+  ar: {
+    searchToursPlaceholder: 'ابحث عن الجولات...',
+    allDurations: 'كل المدد',
+    halfDay: 'نصف يوم',
+    fullDay: 'يوم كامل',
+    multiDay: 'عدة أيام',
+    allPrices: 'كل الأسعار',
+    under50: 'أقل من 50$',
+    price50to100: '50$ - 100$',
+    price100to200: '100$ - 200$',
+    price200Plus: '200$+',
+    recommended: 'موصى به',
+    priceLowToHigh: 'السعر: من الأقل إلى الأعلى',
+    priceHighToLow: 'السعر: من الأعلى إلى الأقل',
+    highestRated: 'الأعلى تقييماً',
+    duration: 'المدة',
+    toursAvailable: 'جولات متاحة',
+    averageRating: 'متوسط التقييم',
+    happyCustomers: 'عملاء سعداء',
+    expertGuides: 'مرشدون خبراء',
+    aboutCategory: (name: string) => `حول ${name}`,
+    highlights: 'أبرز النقاط',
+    features: 'المزايا',
+    essentialInformation: 'معلومات أساسية',
+    discover: 'اكتشف',
+    tourCount: (count: number) => `${count}+ جولة`,
+    addToCartAria: 'أضف إلى السلة',
+    viewDetails: 'عرض التفاصيل',
+    availableTours: 'الجولات المتاحة',
+    noToursMatchFilters: 'لا توجد جولات تطابق الفلاتر',
+    adjustSearchFilters: 'جرّب تعديل البحث أو الفلاتر.',
+    clearAllFilters: 'مسح جميع الفلاتر',
+    noToursFound: 'لم يتم العثور على جولات',
+    noToursInCategory: (name: string) => `لا توجد جولات متاحة حاليًا ضمن فئة "${name}".`,
+    exploreAllTours: 'استكشف جميع الجولات',
+    exploreRelatedCategories: 'استكشف فئات مشابهة',
+    discoverMoreExperiences: 'اكتشف المزيد من التجارب الرائعة',
+    quickFacts: 'حقائق سريعة',
+    whatToExpect: 'ماذا تتوقع',
+    popularDestinations: 'الوجهات الأكثر شهرة',
+    perfectFor: 'مناسبة لـ',
+    categoryFaq: 'الأسئلة الشائعة',
+    startingFrom: 'الأسعار تبدأ من',
+    priceRange: 'نطاق الأسعار',
+    tripLengths: 'مدد الرحلات',
+    destinationsCovered: 'الوجهات المتاحة',
+    browseDestination: 'استعرض الوجهة',
+    learnMore: 'اعرف المزيد',
+    topPicks: 'أفضل الاختيارات في هذه الفئة',
+    handpickedTours: 'جولات مختارة تستحق أن تبدأ بها',
+  },
+};
+
+type CategoryInsightDestination = {
+  name: string;
+  slug: string;
+  image?: string;
+  count: number;
+};
+
+type CategoryFaqItem = {
+  question: string;
+  answer: string;
+};
+
+type CategoryInsights = {
+  overviewParagraphs: string[];
+  expectationItems: string[];
+  travelerTypes: string[];
+  popularDestinations: CategoryInsightDestination[];
+  faqItems: CategoryFaqItem[];
+  durationSummary: string;
+  minPriceLabel: string | null;
+  priceRangeLabel: string | null;
+};
+
+const extractNumericDuration = (duration?: string) => {
+  if (!duration) return null;
+
+  const match = duration.match(/(\d+)(?:\s*-\s*(\d+))?/);
+  if (!match) return null;
+
+  const high = match[2] ? Number.parseInt(match[2], 10) : Number.parseInt(match[1], 10);
+  if (!Number.isFinite(high)) return null;
+
+  const lowerDuration = duration.toLowerCase();
+  if (lowerDuration.includes('day')) {
+    return high * 24;
+  }
+
+  return high;
+};
+
+const formatDurationSummary = (durations: string[], locale: string) => {
+  if (durations.length === 0) {
+    return locale.startsWith('ar') ? 'مدد متنوعة من الرحلات القصيرة إلى الجولات اليومية' : 'Varied trip lengths from short outings to full-day tours';
+  }
+
+  if (durations.length === 1) {
+    return durations[0];
+  }
+
+  const sorted = [...durations].sort((a, b) => {
+    const aValue = extractNumericDuration(a) ?? Number.MAX_SAFE_INTEGER;
+    const bValue = extractNumericDuration(b) ?? Number.MAX_SAFE_INTEGER;
+    return aValue - bValue;
+  });
+
+  return `${sorted[0]} - ${sorted[sorted.length - 1]}`;
+};
+
+const buildOverviewParagraphs = ({ category }: { category: Category }) => {
+  // Only what an editor actually wrote. The previous version appended two
+  // machine-written paragraphs to every category — including ones that already
+  // had a description — so the page said things nobody had approved.
+  const baseDescription = (category.longDescription || category.description || '').trim();
+  return baseDescription ? [baseDescription] : [];
+};
 
 // --- SearchAndFilter Component ---
 const SearchAndFilter = ({
@@ -23,6 +249,8 @@ const SearchAndFilter = ({
   setSelectedDuration,
   priceRange,
   setPriceRange,
+  copy,
+  rtl,
 }: {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
@@ -32,18 +260,22 @@ const SearchAndFilter = ({
   setSelectedDuration: (duration: string) => void;
   priceRange: string;
   setPriceRange: (range: string) => void;
+  copy: CategoryPageCopy;
+  rtl: boolean;
 }) => (
   <div className="bg-white rounded-lg shadow-sm p-4 mb-6 border border-gray-200">
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
       {/* Search Bar */}
       <div className="relative">
-        <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+        <Search className="search-icon-left absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
         <input
           type="text"
-          placeholder="Search tours..."
+          placeholder={copy.searchToursPlaceholder}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full ps-10 pe-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+          className={`w-full py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
+            rtl ? 'pr-10 pl-4 text-right' : 'pl-10 pr-4 text-left'
+          }`}
         />
       </div>
 
@@ -53,10 +285,10 @@ const SearchAndFilter = ({
         onChange={(e) => setSelectedDuration(e.target.value)}
         className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
       >
-        <option value="">All Durations</option>
-        <option value="half-day">Half Day</option>
-        <option value="full-day">Full Day</option>
-        <option value="multi-day">Multi-Day</option>
+        <option value="">{copy.allDurations}</option>
+        <option value="half-day">{copy.halfDay}</option>
+        <option value="full-day">{copy.fullDay}</option>
+        <option value="multi-day">{copy.multiDay}</option>
       </select>
 
       {/* Price Range Filter */}
@@ -65,11 +297,11 @@ const SearchAndFilter = ({
         onChange={(e) => setPriceRange(e.target.value)}
         className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
       >
-        <option value="">All Prices</option>
-        <option value="0-50">Under $50</option>
-        <option value="50-100">$50 - $100</option>
-        <option value="100-200">$100 - $200</option>
-        <option value="200+">$200+</option>
+        <option value="">{copy.allPrices}</option>
+        <option value="0-50">{copy.under50}</option>
+        <option value="50-100">{copy.price50to100}</option>
+        <option value="100-200">{copy.price100to200}</option>
+        <option value="200+">{copy.price200Plus}</option>
       </select>
 
       {/* Sort Dropdown */}
@@ -78,18 +310,24 @@ const SearchAndFilter = ({
         onChange={(e) => setSortBy(e.target.value)}
         className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
       >
-        <option value="recommended">Recommended</option>
-        <option value="price_low">Price: Low to High</option>
-        <option value="price_high">Price: High to Low</option>
-        <option value="rating">Highest Rated</option>
-        <option value="duration">Duration</option>
+        <option value="recommended">{copy.recommended}</option>
+        <option value="price_low">{copy.priceLowToHigh}</option>
+        <option value="price_high">{copy.priceHighToLow}</option>
+        <option value="rating">{copy.highestRated}</option>
+        <option value="duration">{copy.duration}</option>
       </select>
     </div>
   </div>
 );
 
 // --- StatsSection Component ---
-const StatsSection = ({ tours }: { category: Category; tours: Tour[] }) => {
+const StatsSection = ({
+  tours,
+  copy,
+}: {
+  tours: Tour[];
+  copy: CategoryPageCopy;
+}) => {
   const totalTours = tours?.length || 0;
 
   // Calculate average rating from tours
@@ -105,7 +343,7 @@ const StatsSection = ({ tours }: { category: Category; tours: Tour[] }) => {
   // Calculate happy customers from bookings or use default
   let happyCustomers = '10K+';
   if (tours && tours.length > 0) {
-    const totalBookings = tours.reduce((acc, t) => acc + ((t as any).bookings || 0), 0);
+    const totalBookings = tours.reduce((total, tour) => total + (tour.bookings || 0), 0);
     if (totalBookings > 0) {
       if (totalBookings >= 1000) {
         happyCustomers = `${Math.floor(totalBookings / 1000)}K+`;
@@ -116,10 +354,10 @@ const StatsSection = ({ tours }: { category: Category; tours: Tour[] }) => {
   }
 
   const stats = [
-    { icon: MapPin, label: 'Tours Available', value: totalTours.toString(), color: 'text-blue-600' },
-    { icon: Star, label: 'Average Rating', value: averageRating, color: 'text-yellow-600' },
-    { icon: Users, label: 'Happy Customers', value: happyCustomers, color: 'text-green-600' },
-    { icon: Award, label: 'Expert Guides', value: '50+', color: 'text-purple-600' },
+    { icon: MapPin, label: copy.toursAvailable, value: totalTours.toString(), color: 'text-blue-600' },
+    { icon: Star, label: copy.averageRating, value: averageRating, color: 'text-yellow-600' },
+    { icon: Users, label: copy.happyCustomers, value: happyCustomers, color: 'text-green-600' },
+    { icon: Award, label: copy.expertGuides, value: '50+', color: 'text-purple-600' },
   ];
 
   return (
@@ -143,129 +381,236 @@ const StatsSection = ({ tours }: { category: Category; tours: Tour[] }) => {
 };
 
 // --- AboutSection Component ---
-//
-// Issue #6: category pages were rendering a near-empty "About" block for
-// any category that hadn't been seeded with longDescription / highlights /
-// features — and when the block did render, the "Essential Information"
-// panel was hardcoded to Cairo/Giza pickup, which didn't match
-// adventure-activities or any non-Cairo category.
-//
-// The new behavior:
-//   1. Always render the section (no early-null).
-//   2. If the category doesn't have its own longDescription, fall back to
-//      a generated intro that reads the category name. No more blank panels.
-//   3. If highlights/features aren't seeded, show a sensible default list
-//      so every category renders the same useful shape.
-//   4. Essential Information is generic (not Cairo-specific) and now
-//      rendered alongside a small FAQ that helps the page rank for
-//      category-intent searches.
-const DEFAULT_HIGHLIGHTS = [
-  'Handpicked experiences — every tour is reviewed before it goes live.',
-  'Expert local guides with deep knowledge of every site and story.',
-  'Small group sizes so the experience stays personal, not commercial.',
-  'Free cancellation up to 24 hours before the tour — plans change, we get it.',
-];
+const AboutSection = ({
+  category,
+  copy,
+  insights,
+}: {
+  category: Category;
+  copy: CategoryPageCopy;
+  insights: CategoryInsights;
+}) => {
+  const highlights = (category.highlights || []).length > 0
+    ? category.highlights || []
+    : insights.expectationItems;
+  const features = (category.features || []).length > 0
+    ? category.features || []
+    : insights.travelerTypes;
+  const popularDestinations = insights.popularDestinations;
 
-const DEFAULT_FEATURES = [
-  'Instant confirmation on booking — no waiting to hear back.',
-  'Hotel pickup options on most tours in the category.',
-  'Bilingual guides covering English, French, German, Spanish, Russian and Arabic.',
-  'Verified reviews from customers who actually took the tour.',
-];
-
-const DEFAULT_FAQ: Array<{ question: string; answer: string }> = [
-  {
-    question: 'Are these tours suitable for families and children?',
-    answer:
-      'Most of the experiences in this category are family-friendly. Each tour card lists the recommended age range and group size — look for the "family-friendly" badge on listings.',
-  },
-  {
-    question: 'What happens if the weather is bad?',
-    answer:
-      'For outdoor experiences, we reschedule free of charge if weather makes the tour unsafe. You can also cancel for a full refund up to 24 hours before departure.',
-  },
-  {
-    question: 'Do I need to print my voucher?',
-    answer:
-      'No — just show your booking confirmation on your phone when you meet your guide. You can find it in the confirmation email and in your account under My Bookings.',
-  },
-  {
-    question: 'Can I book for a large group?',
-    answer:
-      'Yes. If you need more than 10 spots, contact us directly and we\'ll arrange a private group at a discounted rate.',
-  },
-];
-
-const AboutSection = ({ category }: { category: Category }) => {
-  const rawHighlights: string[] = (category as any).highlights || [];
-  const rawFeatures: string[] = (category as any).features || [];
-  const longDescription =
-    (category as any).longDescription ||
-    category.description ||
-    `Discover the best ${category.name} experiences in Egypt. Every tour listed below is curated by a team that actually lives here, and every price is the same one a local would pay. Whether you're after hands-on adventure, cultural depth, or a relaxed family day out, you'll find the right fit in this category.`;
-
-  const highlights = rawHighlights.length > 0 ? rawHighlights : DEFAULT_HIGHLIGHTS;
-  const features = rawFeatures.length > 0 ? rawFeatures : DEFAULT_FEATURES;
-  const faqItems = category.faqs && category.faqs.length > 0 ? category.faqs : DEFAULT_FAQ;
+  if (insights.overviewParagraphs.length === 0 && highlights.length === 0 && features.length === 0) {
+    return null;
+  }
 
   return (
     <section className="py-12 bg-gray-50">
       <div className="container mx-auto px-4">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-3xl font-bold text-gray-900 mb-6">About {category.name}</h2>
+          <h2 className="text-3xl font-bold text-gray-900 mb-6">{copy.aboutCategory(category.name)}</h2>
 
-          <div className="prose prose-lg max-w-none mb-8">
-            <p className="text-gray-700 leading-relaxed">{longDescription}</p>
+          <div className="space-y-4 mb-8">
+            {insights.overviewParagraphs.map((paragraph) => (
+              <p key={paragraph} className="text-gray-700 leading-relaxed text-lg">
+                {paragraph}
+              </p>
+            ))}
           </div>
 
-          <div className="mb-8">
-            <h3 className="text-2xl font-semibold text-gray-900 mb-4">Highlights</h3>
-            <div className="grid md:grid-cols-2 gap-3">
-              {highlights.map((highlight: string, index: number) => (
-                <div key={index} className="flex items-start gap-2">
-                  <CheckCircle2 className="text-green-600 flex-shrink-0 mt-1" size={20} />
-                  <span className="text-gray-700">{highlight}</span>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+            <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
+              <div className="text-sm font-semibold text-gray-500 mb-2">{copy.startingFrom}</div>
+              <div className="text-2xl font-bold text-slate-900">{insights.minPriceLabel || '—'}</div>
+            </div>
+            <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
+              <div className="text-sm font-semibold text-gray-500 mb-2">{copy.priceRange}</div>
+              <div className="text-2xl font-bold text-slate-900">{insights.priceRangeLabel || '—'}</div>
+            </div>
+            <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
+              <div className="text-sm font-semibold text-gray-500 mb-2">{copy.tripLengths}</div>
+              <div className="text-lg font-bold text-slate-900">{insights.durationSummary}</div>
+            </div>
+            <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
+              <div className="text-sm font-semibold text-gray-500 mb-2">{copy.destinationsCovered}</div>
+              <div className="text-2xl font-bold text-slate-900">{popularDestinations.length}</div>
+            </div>
+          </div>
+
+          {highlights.length > 0 && (
+            <div className="mb-8">
+              <h3 className="text-2xl font-semibold text-gray-900 mb-4">{copy.whatToExpect}</h3>
+              <div className="grid md:grid-cols-2 gap-3">
+                {highlights.map((highlight: string, index: number) => (
+                  <div key={index} className="flex items-start gap-2">
+                    <CheckCircle2 className="text-green-600 flex-shrink-0 mt-1" size={20} />
+                    <span className="text-gray-700">{highlight}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {features.length > 0 && (
+            <div className="mb-8">
+              <h3 className="text-2xl font-semibold text-gray-900 mb-4">{copy.perfectFor}</h3>
+              <div className="grid md:grid-cols-2 gap-3">
+                {features.map((feature: string, index: number) => (
+                  <div key={index} className="flex items-start gap-2">
+                    <TrendingUp className="text-blue-600 flex-shrink-0 mt-1" size={20} />
+                    <span className="text-gray-700">{feature}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {popularDestinations.length > 0 && (
+            <div className="mb-8">
+              <h3 className="text-2xl font-semibold text-gray-900 mb-4">{copy.popularDestinations}</h3>
+              <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
+                {popularDestinations.map((destination) => (
+                  <Link
+                    key={destination.slug}
+                    href={`/destinations/${destination.slug}`}
+                    className="group bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-all"
+                  >
+                    <div className="relative h-40">
+                      <Image
+                        src={destination.image || 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800&q=80&fm=jpg'}
+                        alt={destination.name}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                    </div>
+                    <div className="p-4">
+                      <div className="text-lg font-semibold text-slate-900 mb-1">{destination.name}</div>
+                      <div className="text-sm text-slate-500 mb-3">
+                        {destination.count} {destination.count === 1 ? copy.toursAvailable.replace('s', '') : copy.toursAvailable.toLowerCase()}
+                      </div>
+                      <span className="inline-flex items-center gap-2 text-red-600 font-medium text-sm">
+                        {copy.browseDestination}
+                        <Compass size={15} />
+                      </span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+const CategoryFaqSection = ({
+  copy,
+  faqItems,
+}: {
+  copy: CategoryPageCopy;
+  faqItems: CategoryFaqItem[];
+}) => {
+  const [openIndex, setOpenIndex] = useState(0);
+
+  if (faqItems.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className="py-12 bg-white">
+      <div className="container mx-auto px-4">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-3xl font-bold text-gray-900 mb-6">{copy.categoryFaq}</h2>
+          <div className="space-y-4">
+            {faqItems.map((faq, index) => {
+              const isOpen = openIndex === index;
+
+              return (
+                <div key={faq.question} className="border border-gray-200 rounded-2xl overflow-hidden bg-slate-50">
+                  <button
+                    onClick={() => setOpenIndex(isOpen ? -1 : index)}
+                    className="w-full flex items-center justify-between gap-4 p-5 text-left"
+                    aria-expanded={isOpen}
+                  >
+                    <span className="font-semibold text-slate-900 text-lg">{faq.question}</span>
+                    <ChevronDown
+                      size={20}
+                      className={`text-slate-500 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                    />
+                  </button>
+                  {isOpen && (
+                    <div className="px-5 pb-5 text-slate-600 leading-relaxed">
+                      {faq.answer}
+                    </div>
+                  )}
                 </div>
-              ))}
-            </div>
+              );
+            })}
           </div>
+        </div>
+      </div>
+    </section>
+  );
+};
 
+const TopPicksSection = ({
+  tours,
+  copy,
+}: {
+  tours: Tour[];
+  copy: CategoryPageCopy;
+}) => {
+  if (tours.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className="py-12 bg-white border-y border-slate-100">
+      <div className="container mx-auto px-4">
+        <div className="max-w-7xl mx-auto">
           <div className="mb-8">
-            <h3 className="text-2xl font-semibold text-gray-900 mb-4">What to expect</h3>
-            <div className="grid md:grid-cols-2 gap-3">
-              {features.map((feature: string, index: number) => (
-                <div key={index} className="flex items-start gap-2">
-                  <TrendingUp className="text-blue-600 flex-shrink-0 mt-1" size={20} />
-                  <span className="text-gray-700">{feature}</span>
+            <h2 className="text-3xl font-bold text-slate-900 mb-2">{copy.topPicks}</h2>
+            <p className="text-slate-600">{copy.handpickedTours}</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {tours.map((tour) => (
+              <div key={tour._id} className="bg-slate-50 border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
+                <div className="relative h-56">
+                  <Image
+                    src={tour.image}
+                    alt={tour.title}
+                    fill
+                    className="object-cover"
+                  />
                 </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
-            <h3 className="text-xl font-semibold text-gray-900 mb-3">Essential Information</h3>
-            <ul className="space-y-2 text-gray-700">
-              <li>• Professional multilingual guides available on every tour.</li>
-              <li>• Hotel pickup and drop-off options across major tourist areas.</li>
-              <li>• Small-group sizes keep every experience personal.</li>
-              <li>• Free cancellation up to 24 hours before the tour for a full refund.</li>
-              <li>• Secure online payment in USD, EUR, GBP, and EGP.</li>
-            </ul>
-          </div>
-
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <h3 className="text-xl font-semibold text-gray-900 mb-4">Frequently asked questions</h3>
-            <div className="space-y-4">
-              {faqItems.map((item, index) => (
-                <details key={index} className="group border-b border-gray-100 pb-3 last:border-0">
-                  <summary className="cursor-pointer font-medium text-gray-800 flex items-center justify-between list-none">
-                    <span>{item.question}</span>
-                    <span className="text-gray-400 group-open:rotate-180 transition-transform">▾</span>
-                  </summary>
-                  <p className="mt-2 text-gray-600 text-sm leading-relaxed">{item.answer}</p>
-                </details>
-              ))}
-            </div>
+                <div className="p-5">
+                  <div className="flex items-center gap-3 text-sm text-slate-500 mb-3">
+                    {tour.destination && typeof tour.destination === 'object' && (
+                      <span className="inline-flex items-center gap-1">
+                        <MapPin size={14} />
+                        {tour.destination.name}
+                      </span>
+                    )}
+                    {tour.rating && (
+                      <span className="inline-flex items-center gap-1">
+                        <Star size={14} className="fill-current text-yellow-500" />
+                        {tour.rating}
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="text-xl font-semibold text-slate-900 mb-2 line-clamp-2">{tour.title}</h3>
+                  <p className="text-slate-600 text-sm line-clamp-3 mb-4">
+                    {tour.description?.replace(/<[^>]+>/g, '')}
+                  </p>
+                  <Link
+                    href={`/${tour.slug}`}
+                    className="inline-flex items-center gap-2 text-red-600 font-semibold"
+                  >
+                    {copy.learnMore}
+                    <Compass size={16} />
+                  </Link>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -319,36 +664,20 @@ const CategoryTravelTipsSection = ({ category }: { category: Category }) => {
   );
 };
 
-const PopularDestinationsSection = ({ category }: { category: Category }) => {
-  const destinations = (category.popularDestinationIds || []).filter(
-    (destination): destination is Exclude<typeof destination, string> => typeof destination === 'object' && destination !== null,
-  );
-  if (destinations.length === 0) return null;
-
-  return (
-    <section className="py-12 bg-white">
-      <div className="container mx-auto px-4">
-        <div className="max-w-7xl mx-auto">
-          <h2 className="text-3xl font-bold text-slate-900 mb-6">Popular destinations</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {destinations.map((destination) => (
-              <Link key={destination._id || destination.slug} href={`/destinations/${destination.slug}`} className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                <div className="relative h-44">
-                  <Image src={destination.image || '/hero2.jpg'} alt={destination.name} fill className="object-cover transition-transform duration-500 group-hover:scale-105" sizes="(max-width: 1024px) 50vw, 25vw" />
-                </div>
-                <div className="p-4 font-semibold text-slate-900 group-hover:text-red-600">{destination.name}</div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-};
 
 // --- Hero Section Component ---
-const CategoryHeroSection = ({ category, tourCount }: { category: Category; tourCount: number }) => {
-  const heroImage = (category as any).heroImage || 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1200&q=80&fm=jpg';
+const CategoryHeroSection = ({
+  category,
+  tourCount,
+  copy,
+  rtl,
+}: {
+  category: Category;
+  tourCount: number;
+  copy: CategoryPageCopy;
+  rtl: boolean;
+}) => {
+  const heroImage = category.heroImage || 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1200&q=80&fm=jpg';
   const heroSeo = imageMetadataFor(heroImage, category.imageMetadata, category.name);
 
   return (
@@ -368,10 +697,10 @@ const CategoryHeroSection = ({ category, tourCount }: { category: Category; tour
       </div>
 
       {/* Content */}
-      <div className="relative z-20 h-full flex items-center justify-center text-white px-4 sm:px-6 lg:px-8">
+      <div className="relative z-20 h-full flex items-center justify-center text-white px-4 sm:px-6 lg:px-8" dir={rtl ? 'rtl' : 'ltr'}>
         <div className="w-full max-w-7xl mx-auto text-center md:text-start pt-20 md:pt-0">
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold uppercase leading-tight tracking-wide mb-3 sm:mb-4">
-            DISCOVER
+            {copy.discover}
             <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-orange-300">
               {category.name}
@@ -385,13 +714,8 @@ const CategoryHeroSection = ({ category, tourCount }: { category: Category; tour
           <div className="mt-4 sm:mt-6 flex flex-wrap items-center justify-center md:justify-start gap-3 sm:gap-4 text-white/90 text-xs sm:text-sm px-4 sm:px-0">
             <span className="flex items-center gap-1.5 sm:gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full">
               <Tag size={14} className="sm:w-4 sm:h-4" />
-              <span className="font-semibold">{tourCount}+ Tours</span>
+              <span className="font-semibold">{copy.tourCount(tourCount)}</span>
             </span>
-            <span className="flex items-center gap-1.5 sm:gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full">
-              <Star size={14} className="sm:w-4 sm:h-4 fill-current text-yellow-400" />
-              <span className="font-semibold">4.8/5 Rating</span>
-            </span>
-            <span className="bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full font-semibold">50K+ Travelers</span>
           </div>
         </div>
       </div>
@@ -400,8 +724,17 @@ const CategoryHeroSection = ({ category, tourCount }: { category: Category; tour
 };
 
 // --- Tour Card Component ---
-const TourCard = ({ tour, onAddToCartClick }: { tour: Tour; onAddToCartClick: (tour: Tour) => void; }) => {
+const TourCard = ({
+  tour,
+  onAddToCartClick,
+  copy,
+}: {
+  tour: Tour;
+  onAddToCartClick: (tour: Tour) => void;
+  copy: CategoryPageCopy;
+}) => {
   const { formatPrice } = useSettings();
+  const displayedPrice = (tour as { pricingSummary?: { fromPrice?: number } }).pricingSummary?.fromPrice ?? tour.discountPrice ?? tour.originalPrice ?? 0;
 
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow flex flex-col group">
@@ -420,8 +753,8 @@ const TourCard = ({ tour, onAddToCartClick }: { tour: Tour; onAddToCartClick: (t
             e.preventDefault();
             onAddToCartClick(tour);
           }}
-          className="absolute bottom-3 end-3 bg-white/90 p-2 rounded-full hover:bg-white transition-colors hover:scale-110"
-          aria-label="Add to cart"
+          className="absolute bottom-3 right-3 bg-white/90 p-2 rounded-full hover:bg-white transition-colors hover:scale-110"
+          aria-label={copy.addToCartAria}
         >
           <ShoppingCart size={16} className="text-red-600" />
         </button>
@@ -438,13 +771,13 @@ const TourCard = ({ tour, onAddToCartClick }: { tour: Tour; onAddToCartClick: (t
         </div>
         <div className="flex items-center justify-between mt-auto">
           <div>
-            {tour.originalPrice && tour.originalPrice > tour.discountPrice && (
-              <span className="text-slate-500 line-through text-sm me-2">{formatPrice(tour.originalPrice)}</span>
+            {tour.originalPrice && tour.originalPrice > displayedPrice && (
+              <span className="text-slate-500 line-through text-sm mr-2">{formatPrice(tour.originalPrice)}</span>
             )}
-            <span className="text-xl font-bold text-red-600">{formatPrice(tour.discountPrice)}</span>
+            <span className="text-xl font-bold text-red-600">{formatPrice(displayedPrice)}</span>
           </div>
           <Link href={`/${tour.slug}`} className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors text-sm font-medium">
-            View Details
+            {copy.viewDetails}
           </Link>
         </div>
       </div>
@@ -453,7 +786,27 @@ const TourCard = ({ tour, onAddToCartClick }: { tour: Tour; onAddToCartClick: (t
 };
 
 
-export default function CategoryPageClient({ category, categoryTours }: { category: Category; categoryTours: Tour[] }) {
+export default function CategoryPageClient({
+    category,
+    categoryTours,
+    relatedInterests = [],
+}: {
+    category: Category;
+    categoryTours: Tour[];
+    relatedInterests?: Array<{
+      _id: string;
+      type: 'category' | 'attraction';
+      name: string;
+      slug: string;
+      products: number;
+      featured?: boolean;
+      image?: string;
+    }>;
+}) {
+    const locale = useLocale();
+    const rtl = isRTL(locale);
+    const copy = locale.startsWith('ar') ? CATEGORY_PAGE_COPY.ar : CATEGORY_PAGE_COPY.en;
+    const { formatPrice } = useSettings();
     const [selectedTour, setSelectedTour] = useState<Tour | null>(null);
     const [isBookingSidebarOpen, setBookingSidebarOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
@@ -471,9 +824,110 @@ export default function CategoryPageClient({ category, categoryTours }: { catego
         setTimeout(() => setSelectedTour(null), 300);
     };
 
+    const categoryInsights = useMemo(() => {
+        const destinationMap = new Map<string, CategoryInsightDestination>();
+        const highlightSet = new Set<string>();
+        const durationSet = new Set<string>();
+        const prices: number[] = [];
+
+        for (const tour of categoryTours) {
+            const rawDestination = typeof tour.destination === 'object' && tour.destination ? tour.destination : null;
+            const destinationName = rawDestination?.name;
+            const destinationSlug = rawDestination?.slug;
+
+            if (destinationName && destinationSlug) {
+                const existing = destinationMap.get(destinationSlug);
+                destinationMap.set(destinationSlug, {
+                    name: destinationName,
+                    slug: destinationSlug,
+                    image: rawDestination.image,
+                    count: (existing?.count || 0) + 1,
+                });
+            }
+
+            (tour.highlights || []).forEach((highlight) => {
+                const trimmed = highlight?.trim();
+                if (trimmed) {
+                    highlightSet.add(trimmed);
+                }
+            });
+
+            if (tour.duration) {
+                durationSet.add(tour.duration);
+            }
+
+            const price = (tour as { pricingSummary?: { fromPrice?: number } }).pricingSummary?.fromPrice ?? tour.discountPrice ?? tour.originalPrice ?? tour.price;
+            if (price && Number.isFinite(price)) {
+                prices.push(price);
+            }
+        }
+
+        const autoPopularDestinations = Array.from(destinationMap.values())
+            .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+            .slice(0, 4);
+        const curatedPopularDestinations = (category.popularDestinationIds || [])
+            .filter((destination): destination is Exclude<typeof destination, string> => typeof destination === 'object' && destination !== null)
+            .map((destination) => ({
+                name: destination.name,
+                slug: destination.slug,
+                image: destination.image,
+                count: destinationMap.get(destination.slug)?.count || 0,
+            }));
+        const popularDestinations = curatedPopularDestinations.length > 0
+            ? curatedPopularDestinations
+            : autoPopularDestinations;
+
+        const sortedPrices = [...prices].sort((a, b) => a - b);
+        const minPrice = sortedPrices[0];
+        const maxPrice = sortedPrices[sortedPrices.length - 1];
+        const minPriceLabel = minPrice ? formatPrice(minPrice) : null;
+        const priceRangeLabel = minPrice && maxPrice
+            ? minPrice === maxPrice
+                ? formatPrice(minPrice)
+                : `${formatPrice(minPrice)} - ${formatPrice(maxPrice)}`
+            : null;
+
+        const expectationItems = Array.from(highlightSet).slice(0, 6);
+        const travelerTypes = (category.features || []).map((f) => f?.trim()).filter(Boolean) as string[];
+        const durationSummary = formatDurationSummary(Array.from(durationSet), locale);
+        const overviewParagraphs = buildOverviewParagraphs({ category });
+        const faqItems = (category.faqs || []).filter(
+            (faq) => faq?.question?.trim() && faq?.answer?.trim(),
+        );
+
+        return {
+            overviewParagraphs,
+            expectationItems,
+            travelerTypes,
+            popularDestinations,
+            faqItems,
+            durationSummary,
+            minPriceLabel,
+            priceRangeLabel,
+        } satisfies CategoryInsights;
+    }, [category, categoryTours, formatPrice, locale]);
+
+    // Top Picks only earns its own section when it can show something the grid
+    // below does not; with three tours or fewer the two lists were identical.
+    const topPicks = useMemo(() => {
+        if (categoryTours.length <= 3) return [];
+        return [...categoryTours]
+            .sort((a, b) => {
+                const ratingDelta = (b.rating || 0) - (a.rating || 0);
+                if (ratingDelta !== 0) return ratingDelta;
+                return (b.bookings || 0) - (a.bookings || 0);
+            })
+            .slice(0, 3);
+    }, [categoryTours]);
+
+    const topPickIds = useMemo(
+        () => new Set(topPicks.map((tour) => String(tour._id))),
+        [topPicks],
+    );
+
     // Filter and sort tours
-    const filteredAndSortedTours = React.useMemo(() => {
-        let filtered = [...categoryTours];
+    const filteredAndSortedTours = useMemo(() => {
+        let filtered = categoryTours.filter((tour) => !topPickIds.has(String(tour._id)));
 
         // Search filter
         if (searchQuery) {
@@ -497,7 +951,7 @@ export default function CategoryPageClient({ category, categoryTours }: { catego
         // Price range filter
         if (priceRange) {
             filtered = filtered.filter(tour => {
-                const price = tour.discountPrice || tour.originalPrice || 0;
+                const price = (tour as { pricingSummary?: { fromPrice?: number } }).pricingSummary?.fromPrice ?? tour.discountPrice ?? tour.originalPrice ?? 0;
                 if (priceRange === '0-50') return price < 50;
                 if (priceRange === '50-100') return price >= 50 && price < 100;
                 if (priceRange === '100-200') return price >= 100 && price < 200;
@@ -509,10 +963,10 @@ export default function CategoryPageClient({ category, categoryTours }: { catego
         // Sort
         switch (sortBy) {
             case 'price_low':
-                filtered.sort((a, b) => (a.discountPrice || a.originalPrice || 0) - (b.discountPrice || b.originalPrice || 0));
+                filtered.sort((a, b) => ((a as { pricingSummary?: { fromPrice?: number } }).pricingSummary?.fromPrice ?? a.discountPrice ?? a.originalPrice ?? 0) - ((b as { pricingSummary?: { fromPrice?: number } }).pricingSummary?.fromPrice ?? b.discountPrice ?? b.originalPrice ?? 0));
                 break;
             case 'price_high':
-                filtered.sort((a, b) => (b.discountPrice || b.originalPrice || 0) - (a.discountPrice || a.originalPrice || 0));
+                filtered.sort((a, b) => ((b as { pricingSummary?: { fromPrice?: number } }).pricingSummary?.fromPrice ?? b.discountPrice ?? b.originalPrice ?? 0) - ((a as { pricingSummary?: { fromPrice?: number } }).pricingSummary?.fromPrice ?? a.discountPrice ?? a.originalPrice ?? 0));
                 break;
             case 'rating':
                 filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
@@ -532,25 +986,26 @@ export default function CategoryPageClient({ category, categoryTours }: { catego
         }
 
         return filtered;
-    }, [categoryTours, searchQuery, sortBy, selectedDuration, priceRange]);
+    }, [categoryTours, topPickIds, searchQuery, sortBy, selectedDuration, priceRange]);
 
     return (
         <>
             <Header />
 
             {/* Hero Section */}
-            <CategoryHeroSection category={category} tourCount={categoryTours.length} />
+            <CategoryHeroSection category={category} tourCount={categoryTours.length} copy={copy} rtl={rtl} />
 
-            <main className="min-h-screen bg-slate-50">
+            <main className="min-h-screen bg-slate-50" dir={rtl ? 'rtl' : 'ltr'}>
                 {/* Stats Section */}
-                <StatsSection category={category} tours={categoryTours} />
+                <StatsSection tours={categoryTours} copy={copy} />
 
                 {/* About Section */}
-                <AboutSection category={category} />
+                <AboutSection category={category} copy={copy} insights={categoryInsights} />
 
                 <CategoryGallerySection category={category} />
 
-                <PopularDestinationsSection category={category} />
+                <TopPicksSection tours={topPicks} copy={copy} />
+
 
                 <CategoryTravelTipsSection category={category} />
 
@@ -559,7 +1014,7 @@ export default function CategoryPageClient({ category, categoryTours }: { catego
                         {/* Search and Filter */}
                         {categoryTours.length > 0 && (
                             <div className="mt-12">
-                                <h2 className="text-3xl font-bold text-gray-900 mb-6">Available Tours</h2>
+                                <h2 className="text-3xl font-bold text-gray-900 mb-6">{copy.availableTours}</h2>
                                 <SearchAndFilter
                                     searchQuery={searchQuery}
                                     setSearchQuery={setSearchQuery}
@@ -569,6 +1024,8 @@ export default function CategoryPageClient({ category, categoryTours }: { catego
                                     setSelectedDuration={setSelectedDuration}
                                     priceRange={priceRange}
                                     setPriceRange={setPriceRange}
+                                    copy={copy}
+                                    rtl={rtl}
                                 />
                             </div>
                         )}
@@ -576,13 +1033,15 @@ export default function CategoryPageClient({ category, categoryTours }: { catego
                         {/* Tours Grid */}
                         {filteredAndSortedTours.length > 0 ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
-                                {filteredAndSortedTours.map(tour => (<TourCard key={tour._id} tour={tour} onAddToCartClick={handleTourSelect} />))}
+                                {filteredAndSortedTours.map(tour => (
+                                  <TourCard key={tour._id} tour={tour} onAddToCartClick={handleTourSelect} copy={copy} />
+                                ))}
                             </div>
                         ) : categoryTours.length > 0 ? (
                             <div className="text-center py-12">
                                 <div className="text-6xl mb-4">🔍</div>
-                                <h3 className="text-xl font-semibold text-slate-700 mb-2">No Tours Match Your Filters</h3>
-                                <p className="text-slate-500 mb-4">Try adjusting your search or filter criteria.</p>
+                                <h3 className="text-xl font-semibold text-slate-700 mb-2">{copy.noToursMatchFilters}</h3>
+                                <p className="text-slate-500 mb-4">{copy.adjustSearchFilters}</p>
                                 <button
                                     onClick={() => {
                                         setSearchQuery('');
@@ -592,17 +1051,17 @@ export default function CategoryPageClient({ category, categoryTours }: { catego
                                     }}
                                     className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
                                 >
-                                    Clear All Filters
+                                    {copy.clearAllFilters}
                                 </button>
                             </div>
                         ) : (
                             <div className="text-center py-12">
                                 <div className="text-6xl mb-4">😢</div>
-                                <h3 className="text-xl font-semibold text-slate-700 mb-2">No Tours Found</h3>
-                                <p className="text-slate-500 mb-4">There are currently no tours available in the "{category.name}" category.</p>
+                                <h3 className="text-xl font-semibold text-slate-700 mb-2">{copy.noToursFound}</h3>
+                                <p className="text-slate-500 mb-4">{copy.noToursInCategory(category.name)}</p>
                                 <div className="flex gap-4 justify-center">
                                     <Link href="/search" className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors">
-                                        Explore All Tours
+                                        {copy.exploreAllTours}
                                     </Link>
                                 </div>
                             </div>
@@ -610,12 +1069,15 @@ export default function CategoryPageClient({ category, categoryTours }: { catego
                     </div>
                 </div>
 
+                <CategoryFaqSection copy={copy} faqItems={categoryInsights.faqItems} />
+
                 {/* Related Categories Section */}
                 <div className="py-12 bg-white">
                     <RelatedInterests
+                        initialInterests={relatedInterests}
                         currentSlug={category.slug}
-                        title="Explore Related Categories"
-                        subtitle="Discover more amazing experiences"
+                        title={copy.exploreRelatedCategories}
+                        subtitle={copy.discoverMoreExperiences}
                         limit={8}
                     />
                 </div>
@@ -626,11 +1088,11 @@ export default function CategoryPageClient({ category, categoryTours }: { catego
             {/* AI Search Widget */}
             <AISearchWidget />
 
-            <BookingSidebar
+            {selectedTour && <BookingSidebar
                 isOpen={isBookingSidebarOpen}
                 onClose={closeSidebar}
-                tour={selectedTour as any}
-            />
+                tour={selectedTour as unknown as React.ComponentProps<typeof BookingSidebar>['tour']}
+            />}
         </>
     );
 }
