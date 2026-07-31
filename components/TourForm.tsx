@@ -106,6 +106,12 @@ interface ItineraryItem {
     title: string;
     description: string;
     icon?: string;
+    // Stored by the model and rendered on the live page; the editor simply
+    // never exposed them.
+    time?: string;
+    duration?: string;
+    location?: string;
+    includes?: string[];
 }
 
 interface FAQ {
@@ -813,6 +819,17 @@ export default function TourForm({ tourToEdit, onSave, fullPage = false }: { tou
     };
 
    // Make sure the itinerary icon handling is correct in the form
+// The storefront renders one "Includes" chip per entry, so the textarea is
+// stored as a list rather than a blob.
+const handleItineraryIncludesChange = (index: number, value: string) => {
+  const updatedItinerary = [...formData.itinerary];
+  updatedItinerary[index] = {
+    ...updatedItinerary[index],
+    includes: value.split('\n').map((line) => line.trim()).filter(Boolean),
+  };
+  setFormData((p) => ({ ...p, itinerary: updatedItinerary }));
+};
+
 const handleItineraryChange = (index: number, field: string, value: string | number) => {
   const updatedItinerary = [...formData.itinerary];
   updatedItinerary[index] = { ...updatedItinerary[index], [field]: value };
@@ -2084,9 +2101,9 @@ const addItineraryItem = () => {
                                                 >
                                                     <div className="flex items-center gap-3">
                                                         <div className="flex items-center justify-center w-8 h-8 bg-indigo-100 text-indigo-600 rounded-lg font-bold text-sm">
-                                                            {day.day}
+                                                            {i + 1}
                                                         </div>
-                                                        <h4 className="font-semibold text-slate-900">Day {day.day}</h4>
+                                                        <h4 className="font-semibold text-slate-900">{day.title?.trim() || `Stop ${i + 1}`}</h4>
                                                     </div>
                                                     <ChevronDown className={`h-5 w-5 text-slate-500 transform transition-transform duration-200 ${expandedItineraryIndex === i ? 'rotate-180' : ''}`} />
                                                 </button>
@@ -2118,12 +2135,49 @@ const addItineraryItem = () => {
   </div>
   <div className="space-y-2">
     <label className="text-xs font-medium text-slate-500">Description</label>
-    <textarea 
-      value={day.description} 
+    <textarea
+      value={day.description}
       onChange={(e) => handleItineraryChange(i, 'description', e.target.value)}
-      className={`${textareaBase} resize-none`} 
+      className={`${textareaBase} resize-none`}
       rows={2}
-      placeholder="Day description" 
+      placeholder="Day description"
+    />
+  </div>
+  <div className="space-y-2">
+    <label className="text-xs font-medium text-slate-500">Start time</label>
+    <input
+      value={day.time || ''}
+      onChange={(e) => handleItineraryChange(i, 'time', e.target.value)}
+      className={inputBase}
+      placeholder="e.g. 08:00 AM"
+    />
+  </div>
+  <div className="space-y-2">
+    <label className="text-xs font-medium text-slate-500">Duration</label>
+    <input
+      value={day.duration || ''}
+      onChange={(e) => handleItineraryChange(i, 'duration', e.target.value)}
+      className={inputBase}
+      placeholder="e.g. 1.5 hours"
+    />
+  </div>
+  <div className="space-y-2">
+    <label className="text-xs font-medium text-slate-500">Location</label>
+    <input
+      value={day.location || ''}
+      onChange={(e) => handleItineraryChange(i, 'location', e.target.value)}
+      className={inputBase}
+      placeholder="e.g. Egyptian Museum"
+    />
+  </div>
+  <div className="space-y-2 lg:col-span-3">
+    <label className="text-xs font-medium text-slate-500">Includes <span className="font-normal">(one per line)</span></label>
+    <textarea
+      value={(day.includes || []).join('\n')}
+      onChange={(e) => handleItineraryIncludesChange(i, e.target.value)}
+      className={`${textareaBase} resize-none`}
+      rows={2}
+      placeholder={'Transfer\nGuided Tour\nEntry'}
     />
   </div>
 </div>

@@ -714,7 +714,7 @@ export default function AttractionPageTemplate({ page, urlType, linkedPages = []
           <section className="py-14 bg-slate-50">
             <div className="container mx-auto px-6">
               <h2 className="text-3xl font-bold text-slate-900 mb-2">Explore more</h2>
-              <p className="text-slate-600 mb-8">Related guides and collections selected for this page</p>
+              <p className="text-slate-600 mb-8">Related guides and collections</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {linkedPages.map((linkedPage) => (
                   <Link

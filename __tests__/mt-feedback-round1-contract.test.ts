@@ -162,3 +162,25 @@ describe('tour editor pickers are searchable', () => {
     expect(form).not.toContain('{categories.map((cat) => {');
   });
 });
+
+// Every fix made on the main site is owed here (MT sheet item 13). These
+// assertions exist because several were shipped to one platform only and
+// reported as done for both — the client found them, not us.
+describe('fixes made on the main site are present here too', () => {
+  it.each([
+    ['Features label', 'components/admin/AttractionPageForm.tsx', '(What Makes This Special)'],
+    ['listings label', 'components/admin/AttractionPageForm.tsx', 'Other page listings (attractions and categories)'],
+    ['catalogue hides FAQs/tips', 'components/admin/AttractionPageForm.tsx', "formData.pageType === 'attraction' && ("],
+    ['itinerary stop titles', 'components/TourForm.tsx', 'day.title?.trim()'],
+    ['itinerary includes field', 'components/TourForm.tsx', 'handleItineraryIncludesChange'],
+    ['searchable pickers', 'components/TourForm.tsx', 'SearchableCheckboxList'],
+    ['tours list opens as a table', 'app/admin/tours/ToursListClient.tsx', "useState<'table' | 'cards'>('table')"],
+    ['archived is its own tab', 'app/admin/tours/ToursListClient.tsx', "id: 'archived' as TabFilter"],
+    ['hero images reorder', 'app/admin/hero-settings/page.tsx', 'Move image earlier'],
+    ['pages remember filters', 'app/admin/pages/page.tsx', 'window.history.replaceState'],
+    ['catalogue subtitle trimmed', 'components/AttractionPageTemplate.tsx', 'Related guides and collections</p>'],
+    ['attraction highlights always show', 'components/AttractionLandingPage.tsx', 'Highlights must not depend on the expanded state'],
+  ])('%s', (_label, file, needle) => {
+    expect(read(file)).toContain(needle);
+  });
+});

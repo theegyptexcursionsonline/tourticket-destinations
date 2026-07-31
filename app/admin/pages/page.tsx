@@ -65,9 +65,28 @@ export default function UnifiedPagesAdmin() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterKind, setFilterKind] = useState<'all' | PageKind>('all');
-  const [filterStatus, setFilterStatus] = useState<'all' | 'published' | 'draft'>('all');
+  // Filters live in the URL so returning from an editor (back button or the
+  // list link) restores the last view instead of resetting to defaults.
+  const initialParams = () =>
+    typeof window === 'undefined' ? new URLSearchParams() : new URLSearchParams(window.location.search);
+  const [searchTerm, setSearchTerm] = useState(() => initialParams().get('q') || '');
+  const [filterKind, setFilterKind] = useState<'all' | PageKind>(() => {
+    const kind = initialParams().get('kind');
+    return kind === 'attraction' || kind === 'category-landing' || kind === 'category' ? kind : 'all';
+  });
+  const [filterStatus, setFilterStatus] = useState<'all' | 'published' | 'draft'>(() => {
+    const status = initialParams().get('status');
+    return status === 'published' || status === 'draft' ? status : 'all';
+  });
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (searchTerm.trim()) params.set('q', searchTerm.trim());
+    if (filterKind !== 'all') params.set('kind', filterKind);
+    if (filterStatus !== 'all') params.set('status', filterStatus);
+    const query = params.toString();
+    window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
+  }, [searchTerm, filterKind, filterStatus]);
+
   const requestSeq = useRef(0);
   const activeRequest = useRef<AbortController | null>(null);
 

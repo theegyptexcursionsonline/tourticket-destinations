@@ -20,7 +20,8 @@ import {
   ChevronRight,
   FileText,
   CheckCircle,
-  Edit3
+  Edit3,
+  Archive,
 } from 'lucide-react';
 import Image from 'next/image';
 import { TourActions } from './TourActions';
@@ -49,7 +50,12 @@ type TourType = {
   // UI-only field set by ToursPageClient when "All Brands" is selected.
   // Lists every tenantId that has a copy of this slug (German translations + originals).
   tenantCopies?: string[];
+  archivedAt?: string | null;
 };
+
+// Archived is derived, not stored as a status: adding an enum would have meant
+// migrating every tour and rewriting each isPublished query.
+const isArchived = (tour: TourType) => Boolean(tour.archivedAt);
 
 function Badge({ children, className = '', icon: Icon }: { 
   children: React.ReactNode; 
@@ -66,7 +72,7 @@ function Badge({ children, className = '', icon: Icon }: {
   );
 }
 
-type TabFilter = 'all' | 'published' | 'draft' | 'featured';
+type TabFilter = 'all' | 'published' | 'draft' | 'featured' | 'archived';
 
 export function ToursListClient({
   tours,
@@ -87,7 +93,7 @@ export function ToursListClient({
 
   const [activeTab, setActiveTab] = useState<TabFilter>(initialTab);
   const [query, setQuery] = useState('');
-  const [view, setView] = useState<'table' | 'cards'>('cards');
+  const [view, setView] = useState<'table' | 'cards'>('table');
   const [sortBy, setSortBy] = useState<'newest' | 'price-asc' | 'price-desc'>('newest');
   const [perPage, setPerPage] = useState(12);
   const [page, setPage] = useState(initialPage);
@@ -138,15 +144,22 @@ export function ToursListClient({
     const q = query.trim().toLowerCase();
     let list = [...tours];
 
-    // Apply tab filter first
-    if (activeTab === 'published') {
-      list = list.filter((t) => t.isPublished === true);
-    } else if (activeTab === 'draft') {
-      list = list.filter((t) => t.isPublished === false);
-    } else if (activeTab === 'featured') {
-      list = list.filter((t) => t.isFeatured === true);
+    // Archived is derived from archivedAt rather than stored as a status, so
+    // every existing isPublished query stays correct and nothing needs migrating.
+    // Archived tours are kept out of the other tabs — the point of archiving is
+    // that they stop cluttering Drafts.
+    if (activeTab === 'archived') {
+      list = list.filter((t) => isArchived(t));
+    } else {
+      list = list.filter((t) => !isArchived(t));
+      if (activeTab === 'published') {
+        list = list.filter((t) => t.isPublished === true);
+      } else if (activeTab === 'draft') {
+        list = list.filter((t) => t.isPublished === false);
+      } else if (activeTab === 'featured') {
+        list = list.filter((t) => t.isFeatured === true);
+      }
     }
-    // 'all' shows everything, no filter needed
 
     // Apply search filter
     if (q) {
@@ -181,11 +194,13 @@ export function ToursListClient({
 
   // Calculate counts for each tab
   const tabCounts = useMemo(() => {
+    const live = tours.filter((t) => !isArchived(t));
     return {
-      all: tours.length,
-      published: tours.filter((t) => t.isPublished === true).length,
-      draft: tours.filter((t) => t.isPublished === false).length,
-      featured: tours.filter((t) => t.isFeatured === true).length,
+      all: live.length,
+      published: live.filter((t) => t.isPublished === true).length,
+      draft: live.filter((t) => t.isPublished === false).length,
+      featured: live.filter((t) => t.isFeatured === true).length,
+      archived: tours.filter((t) => isArchived(t)).length,
     };
   }, [tours]);
 
@@ -194,6 +209,7 @@ export function ToursListClient({
     { id: 'published' as TabFilter, label: 'Published', icon: CheckCircle, count: tabCounts.published },
     { id: 'draft' as TabFilter, label: 'Draft', icon: Edit3, count: tabCounts.draft },
     { id: 'featured' as TabFilter, label: 'Featured', icon: Star, count: tabCounts.featured },
+    { id: 'archived' as TabFilter, label: 'Archived', icon: Archive, count: tabCounts.archived },
   ];
 
   return (

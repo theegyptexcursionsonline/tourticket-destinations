@@ -1053,7 +1053,7 @@ export default function AttractionPageForm({ pageId, initialPageType = 'attracti
                         {/* Features */}
                         <div className="space-y-4">
                           <FormLabel icon={Check}>
-                            Features <span className="font-normal text-slate-500">({formData.pageType === 'category' ? 'What Makes This Special' : 'Perfect For'})</span>
+                            Features <span className="font-normal text-slate-500">(What Makes This Special)</span>
                           </FormLabel>
                           <div className="space-y-3">
                             {formData.features.map((feature, i) => (
@@ -1091,8 +1091,14 @@ export default function AttractionPageForm({ pageId, initialPageType = 'attracti
                             </button>
                           </div>
                         </div>
-                        <FaqEditor value={formData.faqs || []} onChange={(faqs) => setFormData((prev) => ({ ...prev, faqs }))} />
-                        <TravelTipsEditor value={formData.travelTips || []} onChange={(travelTips) => setFormData((prev) => ({ ...prev, travelTips }))} />
+                        {/* FAQs and travel tips only render on the attraction storefront template,
+                            so the catalogue editor hides them (existing data stays untouched). */}
+                        {formData.pageType === 'attraction' && (
+                          <>
+                            <FaqEditor value={formData.faqs || []} onChange={(faqs) => setFormData((prev) => ({ ...prev, faqs }))} />
+                            <TravelTipsEditor value={formData.travelTips || []} onChange={(travelTips) => setFormData((prev) => ({ ...prev, travelTips }))} />
+                          </>
+                        )}
                       </div>
                     )}
 
@@ -1113,8 +1119,8 @@ export default function AttractionPageForm({ pageId, initialPageType = 'attracti
                         />
                         <div className="border-t border-slate-200" />
                         <ListingPicker
-                          label="Other page listings"
-                          hint="Embed links to other pages (attraction pages, category landings, or categories). They appear as an “Explore more” card grid on this page."
+                          label="Other page listings (attractions and categories)"
+                          hint="Embed links to other pages (attraction pages, catalogues, or categories). They appear as an “Explore more” card grid on this page."
                           placeholder="Search pages and categories…"
                           optionsKind="pages"
                           excludeId={pageId}

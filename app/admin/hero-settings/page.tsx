@@ -8,7 +8,8 @@ import {
   Image as ImageIcon, Upload, Trash2, Check, 
   Eye, EyeOff, Plus, Save, X, Monitor, Smartphone,
   Palette, Type, Users, RefreshCw,
-  Hash, Search, Play, Pause, Globe, Timer, Sparkles
+  Hash, Search, Play, Pause, Globe, Timer, Sparkles,
+  ArrowLeft, ArrowRight,
 } from 'lucide-react';
 import Image from 'next/image';
 import withAuth from '@/components/admin/withAuth';
@@ -152,6 +153,36 @@ const handleDeleteImage = async (imageIndex: number) => {
   } catch (error) {
     console.error('Error deleting background image:', error);
     toast.error('Failed to delete background image');
+  }
+};
+
+// Reorder persists immediately: delete and activate address images by array
+// position, so an order that only existed in the browser would send them at
+// the wrong image.
+const handleMoveImage = async (imageIndex: number, direction: -1 | 1) => {
+  const images = editingSettings?.backgroundImages || [];
+  const target = imageIndex + direction;
+  if (target < 0 || target >= images.length) return;
+
+  const reordered = [...images];
+  [reordered[imageIndex], reordered[target]] = [reordered[target], reordered[imageIndex]];
+
+  try {
+    const response = await fetch(`/api/admin/hero-settings/images/reorder${tenantQuery}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ order: reordered.map((image) => image.desktop) }),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.success) {
+      throw new Error(result.error || 'Failed to reorder images');
+    }
+    setSettings(result.data);
+    setEditingSettings({ ...result.data });
+    toast.success('Image order updated');
+  } catch (error) {
+    console.error('Error reordering background images:', error);
+    toast.error(error instanceof Error ? error.message : 'Failed to reorder images');
   }
 };
 
@@ -449,6 +480,26 @@ const handleImageUpload = async (file: File, type: 'desktop' | 'mobile') => {
                           </button>
                         )}
                         
+                        <button
+                          onClick={() => handleMoveImage(index, -1)}
+                          disabled={index === 0}
+                          title="Move earlier"
+                          aria-label="Move image earlier"
+                          className="flex items-center gap-2 px-3 py-2 bg-white/90 text-slate-700 rounded-lg hover:bg-white transition-colors text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          <ArrowLeft className="h-4 w-4" />
+                        </button>
+
+                        <button
+                          onClick={() => handleMoveImage(index, 1)}
+                          disabled={index === editingSettings.backgroundImages.length - 1}
+                          title="Move later"
+                          aria-label="Move image later"
+                          className="flex items-center gap-2 px-3 py-2 bg-white/90 text-slate-700 rounded-lg hover:bg-white transition-colors text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          <ArrowRight className="h-4 w-4" />
+                        </button>
+
                         <button
                           onClick={() => handleDeleteImage(index)}
                           disabled={editingSettings.backgroundImages.length === 1}
