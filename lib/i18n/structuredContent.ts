@@ -20,6 +20,9 @@ export function extractStructuredSpecContent(
     const entries = source.map((item) => {
       const record = (item || {}) as Record<string, unknown>;
       const entry: Record<string, string> = {};
+      if (spec.matchKey && hasText(record[spec.matchKey])) {
+        entry[spec.matchKey] = record[spec.matchKey] as string;
+      }
       for (const field of spec.fields) {
         if (hasText(record[field])) entry[field] = record[field] as string;
       }
@@ -31,4 +34,3 @@ export function extractStructuredSpecContent(
 
   return out;
 }
-

@@ -31,6 +31,26 @@ describe('newly created categories are selectable on a tour', () => {
   });
 });
 
+describe('pricing and availability use one complete editor workflow', () => {
+  const form = read('components/TourForm.tsx');
+
+  it('keeps availability inside Pricing & Details instead of a separate tab', () => {
+    expect(form).not.toContain("{ id: 'availability', label: 'Availability'");
+    expect(form).toContain('Availability & scheduling');
+  });
+
+  it('lets each option select universal slots and override their price', () => {
+    expect(form).toContain('handleBookingOptionSlotToggle');
+    expect(form).toContain('handleBookingOptionSlotPrice');
+    expect(form).toContain('Leave the price blank to inherit this option&apos;s base price.');
+  });
+
+  it('lets a universal slot define an optional fallback price', () => {
+    expect(form).toContain('Base slot price (optional)');
+    expect(read('lib/models/Tour.ts')).toContain('Optional universal fallback price');
+  });
+});
+
 describe('destination tour pickers stay inside the selected brand', () => {
   const manager = read('app/admin/destinations/DestinationManager.tsx');
 

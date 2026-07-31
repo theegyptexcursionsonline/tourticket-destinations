@@ -12,8 +12,10 @@ import AttractionPage from '@/lib/models/AttractionPage';
 import {
   translateEntityFieldsForLocale,
   translateTourContentForLocale,
+  translateStructuredSpecContentForLocale,
   extractFields,
   extractStructuredTourContent,
+  extractStructuredSpecContent,
 } from '@/lib/i18n/autoTranslate';
 import {
   translatableLocales,
@@ -22,6 +24,9 @@ import {
   destinationTranslationFields,
   categoryTranslationFields,
   attractionPageTranslationFields,
+  destinationStructuredFields,
+  attractionPageStructuredFields,
+  type StructuredTranslationSpec,
 } from '@/lib/i18n/translationFields';
 import { revalidateStorefrontContent } from '@/lib/storefront/revalidateTourStorefront';
 import type { Model } from 'mongoose';
@@ -93,12 +98,21 @@ export async function POST(request: NextRequest) {
         const structuredTourContent = modelType === 'tour'
           ? extractStructuredTourContent(doc)
           : null;
+        const structuredSpecs: StructuredTranslationSpec[] = modelType === 'destination'
+          ? destinationStructuredFields
+          : modelType === 'attraction-page'
+            ? attractionPageStructuredFields
+            : [];
+        const structuredEntityContent = structuredSpecs.length > 0
+          ? extractStructuredSpecContent(doc, structuredSpecs)
+          : {};
         const hasFlatFields = Object.keys(fields).length > 0;
-        const hasStructuredFields = modelType === 'tour' && structuredTourContent
+        const hasTourStructuredFields = modelType === 'tour' && structuredTourContent
           ? Object.values(structuredTourContent).some((value) => Array.isArray(value) && value.length > 0)
           : false;
+        const hasEntityStructuredFields = Object.keys(structuredEntityContent).length > 0;
 
-        if (!hasFlatFields && !hasStructuredFields) {
+        if (!hasFlatFields && !hasTourStructuredFields && !hasEntityStructuredFields) {
           send('error', { error: 'No translatable content found' });
           return;
         }
@@ -122,15 +136,27 @@ export async function POST(request: NextRequest) {
         await Promise.all(translatableLocales.map(async (locale, index) => {
           const localeName = localeNames[locale] || locale;
           try {
-            const translated = modelType === 'tour'
-              ? await translateTourContentForLocale(fields, structuredTourContent || {
+            let translated: Record<string, unknown>;
+            if (modelType === 'tour') {
+              translated = await translateTourContentForLocale(fields, structuredTourContent || {
                   itinerary: [],
                   faq: [],
                   imageMetadata: [],
                   bookingOptions: [],
                   addOns: [],
-                }, locale)
-              : await translateEntityFieldsForLocale(fields, fieldDefs, modelType, locale);
+                }, locale);
+            } else {
+              const [flat, structured] = await Promise.all([
+                translateEntityFieldsForLocale(fields, fieldDefs, modelType, locale),
+                translateStructuredSpecContentForLocale(
+                  structuredEntityContent,
+                  modelType,
+                  locale,
+                  structuredSpecs,
+                ),
+              ]);
+              translated = { ...flat, ...structured };
+            }
 
             if (Object.keys(translated).length === 0) {
               throw new Error('No translated content returned');

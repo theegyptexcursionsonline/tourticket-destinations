@@ -20,6 +20,7 @@ export interface IItineraryItem {
 export interface IAvailabilitySlot {
   time: string;
   capacity: number;
+  price?: number;
 }
 
 export interface IAvailability extends Document {
@@ -232,6 +233,12 @@ const AvailabilitySlotSchema = new Schema<IAvailabilitySlot>({
     required: true, 
     min: [1, 'Capacity must be at least 1'],
     max: [1000, 'Capacity cannot exceed 1000']
+  },
+  // Optional universal fallback price. Booking-option slot prices take priority.
+  price: {
+    type: Number,
+    min: [0, 'Price cannot be negative'],
+    max: [999999, 'Price cannot exceed 999999'],
   },
 }, { _id: false });
 

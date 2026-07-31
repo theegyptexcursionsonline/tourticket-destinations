@@ -15,6 +15,7 @@ import {
   attractionPageTranslationFields,
   destinationStructuredFields,
   attractionPageStructuredFields,
+  type StructuredTranslationSpec,
 } from './translationFields';
 import { extractStructuredSpecContent } from './structuredContent';
 import {
@@ -326,6 +327,7 @@ Rules:
 - Keep proper nouns in their commonly used local form
 ${locale === 'ar' ? '- Produce proper RTL text for Arabic\n' : ''}- Keep the wording natural for a tourism website
 - Keep empty values empty
+- Copy identifier fields such as image URLs exactly; never translate or rewrite them
 - In imageMetadata, translate only alt and title; copy every url through unchanged
 - Return only a valid JSON object`;
 
@@ -365,7 +367,8 @@ ${locale === 'ar' ? '- Produce proper RTL text for Arabic\n' : ''}- Keep the wor
 export async function translateStructuredSpecContentForLocale(
   content: Record<string, Array<Record<string, string>>>,
   entityLabel: string,
-  locale: string
+  locale: string,
+  specs: StructuredTranslationSpec[] = []
 ): Promise<StructuredTranslationMap> {
   const openai = getOpenAIClient();
   if (!openai || Object.keys(content).length === 0) return {};
@@ -401,6 +404,16 @@ ${locale === 'ar' ? '- Produce proper RTL text for Arabic\n' : ''}- Keep the wor
     const parsed = JSON.parse(text) as StructuredTranslationMap;
     if (typeof parsed !== 'object' || parsed === null) {
       throw new Error('Translation model returned invalid structured content');
+    }
+    for (const spec of specs) {
+      if (!spec.matchKey || !Array.isArray(parsed[spec.key])) continue;
+      const sourceEntries = content[spec.key] || [];
+      parsed[spec.key] = (parsed[spec.key] as Array<Record<string, unknown>>)
+        .map((entry, index) => ({
+          ...entry,
+          [spec.matchKey!]: sourceEntries[index]?.[spec.matchKey!],
+        }))
+        .filter((entry) => entry[spec.matchKey!]);
     }
     return parsed;
   } catch (error) {
@@ -533,7 +546,7 @@ export async function autoTranslateDestination(destinationId: string): Promise<v
   const translations = await translateLocalesSettled(async (locale) => {
     const [flat, blocks] = await Promise.all([
       translateEntityFieldsForLocale(fields, destinationTranslationFields, 'destination', locale),
-      translateStructuredSpecContentForLocale(structured, 'destination', locale),
+      translateStructuredSpecContentForLocale(structured, 'destination', locale, destinationStructuredFields),
     ]);
     return { ...flat, ...blocks };
   });
@@ -570,7 +583,7 @@ export async function autoTranslateAttractionPage(pageId: string): Promise<void>
   const translations = await translateLocalesSettled(async (locale) => {
     const [flat, blocks] = await Promise.all([
       translateEntityFieldsForLocale(fields, attractionPageTranslationFields, 'landing page', locale),
-      translateStructuredSpecContentForLocale(structured, 'landing page', locale),
+      translateStructuredSpecContentForLocale(structured, 'landing page', locale, attractionPageStructuredFields),
     ]);
     return { ...flat, ...blocks };
   });

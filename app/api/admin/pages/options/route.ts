@@ -11,6 +11,7 @@ import {
   type AdminAuthContext,
 } from '@/lib/auth/adminAuth';
 import { findMatchingTourOptionIds } from '@/lib/admin/tourOptionIdentifiers';
+import { localizeAndDedupeTours } from '@/lib/translation/localizeTourCollection';
 
 const LIMIT = 20;
 const VALID_KINDS = ['tours', 'pages', 'categories'] as const;
@@ -72,13 +73,16 @@ export async function GET(request: NextRequest) {
         ];
       }
       const tours = await Tour.find(filter)
-        .select('tenantId title slug image isPublished bookingOptions.id bookingOptions.pricingKey bookingOptions._id')
+        .select('tenantId title slug description image isPublished translations bookingOptions.id bookingOptions.pricingKey bookingOptions._id')
         .sort({ isFeatured: -1, rating: -1 })
-        .limit(explicitIds ? ids.length : LIMIT)
+        .limit(explicitIds ? ids.length : LIMIT * 4)
         .lean();
+      const visibleTours = explicitIds
+        ? tours
+        : localizeAndDedupeTours(tours as Array<Record<string, unknown>>, 'en').slice(0, LIMIT);
       return NextResponse.json({
         success: true,
-        data: (tours as Array<Record<string, unknown>>).map((tour) => ({
+        data: (visibleTours as Array<Record<string, unknown>>).map((tour) => ({
           id: String(tour._id),
           tenantId: String(tour.tenantId || ''),
           title: String(tour.title || ''),

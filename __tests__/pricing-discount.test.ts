@@ -83,6 +83,13 @@ describe('the server prices from the stored tour, not the submitted cart', () =>
     expect(authoritativeBasePrice(tour, { selectedBookingOption: null })).toBe(90);
   });
 
+  it('uses a stored universal slot price when the tour has no matching option', () => {
+    expect(authoritativeBasePrice(
+      { discountPrice: 90, availability: { slots: [{ time: '14:00', price: 125 }] } },
+      { selectedBookingOption: null, selectedTime: '14:00' },
+    )).toBe(125);
+  });
+
   it('never makes an unrecognised item free', () => {
     const price = authoritativeBasePrice(
       { bookingOptions: [] },

@@ -14,6 +14,7 @@ interface StoredTour {
   discountPrice?: number;
   price?: number;
   bookingOptions?: StoredBookingOption[];
+  availability?: { slots?: Array<{ time?: string; price?: number }> };
 }
 
 interface CartItemLike {
@@ -47,6 +48,13 @@ export function authoritativeBasePrice(
       ? option.timeSlots.find((entry) => entry.time === cartItem.selectedTime)
       : undefined;
     return effectiveOptionPrice(tour, option, slot).price;
+  }
+
+  const universalSlot = Array.isArray(tour?.availability?.slots) && cartItem?.selectedTime
+    ? tour.availability.slots.find((entry) => entry.time === cartItem.selectedTime)
+    : undefined;
+  if (typeof universalSlot?.price === 'number' && Number.isFinite(universalSlot.price)) {
+    return universalSlot.price;
   }
 
   // No option selected (or it no longer exists): the tour's own price stands.

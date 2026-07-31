@@ -8,7 +8,8 @@ import dbConnect from '@/lib/dbConnect';
 import AttractionPageModel from '@/lib/models/AttractionPage';
 import Category from '@/lib/models/Category';
 import { getTenantFromRequest, getTenantPublicConfig } from '@/lib/tenant';
-import { localizeEntityFields } from '@/lib/i18n/contentLocalization';
+import { localizeEntityFields, localizeStructuredEntries } from '@/lib/i18n/contentLocalization';
+import { attractionPageStructuredFields } from '@/lib/i18n/translationFields';
 import {
   ATTRACTION_PAGE_LOCALIZED_FIELDS,
   resolveAttractionPageTours,
@@ -45,7 +46,11 @@ async function getAttractionPage(slug: string, locale: string) {
     page.urlType,
   );
   const localized = localizeEntityFields(
-    JSON.parse(JSON.stringify(page)) as Record<string, unknown>,
+    localizeStructuredEntries(
+      JSON.parse(JSON.stringify(page)) as Record<string, unknown>,
+      locale,
+      attractionPageStructuredFields,
+    ),
     locale,
     ATTRACTION_PAGE_LOCALIZED_FIELDS,
   );

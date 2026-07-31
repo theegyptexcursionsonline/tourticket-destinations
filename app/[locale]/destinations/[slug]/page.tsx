@@ -13,8 +13,8 @@ import {
 } from '@/lib/tenant';
 import { getLocale } from 'next-intl/server';
 import { localizeAndDedupeTours } from '@/lib/translation/localizeTourCollection';
-import { localizeEntityFields } from '@/lib/i18n/contentLocalization';
-import { destinationTranslationFields, categoryTranslationFields } from '@/lib/i18n/translationFields';
+import { localizeEntityFields, localizeStructuredEntries } from '@/lib/i18n/contentLocalization';
+import { destinationTranslationFields, categoryTranslationFields, destinationStructuredFields } from '@/lib/i18n/translationFields';
 import DestinationSchema from '@/components/schema/DestinationSchema';
 
 // Force dynamic rendering to fix 500 errors
@@ -188,7 +188,11 @@ export default async function DestinationPage({ params }: { params: Promise<{ sl
     const localizedTours = localizeAndDedupeTours(destinationTours as any[], locale);
     const destFields = destinationTranslationFields.map(f => f.key);
     const catFields = categoryTranslationFields.map(f => f.key);
-    const localizedDestination = localizeEntityFields(destination, locale, destFields);
+    const localizedDestination = localizeEntityFields(
+      localizeStructuredEntries(destination, locale, destinationStructuredFields),
+      locale,
+      destFields,
+    );
     const localizedCategories = allCategories.map((c: any) => localizeEntityFields(c, locale, catFields));
     const localizedRelated = relatedDestinations.map((d: any) => localizeEntityFields(d, locale, destFields));
 

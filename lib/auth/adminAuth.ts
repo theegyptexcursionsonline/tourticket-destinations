@@ -80,6 +80,28 @@ export async function requireAdminAuth(
     return unauthorizedResponse();
   }
 
+  // The explicit development-only admin is a synthetic session identity, not
+  // a MongoDB record. Keep production closed while allowing local QA to use
+  // the same protected admin routes exercised by real administrators.
+  if (
+    process.env.NODE_ENV !== 'production'
+    && process.env.ALLOW_ENV_ADMIN === 'true'
+    && payload.sub === 'env-admin'
+    && scope === ADMIN_SESSION_SCOPE
+  ) {
+    return {
+      userId: 'env-admin',
+      email: typeof payload.email === 'string' ? payload.email : undefined,
+      role: 'super_admin',
+      permissions: Array.isArray(payload.permissions)
+        ? payload.permissions as AdminPermission[]
+        : getDefaultPermissions('super_admin'),
+      tenantIds: resolveAdminNetworkTenantIds('super_admin', payload.tenantIds),
+      twoFactorEnabled: true,
+      twoFactorRecoveryPending: false,
+    };
+  }
+
   // JWT claims are only a session pointer. Re-read mutable authorization state
   // so disabling/demoting an admin takes effect immediately instead of waiting
   // for the eight-hour cookie to expire.

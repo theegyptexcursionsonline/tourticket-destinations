@@ -72,7 +72,7 @@ interface Tour {
   availability?: {
     type?: string;
     availableDays?: number[];
-    slots?: { time: string; capacity: number }[];
+    slots?: { time: string; capacity: number; price?: number }[];
     blockedDates?: string[];
     startDate?: string;
     endDate?: string;
@@ -100,7 +100,8 @@ interface BookingOption {
   badge?: string;
   discount?: number;
   isRecommended?: boolean;
-  timeSlots?: TimeSlot[];
+  applyTourDiscount?: boolean;
+  timeSlots?: Array<{ id?: string; time: string; capacity?: number; available?: number; price?: number; originalPrice?: number }>;
 }
 
 interface TimeSlot {
@@ -1421,7 +1422,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
         id: `slot-${optionIndex}-${slotIndex}`,
         time: slot.time,
         available: slot.capacity,
-        price: price,
+        price: typeof slot.price === 'number' && Number.isFinite(slot.price) ? slot.price : price,
         isPopular: slotIndex === 0, // Mark first slot as popular
         originalAvailable: slot.capacity,
       }));
@@ -1460,6 +1461,20 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
           const pricing = effectiveOptionPrice(tourDisplayData, option);
           const optionPrice = pricing.price || tourDisplayData?.discountPrice || 50;
           const optionId = option.id || option._id || `option-${index}`;
+          const optionSlots: TimeSlot[] = Array.isArray(option.timeSlots) && option.timeSlots.length > 0
+            ? option.timeSlots.map((slot: any, slotIndex: number) => {
+                const slotPricing = effectiveOptionPrice(tourDisplayData, option, slot);
+                return {
+                  id: slot.id || `slot-${index}-${slotIndex}`,
+                  time: slot.time,
+                  available: slot.available ?? slot.capacity ?? 15,
+                  originalAvailable: slot.available ?? slot.capacity ?? 15,
+                  price: slotPricing.price,
+                  originalPrice: slotPricing.discountApplied ? slotPricing.originalPrice : undefined,
+                  isPopular: slotIndex === 0,
+                };
+              })
+            : generateTimeSlotsFromAvailability(optionPrice, index);
           return {
             id: optionId,
             title: option.label || option.title || 'Tour Option',
@@ -1472,7 +1487,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
             description: option.description || 'Experience our tour',
             timeSlots: bindTimeSlotsToOption(
               optionId,
-              option.timeSlots || generateTimeSlotsFromAvailability(optionPrice, index),
+              optionSlots,
             ),
             highlights: option.highlights || tourDisplayData?.highlights?.slice(0, 3) || ['Expert guide included', 'Small group experience', 'Photo opportunities'],
             included: option.included || tourDisplayData?.includes?.slice(0, 3) || ['Professional guide', 'Entry tickets', 'Group photos'],

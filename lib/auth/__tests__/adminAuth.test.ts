@@ -81,6 +81,37 @@ describe('requireAdminAuth', () => {
     expect(result).toMatchObject({ userId: 'admin-id', tenantIds: ['hurghada-speedboat'] });
   });
 
+  it('allows the explicit development-only synthetic admin without a database identity', async () => {
+    const previous = process.env.ALLOW_ENV_ADMIN;
+    process.env.ALLOW_ENV_ADMIN = 'true';
+    mockedVerifyToken.mockResolvedValue({
+      sub: 'env-admin',
+      scope: 'admin',
+      email: 'admin@example.com',
+      permissions: ['manageDashboard'],
+      tenantIds: [],
+    } as any);
+    const request = {
+      headers: new Headers(),
+      cookies: { get: jest.fn().mockReturnValue({ value: 'cookie-token' }) },
+      nextUrl: new URL('https://dashboard.egypt-excursionsonline.com/api/admin/dashboard'),
+    } as any;
+
+    try {
+      const result = await requireAdminAuth(request);
+      expect(result).not.toBeInstanceOf(NextResponse);
+      expect(result).toMatchObject({
+        userId: 'env-admin',
+        role: 'super_admin',
+        twoFactorEnabled: true,
+      });
+      expect((result as any).tenantIds).toContain('hurghada-excursions-online');
+    } finally {
+      if (previous === undefined) delete process.env.ALLOW_ENV_ADMIN;
+      else process.env.ALLOW_ENV_ADMIN = previous;
+    }
+  });
+
   it('blocks normal admin APIs until two-factor enrollment is complete', async () => {
     mockAdminRecord = { ...mockAdminRecord, twoFactorEnabled: false };
     mockedVerifyToken.mockResolvedValue({ sub: 'admin-id', scope: 'admin' } as any);

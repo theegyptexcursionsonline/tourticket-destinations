@@ -195,6 +195,31 @@ export function getLocalizedAddOns(
   return original;
 }
 
+function getLocalizedImageMetadata(
+  doc: TourLike,
+  locale: string
+): Array<Record<string, unknown>> {
+  const original = (doc.imageMetadata as Array<Record<string, unknown>>) || [];
+  if (!doc || locale === 'en' || original.length === 0) return original;
+  const translated = doc.translations?.[locale]?.imageMetadata;
+  if (!Array.isArray(translated) || translated.length === 0) return original;
+  const byUrl = new Map(
+    (translated as Array<Record<string, unknown>>)
+      .filter((entry) => entry && typeof entry.url === 'string')
+      .map((entry) => [String(entry.url), entry]),
+  );
+  return original.map((item) => {
+    const replacement = byUrl.get(String(item.url));
+    if (!replacement) return item;
+    const merged = { ...item };
+    for (const field of ['alt', 'title']) {
+      const value = replacement[field];
+      if (typeof value === 'string' && value.trim()) merged[field] = value;
+    }
+    return merged;
+  });
+}
+
 /**
  * Apply all translations to a tour object, returning a new object with localized content.
  * This is the main utility - call it once in the server component before passing to client.
@@ -208,6 +233,7 @@ export function localizeTour<T extends TourLike>(tour: T, locale: string): T {
   const textFields = [
     'title', 'description', 'longDescription', 'location', 'duration', 'meetingPoint',
     'cancellationPolicy', 'metaTitle', 'metaDescription',
+    'difficulty',
     'physicalRequirements', 'transportationDetails', 'mealInfo',
     'weatherPolicy', 'photoPolicy', 'tipPolicy', 'seasonalVariations',
   ];
@@ -220,7 +246,7 @@ export function localizeTour<T extends TourLike>(tour: T, locale: string): T {
   const arrayFields = [
     'includes', 'highlights', 'whatsIncluded', 'whatsNotIncluded', 'tags',
     'whatToBring', 'whatToWear', 'healthSafety', 'culturalInfo',
-    'localCustoms', 'accessibilityInfo',
+    'localCustoms', 'accessibilityInfo', 'keywords', 'notSuitableFor', 'needToKnow',
   ];
   for (const field of arrayFields) {
     const value = getLocalizedArray(tour, field, locale);
@@ -232,6 +258,7 @@ export function localizeTour<T extends TourLike>(tour: T, locale: string): T {
   (localized as Record<string, unknown>).faq = getLocalizedFaq(tour, locale);
   (localized as Record<string, unknown>).bookingOptions = getLocalizedBookingOptions(tour, locale);
   (localized as Record<string, unknown>).addOns = getLocalizedAddOns(tour, locale);
+  (localized as Record<string, unknown>).imageMetadata = getLocalizedImageMetadata(tour, locale);
 
   return localized;
 }
