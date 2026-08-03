@@ -6,6 +6,7 @@ import Category from "@/lib/models/Category";
 import mongoose from "mongoose";
 import { syncTourToAlgolia, deleteTourFromAlgolia } from "@/lib/algolia";
 import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from "@/lib/auth/adminAuth";
+import { auditStamp } from '@/lib/admin/auditStamp';
 import { translateTourInBackground } from '@/lib/translation/translateService';
 import { revalidateTourStorefront } from '@/lib/storefront/revalidateTourStorefront';
 
@@ -195,6 +196,11 @@ export async function PUT(
 
         console.log('Updating tour with ID:', id);
         console.log('Validated tour update request');
+
+        // Record who made this edit (never blanked by a body that omits it).
+        const editor = auditStamp({ id: auth.userId, name: auth.name, email: auth.email });
+        if (editor) body.updatedBy = editor;
+        delete body.createdBy;
 
         // Map 'faqs' from form to 'faq' in the database model
         if (body.faqs) {

@@ -14,6 +14,8 @@ const TravelTipSchema = new Schema({
 }, { _id: false });
 
 export interface ICategory extends Document {
+  archivedAt?: Date | null;
+  archivedBy?: string;
   // Multi-tenant support
   tenantId: string;
   
@@ -206,6 +208,10 @@ const CategorySchema: Schema<ICategory> = new Schema({
     type: Schema.Types.Mixed,
     default: {},
   },
+  // Archived is derived from this timestamp rather than a status enum, so
+  // existing isPublished queries keep working and nothing needs migrating.
+  archivedAt: { type: Date, index: true },
+  archivedBy: { type: String, trim: true },
 }, {
   timestamps: true,
   toJSON: { virtuals: true },

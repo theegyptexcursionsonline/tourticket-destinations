@@ -78,12 +78,20 @@ describe('GET /api/admin/pages tenant isolation', () => {
     } as never);
 
     expect(response.status).toBe(200);
-    expect(mockPageFind).toHaveBeenCalledWith(expect.objectContaining({
-      tenantId: { $in: ['makadi-bay', 'el-gouna'] },
-    }));
-    expect(mockCategoryFind).toHaveBeenCalledWith(expect.objectContaining({
-      tenantId: { $in: ['makadi-bay', 'el-gouna'] },
-    }));
+    // The tenant scope and the DB-side archived exclusion travel together in
+    // one $and — archived rows never reach the cursor-paginated merge.
+    expect(mockPageFind).toHaveBeenCalledWith({
+      $and: [
+        { tenantId: { $in: ['makadi-bay', 'el-gouna'] } },
+        { archivedAt: null },
+      ],
+    });
+    expect(mockCategoryFind).toHaveBeenCalledWith({
+      $and: [
+        { tenantId: { $in: ['makadi-bay', 'el-gouna'] } },
+        { archivedAt: null },
+      ],
+    });
   });
 
   it('uses the selected brand as the exact tenant scope', async () => {
@@ -94,7 +102,11 @@ describe('GET /api/admin/pages tenant isolation', () => {
     } as never);
 
     expect(mockCanAccessTenant).toHaveBeenCalledWith(expect.anything(), 'makadi-bay');
-    expect(mockPageFind).toHaveBeenCalledWith(expect.objectContaining({ tenantId: 'makadi-bay' }));
-    expect(mockCategoryFind).toHaveBeenCalledWith(expect.objectContaining({ tenantId: 'makadi-bay' }));
+    expect(mockPageFind).toHaveBeenCalledWith({
+      $and: [{ tenantId: 'makadi-bay' }, { archivedAt: null }],
+    });
+    expect(mockCategoryFind).toHaveBeenCalledWith({
+      $and: [{ tenantId: 'makadi-bay' }, { archivedAt: null }],
+    });
   });
 });

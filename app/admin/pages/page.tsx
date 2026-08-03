@@ -6,7 +6,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import { Plus, Edit, Trash2, Eye, Search, Loader2 } from 'lucide-react';
+import { Plus, Edit, Trash2, Eye, Search, Loader2, Archive, Undo2 } from 'lucide-react';
 import Image from 'next/image';
 import { useAdminTenant } from '@/contexts/AdminTenantContext';
 import { storefrontPreviewUrl } from '@/lib/admin/storefrontPreviewUrl';
@@ -28,6 +28,7 @@ interface UnifiedRow {
   isPublished: boolean;
   featured: boolean;
   createdAt: string;
+  archivedAt?: string | null;
 }
 
 interface Counts {
@@ -74,9 +75,9 @@ export default function UnifiedPagesAdmin() {
     const kind = initialParams().get('kind');
     return kind === 'attraction' || kind === 'category-landing' || kind === 'category' ? kind : 'all';
   });
-  const [filterStatus, setFilterStatus] = useState<'all' | 'published' | 'draft'>(() => {
+  const [filterStatus, setFilterStatus] = useState<'all' | 'published' | 'draft' | 'archived'>(() => {
     const status = initialParams().get('status');
-    return status === 'published' || status === 'draft' ? status : 'all';
+    return status === 'published' || status === 'draft' || status === 'archived' ? status : 'all';
   });
   useEffect(() => {
     const params = new URLSearchParams();
@@ -177,6 +178,35 @@ export default function UnifiedPagesAdmin() {
     }
   };
 
+  const setArchived = async (row: UnifiedRow, archived: boolean) => {
+    const label = KIND_LABELS[row.kind].toLowerCase();
+    if (archived && !window.confirm(`Archive the ${label} "${row.title}"? It stays available under the Archived filter.`)) {
+      return;
+    }
+
+    const endpoint = row.kind === 'category'
+      ? `/api/categories/${row.id}?tenantId=${encodeURIComponent(row.tenantId)}`
+      : `/api/admin/attraction-pages/${row.id}?tenantId=${encodeURIComponent(row.tenantId)}`;
+
+    try {
+      const response = await fetch(endpoint, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ archivedAt: archived ? new Date().toISOString() : null }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        alert(data.error || data.message || `Failed to ${archived ? 'archive' : 'restore'} (${response.status})`);
+        return;
+      }
+      // The row no longer belongs in the current view either way.
+      setRows((prev) => prev.filter((entry) => entry.id !== row.id));
+    } catch (err) {
+      alert('Network error');
+      console.error('Error changing archive state:', err);
+    }
+  };
+
   if (loading && rows.length === 0 && !error) {
     return (
       <div className="p-6">
@@ -243,6 +273,7 @@ export default function UnifiedPagesAdmin() {
             <option value="all">All Status</option>
             <option value="published">Published</option>
             <option value="draft">Draft</option>
+            <option value="archived">Archived</option>
           </select>
         </div>
       </div>
@@ -343,6 +374,23 @@ export default function UnifiedPagesAdmin() {
                         >
                           <Edit className="w-4 h-4" />
                         </Link>
+                        {filterStatus === 'archived' ? (
+                          <button
+                            onClick={() => setArchived(row, false)}
+                            className="text-emerald-600 hover:text-emerald-900 p-1 rounded"
+                            title="Restore from archive"
+                          >
+                            <Undo2 className="w-4 h-4" />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => setArchived(row, true)}
+                            className="text-amber-600 hover:text-amber-900 p-1 rounded"
+                            title="Archive (keeps the page, hides it from these lists)"
+                          >
+                            <Archive className="w-4 h-4" />
+                          </button>
+                        )}
                         <button
                           onClick={() => deleteRow(row)}
                           className="text-red-600 hover:text-red-900 p-1 rounded"

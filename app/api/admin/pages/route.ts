@@ -14,7 +14,7 @@ import { combinePageFilters } from '@/lib/admin/pageFilters';
 
 const MAX_LIMIT = 50;
 const VALID_KINDS = ['all', 'attraction', 'category-landing', 'category'] as const;
-const VALID_STATUSES = ['all', 'published', 'draft'] as const;
+const VALID_STATUSES = ['all', 'published', 'draft', 'archived'] as const;
 
 type PageKind = Exclude<(typeof VALID_KINDS)[number], 'all'>;
 
@@ -115,6 +115,10 @@ export async function GET(request: NextRequest) {
     if (pageKind === 'category-landing') attractionTypeFilter.pageType = 'category';
     if (status === 'published') attractionTypeFilter.isPublished = true;
     if (status === 'draft') attractionTypeFilter.isPublished = { $ne: true };
+    // Archived rows are hidden everywhere except their own filter, which is
+    // the point of archiving: they stop cluttering the working lists.
+    if (status === 'archived') attractionTypeFilter.archivedAt = { $ne: null };
+    else attractionTypeFilter.archivedAt = null;
     const attractionFilter = combinePageFilters(
       scope,
       cursorFilter(cursor),
@@ -125,6 +129,8 @@ export async function GET(request: NextRequest) {
     const categoryStatusFilter: Record<string, unknown> = {};
     if (status === 'published') categoryStatusFilter.isPublished = { $ne: false };
     if (status === 'draft') categoryStatusFilter.isPublished = false;
+    if (status === 'archived') categoryStatusFilter.archivedAt = { $ne: null };
+    else categoryStatusFilter.archivedAt = null;
     const categoryFilter = combinePageFilters(
       scope,
       cursorFilter(cursor),

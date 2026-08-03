@@ -12,6 +12,7 @@ import { ADMIN_ENROLLMENT_SCOPE, ADMIN_SESSION_SCOPE } from '@/lib/auth/adminSes
 export interface AdminAuthContext {
   userId: string;
   email?: string;
+  name?: string;
   role: AdminRole;
   permissions: AdminPermission[];
   tenantIds: string[];
@@ -111,7 +112,7 @@ export async function requireAdminAuth(
   ]);
   await dbConnect();
   const user = await User.findById(String(payload.sub))
-    .select('email role permissions tenantIds adminPortalScopes isActive twoFactorEnabled twoFactorRecoveryPending')
+    .select('email firstName lastName role permissions tenantIds adminPortalScopes isActive twoFactorEnabled twoFactorRecoveryPending')
     .lean<any>();
   if (!user || !user.isActive || !user.role || user.role === 'customer') {
     return unauthorizedResponse();
@@ -145,6 +146,7 @@ export async function requireAdminAuth(
   const authContext: AdminAuthContext = {
     userId: String(payload.sub),
     email: typeof user.email === 'string' ? user.email : undefined,
+    name: [user.firstName, user.lastName].filter(Boolean).join(' ').trim() || undefined,
     role,
     // An older full-session cookie may predate mandatory 2FA. Keep even the
     // profile response least-privileged until setup is fully acknowledged.

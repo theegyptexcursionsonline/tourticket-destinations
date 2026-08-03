@@ -131,11 +131,12 @@ export async function PUT(
     const updateData = {
       ...body,
       ...linkedContent,
-      // Ensure arrays are properly handled
-      images: Array.isArray(body.images) ? body.images : (body.images ? [body.images] : []),
-      highlights: Array.isArray(body.highlights) ? body.highlights : (body.highlights ? [body.highlights] : []),
-      features: Array.isArray(body.features) ? body.features : (body.features ? [body.features] : []),
-      keywords: Array.isArray(body.keywords) ? body.keywords : (body.keywords ? [body.keywords] : []),
+      // Ensure arrays are properly handled — but only for keys the request sent,
+      // so a partial update (e.g. archiving from the list row) can't blank them
+      ...('images' in body ? { images: Array.isArray(body.images) ? body.images : (body.images ? [body.images] : []) } : {}),
+      ...('highlights' in body ? { highlights: Array.isArray(body.highlights) ? body.highlights : (body.highlights ? [body.highlights] : []) } : {}),
+      ...('features' in body ? { features: Array.isArray(body.features) ? body.features : (body.features ? [body.features] : []) } : {}),
+      ...('keywords' in body ? { keywords: Array.isArray(body.keywords) ? body.keywords : (body.keywords ? [body.keywords] : []) } : {}),
     };
 
 
