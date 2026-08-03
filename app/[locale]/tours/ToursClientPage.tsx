@@ -7,6 +7,7 @@ import { Clock, Star, MapPin, Search, X, SlidersHorizontal, Tag } from 'lucide-r
 import { ITour } from '@/lib/models/Tour';
 import { useSettings } from '@/hooks/useSettings';
 import { motion, AnimatePresence } from 'framer-motion';
+import { tourFromPrice } from '@/lib/pricing/displayPrice';
 
 interface TourWithDetails extends Omit<ITour, 'destination' | 'categories'> {
   destination: { name: string };
@@ -20,8 +21,9 @@ interface ToursClientPageProps {
 
 const TourCard = ({ tour }: { tour: TourWithDetails }) => {
   const { formatPrice } = useSettings();
-  const discountPercent = tour.originalPrice && tour.discountPrice
-    ? Math.round(((tour.originalPrice - tour.discountPrice) / tour.originalPrice) * 100)
+  const fromPrice = tourFromPrice(tour);
+  const discountPercent = fromPrice.discountApplied
+    ? Math.round(((fromPrice.originalPrice - fromPrice.price) / fromPrice.originalPrice) * 100)
     : 0;
 
   return (
@@ -104,14 +106,14 @@ const TourCard = ({ tour }: { tour: TourWithDetails }) => {
           {/* Price Section */}
           <div className="pt-4 border-t border-slate-100 flex justify-between items-end">
             <div>
-              {tour.originalPrice && tour.discountPrice < tour.originalPrice && (
+              {fromPrice.discountApplied && (
                 <div className="text-sm text-slate-400 line-through">
-                  {formatPrice(tour.originalPrice)}
+                  {formatPrice(fromPrice.originalPrice)}
                 </div>
               )}
               <div className="flex items-baseline gap-1">
                 <span className="text-2xl font-bold text-blue-600">
-                  {formatPrice(tour.discountPrice)}
+                  {formatPrice(fromPrice.price)}
                 </span>
                 <span className="text-xs text-slate-500">per person</span>
               </div>
@@ -167,10 +169,10 @@ export default function ToursClientPage({ tours }: ToursClientPageProps) {
     // Sort
     switch (sortBy) {
       case 'price-low':
-        filtered.sort((a, b) => (a.discountPrice || 0) - (b.discountPrice || 0));
+        filtered.sort((a, b) => tourFromPrice(a).price - tourFromPrice(b).price);
         break;
       case 'price-high':
-        filtered.sort((a, b) => (b.discountPrice || 0) - (a.discountPrice || 0));
+        filtered.sort((a, b) => tourFromPrice(b).price - tourFromPrice(a).price);
         break;
       case 'rating':
         filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));

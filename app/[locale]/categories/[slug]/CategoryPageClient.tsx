@@ -14,6 +14,7 @@ import BookingSidebar from '@/components/BookingSidebar';
 import { useLocale } from 'next-intl';
 import { isRTL } from '@/i18n/config';
 import { imageMetadataFor } from '@/lib/content/imageMetadata';
+import { tourFromPrice } from '@/lib/pricing/displayPrice';
 
 type CategoryPageCopy = {
   searchToursPlaceholder: string;
@@ -731,7 +732,7 @@ const TourCard = ({
   copy: CategoryPageCopy;
 }) => {
   const { formatPrice } = useSettings();
-  const displayedPrice = (tour as { pricingSummary?: { fromPrice?: number } }).pricingSummary?.fromPrice ?? tour.discountPrice ?? tour.originalPrice ?? 0;
+  const displayedPrice = tourFromPrice(tour).price;
 
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow flex flex-col group">
@@ -853,7 +854,7 @@ export default function CategoryPageClient({
                 durationSet.add(tour.duration);
             }
 
-            const price = (tour as { pricingSummary?: { fromPrice?: number } }).pricingSummary?.fromPrice ?? tour.discountPrice ?? tour.originalPrice ?? tour.price;
+            const price = tourFromPrice(tour).price;
             if (price && Number.isFinite(price)) {
                 prices.push(price);
             }
@@ -948,7 +949,7 @@ export default function CategoryPageClient({
         // Price range filter
         if (priceRange) {
             filtered = filtered.filter(tour => {
-                const price = (tour as { pricingSummary?: { fromPrice?: number } }).pricingSummary?.fromPrice ?? tour.discountPrice ?? tour.originalPrice ?? 0;
+                const price = tourFromPrice(tour).price;
                 if (priceRange === '0-50') return price < 50;
                 if (priceRange === '50-100') return price >= 50 && price < 100;
                 if (priceRange === '100-200') return price >= 100 && price < 200;
@@ -960,7 +961,7 @@ export default function CategoryPageClient({
         // Sort
         switch (sortBy) {
             case 'price_low':
-                filtered.sort((a, b) => ((a as { pricingSummary?: { fromPrice?: number } }).pricingSummary?.fromPrice ?? a.discountPrice ?? a.originalPrice ?? 0) - ((b as { pricingSummary?: { fromPrice?: number } }).pricingSummary?.fromPrice ?? b.discountPrice ?? b.originalPrice ?? 0));
+                filtered.sort((a, b) => tourFromPrice(a).price - tourFromPrice(b).price);
                 break;
             case 'price_high':
                 filtered.sort((a, b) => ((b as { pricingSummary?: { fromPrice?: number } }).pricingSummary?.fromPrice ?? b.discountPrice ?? b.originalPrice ?? 0) - ((a as { pricingSummary?: { fromPrice?: number } }).pricingSummary?.fromPrice ?? a.discountPrice ?? a.originalPrice ?? 0));

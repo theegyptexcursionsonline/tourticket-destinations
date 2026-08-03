@@ -72,7 +72,7 @@ async function getHomePageDataInternal(tenantId: string) {
       // Featured tours (filtered by tenant)
       Tour.find(tenantQuery({ isPublished: true, isFeatured: true }))
         .populate('destination', 'name')
-        .select('title slug image discountPrice originalPrice duration rating reviewCount bookings tenantId translations')
+        .select('title slug image discountPrice originalPrice discountPercent bookingOptions.price bookingOptions.applyTourDiscount bookingOptions.timeSlots.price duration rating reviewCount bookings tenantId translations')
         .limit(8)
         .lean()
         .catch(() => []),

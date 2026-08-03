@@ -5,6 +5,7 @@ import { ArrowRight, Star, ShoppingCart, Clock, Users, ImageIcon } from 'lucide-
 import Image from 'next/image';
 import { Tour } from '@/types';
 import { useSettings } from '@/hooks/useSettings';
+import { tourFromPrice } from '@/lib/pricing/displayPrice';
 import { useTenant } from '@/contexts/TenantContext';
 import BookingSidebar from '@/components/BookingSidebar';
 import { Link } from '@/i18n/navigation';
@@ -96,6 +97,7 @@ const getTagColor = (tag: string) => {
 const TourCard = ({ tour, onAddToCartClick }: { tour: Tour; onAddToCartClick: (tour: Tour) => void }) => {
   const { formatPrice } = useSettings();
   const { getSiteName } = useTenant();
+  const fromPrice = tourFromPrice(tour);
 
   return (
     <Link
@@ -149,10 +151,10 @@ const TourCard = ({ tour, onAddToCartClick }: { tour: Tour; onAddToCartClick: (t
         {/* Price pill (overlay bottom-left) */}
         <div className="absolute start-4 bottom-4 z-20">
           <div className="bg-gradient-to-r from-red-600 to-red-500 text-white px-4 py-3 rounded-full font-black shadow-xl text-lg border-2 border-white/20">
-            {formatPrice(tour.discountPrice || tour.originalPrice || 0)}
-            {tour.originalPrice && tour.discountPrice && tour.originalPrice > tour.discountPrice && (
+            {formatPrice(fromPrice.price)}
+            {fromPrice.discountApplied && (
               <span className="ms-3 text-sm font-medium line-through text-red-100">
-                {formatPrice(tour.originalPrice)}
+                {formatPrice(fromPrice.originalPrice)}
               </span>
             )}
           </div>
@@ -205,11 +207,11 @@ const TourCard = ({ tour, onAddToCartClick }: { tour: Tour; onAddToCartClick: (t
             <div className="text-sm text-gray-500 mb-1">Starting from</div>
             <div className="flex items-baseline gap-2">
               <span className="text-2xl md:text-3xl font-black text-gray-900">
-                {formatPrice(tour.discountPrice || tour.originalPrice || 0)}
+                {formatPrice(fromPrice.price)}
               </span>
-              {tour.originalPrice && tour.discountPrice && tour.originalPrice > tour.discountPrice && (
+              {fromPrice.discountApplied && (
                 <span className="text-sm text-gray-400 line-through">
-                  {formatPrice(tour.originalPrice)}
+                  {formatPrice(fromPrice.originalPrice)}
                 </span>
               )}
             </div>

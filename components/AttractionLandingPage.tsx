@@ -165,7 +165,7 @@ const ExpandableDescription = ({ attraction }: { attraction: AttractionData }) =
         <div className="bg-slate-50 rounded-xl p-6 mt-6">
           <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
             <Info className="w-5 h-5 text-red-600" />
-            Key Highlights
+            What to Expect
           </h3>
           <ul className="space-y-2">
             {attraction.highlights.slice(0, 5).map((highlight, index) => (
