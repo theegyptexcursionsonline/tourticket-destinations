@@ -64,7 +64,12 @@ async function getPageData(slug: string, tenantId: string) {
   await dbConnect();
 
   const category = await CategoryModel.findOne(buildStrictTenantQuery({ slug }, tenantId))
-    .populate('popularDestinationIds', 'name slug image')
+    .populate({
+      path: 'popularDestinationIds',
+      select: 'name slug image',
+      // An unpublished destination must never surface on the storefront rail.
+      match: { isPublished: { $ne: false } },
+    })
     .lean() as any;
   if (!category) {
     return { category: null, categoryTours: [] };
@@ -85,6 +90,66 @@ async function getPageData(slug: string, tenantId: string) {
   };
 }
 
+// The "Explore More Interests" rail, resolved server-side so the section
+// renders with the page instead of flashing a client-fetch skeleton (or
+// silently disappearing on a slow /api/interests response).
+async function getRelatedCategoryInterests(
+  currentCategoryId: string,
+  currentSlug: string,
+  locale: string,
+  tenantId: string,
+) {
+  const relatedCategories = await CategoryModel.find(
+    buildStrictTenantQuery({
+      isPublished: true,
+      slug: { $ne: currentSlug },
+      _id: { $ne: currentCategoryId },
+    }, tenantId)
+  )
+    .select('name slug heroImage featured order description translations')
+    .sort({ featured: -1, order: 1, name: 1 })
+    .limit(12)
+    .lean();
+
+  if (relatedCategories.length === 0) {
+    return [];
+  }
+
+  const categoryIds = relatedCategories.map((category: any) => category._id);
+  const counts = await TourModel.aggregate<{ _id: unknown; count: number }>([
+    {
+      $match: {
+        ...buildStrictTenantQuery({ isPublished: true }, tenantId),
+        category: { $in: categoryIds },
+      },
+    },
+    { $unwind: '$category' },
+    {
+      $group: {
+        _id: '$category',
+        count: { $sum: 1 },
+      },
+    },
+  ]).catch(() => []);
+
+  const countMap = new Map(counts.map((item) => [String(item._id), Number(item.count) || 0]));
+
+  return (JSON.parse(JSON.stringify(relatedCategories)) as Record<string, unknown>[])
+    .map((category) => {
+      const localized = localizeEntityFields(category, locale, ['name', 'description']);
+      return {
+        type: 'category' as const,
+        _id: String(category._id),
+        slug: String(category.slug || ''),
+        name: String(localized.name || category.name || ''),
+        image: typeof category.heroImage === 'string' ? category.heroImage : undefined,
+        featured: Boolean(category.featured),
+        products: countMap.get(String(category._id)) || 0,
+      };
+    })
+    .filter((category) => category.products > 0);
+}
+
 export default async function CategoryPage({ params }: { params: Promise<{ slug: string }> }) {
   const resolvedParams = await params;
   const tenantId = await getTenantFromRequest();
@@ -94,6 +159,13 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
   if (!category) {
     notFound();
   }
+
+  const relatedInterests = await getRelatedCategoryInterests(
+    String(category._id),
+    resolvedParams.slug,
+    locale,
+    tenantId,
+  );
 
   // Apply translations for the current locale
   const localizedTours = localizeAndDedupeTours(categoryTours as any[], locale);
@@ -124,6 +196,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
       <CategoryPageClient
         category={localizedCategory}
         categoryTours={localizedTours}
+        relatedInterests={relatedInterests}
       />
     </>
   );

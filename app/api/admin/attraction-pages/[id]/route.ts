@@ -174,7 +174,19 @@ export async function PUT(
     if (error instanceof PageLinkValidationError) {
       return NextResponse.json({ success: false, error: error.message }, { status: 400 });
     }
-    
+
+    // A slug collision reported by the database rather than the pre-check means
+    // a uniqueness rule wider than the tenant is in play. Name it instead of
+    // returning an unexplained failure.
+    const mongoError = error as { code?: number; keyPattern?: Record<string, unknown> };
+    if (mongoError?.code === 11000) {
+      const field = Object.keys(mongoError.keyPattern || {}).join(', ') || 'slug';
+      return NextResponse.json({
+        success: false,
+        error: `A page with this URL slug already exists (${field}). Choose a different slug.`,
+      }, { status: 409 });
+    }
+
     // Handle validation errors
     if (error instanceof Error && error.name === 'ValidationError') {
       return NextResponse.json({

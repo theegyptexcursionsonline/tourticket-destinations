@@ -304,6 +304,7 @@ export interface AttractionPage {
   urlType?: string;
   heroImage: string;
   images?: string[];
+  imageMetadata?: ImageMetadata[];
   highlights?: string[];
   features?: string[];
   gridTitle: string;

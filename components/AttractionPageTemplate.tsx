@@ -11,6 +11,7 @@ import {
 import { CategoryPageData, Tour, Review } from '@/types';
 import { useSettings } from '@/hooks/useSettings';
 import type { LinkedPageCardData } from '@/components/AttractionLandingPage';
+import { imageMetadataFor } from '@/lib/content/imageMetadata';
 
 interface AttractionPageTemplateProps {
   page: CategoryPageData;
@@ -600,6 +601,36 @@ export default function AttractionPageTemplate({ page, urlType, linkedPages = []
             )}
           </div>
         </section>
+
+        {/* Gallery — catalogue pages accepted uploads but never rendered them,
+            unlike the attraction and category templates. */}
+        {page.images && page.images.length > 0 && (
+          <section className="py-12 bg-slate-50">
+            <div className="container mx-auto px-6">
+              <h2 className="text-3xl font-bold text-slate-900 mb-6">Gallery</h2>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                {page.images.map((image, index) => {
+                  const seo = imageMetadataFor(image, page.imageMetadata, `${page.title} ${index + 1}`);
+                  return (
+                    <div
+                      key={`${image}-${index}`}
+                      className={`relative overflow-hidden rounded-2xl ${index === 0 ? 'col-span-2 row-span-2 min-h-72' : 'min-h-36'}`}
+                    >
+                      <Image
+                        src={image}
+                        alt={seo.alt}
+                        title={seo.title}
+                        fill
+                        className="object-cover transition-transform duration-500 hover:scale-105"
+                        sizes="(max-width: 1024px) 50vw, 25vw"
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* Tours Grid Section */}
         {page.tours && page.tours.length > 0 && (
