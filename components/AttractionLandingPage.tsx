@@ -6,7 +6,7 @@ import { Link } from '@/i18n/navigation';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  ArrowRight, Star, Clock, Search, 
+  ArrowRight, Star, Search,
   Grid, List, Award, 
   ChevronDown, ChevronUp, CheckCircle,
   Target, Info
@@ -57,38 +57,49 @@ interface AttractionLandingPageProps {
 }
 
 const QuickInfo = ({ attraction }: { attraction: AttractionData }) => {
-  const avgRating = 4.8;
-  const totalReviews = attraction.reviews?.length || 0;
-  
+  // Only figures this page can back — the hero used to pin an invented
+  // rating next to a real 0-review count plus a canned duration claim.
+  const reviews = attraction.reviews || [];
+  const totalReviews = reviews.length;
+  const ratedReviews = reviews.filter(r => typeof r.rating === 'number');
+  const ratedTours = (attraction.tours || []).filter(t => typeof t.rating === 'number');
+  const avgRating = ratedReviews.length > 0
+    ? (ratedReviews.reduce((acc, r) => acc + (r.rating || 0), 0) / ratedReviews.length).toFixed(1)
+    : ratedTours.length > 0
+      ? (ratedTours.reduce((acc, t) => acc + (t.rating || 0), 0) / ratedTours.length).toFixed(1)
+      : null;
+  const showActivities = attraction.totalTours > 0;
+
+  if (!avgRating && !showActivities) return null;
+
   // Sits on the dark hero image, so the palette has to be light — the slate
   // greys here were unreadable against the photo.
   return (
     <div className="flex flex-wrap items-center gap-6 text-sm">
-      <div className="flex items-center gap-2">
-        <div className="flex items-center gap-1">
-          <Star className="w-5 h-5 text-yellow-400 fill-current" />
-          <span className="font-bold text-lg text-white">{avgRating}</span>
+      {avgRating && (
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
+            <Star className="w-5 h-5 text-yellow-400 fill-current" />
+            <span className="font-bold text-lg text-white">{avgRating}</span>
+          </div>
+          {totalReviews > 0 && (
+            <span className="text-white/80">
+              ({totalReviews} {totalReviews === 1 ? 'review' : 'reviews'})
+            </span>
+          )}
         </div>
-        <span className="text-white/80">
-          ({totalReviews} {totalReviews === 1 ? 'review' : 'reviews'})
-        </span>
-      </div>
+      )}
 
-      <div className="h-4 w-px bg-white/40" />
+      {avgRating && showActivities && <div className="h-4 w-px bg-white/40" />}
 
-      <div className="flex items-center gap-2">
-        <Target className="w-5 h-5 text-white/90" />
-        <span className="text-white font-medium">
-          {attraction.totalTours} {attraction.totalTours === 1 ? 'activity' : 'activities'}
-        </span>
-      </div>
-
-      <div className="h-4 w-px bg-white/40" />
-
-      <div className="flex items-center gap-2">
-        <Clock className="w-5 h-5 text-white/90" />
-        <span className="text-white font-medium">Flexible duration</span>
-      </div>
+      {showActivities && (
+        <div className="flex items-center gap-2">
+          <Target className="w-5 h-5 text-white/90" />
+          <span className="text-white font-medium">
+            {attraction.totalTours} {attraction.totalTours === 1 ? 'activity' : 'activities'}
+          </span>
+        </div>
+      )}
     </div>
   );
 };

@@ -93,7 +93,7 @@ describe('readability fixes', () => {
   it('uses a light palette for hero text sitting on the photo', () => {
     const attraction = read('components/AttractionLandingPage.tsx');
     const start = attraction.indexOf('const QuickInfo');
-    const block = attraction.slice(start, start + 1400);
+    const block = attraction.slice(start, attraction.indexOf('\n};', start));
     expect(block).toContain('text-white/80');
     expect(block).toContain('bg-white/40');
     expect(block).not.toContain('text-slate-600');

@@ -53,11 +53,13 @@ const TourCard = ({ tour, index }: { tour: Tour; index: number }) => {
             </div>
           )}
           
-          {/* Rating Badge */}
-          <div className="absolute top-3 end-3 bg-white/90 backdrop-blur-sm text-slate-900 px-3 py-1 text-sm rounded-full flex items-center gap-1 shadow-lg">
-            <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-            {typeof tour.rating === 'number' ? tour.rating.toFixed(1) : '4.5'}
-          </div>
+          {/* Rating Badge — only when the tour has a real rating */}
+          {typeof tour.rating === 'number' && (
+            <div className="absolute top-3 end-3 bg-white/90 backdrop-blur-sm text-slate-900 px-3 py-1 text-sm rounded-full flex items-center gap-1 shadow-lg">
+              <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+              {tour.rating.toFixed(1)}
+            </div>
+          )}
 
           {/* Price Badge */}
           <div className="absolute bottom-3 end-3 bg-white/95 backdrop-blur-sm px-3 py-2 rounded-xl shadow-lg">
@@ -168,10 +170,12 @@ const TourListItem = ({ tour, index }: { tour: Tour; index: number }) => {
                 <Clock className="h-4 w-4" />
                 {tour.duration}
               </span>
-              <span className="flex items-center gap-1">
-                <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                {typeof tour.rating === 'number' ? tour.rating.toFixed(1) : '4.5'}
-              </span>
+              {typeof tour.rating === 'number' && (
+                <span className="flex items-center gap-1">
+                  <Star className="h-4 w-4 text-yellow-500 fill-current" />
+                  {tour.rating.toFixed(1)}
+                </span>
+              )}
               {destination && (
                 <span className="flex items-center gap-1">
                   <MapPin className="h-4 w-4" />
@@ -204,50 +208,55 @@ const TourListItem = ({ tour, index }: { tour: Tour; index: number }) => {
   );
 };
 
-const QuickStats = ({ page }: { page: CategoryPageData }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 30 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ delay: 0.3 }}
-    className="grid grid-cols-1 md:grid-cols-4 gap-8 max-w-6xl mx-auto"
-  >
-    <div className="bg-white rounded-2xl shadow-lg p-8 text-center hover:shadow-xl transition-shadow duration-300">
-      <div className="text-4xl font-black text-red-600 mb-3">
-        {page.tours?.length || 0}
-      </div>
-      <div className="text-slate-600 font-semibold">
-        Tours Available
-      </div>
+const QuickStats = ({ page }: { page: CategoryPageData }) => {
+  // Only figures this page can actually back. The strip used to pin an
+  // invented rating and a round-the-clock-support claim next to a real
+  // 0-review count — the same invented-figures class the category tiles had.
+  const tours = page.tours || [];
+  const reviews = page.reviews || [];
+
+  const ratedReviews = reviews.filter(r => typeof r.rating === 'number');
+  const ratedTours = tours.filter(t => typeof t.rating === 'number');
+  const averageRating = ratedReviews.length > 0
+    ? (ratedReviews.reduce((acc, r) => acc + (r.rating || 0), 0) / ratedReviews.length).toFixed(1)
+    : ratedTours.length > 0
+      ? (ratedTours.reduce((acc, t) => acc + (t.rating || 0), 0) / ratedTours.length).toFixed(1)
+      : null;
+
+  const stats = [
+    { label: 'Tours Available', value: tours.length > 0 ? tours.length.toString() : null },
+    { label: 'Customer Reviews', value: reviews.length > 0 ? reviews.length.toString() : null },
+    { label: 'Average Rating', value: averageRating },
+  ].filter((stat): stat is typeof stat & { value: string } => Boolean(stat.value));
+
+  if (stats.length === 0) return null;
+
+  const gridColumns = ['', 'md:grid-cols-1', 'md:grid-cols-2', 'md:grid-cols-3'][stats.length] || 'md:grid-cols-4';
+
+  return (
+    <div className="mt-20">
+      <h3 className="text-3xl font-bold text-center mb-12 text-slate-900">
+        Why Thousands Choose Us
+      </h3>
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className={`grid grid-cols-1 ${gridColumns} gap-8 max-w-6xl mx-auto`}
+      >
+        {stats.map((stat) => (
+          <div
+            key={stat.label}
+            className="bg-white rounded-2xl shadow-lg p-8 text-center hover:shadow-xl transition-shadow duration-300"
+          >
+            <div className="text-4xl font-black text-red-600 mb-3">{stat.value}</div>
+            <div className="text-slate-600 font-semibold">{stat.label}</div>
+          </div>
+        ))}
+      </motion.div>
     </div>
-    
-    <div className="bg-white rounded-2xl shadow-lg p-8 text-center hover:shadow-xl transition-shadow duration-300">
-      <div className="text-4xl font-black text-red-600 mb-3">
-        {page.reviews?.length || 0}
-      </div>
-      <div className="text-slate-600 font-semibold">
-        Customer Reviews
-      </div>
-    </div>
-    
-    <div className="bg-white rounded-2xl shadow-lg p-8 text-center hover:shadow-xl transition-shadow duration-300">
-      <div className="text-4xl font-black text-red-600 mb-3">
-        4.9
-      </div>
-      <div className="text-slate-600 font-semibold">
-        Average Rating
-      </div>
-    </div>
-    
-    <div className="bg-white rounded-2xl shadow-lg p-8 text-center hover:shadow-xl transition-shadow duration-300">
-      <div className="text-4xl font-black text-red-600 mb-3">
-        24/7
-      </div>
-      <div className="text-slate-600 font-semibold">
-        Customer Support
-      </div>
-    </div>
-  </motion.div>
-);
+  );
+};
 
 const SearchAndFilter = ({ 
   searchQuery, 
@@ -729,14 +738,7 @@ export default function AttractionPageTemplate({ page, urlType, linkedPages = []
               )}
 
               {/* Stats */}
-              {page.showStats && (
-                <div className="mt-20">
-                  <h3 className="text-3xl font-bold text-center mb-12 text-slate-900">
-                    Why Thousands Choose Us
-                  </h3>
-                  <QuickStats page={page} />
-                </div>
-              )}
+              {page.showStats && <QuickStats page={page} />}
             </div>
           </section>
         )}

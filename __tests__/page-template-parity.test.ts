@@ -40,6 +40,28 @@ describe('category stats never publish invented figures', () => {
   });
 });
 
+describe('attraction templates never publish invented figures', () => {
+  // Same class as the category strip above, found live on 2026-08-03: the
+  // catalogue strip showed '0 Customer Reviews' beside a pinned '4.9' rating
+  // and a '24/7' support claim, tour cards invented a 4.5 rating, and the
+  // attraction hero pinned 4.8 over a real 0-review count.
+  it('catalogue stats tiles carry no hardcoded rating or support claim', () => {
+    const source = read('components/AttractionPageTemplate.tsx');
+    expect(source).not.toContain('4.9');
+    expect(source).not.toContain('24/7');
+    expect(source).toContain('if (stats.length === 0) return null;');
+  });
+  it('tour cards hide the rating badge instead of inventing one', () => {
+    const source = read('components/AttractionPageTemplate.tsx');
+    expect(source).not.toContain("'4.5'");
+  });
+  it('attraction hero derives its rating from real reviews or tours and can hide', () => {
+    const source = read('components/AttractionLandingPage.tsx');
+    expect(source).not.toContain('4.8');
+    expect(source).toContain('if (!avgRating && !showActivities) return null;');
+  });
+});
+
 describe('curated popular destinations override the automatic list', () => {
   it('lets an editor pick them and prefers that choice', () => {
     expect(read('components/admin/CategoryForm.tsx')).toContain('popularDestinationIds');
