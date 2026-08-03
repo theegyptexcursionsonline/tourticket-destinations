@@ -316,15 +316,9 @@ export async function PUT(
             if (!body.availability.availableDays) {
                 body.availability.availableDays = [0, 1, 2, 3, 4, 5, 6];
             }
-        } else if (!isArchiveRestore) {
-            // The restore mutation carries only the flag — defaulting here
-            // would wipe the availability the tour already has.
-            body.availability = {
-                type: 'daily',
-                availableDays: [0, 1, 2, 3, 4, 5, 6],
-                slots: [{ time: '10:00', capacity: 10 }]
-            };
         }
+        // No fabrication when the key is absent: ANY partial update (not just
+        // restore) must leave the tour's real schedule untouched (issue #229).
 
         // Build the update filter, applying tenant guard if scoped.
         // A tour "belongs" to a scoped admin if EITHER its primary tenantId

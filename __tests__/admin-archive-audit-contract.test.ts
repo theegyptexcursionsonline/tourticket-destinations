@@ -41,8 +41,12 @@ describe('archived is its own status, not a draft', () => {
     expect(route).toContain('delete body.archivedBy');
   });
 
-  it('restoring keeps the availability the tour already has', () => {
-    expect(read('app/api/admin/tours/[id]/route.ts')).toContain('!isArchiveRestore');
+  it('partial updates never fabricate a default availability (issue #229)', () => {
+    // Stronger than gating restore alone: when the body carries no
+    // availability, NO partial update may replace the tour's real schedule.
+    const source = read('app/api/admin/tours/[id]/route.ts');
+    expect(source).not.toContain('body.availability = {');
+    expect(source).toContain('if (body.availability) {');
   });
 
   it('stores the archive timestamp on the tour model', () => {
