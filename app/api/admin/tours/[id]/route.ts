@@ -442,7 +442,10 @@ export async function DELETE(
             ? { _id: id }
             : { slug: id };
         if (effectiveTenantId) {
-            archiveFilter.tenantId = effectiveTenantId;
+            archiveFilter.$or = [
+                { tenantId: effectiveTenantId },
+                { tenantIds: effectiveTenantId },
+            ];
         }
 
         // Unpublish and stamp who archived it; the snapshot survives the

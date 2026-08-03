@@ -26,9 +26,14 @@ export function tourFromPrice(tour: DisplayableTour | null | undefined): {
     : [];
 
   if (options.length > 0) {
-    let cheapest = effectiveOptionPrice(tour, options[0]);
-    for (const option of options.slice(1)) {
-      const priced = effectiveOptionPrice(tour, option);
+    const chargeablePrices = options.flatMap((option) => {
+      const slots = Array.isArray(option.timeSlots) && option.timeSlots.length > 0
+        ? option.timeSlots
+        : [undefined];
+      return slots.map((slot) => effectiveOptionPrice(tour, option, slot));
+    });
+    let cheapest = chargeablePrices[0];
+    for (const priced of chargeablePrices.slice(1)) {
       if (priced.price < cheapest.price) cheapest = priced;
     }
     return cheapest;

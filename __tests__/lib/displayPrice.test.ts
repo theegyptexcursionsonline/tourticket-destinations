@@ -20,6 +20,27 @@ describe('tourFromPrice', () => {
     expect(result).toEqual({ price: 90, originalPrice: 90, discountApplied: false });
   });
 
+  it('advertises the cheapest chargeable slot instead of an option base price', () => {
+    const result = tourFromPrice({
+      discountPercent: 20,
+      bookingOptions: [
+        {
+          price: 150,
+          applyTourDiscount: true,
+          timeSlots: [{ price: 50 }, { price: 200 }],
+        },
+      ],
+    });
+
+    expect(result).toEqual({ price: 40, originalPrice: 50, discountApplied: true });
+  });
+
+  it('uses the option base when a configured slot inherits its price', () => {
+    expect(tourFromPrice({
+      bookingOptions: [{ price: 90, timeSlots: [{ price: null }] }],
+    })).toEqual({ price: 90, originalPrice: 90, discountApplied: false });
+  });
+
   it('falls back to the tour price when the payload ships no options', () => {
     expect(tourFromPrice({ discountPrice: 55, originalPrice: 70 })).toEqual({
       price: 55,
