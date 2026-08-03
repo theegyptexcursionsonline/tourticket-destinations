@@ -515,7 +515,7 @@ export function ToursListClient({
                           <Edit3 className="h-4 w-4" />
                           <span>Edit</span>
                         </Link>
-                        <TourActions tourId={t._id} />
+                        <TourActions tourId={t._id} isArchived={isArchived(t)} />
                       </div>
                     </td>
                   </tr>
@@ -611,7 +611,7 @@ export function ToursListClient({
                   </div>
                   
                   <div className="flex-shrink-0">
-                    <TourActions tourId={t._id} />
+                    <TourActions tourId={t._id} isArchived={isArchived(t)} />
                   </div>
                 </div>
 

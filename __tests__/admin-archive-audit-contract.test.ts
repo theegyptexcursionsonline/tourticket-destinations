@@ -23,6 +23,31 @@ describe('archived is its own status, not a draft', () => {
   it('ships archivedAt to the client so the tab can filter on it', () => {
     expect(read('app/api/admin/tours/route.ts')).toContain("'archivedAt'");
   });
+
+  it('can restore to draft without forcing a publish', () => {
+    expect(read('app/api/admin/tours/[id]/route.ts')).toContain('body.restoreFromArchive === true');
+    expect(read('app/admin/tours/TourActions.tsx')).toContain('Restore to Draft');
+  });
+
+  it('archives on delete instead of destroying booking history', () => {
+    const route = read('app/api/admin/tours/[id]/route.ts');
+    expect(route).toContain('archivedAt: new Date()');
+    expect(route).not.toContain('findOneAndDelete');
+  });
+
+  it('a request body cannot forge archive state', () => {
+    const route = read('app/api/admin/tours/[id]/route.ts');
+    expect(route).toContain('delete body.archivedAt');
+    expect(route).toContain('delete body.archivedBy');
+  });
+
+  it('restoring keeps the availability the tour already has', () => {
+    expect(read('app/api/admin/tours/[id]/route.ts')).toContain('!isArchiveRestore');
+  });
+
+  it('stores the archive timestamp on the tour model', () => {
+    expect(read('lib/models/Tour.ts')).toContain('archivedAt: { type: Date, index: true }');
+  });
 });
 
 describe('audit trail records who touched a tour', () => {

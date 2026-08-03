@@ -180,6 +180,24 @@ export async function PUT(
         const { id } = await params;
         const body = await request.json();
 
+        // Archive state is set by the DELETE handler; a request body cannot
+        // forge it.
+        delete body.archivedAt;
+        delete body.archivedBy;
+        if (body.isPublished === true) {
+            // Publishing is the explicit restore action for an archived tour.
+            body.archivedAt = null;
+            body.archivedBy = null;
+        }
+        const isArchiveRestore = body.restoreFromArchive === true;
+        if (isArchiveRestore) {
+            // Restore without publishing: the tour returns to Draft, which is
+            // what an editor wants when reviving something for further work.
+            body.archivedAt = null;
+            body.archivedBy = null;
+            delete body.restoreFromArchive;
+        }
+
         // Tenant guard: if a tenantId scope is passed (from AdminTenantContext),
         // require the target tour to belong to that tenant. Prevents cross-tenant
         // edits when admin is viewing a single brand. Absent param = behave as before.
@@ -298,7 +316,9 @@ export async function PUT(
             if (!body.availability.availableDays) {
                 body.availability.availableDays = [0, 1, 2, 3, 4, 5, 6];
             }
-        } else {
+        } else if (!isArchiveRestore) {
+            // The restore mutation carries only the flag — defaulting here
+            // would wipe the availability the tour already has.
             body.availability = {
                 type: 'daily',
                 availableDays: [0, 1, 2, 3, 4, 5, 6],
@@ -399,7 +419,8 @@ export async function PUT(
     }
 }
 
-// DELETE a tour by ID or Slug
+// Archive a tour by ID or Slug. Tour documents are referenced by immutable
+// booking receipts, so permanent deletion would corrupt the financial trail.
 export async function DELETE(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
@@ -423,16 +444,30 @@ export async function DELETE(
         if (!currentTenantIds.some((tenantId) => canAccessTenant(auth, tenantId))) return tenantForbiddenResponse();
         if (effectiveTenantId && !canAccessTenant(auth, effectiveTenantId)) return tenantForbiddenResponse();
 
-        const deleteFilter: Record<string, unknown> = mongoose.Types.ObjectId.isValid(id)
+        const archiveFilter: Record<string, unknown> = mongoose.Types.ObjectId.isValid(id)
             ? { _id: id }
             : { slug: id };
         if (effectiveTenantId) {
-            deleteFilter.tenantId = effectiveTenantId;
+            archiveFilter.tenantId = effectiveTenantId;
         }
 
-        const deletedTour = await Tour.findOneAndDelete(deleteFilter);
+        // Unpublish and stamp who archived it; the snapshot survives the
+        // team member being removed.
+        const editor = auditStamp({ id: auth.userId, name: auth.name, email: auth.email });
+        const archivePatch: Record<string, unknown> = {
+            isPublished: false,
+            archivedAt: new Date(),
+            archivedBy: auth.userId,
+        };
+        if (editor) archivePatch.updatedBy = editor;
 
-        if (!deletedTour) {
+        const archivedTour = await Tour.findOneAndUpdate(
+            archiveFilter,
+            { $set: archivePatch },
+            { new: true },
+        );
+
+        if (!archivedTour) {
             return NextResponse.json({ success: false, error: "Tour not found" }, { status: 404 });
         }
 
@@ -440,18 +475,22 @@ export async function DELETE(
 
         // Remove from Algolia
         try {
-            await deleteTourFromAlgolia((deletedTour._id as any).toString());
+            await deleteTourFromAlgolia((archivedTour._id as any).toString());
         } catch (algoliaErr) {
-            console.warn('Failed to remove deleted tour from Algolia:', algoliaErr);
+            console.warn('Failed to remove archived tour from Algolia:', algoliaErr);
         }
 
-        return NextResponse.json({ success: true, data: {} });
-        
+        return NextResponse.json({
+            success: true,
+            message: 'Tour archived. Existing bookings and audit records were preserved.',
+            data: { id: archivedTour._id, archivedAt: archivedTour.archivedAt },
+        });
+
     } catch (error: any) {
-        console.error('Tour deletion error:', error);
-        return NextResponse.json({ 
-            success: false, 
-            error: error.message || 'An unexpected error occurred while deleting the tour'
+        console.error('Tour archive error:', error);
+        return NextResponse.json({
+            success: false,
+            error: error.message || 'An unexpected error occurred while archiving the tour'
         }, { status: 500 });
     }
 }

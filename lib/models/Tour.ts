@@ -141,8 +141,10 @@ export interface ITour extends Document {
   // Status
   isFeatured?: boolean;
   isPublished?: boolean;
+  archivedAt?: Date;
   createdBy?: { id?: string; name?: string; email?: string };
   updatedBy?: { id?: string; name?: string; email?: string };
+  archivedBy?: string;
 
   // Relationships
   reviews?: mongoose.Schema.Types.ObjectId[];
@@ -769,6 +771,7 @@ const TourSchema: Schema<ITour> = new Schema({
     default: true,
     index: true
   },
+  archivedAt: { type: Date, index: true },
   // Snapshot rather than a live ref: team members get removed, and the record
   // of who touched a tour must survive that.
   createdBy: {
@@ -781,6 +784,7 @@ const TourSchema: Schema<ITour> = new Schema({
     name: { type: String, trim: true },
     email: { type: String, trim: true },
   },
+  archivedBy: { type: String, trim: true, maxlength: 255 },
 
   // Meta
   rating: { 
