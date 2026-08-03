@@ -3,7 +3,7 @@
 import React, { useMemo, useState } from 'react';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
-import { Star, Clock, ShoppingCart, Search, MapPin, Users, Award, TrendingUp, CheckCircle2, Tag, Compass, ChevronDown } from 'lucide-react';
+import { Star, Clock, ShoppingCart, Search, MapPin, Users, TrendingUp, CheckCircle2, Tag, Compass, ChevronDown } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import AISearchWidget from '@/components/AISearchWidget';
@@ -330,40 +330,37 @@ const StatsSection = ({
 }) => {
   const totalTours = tours?.length || 0;
 
-  // Calculate average rating from tours
-  let averageRating = '4.9';
-  if (tours && tours.length > 0) {
-    const toursWithRatings = tours.filter(t => t.rating);
-    if (toursWithRatings.length > 0) {
-      const sum = toursWithRatings.reduce((acc, t) => acc + (t.rating || 0), 0);
-      averageRating = (sum / toursWithRatings.length).toFixed(1);
-    }
-  }
+  // Only figures the catalog can actually back: a rating averaged from real
+  // tour ratings and a customer count summed from real bookings. The old
+  // '10K+ customers' / '50+ expert guides' fallbacks were invented claims and
+  // published themselves on every category that lacked data.
+  const toursWithRatings = (tours || []).filter(t => t.rating);
+  const averageRating = toursWithRatings.length > 0
+    ? (toursWithRatings.reduce((acc, t) => acc + (t.rating || 0), 0) / toursWithRatings.length).toFixed(1)
+    : null;
 
-  // Calculate happy customers from bookings or use default
-  let happyCustomers = '10K+';
-  if (tours && tours.length > 0) {
-    const totalBookings = tours.reduce((total, tour) => total + (tour.bookings || 0), 0);
-    if (totalBookings > 0) {
-      if (totalBookings >= 1000) {
-        happyCustomers = `${Math.floor(totalBookings / 1000)}K+`;
-      } else {
-        happyCustomers = `${totalBookings}+`;
-      }
-    }
-  }
+  const totalBookings = (tours || []).reduce((total, tour) => total + (tour.bookings || 0), 0);
+  const happyCustomers = totalBookings >= 1000
+    ? `${Math.floor(totalBookings / 1000)}K+`
+    : totalBookings > 0
+      ? `${totalBookings}+`
+      : null;
 
   const stats = [
-    { icon: MapPin, label: copy.toursAvailable, value: totalTours.toString(), color: 'text-blue-600' },
+    { icon: MapPin, label: copy.toursAvailable, value: totalTours > 0 ? totalTours.toString() : null, color: 'text-blue-600' },
     { icon: Star, label: copy.averageRating, value: averageRating, color: 'text-yellow-600' },
     { icon: Users, label: copy.happyCustomers, value: happyCustomers, color: 'text-green-600' },
-    { icon: Award, label: copy.expertGuides, value: '50+', color: 'text-purple-600' },
-  ];
+  ].filter((stat): stat is typeof stat & { value: string } => Boolean(stat.value));
+
+  if (stats.length === 0) return null;
+
+  const gridColumns = ['', 'grid-cols-1 md:grid-cols-1', 'grid-cols-2 md:grid-cols-2', 'grid-cols-2 md:grid-cols-3'][stats.length]
+    || 'grid-cols-2 md:grid-cols-4';
 
   return (
     <section className="py-12 bg-white">
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <div className={`grid ${gridColumns} gap-6`}>
           {stats.map((stat, index) => {
             const Icon = stat.icon;
             return (

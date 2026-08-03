@@ -26,6 +26,20 @@ describe('every page template renders the gallery its editor accepts', () => {
   });
 });
 
+describe('category stats never publish invented figures', () => {
+  // Phase 2 removed fabricated copy; the stats tiles' '10K+ customers' and
+  // '50+ expert guides' fallbacks were the same class and survived it.
+  it('has no hardcoded customer or guide counts', () => {
+    const source = read('app/[locale]/categories/[slug]/CategoryPageClient.tsx');
+    expect(source).not.toContain("'10K+'");
+    expect(source).not.toContain("value: '50+'");
+  });
+  it('hides rating and customer tiles without real data', () => {
+    const source = read('app/[locale]/categories/[slug]/CategoryPageClient.tsx');
+    expect(source).toContain('if (stats.length === 0) return null;');
+  });
+});
+
 describe('curated popular destinations override the automatic list', () => {
   it('lets an editor pick them and prefers that choice', () => {
     expect(read('components/admin/CategoryForm.tsx')).toContain('popularDestinationIds');
