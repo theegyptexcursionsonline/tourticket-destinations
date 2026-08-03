@@ -48,7 +48,7 @@ interface PagesResponse {
 
 const KIND_LABELS: Record<PageKind, string> = {
   attraction: 'Attraction',
-  'category-landing': 'Catalogue',
+  'category-landing': 'Category 2',
   category: 'Category',
 };
 
@@ -261,7 +261,7 @@ export default function UnifiedPagesAdmin() {
           >
             <option value="all">All Types</option>
             <option value="attraction">Attraction</option>
-            <option value="category-landing">Catalogue</option>
+            <option value="category-landing">Category 2</option>
             <option value="category">Category</option>
           </select>
 
@@ -434,7 +434,7 @@ export default function UnifiedPagesAdmin() {
           </div>
           <div className="bg-white p-4 rounded-lg shadow text-center">
             <div className="text-2xl font-bold text-purple-600">{counts['category-landing']}</div>
-            <div className="text-sm text-gray-500">Catalogues</div>
+            <div className="text-sm text-gray-500">Category 2 pages</div>
           </div>
           <div className="bg-white p-4 rounded-lg shadow text-center">
             <div className="text-2xl font-bold text-green-600">{counts.category}</div>

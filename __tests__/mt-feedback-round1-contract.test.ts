@@ -5,22 +5,22 @@ const read = (file: string) => fs.readFileSync(path.join(process.cwd(), file), '
 
 describe('Category and Catalogue use the client vocabulary', () => {
   // A tour collection is a "Category"; the landing page built on one is a
-  // "Catalogue". Stored kinds are unchanged — these are labels only.
+  // "Category 2" (client sheet 02.08 N2). Stored kinds are unchanged — labels only.
   const list = read('app/admin/pages/page.tsx');
 
   it('labels the list badges the way the client names them', () => {
-    expect(list).toContain("'category-landing': 'Catalogue'");
+    expect(list).toContain("'category-landing': 'Category 2'");
     expect(list).toContain("category: 'Category'");
   });
 
   it('labels the type filter and count cards to match', () => {
-    expect(list).toContain('<option value="category-landing">Catalogue</option>');
+    expect(list).toContain('<option value="category-landing">Category 2</option>');
     expect(list).toContain('<option value="category">Category</option>');
   });
 
   it('labels the create chooser and the page-type toggle to match', () => {
     expect(read('app/admin/pages/create/page.tsx')).toContain("id: 'catalogue', label: 'Category'");
-    expect(read('components/admin/AttractionPageForm.tsx')).toContain("['category', 'Catalogue']");
+    expect(read('components/admin/AttractionPageForm.tsx')).toContain("['category', 'Category 2']");
   });
 });
 
@@ -166,7 +166,7 @@ describe('destinations can be translated from the admin', () => {
 describe('tour editor pickers are searchable', () => {
   const form = read('components/TourForm.tsx');
 
-  it.each(['categories', 'attractions', 'catalogue pages'])(
+  it.each(['categories', 'attractions', 'Category 2 pages'])(
     'offers a search box for %s',
     (label) => {
       expect(form).toContain(`searchPlaceholder="Search ${label}…"`);

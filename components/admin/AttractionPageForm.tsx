@@ -775,7 +775,7 @@ export default function AttractionPageForm({ pageId, initialPageType = 'attracti
                             <div className="grid grid-cols-2 gap-2 rounded-xl bg-slate-100 p-1">
                               {([
                                 ['attraction', 'Attraction'],
-                                ['category', 'Catalogue'],
+                                ['category', 'Category 2'],
                               ] as const).map(([value, label]) => (
                                 <button
                                   key={value}

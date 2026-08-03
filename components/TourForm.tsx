@@ -1608,13 +1608,13 @@ const addItineraryItem = () => {
 
                                             {/* Catalogue pages */}
                                             <div className="space-y-3">
-                                                <FormLabel icon={Star}>Catalogue</FormLabel>
+                                                <FormLabel icon={Star}>Category 2</FormLabel>
                                                 <SearchableCheckboxList
                                                     options={interests.map((interest) => ({ id: String(interest._id), label: interest.title }))}
                                                     selectedIds={(formData.interests || []).map(String)}
                                                     onToggle={(id) => handleMultiSelectChange('interests', id)}
                                                     emptyLabel="No catalogue pages available"
-                                                    searchPlaceholder="Search catalogue pages…"
+                                                    searchPlaceholder="Search Category 2 pages…"
                                                 />
                                                 <SmallHint>Select catalogue pages that should feature this tour</SmallHint>
                                             </div>
