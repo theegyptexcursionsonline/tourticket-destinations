@@ -5,6 +5,7 @@ import Availability from '@/lib/models/Availability';
 import StopSale from '@/lib/models/StopSale';
 import { createHash, createHmac } from 'crypto';
 import { isPerPersonAddOn } from '@/lib/checkout/addOnPricing';
+import { authoritativeBasePrice } from '@/lib/pricing/authoritativePrice';
 
 type CartItem = Record<string, any>;
 
@@ -99,15 +100,24 @@ export async function calculateCheckoutPricing(
     if (adults + children + infants < 1) throw new Error('At least one participant is required');
 
     let selectedOption: any;
-    let basePrice = Number(tour.discountPrice ?? tour.price ?? 0);
     const optionId = submitted.selectedBookingOption?.id;
     if (optionId) {
       selectedOption = (tour.bookingOptions || []).find(
         (option: any, index: number) => String(option.id || `option-${index}`) === String(optionId),
       );
       if (!selectedOption) throw new Error('Invalid booking option');
-      basePrice = Number(selectedOption.price);
+      if (typeof selectedOption.price !== 'number' || !Number.isFinite(selectedOption.price)) {
+        throw new Error('Invalid tour price');
+      }
     }
+    // Priced by the same helper as the post-payment booking writer, so the
+    // Stripe amount, the sidebar quote and the recorded booking can never
+    // disagree: tour discount percentage and per-slot overrides included.
+    // Only the option id is forwarded — never client-submitted prices.
+    const basePrice = authoritativeBasePrice(tour, {
+      selectedBookingOption: optionId ? { id: String(optionId) } : null,
+      selectedTime: submitted.selectedTime ?? null,
+    });
     if (!Number.isFinite(basePrice) || basePrice < 0) throw new Error('Invalid tour price');
 
     const selectedAddOns: Record<string, number> = {};

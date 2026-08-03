@@ -199,6 +199,9 @@ const nextConfig = {
   // Environment variables that should be available on the client
   env: {
     CUSTOM_KEY: process.env.CUSTOM_KEY,
+    // Netlify build metadata, baked in so /api/version can name the live commit.
+    COMMIT_REF: process.env.COMMIT_REF ?? '',
+    BRANCH: process.env.BRANCH ?? '',
   },
 
   // Webpack configuration for additional optimization

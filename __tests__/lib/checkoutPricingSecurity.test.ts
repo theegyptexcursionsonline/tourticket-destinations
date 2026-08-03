@@ -153,3 +153,116 @@ describe('checkout pricing security', () => {
     }], 'brand-b')).rejects.toThrow('Tour not found');
   });
 });
+
+describe('checkout pricing applies the tour discount exactly like the booking writer', () => {
+  // The payment intent (this module) and the post-payment booking writer both
+  // price through authoritativeBasePrice. These tests pin the charged amount
+  // to the discounted quote the sidebar shows, so the two can never drift.
+  const discountedTour = {
+    _id: '507f1f77bcf86cd799439011',
+    tenantId: 'brand-a',
+    title: 'Discounted tour',
+    price: 100,
+    discountPrice: 100,
+    discountPercent: 20,
+    bookingOptions: [
+      {
+        id: 'private',
+        label: 'Private',
+        price: 150,
+        applyTourDiscount: true,
+        timeSlots: [
+          { time: '14:00', price: 200 },
+          { time: '16:00' },
+        ],
+      },
+      { id: 'group', label: 'Group', price: 90, applyTourDiscount: false },
+    ],
+    addOns: [],
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    discountLean.mockResolvedValue(null);
+    tourLean.mockResolvedValue(discountedTour);
+  });
+
+  it('charges the discounted option price when the option opted in', async () => {
+    const result = await calculateCheckoutPricing([{
+      id: '507f1f77bcf86cd799439011',
+      quantity: 2,
+      selectedDate: '2099-01-01',
+      selectedBookingOption: { id: 'private', price: 0.01 },
+    }], 'brand-a');
+
+    // 150 - 20% = 120 per adult
+    expect(result.cart[0].selectedBookingOption.price).toBe(120);
+    expect(result.cart[0].discountPrice).toBe(120);
+    expect(result.pricing.subtotal).toBe(240);
+    expect(result.pricing.total).toBe(259.2); // + 3% fee + 5% tax
+  });
+
+  it('charges full price for an option that did not opt in to the discount', async () => {
+    const result = await calculateCheckoutPricing([{
+      id: '507f1f77bcf86cd799439011',
+      quantity: 1,
+      selectedDate: '2099-01-01',
+      selectedBookingOption: { id: 'group' },
+    }], 'brand-a');
+
+    expect(result.cart[0].selectedBookingOption.price).toBe(90);
+    expect(result.pricing.subtotal).toBe(90);
+  });
+
+  it('discounts a time-slot price override when one matches the selected time', async () => {
+    const result = await calculateCheckoutPricing([{
+      id: '507f1f77bcf86cd799439011',
+      quantity: 1,
+      selectedDate: '2099-01-01',
+      selectedTime: '14:00',
+      selectedBookingOption: { id: 'private' },
+    }], 'brand-a');
+
+    // slot 200 - 20% = 160
+    expect(result.cart[0].selectedBookingOption.price).toBe(160);
+    expect(result.pricing.subtotal).toBe(160);
+  });
+
+  it('falls back to the discounted option base when the slot has no price', async () => {
+    const result = await calculateCheckoutPricing([{
+      id: '507f1f77bcf86cd799439011',
+      quantity: 1,
+      selectedDate: '2099-01-01',
+      selectedTime: '16:00',
+      selectedBookingOption: { id: 'private' },
+    }], 'brand-a');
+
+    expect(result.cart[0].selectedBookingOption.price).toBe(120);
+    expect(result.pricing.subtotal).toBe(120);
+  });
+
+  it('still rejects an option whose stored price is invalid', async () => {
+    tourLean.mockResolvedValueOnce({
+      ...discountedTour,
+      bookingOptions: [{ id: 'broken', label: 'Broken', price: Number.NaN }],
+    });
+    await expect(calculateCheckoutPricing([{
+      id: '507f1f77bcf86cd799439011',
+      quantity: 1,
+      selectedDate: '2099-01-01',
+      selectedBookingOption: { id: 'broken' },
+    }], 'brand-a')).rejects.toThrow('Invalid tour price');
+  });
+
+  it('leaves the no-option tour price untouched by the percentage', async () => {
+    const result = await calculateCheckoutPricing([{
+      id: '507f1f77bcf86cd799439011',
+      quantity: 1,
+      selectedDate: '2099-01-01',
+    }], 'brand-a');
+
+    // Tour-level price carries no per-option opt-in, so no percentage applies —
+    // identical to authoritativeBasePrice's no-option branch.
+    expect(result.pricing.subtotal).toBe(100);
+  });
+});
