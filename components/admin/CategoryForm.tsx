@@ -785,6 +785,13 @@ export default function CategoryForm({ categoryId }: CategoryFormProps) {
                               onChange={(translations) => setFormData((prev) => ({ ...prev, translations }))}
                               modelType="category"
                               entityId={categoryId}
+                              sourceDraft={{
+                                ...formData,
+                                imageMetadata: ensureImageMetadata(
+                                  formData.imageMetadata,
+                                  [formData.heroImage, ...formData.images].filter(Boolean),
+                                ),
+                              }}
                             />
                             <ContentStructuredTranslationEditor
                               value={formData.translations}

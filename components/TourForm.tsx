@@ -2834,6 +2834,13 @@ const addItineraryItem = () => {
                                             }
                                             modelType="tour"
                                             entityId={tourToEdit?._id as string}
+                                            sourceDraft={{
+                                                ...formData,
+                                                imageMetadata: ensureImageMetadata(
+                                                    formData.imageMetadata,
+                                                    [formData.image, ...formData.images].filter(Boolean),
+                                                ),
+                                            }}
                                         />
                                         <TourStructuredTranslationEditor
                                             value={formData.translations || {}}

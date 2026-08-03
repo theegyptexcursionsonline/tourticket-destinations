@@ -72,6 +72,21 @@ describe('complete translation workflow', () => {
     expect(route).toContain('attractionPageStructuredFields');
   });
 
+  it('auto-translates the unsaved edit form, not the last saved document', () => {
+    expect(read('components/admin/TranslationEditor.tsx')).toContain('sourceDraft');
+
+    const route = read('app/api/admin/translate/stream/route.ts');
+    expect(route).toContain('sanitizeSourceDraft');
+    expect(route).toContain('applySourceDraft');
+
+    for (const file of [
+      'components/TourForm.tsx',
+      'components/admin/CategoryForm.tsx',
+      'components/admin/AttractionPageForm.tsx',
+      'app/admin/destinations/DestinationManager.tsx',
+    ]) expect(read(file)).toContain('sourceDraft={{');
+  });
+
   it('applies structured translations on destination and page storefronts', () => {
     expect(read('app/[locale]/destinations/[slug]/page.tsx')).toContain('localizeStructuredEntries');
     expect(read('app/[locale]/categories/[slug]/page.tsx')).toContain('localizeStructuredEntries');

@@ -29,6 +29,7 @@ import {
   attractionPageStructuredFields,
   type StructuredTranslationSpec,
 } from '@/lib/i18n/translationFields';
+import { applySourceDraft, sanitizeSourceDraft } from '@/lib/i18n/sourceDraft';
 import { revalidateStorefrontContent } from '@/lib/storefront/revalidateTourStorefront';
 import type { Model } from 'mongoose';
 
@@ -42,14 +43,33 @@ export async function POST(request: NextRequest) {
   });
   if (auth instanceof NextResponse) return auth;
 
-  const { modelType, id } = (await request.json()) as { modelType: ModelType; id: string };
+  const body = (await request.json().catch(() => null)) as {
+    modelType?: ModelType;
+    id?: string;
+    sourceDraft?: unknown;
+  } | null;
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return NextResponse.json({ success: false, error: 'Invalid request body' }, { status: 400 });
+  }
+
+  const { modelType, id, sourceDraft } = body;
   if (!modelType || !VALID_MODEL_TYPES.includes(modelType)) {
     return NextResponse.json(
       { success: false, error: `Invalid modelType. Must be one of: ${VALID_MODEL_TYPES.join(', ')}` },
       { status: 400 },
     );
   }
-  if (!id) return NextResponse.json({ success: false, error: 'Missing id' }, { status: 400 });
+  if (!id || typeof id !== 'string') {
+    return NextResponse.json({ success: false, error: 'Missing id' }, { status: 400 });
+  }
+
+  // The draft is the admin's unsaved English content. It only ever supplies
+  // translatable fields — tenant scope, identity, and persistence stay driven
+  // by the authenticated request and the saved document.
+  const draft = sanitizeSourceDraft(modelType, sourceDraft);
+  if (!draft.ok) {
+    return NextResponse.json({ success: false, error: draft.error }, { status: 400 });
+  }
 
   await dbConnect();
   const models = {
@@ -95,9 +115,13 @@ export async function POST(request: NextRequest) {
           return;
         }
 
-        const fields = extractFields(doc, fieldDefs);
+        // Translation reads the draft overlaid on the saved document; every
+        // write below still targets the document by id under its tenant filter.
+        const source = applySourceDraft(doc, draft.draft);
+
+        const fields = extractFields(source, fieldDefs);
         const structuredTourContent = modelType === 'tour'
-          ? extractStructuredTourContent(doc)
+          ? extractStructuredTourContent(source)
           : null;
         const structuredSpecs: StructuredTranslationSpec[] = modelType === 'destination'
           ? destinationStructuredFields
@@ -107,7 +131,7 @@ export async function POST(request: NextRequest) {
             ? attractionPageStructuredFields
             : [];
         const structuredEntityContent = structuredSpecs.length > 0
-          ? extractStructuredSpecContent(doc, structuredSpecs)
+          ? extractStructuredSpecContent(source, structuredSpecs)
           : {};
         const hasFlatFields = Object.keys(fields).length > 0;
         const hasTourStructuredFields = modelType === 'tour' && structuredTourContent

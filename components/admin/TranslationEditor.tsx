@@ -9,6 +9,7 @@ import {
   localeNames,
   isRTL,
 } from '@/lib/i18n/translationFields';
+import { sanitizeSourceDraft } from '@/lib/i18n/sourceDraft';
 
 const inputStyles =
   'block w-full px-4 py-3 border border-slate-300 rounded-xl shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent sm:text-sm disabled:bg-slate-50 disabled:cursor-not-allowed transition-all duration-200 font-medium text-slate-700';
@@ -24,6 +25,13 @@ interface TranslationEditorProps {
   /** Pass modelType and entityId to enable the "Auto Translate" button */
   modelType?: 'tour' | 'destination' | 'category' | 'attraction-page';
   entityId?: string;
+  /**
+   * The English content currently in the edit form. Auto Translate posts it so
+   * unsaved source text — image alt/title especially — is what gets translated
+   * instead of the values last written to the database. Typed as `unknown`
+   * because it is raw form state: sanitizeSourceDraft() decides what is sent.
+   */
+  sourceDraft?: unknown;
 }
 
 type LocaleStatus = 'pending' | 'translating' | 'done' | 'error';
@@ -53,6 +61,7 @@ export default function TranslationEditor({
   onChange,
   modelType,
   entityId,
+  sourceDraft,
 }: TranslationEditorProps) {
   const [activeLocale, setActiveLocale] = useState(translatableLocales[0]);
   const [isTranslating, setIsTranslating] = useState(false);
@@ -120,7 +129,17 @@ export default function TranslationEditor({
   const progressPercent = isTranslating ? Math.round((completedCount / totalLocales) * 100) : 0;
 
   const handleAutoTranslate = async () => {
-    if (!canAutoTranslate) return;
+    if (!canAutoTranslate || !modelType) return;
+
+    // Send the form's own English content, reduced to translatable fields. A
+    // draft we cannot send safely is reported instead of dropped: falling back
+    // to the saved document is exactly the bug this prop exists to fix.
+    const draft = sanitizeSourceDraft(modelType, sourceDraft);
+    if (!draft.ok) {
+      toast.error(draft.error);
+      return;
+    }
+
     setIsTranslating(true);
     translationsRef.current = { ...value };
 
@@ -133,7 +152,11 @@ export default function TranslationEditor({
       const res = await fetch('/api/admin/translate/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ modelType, id: entityId }),
+        body: JSON.stringify(
+          Object.keys(draft.draft).length > 0
+            ? { modelType, id: entityId, sourceDraft: draft.draft }
+            : { modelType, id: entityId }
+        ),
       });
 
       if (!res.ok) {

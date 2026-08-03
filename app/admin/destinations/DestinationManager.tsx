@@ -1528,6 +1528,13 @@ setTimeout(() => router.refresh(), 0);
                       onChange={(translations) => setFormData(prev => ({ ...prev, translations }))}
                       modelType="destination"
                       entityId={editingDestination?._id ? String(editingDestination._id) : undefined}
+                      sourceDraft={{
+                        ...formData,
+                        imageMetadata: ensureImageMetadata(
+                          formData.imageMetadata,
+                          [formData.image, ...formData.images].filter(Boolean),
+                        ),
+                      }}
                     />
                     <ContentStructuredTranslationEditor
                       value={formData.translations}
