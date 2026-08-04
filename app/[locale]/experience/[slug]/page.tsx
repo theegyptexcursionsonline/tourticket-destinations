@@ -26,5 +26,5 @@ export default async function PrefixDetailPage({ params }: PageProps) {
   return element;
 }
 
-export const revalidate = 900;
+export const dynamic = 'force-dynamic';
 export const dynamicParams = true;

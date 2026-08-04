@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { buildContentBreadcrumbs } from '@/lib/content/breadcrumbs';
 import { normalizePageTemplate } from '@/lib/content/pageTemplate';
 import { meetingPointEmbedUrl, meetingPointMapUrl } from '@/lib/tours/meetingPointMap';
@@ -10,6 +12,24 @@ import {
 import { attractionPagePath, contentPath } from '@/lib/content/contentUrl';
 
 describe('page-system helpers', () => {
+  it('keeps every tenant-resolved content route request-dynamic', () => {
+    const routes = [
+      'app/[locale]/[slug]/page.tsx',
+      'app/[locale]/[slug]/[child]/page.tsx',
+      'app/[locale]/tour/[slug]/page.tsx',
+      'app/[locale]/experience/[slug]/page.tsx',
+      'app/[locale]/destination/[slug]/page.tsx',
+      'app/[locale]/destinations/[slug]/page.tsx',
+      'app/[locale]/categories/[slug]/page.tsx',
+      'app/[locale]/attraction/[slug]/page.tsx',
+    ];
+
+    for (const route of routes) {
+      const source = readFileSync(join(process.cwd(), route), 'utf8');
+      expect(source).toMatch(/export const dynamic = ['"]force-dynamic['"];/);
+    }
+  });
+
   it('builds direct, prefixed, city and parent-owned canonical paths', () => {
     expect(contentPath('tour', 'luxor', 'direct')).toBe('/luxor');
     expect(contentPath('tour', 'luxor', 'tour')).toBe('/tour/luxor');
