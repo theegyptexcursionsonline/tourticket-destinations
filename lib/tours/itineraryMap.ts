@@ -76,7 +76,13 @@ export function itineraryStaticMapUrl(
 ): string | null {
   if (!apiKey || stops.length < 2) return null;
 
-  const [start, ...rest] = stops;
+  // These storefronts sell Egypt experiences. Supplying the country context
+  // prevents ambiguous editor labels (for example, "Luxor Restaurant") from
+  // resolving to an unrelated place abroad and zooming the route to the world.
+  const mapStops = stops.map((stop) =>
+    /(?:egypt|ägypten|مصر)/iu.test(stop) ? stop : `${stop}, Egypt`,
+  );
+  const [start, ...rest] = mapStops;
   const parts = [
     "size=640x640",
     "scale=2",

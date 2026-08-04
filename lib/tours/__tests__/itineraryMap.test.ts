@@ -25,4 +25,12 @@ describe('itineraryStaticMapUrl', () => {
     expect(itineraryStaticMapUrl(['Luxor'], 'key')).toBeNull();
     expect(itineraryStaticMapUrl(['Luxor', 'Karnak'], undefined)).toBeNull();
   });
+
+  it('adds Egypt context so ambiguous stops stay on the correct country map', () => {
+    const url = itineraryStaticMapUrl(['Luxor', 'Luxor Restaurant'], 'key');
+    expect(new URL(url!).searchParams.getAll('markers')).toEqual([
+      'size:mid|color:red|label:1|Luxor, Egypt',
+      'size:small|color:blue|Luxor Restaurant, Egypt',
+    ]);
+  });
 });
