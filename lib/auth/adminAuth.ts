@@ -90,7 +90,7 @@ export async function requireAdminAuth(
     && payload.sub === 'env-admin'
     && scope === ADMIN_SESSION_SCOPE
   ) {
-    return {
+    const authContext: AdminAuthContext = {
       userId: 'env-admin',
       email: typeof payload.email === 'string' ? payload.email : undefined,
       role: 'super_admin',
@@ -101,6 +101,14 @@ export async function requireAdminAuth(
       twoFactorEnabled: true,
       twoFactorRecoveryPending: false,
     };
+    const { permissions = [], requireAll = true } = options;
+    const hasPermissions = permissions.length === 0 || (requireAll
+      ? permissions.every((permission) => authContext.permissions.includes(permission))
+      : permissions.some((permission) => authContext.permissions.includes(permission)));
+    if (!hasPermissions) return forbiddenResponse();
+    const { recordAdminMutation } = await import('@/lib/admin/adminAudit');
+    await recordAdminMutation(request, authContext);
+    return authContext;
   }
 
   // JWT claims are only a session pointer. Re-read mutable authorization state
@@ -119,9 +127,11 @@ export async function requireAdminAuth(
   }
 
   const role = user.role as AdminRole;
-  const permissionsFromToken = Array.isArray(user.permissions) && user.permissions.length > 0
-    ? (user.permissions as AdminPermission[])
-    : getDefaultPermissions(role);
+  const permissionsFromToken = role === 'admin' || role === 'super_admin'
+    ? getDefaultPermissions(role)
+    : Array.isArray(user.permissions) && user.permissions.length > 0
+      ? (user.permissions as AdminPermission[])
+      : getDefaultPermissions(role);
   const tenantIds = resolveAdminNetworkTenantIds(role, user.tenantIds);
 
   if (!canAccessMultiTenantAdmin(role, tenantIds, user.adminPortalScopes)) {
@@ -168,17 +178,16 @@ export async function requireAdminAuth(
   }
 
   const { permissions = [], requireAll = true } = options;
-  if (permissions.length === 0) {
-    return authContext;
-  }
-
-  const hasPermissions = requireAll
+  const hasPermissions = permissions.length === 0 || (requireAll
     ? permissions.every((perm) => authContext.permissions.includes(perm) || role === 'super_admin')
-    : permissions.some((perm) => authContext.permissions.includes(perm) || role === 'super_admin');
+    : permissions.some((perm) => authContext.permissions.includes(perm) || role === 'super_admin'));
 
   if (!hasPermissions) {
     return forbiddenResponse();
   }
+
+  const { recordAdminMutation } = await import('@/lib/admin/adminAudit');
+  await recordAdminMutation(request, authContext);
 
   return authContext;
 }

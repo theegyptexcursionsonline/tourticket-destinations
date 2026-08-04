@@ -47,6 +47,7 @@ const permissionLabels: Record<string, string> = {
   manageDiscounts: 'Discounts',
   manageUsers: 'Users',
   manageReports: 'Reports',
+  manageAudit: 'Audit',
 };
 
 const TeamPage = () => {

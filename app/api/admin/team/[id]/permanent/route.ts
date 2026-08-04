@@ -85,9 +85,18 @@ export async function DELETE(
 
   await cleanAccountAuthenticationData(normalizedEmail);
   await mongoose.connection.db?.collection('adminmutationaudits').insertOne({
-    action: 'team_account_permanently_deleted',
+    action: 'delete',
     actorUserId: String(auth.userId),
     actorEmail: auth.email,
+    actorName: auth.name,
+    actorRole: auth.role,
+    resourceType: 'team',
+    resourceId: id,
+    summary: 'Permanently deleted team account',
+    method: 'DELETE',
+    path: request.nextUrl.pathname,
+    tenantIds: [],
+    requestId: request.headers.get('x-request-id') || undefined,
     targetUserId: id,
     targetEmail: normalizedEmail,
     portal: 'multiTenant',
@@ -100,4 +109,3 @@ export async function DELETE(
     message: 'The account was permanently deleted after confirming that it had no linked business records.',
   });
 }
-

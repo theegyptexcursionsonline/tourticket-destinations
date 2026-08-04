@@ -18,6 +18,7 @@ export const ADMIN_PERMISSIONS = [
   'manageDiscounts',
   'manageUsers',
   'manageReports',
+  'manageAudit',
   'manageTenants',
 ] as const;
 

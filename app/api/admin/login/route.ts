@@ -209,7 +209,9 @@ export async function POST(request: NextRequest) {
     }
 
     const permissions =
-      user.permissions && user.permissions.length > 0
+      user.role === 'admin' || user.role === 'super_admin'
+        ? getDefaultPermissions(user.role)
+        : user.permissions && user.permissions.length > 0
         ? [...user.permissions]
         : getDefaultPermissions(user.role);
 
