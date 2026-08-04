@@ -156,6 +156,42 @@ export async function recordAdminMutation(
   }
 }
 
+// Sign-ins are actions a supervisor follows too. The section reads the
+// mutation-audit collection, so a login row goes here (the richer per-outcome
+// AdminLoginAudit security log, with IP/user-agent, stays separate). Scoped to
+// the actor's own tenants so a brand admin's sign-in shows only under those
+// brands. Never called from the dev-only env-admin path.
+export async function recordAdminLogin(
+  actor: { userId: string; email?: string; name?: string; role: AdminRole },
+  path: string,
+  tenantIds: string[],
+): Promise<void> {
+  try {
+    const [{ default: dbConnect }, { default: AdminMutationAudit }] = await Promise.all([
+      import('@/lib/dbConnect'),
+      import('@/lib/models/AdminMutationAudit'),
+    ]);
+    await dbConnect();
+    await AdminMutationAudit.create({
+      actorUserId: actor.userId,
+      actorEmail: actor.email?.trim().toLowerCase(),
+      actorName: actor.name?.trim(),
+      actorRole: actor.role,
+      action: 'login',
+      resourceType: 'session',
+      summary: 'Signed in',
+      method: 'POST',
+      path,
+      tenantIds: tenantIds.length ? tenantIds : ['default'],
+    });
+  } catch (error) {
+    console.error(
+      'Admin login audit write failed:',
+      error instanceof Error ? error.message : 'Unknown error',
+    );
+  }
+}
+
 export function escapeCsvCell(value: unknown): string {
   let text = value == null ? '' : String(value);
   if (/^[=+\-@]/.test(text)) text = `'${text}`;

@@ -74,6 +74,17 @@ export async function GET(request: NextRequest) {
     : filters;
 
   if (searchParams.get('format') === 'csv') {
+    // Netlify caps function time at 26s: an unbounded export dies mid-stream
+    // as a corrupt half-file. Refuse loudly instead and ask for narrower
+    // filters — the count is indexed and cheap.
+    const exportMax = Number(process.env.AUDIT_EXPORT_MAX || 20000);
+    const matching = await AdminMutationAudit.countDocuments(scopedFilters);
+    if (matching > exportMax) {
+      return NextResponse.json({
+        success: false,
+        error: `This export would contain ${matching.toLocaleString()} entries (limit ${exportMax.toLocaleString()}). Narrow the date range or filters and try again.`,
+      }, { status: 400 });
+    }
     const encoder = new TextEncoder();
     const cursor = AdminMutationAudit.find(scopedFilters).sort({ createdAt: -1, _id: -1 }).lean().cursor();
     const stream = new ReadableStream<Uint8Array>({

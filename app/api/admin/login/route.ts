@@ -228,6 +228,13 @@ export async function POST(request: NextRequest) {
       { $set: { failedLoginAttempts: 0 }, $unset: { loginLockedUntil: 1 } },
     );
     await recordLoginAudit(request.headers, identifier, 'success');
+    const { recordAdminLogin } = await import('@/lib/admin/adminAudit');
+    await recordAdminLogin({
+      userId: (user._id as any).toString(),
+      email: user.email,
+      name: [user.firstName, user.lastName].filter(Boolean).join(' '),
+      role: user.role,
+    }, '/api/admin/login', Array.isArray(tenantIds) ? tenantIds : []);
 
     const enrollmentOnly =
       !user.twoFactorEnabled || Boolean(user.twoFactorRecoveryPending);

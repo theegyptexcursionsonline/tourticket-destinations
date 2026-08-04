@@ -121,4 +121,14 @@ describe('GET /api/admin/audit', () => {
     expect(response.status).toBe(400);
     expect(mockFind).not.toHaveBeenCalled();
   });
+
+  it('refuses a CSV export larger than the cap instead of streaming a truncated file', async () => {
+    mockCountDocuments.mockReset();
+    mockCountDocuments.mockResolvedValueOnce(999999);
+    const response = await GET(makeRequest('?format=csv'));
+    expect(response.status).toBe(400);
+    const body = await response.json();
+    expect(body.error).toMatch(/narrow/i);
+    expect(mockFind).not.toHaveBeenCalled();
+  });
 });

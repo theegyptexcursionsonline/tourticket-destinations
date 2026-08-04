@@ -52,6 +52,15 @@ AdminMutationAuditSchema.index({ tenantIds: 1, createdAt: -1, _id: -1 });
 AdminMutationAuditSchema.index({ actorUserId: 1, createdAt: -1 });
 AdminMutationAuditSchema.index({ resourceType: 1, action: 1, createdAt: -1 });
 
+// Audit history is a stated two-year window, not silent infinite growth.
+// Retention is env-tunable; changing it later needs a collMod on the index
+// (Mongo pins expireAfterSeconds at index creation).
+const RETENTION_DAYS = Number(process.env.AUDIT_RETENTION_DAYS || 730);
+AdminMutationAuditSchema.index(
+  { createdAt: 1 },
+  { expireAfterSeconds: Math.max(1, Math.floor(RETENTION_DAYS)) * 24 * 60 * 60 },
+);
+
 const AdminMutationAudit: Model<IAdminMutationAudit> =
   mongoose.models.AdminMutationAudit
   || mongoose.model<IAdminMutationAudit>('AdminMutationAudit', AdminMutationAuditSchema);
