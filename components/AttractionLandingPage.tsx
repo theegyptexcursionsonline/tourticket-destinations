@@ -5,9 +5,9 @@ import React, { useState, useMemo } from 'react';
 import { Link } from '@/i18n/navigation';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
+import {
   ArrowRight, Star, Search,
-  Grid, List, Award, 
+  Grid, List, Award,
   ChevronDown, ChevronUp, CheckCircle,
   Target, Info
 } from 'lucide-react';
@@ -17,6 +17,10 @@ import RelatedInterests from '@/components/RelatedInterests';
 import PopularInterestsGrid from '@/components/PopularInterestsGrid';
 import { imageMetadataFor } from '@/lib/content/imageMetadata';
 import type { ContentFaq, ContentTravelTip, ImageMetadata } from '@/types';
+import type { ParentPageValue } from '@/lib/content/contentNavigation';
+import { buildContentBreadcrumbs } from '@/lib/content/breadcrumbs';
+import ContentBreadcrumbs from '@/components/navigation/ContentBreadcrumbs';
+import { normalizePageTemplate, type PageTemplate } from '@/lib/content/pageTemplate';
 
 interface AttractionData {
   _id: string;
@@ -40,6 +44,9 @@ interface AttractionData {
   showStats: boolean;
   isPublished: boolean;
   featured: boolean;
+  pageTemplate?: PageTemplate;
+  breadcrumbLabel?: string;
+  parentPage?: ParentPageValue | null;
 }
 
 export interface LinkedPageCardData {
@@ -72,8 +79,8 @@ const QuickInfo = ({ attraction }: { attraction: AttractionData }) => {
 
   if (!avgRating && !showActivities) return null;
 
-  // Sits on the dark hero image, so the palette has to be light — the slate
-  // greys here were unreadable against the photo.
+  // This row sits on the dark hero image, so it must use light-on-dark
+  // colours. It previously used slate-600/700, which was unreadable.
   return (
     <div className="flex flex-wrap items-center gap-6 text-sm">
       {avgRating && (
@@ -135,29 +142,10 @@ const ExpandableDescription = ({ attraction }: { attraction: AttractionData }) =
             <p className="text-lg text-slate-700 leading-relaxed">
               {fullDescription}
             </p>
-            
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4">
-              <div className="bg-white border border-slate-200 rounded-lg p-4">
-                <div className="text-sm text-slate-600 mb-1">Peak Season</div>
-                <div className="font-semibold text-slate-900">Nov - April</div>
-              </div>
-              <div className="bg-white border border-slate-200 rounded-lg p-4">
-                <div className="text-sm text-slate-600 mb-1">Avg. Duration</div>
-                <div className="font-semibold text-slate-900">3-5 days</div>
-              </div>
-              <div className="bg-white border border-slate-200 rounded-lg p-4">
-                <div className="text-sm text-slate-600 mb-1">Best For</div>
-                <div className="font-semibold text-slate-900">All ages</div>
-              </div>
-              <div className="bg-white border border-slate-200 rounded-lg p-4">
-                <div className="text-sm text-slate-600 mb-1">Languages</div>
-                <div className="font-semibold text-slate-900">15+ available</div>
-              </div>
-            </div>
           </motion.div>
         )}
       </AnimatePresence>
-      
+
       {/* Highlights must not depend on the expanded state: when a page has no
           long description the expand toggle never renders, which used to make
           these permanently unreachable. */}
@@ -364,11 +352,19 @@ const ReviewsSection = ({ reviews }: { reviews: Review[] }) => {
   );
 };
 
-const AttractionLandingPage: React.FC<AttractionLandingPageProps> = ({ attraction, linkedPages = [] }) => {
+const AttractionLandingPage: React.FC<AttractionLandingPageProps> = ({ attraction, linkedPages }) => {
+  const pageTemplate = normalizePageTemplate(attraction.pageTemplate);
   const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>(pageTemplate === 'editorial' ? 'list' : 'grid');
   const [sortBy, setSortBy] = useState('featured');
   const heroSeo = imageMetadataFor(attraction.heroImage, attraction.imageMetadata, attraction.title);
+  const breadcrumbs = buildContentBreadcrumbs({
+    currentTitle: attraction.title,
+    breadcrumbLabel: attraction.breadcrumbLabel,
+    parentPage: attraction.parentPage,
+    rootLabel: 'Attractions',
+    rootHref: '/attractions',
+  });
   const gridColumns = attraction.itemsPerRow === 2
     ? 'md:grid-cols-2'
     : attraction.itemsPerRow === 3
@@ -378,7 +374,7 @@ const AttractionLandingPage: React.FC<AttractionLandingPageProps> = ({ attractio
         : 'md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
 
   const filteredAndSortedTours = useMemo(() => {
-    let filtered = attraction.tours?.filter(tour =>
+    const filtered = attraction.tours?.filter(tour =>
       tour.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       tour.description?.toLowerCase().includes(searchQuery.toLowerCase())
     ) || [];
@@ -411,33 +407,34 @@ const AttractionLandingPage: React.FC<AttractionLandingPageProps> = ({ attractio
   }, [attraction.tours, searchQuery, sortBy]);
 
   return (
-    <main className="min-h-screen bg-white">
+    <main data-page-template={pageTemplate} className={`min-h-screen ${pageTemplate === 'editorial' ? 'bg-[#f7f4ee]' : pageTemplate === 'immersive' ? 'bg-slate-950' : 'bg-white'}`}>
       {/* Clean Hero Section */}
-      <section className="relative bg-slate-900">
+      <section className={`relative overflow-hidden bg-slate-900 ${pageTemplate === 'immersive' ? 'min-h-[76vh]' : pageTemplate === 'editorial' ? 'min-h-[560px]' : ''}`}>
         <div className="absolute inset-0">
           <Image
             src={attraction.heroImage}
             alt={heroSeo.alt}
             title={heroSeo.title}
             fill
-            className="object-cover opacity-40"
+            className={`object-cover ${pageTemplate === 'immersive' ? 'opacity-70' : pageTemplate === 'editorial' ? 'opacity-55 lg:object-[70%_center]' : 'opacity-40'}`}
             priority
             sizes="100vw"
           />
         </div>
         
-        <div className="relative z-10 container mx-auto px-6 py-16 md:py-24">
+        <div className={`relative z-10 container mx-auto flex px-6 ${pageTemplate === 'immersive' ? 'min-h-[76vh] items-end py-16 md:py-24' : pageTemplate === 'editorial' ? 'min-h-[560px] items-center py-20' : 'py-16 md:py-24'}`}>
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            className="max-w-4xl"
+            className={`${pageTemplate === 'editorial' ? 'max-w-2xl rounded-[2rem] border border-white/15 bg-slate-950/80 p-7 shadow-2xl backdrop-blur-md sm:p-10' : pageTemplate === 'immersive' ? 'max-w-5xl pb-6' : 'max-w-4xl'}`}
           >
+            <div className="mb-5"><ContentBreadcrumbs items={breadcrumbs} tone="dark" /></div>
             <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-1.5 text-sm font-medium text-white mb-6">
               <Award className="w-4 h-4" />
               <span>Popular attraction</span>
             </div>
             
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
+            <h1 className={`${pageTemplate === 'immersive' ? 'text-5xl md:text-7xl lg:text-8xl' : 'text-4xl md:text-5xl lg:text-6xl'} font-bold text-white mb-6 leading-[1.02] tracking-tight`}>
               {/* Don't double the phrase when the page title already says it */}
               {/things to do/i.test(attraction.title) ? attraction.title : `Things to do in ${attraction.title}`}
             </h1>
@@ -448,10 +445,10 @@ const AttractionLandingPage: React.FC<AttractionLandingPageProps> = ({ attractio
       </section>
 
       {attraction.images && attraction.images.length > 0 && (
-        <section className="py-12 bg-slate-50">
+        <section className={`py-12 ${pageTemplate === 'immersive' ? 'bg-slate-950' : pageTemplate === 'editorial' ? 'bg-[#f7f4ee]' : 'bg-slate-50'}`}>
           <div className="container mx-auto px-6">
-            <h2 className="text-3xl font-bold text-slate-900 mb-6">Gallery</h2>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <h2 className={`text-3xl font-bold mb-6 ${pageTemplate === 'immersive' ? 'text-white' : 'text-slate-900'}`}>Gallery</h2>
+            <div className={`grid grid-cols-2 gap-3 sm:gap-4 ${pageTemplate === 'editorial' ? 'lg:grid-cols-3' : 'lg:grid-cols-4'}`}>
               {attraction.images.map((image, index) => {
                 const seo = imageMetadataFor(image, attraction.imageMetadata, `${attraction.title} ${index + 1}`);
                 return (
@@ -466,7 +463,7 @@ const AttractionLandingPage: React.FC<AttractionLandingPageProps> = ({ attractio
       )}
 
       {/* Description Section */}
-      <section className="py-12 bg-white border-b border-slate-200">
+      <section className={`py-12 border-b ${pageTemplate === 'immersive' ? 'border-white/10 bg-white text-slate-900 lg:mx-auto lg:my-8 lg:max-w-6xl lg:rounded-[2rem]' : pageTemplate === 'editorial' ? 'border-stone-200 bg-[#f7f4ee]' : 'border-slate-200 bg-white'}`}>
         <div className="container mx-auto px-6">
           <ExpandableDescription attraction={attraction} />
         </div>
@@ -474,16 +471,16 @@ const AttractionLandingPage: React.FC<AttractionLandingPageProps> = ({ attractio
 
       {/* Features Grid */}
       {attraction.features && attraction.features.length > 0 && (
-        <section className="py-12 bg-slate-50">
+        <section className={`py-12 ${pageTemplate === 'immersive' ? 'bg-slate-900' : pageTemplate === 'editorial' ? 'bg-white' : 'bg-slate-50'}`}>
           <div className="container mx-auto px-6">
-            <h2 className="text-2xl font-bold text-slate-900 mb-6">
+            <h2 className={`text-2xl font-bold mb-6 ${pageTemplate === 'immersive' ? 'text-white' : 'text-slate-900'}`}>
               What makes this special
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {attraction.features.slice(0, 6).map((feature, index) => (
                 <div
                   key={index}
-                  className="flex items-start gap-3 bg-white p-4 rounded-lg border border-slate-200"
+                  className={`flex items-start gap-3 bg-white p-4 border border-slate-200 ${pageTemplate === 'editorial' ? 'rounded-none border-x-0 border-t-0' : 'rounded-xl'} ${pageTemplate === 'immersive' ? 'shadow-xl shadow-black/15' : ''}`}
                 >
                   <div className="w-8 h-8 bg-red-100 text-red-600 rounded-full flex items-center justify-center flex-shrink-0">
                     <CheckCircle className="w-4 h-4" />
@@ -498,7 +495,7 @@ const AttractionLandingPage: React.FC<AttractionLandingPageProps> = ({ attractio
 
       {/* Tours Section */}
       {attraction.tours && attraction.tours.length > 0 && (
-        <section id="tours" className="py-12 bg-white">
+        <section id="tours" className={`py-12 ${pageTemplate === 'immersive' ? 'bg-white rounded-t-[2.5rem]' : pageTemplate === 'editorial' ? 'bg-[#f7f4ee]' : 'bg-white'}`}>
           <div className="container mx-auto px-6">
             <div className="mb-8">
               <h2 className="text-3xl font-bold text-slate-900 mb-2">
@@ -588,11 +585,12 @@ const AttractionLandingPage: React.FC<AttractionLandingPageProps> = ({ attractio
         </section>
       )}
 
-      {linkedPages.length > 0 && (
+      {/* Linked pages (admin-curated) */}
+      {linkedPages && linkedPages.length > 0 && (
         <section className="py-12 bg-slate-50">
           <div className="container mx-auto px-6">
             <h2 className="text-3xl font-bold text-slate-900 mb-2">Explore more</h2>
-            <p className="text-slate-600 mb-8">Related guides and collections selected for this page</p>
+            <p className="text-slate-600 mb-8">Hand-picked guides and collections related to this page</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {linkedPages.map((page) => (
                 <Link

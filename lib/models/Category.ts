@@ -2,6 +2,9 @@
 import mongoose, { Document, Schema, models } from 'mongoose';
 import type { ImageMetadata } from '@/lib/content/imageMetadata';
 import { ImageMetadataSchema } from '@/lib/models/schemas/ImageMetadataSchema';
+import { URL_TYPES, type UrlType } from '@/lib/content/contentUrl';
+import { ParentPageSchema, breadcrumbLabelField } from '@/lib/models/contentNavigationSchema';
+import { PAGE_TEMPLATES, type PageTemplate } from '@/lib/content/pageTemplate';
 
 const FaqSchema = new Schema({
   question: { type: String, required: true, trim: true, maxlength: 300 },
@@ -22,6 +25,11 @@ export interface ICategory extends Document {
   // Basic Info
   name: string;
   slug: string;
+  pageTemplate?: PageTemplate;
+  urlType?: UrlType;
+  breadcrumbLabel?: string;
+  parentPage?: { id?: string; slug: string; label: string; kind: 'destination' | 'attraction' | 'category' | 'category-2'; href?: string } | null;
+  cityDestination?: mongoose.Types.ObjectId;
   description?: string;
   longDescription?: string;
   
@@ -88,6 +96,19 @@ const CategorySchema: Schema<ICategory> = new Schema({
     match: [/^[a-z0-9-]+$/, 'Slug can only contain lowercase letters, numbers, and hyphens'],
     index: true,
   },
+  urlType: {
+    type: String,
+    enum: URL_TYPES,
+    default: 'direct',
+  },
+  pageTemplate: {
+    type: String,
+    enum: PAGE_TEMPLATES,
+    default: 'classic',
+  },
+  breadcrumbLabel: breadcrumbLabelField,
+  parentPage: { type: ParentPageSchema, default: undefined },
+  cityDestination: { type: mongoose.Schema.Types.ObjectId, ref: 'Destination', default: undefined },
   description: {
     type: String,
     trim: true,

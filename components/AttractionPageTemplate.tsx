@@ -4,13 +4,17 @@ import React, { useState } from 'react';
 import { Link } from '@/i18n/navigation';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  ArrowRight, Star, Users, Clock, MapPin, Search, Filter, 
+import {
+  ArrowRight, Star, Users, Clock, MapPin, Search, Filter,
   Grid, List, MessageCircle, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { CategoryPageData, Tour, Review } from '@/types';
 import { useSettings } from '@/hooks/useSettings';
 import type { LinkedPageCardData } from '@/components/AttractionLandingPage';
+import { buildContentBreadcrumbs } from '@/lib/content/breadcrumbs';
+import ContentBreadcrumbs from '@/components/navigation/ContentBreadcrumbs';
+import { normalizePageTemplate } from '@/lib/content/pageTemplate';
+import { contentPath } from '@/lib/content/contentUrl';
 import { imageMetadataFor } from '@/lib/content/imageMetadata';
 
 interface AttractionPageTemplateProps {
@@ -18,7 +22,6 @@ interface AttractionPageTemplateProps {
   urlType: 'attraction' | 'category';
   linkedPages?: LinkedPageCardData[];
 }
-
 const TourCard = ({ tour, index }: { tour: Tour; index: number }) => {
   const { formatPrice } = useSettings();
   const destination = typeof tour.destination === 'object' ? tour.destination : null;
@@ -30,7 +33,7 @@ const TourCard = ({ tour, index }: { tour: Tour; index: number }) => {
       transition={{ delay: index * 0.1 }}
     >
       <Link
-        href={`/${tour.slug}`}
+        href={contentPath('tour', tour.slug, (tour as { urlType?: string }).urlType)}
         className="group bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 block"
       >
         <div className="relative h-48 overflow-hidden">
@@ -89,10 +92,10 @@ const TourCard = ({ tour, index }: { tour: Tour; index: number }) => {
               <Users className="w-4 h-4" />
               <span>Max {tour.maxGroupSize || 15}</span>
             </div>
-            {(tour as any).reviewCount > 0 && (
+            {(tour.reviewCount ?? 0) > 0 && (
               <div className="flex items-center gap-1">
                 <MessageCircle className="w-4 h-4" />
-                <span>{(tour as any).reviewCount} reviews</span>
+                <span>{tour.reviewCount} reviews</span>
               </div>
             )}
           </div>
@@ -143,7 +146,7 @@ const TourListItem = ({ tour, index }: { tour: Tour; index: number }) => {
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: index * 0.05 }}
     >
-      <Link href={`/${tour.slug}`} className="group">
+      <Link href={contentPath('tour', tour.slug, (tour as { urlType?: string }).urlType)} className="group">
         <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-6">
           <div className="relative w-32 h-24 rounded-lg overflow-hidden flex-shrink-0">
             <Image
@@ -182,16 +185,16 @@ const TourListItem = ({ tour, index }: { tour: Tour; index: number }) => {
                   {destination.name}
                 </span>
               )}
-              {(tour as any).reviewCount > 0 && (
+              {(tour.reviewCount ?? 0) > 0 && (
                 <span className="flex items-center gap-1">
                   <MessageCircle className="h-4 w-4" />
-                  {(tour as any).reviewCount} reviews
+                  {tour.reviewCount} reviews
                 </span>
               )}
             </div>
           </div>
           
-          <div className="text-end flex-shrink-0">
+          <div className="text-right flex-shrink-0">
             <div className="text-2xl font-bold text-slate-900">
               {formatPrice(tour.discountPrice || tour.price || 0)}
             </div>
@@ -376,7 +379,7 @@ const ReviewsSection = ({ reviews }: { reviews: Review[] }) => {
                 <div className="w-12 h-12 bg-gradient-to-r from-red-500 to-red-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
                   {review.userName ? review.userName.charAt(0).toUpperCase() : 'A'}
                 </div>
-                <div className="ms-4">
+                <div className="ml-4">
                   <h4 className="font-semibold text-slate-900">{review.userName || 'Anonymous'}</h4>
                   <div className="flex items-center">
                     {[...Array(5)].map((_, i) => (
@@ -431,7 +434,8 @@ const ReviewsSection = ({ reviews }: { reviews: Review[] }) => {
   );
 };
 
-export default function AttractionPageTemplate({ page, urlType, linkedPages = [] }: AttractionPageTemplateProps) {
+export default function AttractionPageTemplate({ page, linkedPages = [] }: AttractionPageTemplateProps) {
+  const pageTemplate = normalizePageTemplate(page.pageTemplate);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState('featured');
@@ -439,7 +443,7 @@ export default function AttractionPageTemplate({ page, urlType, linkedPages = []
 
   // Filter and sort tours based on search and sort criteria
   const filteredAndSortedTours = React.useMemo(() => {
-    let filtered = page.tours?.filter(tour =>
+    const filtered = page.tours?.filter(tour =>
       tour.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       tour.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       tour.highlights?.some(highlight => 
@@ -486,12 +490,19 @@ export default function AttractionPageTemplate({ page, urlType, linkedPages = []
   };
 
   const gridClass = gridCols[page.itemsPerRow as keyof typeof gridCols] || gridCols[4];
+  const breadcrumbs = buildContentBreadcrumbs({
+    currentTitle: page.title,
+    breadcrumbLabel: page.breadcrumbLabel,
+    parentPage: page.parentPage,
+    rootLabel: 'Categories',
+    rootHref: '/categories',
+  });
 
   return (
     <>
-      <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-red-50">
+      <main data-page-template={pageTemplate} className={`min-h-screen ${pageTemplate === 'editorial' ? 'bg-[#f7f4ee]' : pageTemplate === 'immersive' ? 'bg-slate-950' : 'bg-gradient-to-br from-slate-50 via-white to-red-50'}`}>
         {/* Enhanced Hero Section */}
-        <section className="relative h-[70vh] overflow-hidden">
+        <section className={`relative overflow-hidden ${pageTemplate === 'immersive' ? 'h-[84vh]' : pageTemplate === 'editorial' ? 'h-[58vh] min-h-[520px]' : 'h-[70vh]'}`}>
           <div className="absolute inset-0">
             <Image
               src={page.heroImage}
@@ -501,47 +512,42 @@ export default function AttractionPageTemplate({ page, urlType, linkedPages = []
               priority
               sizes="100vw"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+            <div className={`absolute inset-0 ${pageTemplate === 'editorial' ? 'bg-gradient-to-r from-black/85 via-black/55 to-black/10' : pageTemplate === 'immersive' ? 'bg-gradient-to-t from-black/90 via-black/20 to-black/10' : 'bg-gradient-to-t from-black/70 via-black/30 to-transparent'}`} />
           </div>
           
-          <div className="relative z-10 h-full flex items-center justify-center">
-            <div className="text-center text-white max-w-5xl mx-auto px-6">
+          <div className={`relative z-10 h-full flex ${pageTemplate === 'immersive' ? 'items-end' : 'items-center'} ${pageTemplate === 'editorial' ? 'justify-start' : 'justify-center'}`}>
+            <div className={`${pageTemplate === 'editorial' ? 'text-left max-w-3xl ms-[max(1.5rem,calc((100vw-1280px)/2))]' : 'text-center max-w-5xl mx-auto'} text-white px-6 ${pageTemplate === 'immersive' ? 'pb-16' : ''}`}>
               <motion.div
                 initial={{ opacity: 0, y: 50 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="space-y-6"
               >
-                <h1 className="text-5xl md:text-7xl font-extrabold leading-tight">
+                <h1 className={`${pageTemplate === 'immersive' ? 'text-5xl md:text-8xl' : 'text-5xl md:text-7xl'} font-extrabold leading-[1.02] tracking-tight`}>
                   {page.title}
                 </h1>
                 <p className="text-xl md:text-2xl font-medium max-w-3xl mx-auto leading-relaxed">
                   {page.description}
                 </p>
                 
-                {/* Enhanced Breadcrumb */}
-                <nav className="flex items-center justify-center gap-2 text-sm opacity-90 bg-white/10 backdrop-blur-sm rounded-full px-6 py-3 inline-flex">
-                  <Link href="/" className="hover:text-yellow-300 transition-colors">Home</Link>
-                  <span>/</span>
-                  <span className="capitalize">{urlType}</span>
-                  <span>/</span>
-                  <span className="text-yellow-300">{page.title}</span>
-                </nav>
+                <div className={`inline-flex rounded-full bg-black/20 px-5 py-2.5 backdrop-blur-sm ${pageTemplate === 'editorial' ? '' : 'justify-center'}`}>
+                  <ContentBreadcrumbs items={breadcrumbs} tone="dark" />
+                </div>
               </motion.div>
             </div>
           </div>
         </section>
 
         {/* Content Section */}
-        <section className="py-16">
+        <section className={`py-16 ${pageTemplate === 'immersive' ? 'bg-white lg:mx-auto lg:my-8 lg:max-w-7xl lg:rounded-[2.5rem]' : ''}`}>
           <div className="container mx-auto px-6">
             {/* Long Description */}
             {page.longDescription && (
               <motion.div 
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="max-w-4xl mx-auto mb-16 text-center"
+                className={`max-w-4xl mx-auto mb-16 ${pageTemplate === 'editorial' ? 'text-left' : 'text-center'}`}
               >
-                <div className="bg-white rounded-2xl shadow-lg p-8">
+                <div className={`bg-white p-8 ${pageTemplate === 'editorial' ? 'border-y border-stone-300 shadow-none' : 'rounded-2xl shadow-lg'}`}>
                   <div className="prose prose-lg mx-auto">
                     <p className="text-slate-700 leading-relaxed text-lg">
                       {page.longDescription}
@@ -614,9 +620,9 @@ export default function AttractionPageTemplate({ page, urlType, linkedPages = []
         {/* Gallery — catalogue pages accepted uploads but never rendered them,
             unlike the attraction and category templates. */}
         {page.images && page.images.length > 0 && (
-          <section className="py-12 bg-slate-50">
+          <section className={`py-12 ${pageTemplate === 'immersive' ? 'bg-slate-950' : pageTemplate === 'editorial' ? 'bg-[#f7f4ee]' : 'bg-slate-50'}`}>
             <div className="container mx-auto px-6">
-              <h2 className="text-3xl font-bold text-slate-900 mb-6">Gallery</h2>
+              <h2 className={`text-3xl font-bold mb-6 ${pageTemplate === 'immersive' ? 'text-white' : 'text-slate-900'}`}>Gallery</h2>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 {page.images.map((image, index) => {
                   const seo = imageMetadataFor(image, page.imageMetadata, `${page.title} ${index + 1}`);
@@ -643,7 +649,7 @@ export default function AttractionPageTemplate({ page, urlType, linkedPages = []
 
         {/* Tours Grid Section */}
         {page.tours && page.tours.length > 0 && (
-          <section className="py-16 bg-white">
+          <section className={`py-16 ${pageTemplate === 'immersive' ? 'rounded-t-[2.5rem] bg-white' : pageTemplate === 'editorial' ? 'bg-[#f7f4ee]' : 'bg-white'}`}>
             <div className="container mx-auto px-6">
               {/* Grid Header */}
               <div className="text-center mb-12">

@@ -6,6 +6,8 @@ import Category from '@/lib/models/Category';
 import mongoose from 'mongoose';
 import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 import { buildStrictTenantQuery, getTenantFromRequest } from '@/lib/tenant';
+import { sanitizeContentNavigation } from '@/lib/content/contentNavigation';
+import { ParentPageValidationError, validateParentPageSelection } from '@/lib/content/validateParentPage';
 
 export async function GET(
   request: NextRequest,
@@ -80,11 +82,20 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const existing = await Category.findById(id).select('tenantId').lean();
+    Object.assign(body, sanitizeContentNavigation(body));
+    const existing = await Category.findById(id).select('tenantId slug').lean();
     if (!existing) return NextResponse.json({ success: false, error: 'Category not found' }, { status: 404 });
     const tenantId = String((existing as any).tenantId || 'default');
     if (!canAccessTenant(adminAuth, tenantId)) return tenantForbiddenResponse();
     delete body.tenantId;
+    if (Object.prototype.hasOwnProperty.call(body, 'parentPage')) {
+      body.parentPage = await validateParentPageSelection({
+        parentPage: body.parentPage,
+        currentId: id,
+        currentSlug: body.slug || String((existing as { slug?: string }).slug || ''),
+        tenantFilter: { tenantId },
+      });
+    }
     
     // Check if slug is being changed and if it conflicts
     if (body.slug) {
@@ -122,6 +133,9 @@ export async function PUT(
     });
   } catch (error) {
     console.error('Error updating category:', error);
+    if (error instanceof ParentPageValidationError) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 400 });
+    }
     
     if (error instanceof Error && error.name === 'ValidationError') {
       return NextResponse.json({

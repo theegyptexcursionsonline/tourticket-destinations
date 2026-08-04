@@ -1,5 +1,5 @@
 // app/destinations/[slug]/page.tsx
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import dbConnect from '@/lib/dbConnect';
 import DestinationModel from '@/lib/models/Destination';
 import TourModel from '@/lib/models/Tour';
@@ -16,6 +16,7 @@ import { localizeAndDedupeTours } from '@/lib/translation/localizeTourCollection
 import { localizeEntityFields, localizeStructuredEntries } from '@/lib/i18n/contentLocalization';
 import { destinationTranslationFields, categoryTranslationFields, destinationStructuredFields } from '@/lib/i18n/translationFields';
 import DestinationSchema from '@/components/schema/DestinationSchema';
+import { decideForSegment } from '@/lib/content/resolveContentBySlug';
 
 // Force dynamic rendering to fix 500 errors
 export const dynamic = 'force-dynamic';
@@ -173,9 +174,8 @@ async function getPageData(slug: string, tenantId: string) {
   }
 }
 
-export default async function DestinationPage({ params }: { params: Promise<{ slug: string }> }) {
+export async function renderDestinationPage(slug: string) {
   try {
-    const { slug } = await params;
     const tenantId = await getTenantFromRequest();
     const locale = await getLocale();
     const { destination, destinationTours, allCategories, reviews, relatedDestinations } = await getPageData(slug, tenantId);
@@ -228,4 +228,13 @@ export default async function DestinationPage({ params }: { params: Promise<{ sl
     console.error('[Destination] Page error:', error);
     notFound();
   }
+}
+
+export default async function DestinationPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const locale = await getLocale();
+  const decision = await decideForSegment(slug, 'destinations', locale);
+  if (decision.action === 'redirect') permanentRedirect(decision.to);
+  if (decision.action === 'notFound' || decision.match.type !== 'destination') notFound();
+  return renderDestinationPage(slug);
 }

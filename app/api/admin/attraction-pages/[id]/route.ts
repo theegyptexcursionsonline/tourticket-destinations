@@ -9,6 +9,8 @@ import {
   PageLinkValidationError,
   validateAndNormalizePageLinks,
 } from '@/lib/attractionPages/validatePageLinks';
+import { sanitizeContentNavigation } from '@/lib/content/contentNavigation';
+import { ParentPageValidationError, validateParentPageSelection } from '@/lib/content/validateParentPage';
 
 // Defensive helper: when an admin is scoped to a single tenant via the
 // AdminTenantContext, every write must include `?tenantId=xxx`. We use that
@@ -92,11 +94,20 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const existingTarget = await AttractionPage.findById(id).select('tenantId').lean();
+    Object.assign(body, sanitizeContentNavigation(body));
+    const existingTarget = await AttractionPage.findById(id).select('tenantId slug').lean();
     if (!existingTarget) return NextResponse.json({ success: false, error: 'Page not found' }, { status: 404 });
     const targetTenantId = String((existingTarget as any).tenantId || 'default');
     if (!canAccessTenant(auth, targetTenantId)) return tenantForbiddenResponse();
     delete body.tenantId;
+    if (Object.prototype.hasOwnProperty.call(body, 'parentPage')) {
+      body.parentPage = await validateParentPageSelection({
+        parentPage: body.parentPage,
+        currentId: id,
+        currentSlug: body.slug || String((existingTarget as { slug?: string }).slug || ''),
+        tenantFilter: { tenantId: targetTenantId },
+      });
+    }
     
     
     // Check if slug is being changed and if it conflicts
@@ -173,6 +184,9 @@ export async function PUT(
   } catch (error) {
     console.error('❌ Error updating attraction page:', error);
     if (error instanceof PageLinkValidationError) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 400 });
+    }
+    if (error instanceof ParentPageValidationError) {
       return NextResponse.json({ success: false, error: error.message }, { status: 400 });
     }
 

@@ -14,6 +14,9 @@ import BookingSidebar from '@/components/BookingSidebar';
 import { useLocale } from 'next-intl';
 import { isRTL } from '@/i18n/config';
 import { imageMetadataFor } from '@/lib/content/imageMetadata';
+import { buildContentBreadcrumbs } from '@/lib/content/breadcrumbs';
+import ContentBreadcrumbs from '@/components/navigation/ContentBreadcrumbs';
+import { normalizePageTemplate, type PageTemplate } from '@/lib/content/pageTemplate';
 import { tourFromPrice } from '@/lib/pricing/displayPrice';
 
 type CategoryPageCopy = {
@@ -669,17 +672,26 @@ const CategoryHeroSection = ({
   tourCount,
   copy,
   rtl,
+  pageTemplate,
 }: {
   category: Category;
   tourCount: number;
   copy: CategoryPageCopy;
   rtl: boolean;
+  pageTemplate: PageTemplate;
 }) => {
   const heroImage = category.heroImage || 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1200&q=80&fm=jpg';
   const heroSeo = imageMetadataFor(heroImage, category.imageMetadata, category.name);
+  const breadcrumbs = buildContentBreadcrumbs({
+    currentTitle: category.name,
+    breadcrumbLabel: category.breadcrumbLabel,
+    parentPage: category.parentPage,
+    rootLabel: 'Categories',
+    rootHref: '/categories',
+  });
 
   return (
-    <section className="relative w-full h-[70vh] sm:h-[75vh] md:h-[80vh] lg:h-screen max-h-[900px]">
+    <section className={`relative w-full ${pageTemplate === 'immersive' ? 'min-h-[760px] h-screen max-h-[980px]' : pageTemplate === 'editorial' ? 'min-h-[600px] h-[72vh] max-h-[760px]' : 'h-[70vh] sm:h-[75vh] md:h-[80vh] lg:h-screen max-h-[900px]'}`}>
       {/* Background Image */}
       <div className="absolute inset-0 z-0">
         <Image
@@ -687,16 +699,19 @@ const CategoryHeroSection = ({
           alt={heroSeo.alt}
           title={heroSeo.title}
           fill
-          className="object-cover"
+          className={`object-cover ${pageTemplate === 'editorial' ? 'lg:object-[70%_center]' : ''}`}
           priority
           sizes="100vw"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/70" />
+        <div className={`absolute inset-0 ${pageTemplate === 'immersive' ? 'bg-gradient-to-t from-black via-black/40 to-black/20' : 'bg-gradient-to-b from-black/60 via-black/50 to-black/70'}`} />
       </div>
 
       {/* Content */}
       <div className="relative z-20 h-full flex items-center justify-center text-white px-4 sm:px-6 lg:px-8" dir={rtl ? 'rtl' : 'ltr'}>
-        <div className="w-full max-w-7xl mx-auto text-center md:text-start pt-20 md:pt-0">
+        <div className={`w-full max-w-7xl mx-auto text-center md:text-start pt-20 md:pt-0 ${pageTemplate === 'editorial' ? 'md:max-w-3xl md:mx-0 md:rounded-[2rem] md:border md:border-white/15 md:bg-slate-950/80 md:p-10 md:shadow-2xl md:backdrop-blur-md' : pageTemplate === 'immersive' ? 'self-end pb-10 md:pb-20' : ''}`}>
+          <div className="mb-5 flex justify-center md:justify-start">
+            <ContentBreadcrumbs items={breadcrumbs} tone="dark" />
+          </div>
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold uppercase leading-tight tracking-wide mb-3 sm:mb-4">
             {copy.discover}
             <br />
@@ -986,14 +1001,16 @@ export default function CategoryPageClient({
         return filtered;
     }, [categoryTours, topPickIds, searchQuery, sortBy, selectedDuration, priceRange]);
 
+    const pageTemplate = normalizePageTemplate(category.pageTemplate);
+
     return (
         <>
             <Header />
 
             {/* Hero Section */}
-            <CategoryHeroSection category={category} tourCount={categoryTours.length} copy={copy} rtl={rtl} />
+            <CategoryHeroSection category={category} tourCount={categoryTours.length} copy={copy} rtl={rtl} pageTemplate={pageTemplate} />
 
-            <main className="min-h-screen bg-slate-50" dir={rtl ? 'rtl' : 'ltr'}>
+            <main data-page-template={pageTemplate} className={`min-h-screen ${pageTemplate === 'editorial' ? 'bg-[#f7f4ee]' : pageTemplate === 'immersive' ? 'bg-slate-950' : 'bg-slate-50'}`} dir={rtl ? 'rtl' : 'ltr'}>
                 {/* Stats Section */}
                 <StatsSection tours={categoryTours} copy={copy} />
 

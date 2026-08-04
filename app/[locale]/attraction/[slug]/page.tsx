@@ -44,6 +44,8 @@ async function getAttractionPage(slug: string, locale: string) {
     String(page.slug),
     page.pageType === 'category' ? 'category' : 'attraction',
     page.urlType,
+    null,
+    page.parentPage?.slug,
   );
   const localized = localizeEntityFields(
     localizeStructuredEntries(
@@ -115,13 +117,9 @@ export async function generateMetadata({ params }: AttractionPageProps): Promise
 export const dynamic = 'force-dynamic';
 export const dynamicParams = true;
 
-export default async function AttractionPage({ params }: AttractionPageProps) {
-  const { slug, locale } = await params;
+export async function renderAttractionPage(slug: string, locale: string) {
   const result = await getAttractionPage(slug, locale);
   if (!result) notFound();
-
-  const expectedPath = `/attraction/${slug}`;
-  if (result.canonicalPath !== expectedPath) permanentRedirect(result.canonicalPath);
 
   return (
     <>
@@ -133,4 +131,13 @@ export default async function AttractionPage({ params }: AttractionPageProps) {
       <Footer />
     </>
   );
+}
+
+export default async function AttractionPage({ params }: AttractionPageProps) {
+  const { slug, locale } = await params;
+  const result = await getAttractionPage(slug, locale);
+  if (!result) notFound();
+  const expectedPath = `/attraction/${slug}`;
+  if (result.canonicalPath !== expectedPath) permanentRedirect(result.canonicalPath);
+  return renderAttractionPage(slug, locale);
 }

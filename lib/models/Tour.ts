@@ -5,6 +5,8 @@ import crypto from 'crypto';
 import './Review';
 import type { ImageMetadata } from '@/lib/content/imageMetadata';
 import { ImageMetadataSchema } from '@/lib/models/schemas/ImageMetadataSchema';
+import { URL_TYPES, type UrlType } from '@/lib/content/contentUrl';
+import { ParentPageSchema, breadcrumbLabelField } from '@/lib/models/contentNavigationSchema';
 
 export interface IItineraryItem {
   time?: string;
@@ -83,6 +85,9 @@ export interface ITour extends Document {
   // Basic fields
   title: string;
   slug: string;
+  urlType?: UrlType;
+  breadcrumbLabel?: string;
+  parentPage?: { id?: string; slug: string; label: string; kind: 'destination' | 'attraction' | 'category' | 'category-2'; href?: string } | null;
   destination: mongoose.Schema.Types.ObjectId;
   category: mongoose.Schema.Types.ObjectId | mongoose.Schema.Types.ObjectId[];
   description: string;
@@ -473,6 +478,13 @@ const TourSchema: Schema<ITour> = new Schema({
     maxlength: [100, 'Slug cannot exceed 100 characters'],
     index: true
   },
+  urlType: {
+    type: String,
+    enum: URL_TYPES,
+    default: 'direct',
+  },
+  breadcrumbLabel: breadcrumbLabelField,
+  parentPage: { type: ParentPageSchema, default: undefined },
   destination: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'Destination', 

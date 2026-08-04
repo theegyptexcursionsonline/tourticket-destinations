@@ -9,6 +9,8 @@ import {
   PageLinkValidationError,
   validateAndNormalizePageLinks,
 } from '@/lib/attractionPages/validatePageLinks';
+import { sanitizeContentNavigation } from '@/lib/content/contentNavigation';
+import { ParentPageValidationError, validateParentPageSelection } from '@/lib/content/validateParentPage';
 
 export async function GET(request: NextRequest) {
   const auth = await requireAdminAuth(request, { permissions: ['manageContent'] });
@@ -135,6 +137,7 @@ export async function POST(request: NextRequest) {
     await dbConnect();
 
     const body = await request.json();
+    Object.assign(body, sanitizeContentNavigation(body));
 
     // Tenant guard: if a tenantId scope is passed (from AdminTenantContext),
     // require body.tenantId to match — or set it from the scope if missing.
@@ -153,6 +156,11 @@ export async function POST(request: NextRequest) {
     }
     const targetTenantId = String(body.tenantId || '');
     if (!targetTenantId || !canAccessTenant(auth, targetTenantId)) return tenantForbiddenResponse();
+    body.parentPage = await validateParentPageSelection({
+      parentPage: body.parentPage,
+      currentSlug: body.slug,
+      tenantFilter: { tenantId: targetTenantId },
+    });
 
     // Validate required fields
     const requiredFields = ['title', 'slug', 'description', 'heroImage', 'gridTitle', 'pageType'];
@@ -215,6 +223,9 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error creating attraction page:', error);
     if (error instanceof PageLinkValidationError) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 400 });
+    }
+    if (error instanceof ParentPageValidationError) {
       return NextResponse.json({ success: false, error: error.message }, { status: 400 });
     }
     

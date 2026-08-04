@@ -144,7 +144,7 @@ export async function resolveLinkedPageCards(
   const [pages, categories] = await Promise.all([
     pageIds.length
       ? AttractionPage.find({ _id: { $in: pageIds }, tenantId, isPublished: true })
-          .select('title slug description heroImage pageType urlType translations')
+          .select('title slug description heroImage pageType urlType parentPage translations')
           .lean()
       : [],
     categoryIds.length
@@ -166,6 +166,10 @@ export async function resolveLinkedPageCards(
         String(doc.slug || ''),
         doc.pageType === 'category' ? 'category' : 'attraction',
         doc.urlType as string | undefined,
+        null,
+        typeof doc.parentPage === 'object' && doc.parentPage
+          ? String((doc.parentPage as Record<string, unknown>).slug || '')
+          : undefined,
       ),
       kind: 'page',
     });

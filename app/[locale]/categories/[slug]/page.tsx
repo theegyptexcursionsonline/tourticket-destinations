@@ -1,5 +1,5 @@
 // app/categories/[slug]/page.tsx
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import dbConnect from '@/lib/dbConnect';
 import TourModel from '@/lib/models/Tour';
 import CategoryModel from '@/lib/models/Category';
@@ -14,6 +14,7 @@ import { localizeAndDedupeTours } from '@/lib/translation/localizeTourCollection
 import { localizeEntityFields, localizeStructuredEntries } from '@/lib/i18n/contentLocalization';
 import { categoryStructuredFields, categoryTranslationFields } from '@/lib/i18n/translationFields';
 import CollectionSchema from '@/components/schema/CollectionSchema';
+import { decideForSegment } from '@/lib/content/resolveContentBySlug';
 
 // Force dynamic rendering to fix ISR caching issues on Netlify
 export const dynamic = 'force-dynamic';
@@ -150,11 +151,10 @@ async function getRelatedCategoryInterests(
     .filter((category) => category.products > 0);
 }
 
-export default async function CategoryPage({ params }: { params: Promise<{ slug: string }> }) {
-  const resolvedParams = await params;
+export async function renderCategoryPage(slug: string) {
   const tenantId = await getTenantFromRequest();
   const locale = await getLocale();
-  const { category, categoryTours } = await getPageData(resolvedParams.slug, tenantId);
+  const { category, categoryTours } = await getPageData(slug, tenantId);
 
   if (!category) {
     notFound();
@@ -162,7 +162,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
 
   const relatedInterests = await getRelatedCategoryInterests(
     String(category._id),
-    resolvedParams.slug,
+    slug,
     locale,
     tenantId,
   );
@@ -181,7 +181,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
       <CollectionSchema
         name={(localizedCategory as any).name}
         description={(localizedCategory as any).description}
-        url={`/categories/${resolvedParams.slug}`}
+        url={`/categories/${slug}`}
         items={(localizedTours as any[]).map((t: any) => ({
           name: t.title,
           url: `/${t.slug}`,
@@ -190,7 +190,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
         breadcrumbs={[
           { name: 'Home', url: '/' },
           { name: 'Categories', url: '/categories' },
-          { name: (localizedCategory as any).name, url: `/categories/${resolvedParams.slug}` },
+          { name: (localizedCategory as any).name, url: `/categories/${slug}` },
         ]}
       />
       <CategoryPageClient
@@ -200,4 +200,13 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
       />
     </>
   );
+}
+
+export default async function CategoryPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const locale = await getLocale();
+  const decision = await decideForSegment(slug, 'categories', locale);
+  if (decision.action === 'redirect') permanentRedirect(decision.to);
+  if (decision.action === 'notFound' || decision.match.type !== 'category') notFound();
+  return renderCategoryPage(slug);
 }

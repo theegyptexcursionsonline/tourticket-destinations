@@ -65,6 +65,8 @@ describe('unified Pages management helpers', () => {
     expect(pagePath('desert-safari', 'category', 'default')).toBe('/category/desert-safari');
     expect(pagePath('desert-safari', 'attraction', 'category')).toBe('/category/desert-safari');
     expect(pagePath('desert-safari', 'category', 'attraction')).toBe('/attraction/desert-safari');
+    expect(pagePath('desert-safari', 'attraction', 'direct')).toBe('/desert-safari');
+    expect(pagePath('desert-safari', 'category', 'direct', null, 'hurghada')).toBe('/hurghada/desert-safari');
   });
 
   it('deduplicates and accepts only linked content from the selected brand', async () => {

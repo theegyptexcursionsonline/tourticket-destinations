@@ -12,22 +12,20 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { AttractionPageFormData, Category } from '@/types';
+import type { ContentFaq, ContentTravelTip, ImageMetadata } from '@/types';
 import Image from 'next/image';
-import {
-  PAGE_URL_TYPES,
-  PAGE_URL_TYPE_LABELS,
-  pagePath,
-  type PageUrlType,
-} from '@/lib/attractionPages/pageUrl';
+import { URL_TYPE_LABELS, attractionPagePath, selectableUrlTypes, type UrlType } from '@/lib/content/contentUrl';
 import TranslationEditor from '@/components/admin/TranslationEditor';
 import ContentStructuredTranslationEditor from '@/components/admin/ContentStructuredTranslationEditor';
 import { attractionPageTranslationFields, normalizeTranslations } from '@/lib/i18n/translationFields';
-import { useAdminTenant } from '@/contexts/AdminTenantContext';
+import SearchableCheckboxList from '@/components/admin/SearchableCheckboxList';
 import ImageSeoFields from '@/components/admin/ImageSeoFields';
 import { FaqEditor, TravelTipsEditor } from '@/components/admin/StructuredContentEditor';
 import { uploadImageFiles } from '@/lib/admin/uploadImages';
 import { ensureImageMetadata } from '@/lib/content/imageMetadata';
-import type { ContentFaq, ContentTravelTip, ImageMetadata } from '@/types';
+import ContentNavigationFields from '@/components/admin/ContentNavigationFields';
+import { PAGE_TEMPLATES, PAGE_TEMPLATE_LABELS, normalizePageTemplate } from '@/lib/content/pageTemplate';
+import { useAdminTenant } from '@/contexts/AdminTenantContext';
 
 interface AttractionPageFormProps {
   pageId?: string;
@@ -50,8 +48,12 @@ const defaultFormData: AttractionPageFormData = {
   description: '',
   longDescription: '',
   pageType: 'attraction',
+  pageTemplate: 'classic',
   categoryId: '',
-  urlType: 'default',
+  urlType: 'direct',
+  breadcrumbLabel: '',
+  parentPage: null,
+  cityDestination: '',
   heroImage: '',
   images: [],
   imageMetadata: [],
@@ -101,8 +103,8 @@ function ListingPicker({
   hint,
   placeholder,
   optionsKind,
-  excludeId,
   tenantId,
+  excludeId,
   selected,
   onChange,
 }: {
@@ -110,8 +112,8 @@ function ListingPicker({
   hint: string;
   placeholder: string;
   optionsKind: 'tours' | 'pages';
-  excludeId?: string;
   tenantId?: string;
+  excludeId?: string;
   selected: PickerOption[];
   onChange: (next: PickerOption[]) => void;
 }) {
@@ -130,8 +132,8 @@ function ListingPicker({
       setSearching(true);
       try {
         const params = new URLSearchParams({ kind: optionsKind, q: trimmed });
-        if (excludeId) params.set('excludeId', excludeId);
         if (tenantId) params.set('tenantId', tenantId);
+        if (excludeId) params.set('excludeId', excludeId);
         const res = await fetch(`/api/admin/pages/options?${params.toString()}`);
         const json = await res.json();
         if (json.success) setResults(json.data as PickerOption[]);
@@ -258,13 +260,40 @@ const textareaBase = "block w-full px-4 py-3 border border-slate-300 rounded-xl 
 
 export default function AttractionPageForm({ pageId, initialPageType = 'attraction' }: AttractionPageFormProps) {
   const router = useRouter();
-  const { selectedTenantId, getSelectedTenant } = useAdminTenant();
+  const { selectedTenantId } = useAdminTenant();
+  const [entityTenantId, setEntityTenantId] = useState('');
+  const activeTenantId = entityTenantId || (selectedTenantId !== 'all' ? selectedTenantId : '');
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(false);
   const [activeTab, setActiveTab] = useState('basic');
+  // The urlType the page was loaded with: keeps a non-direct shape selectable
+  // for that page while new pages only ever offer Direct.
+  const [savedUrlType, setSavedUrlType] = useState<string | null>(null);
   
-  const [formData, setFormData] = useState<AttractionPageFormData>(() => ({ ...defaultFormData, pageType: initialPageType }));
+  const [formData, setFormData] = useState<AttractionPageFormData>({
+    ...defaultFormData,
+    pageType: initialPageType,
+  });
   const [categories, setCategories] = useState<Category[]>([]);
+  const [cityDestinations, setCityDestinations] = useState<Array<{ _id: string; name: string; slug?: string }>>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!activeTenantId) return;
+    fetch(`/api/admin/tours/destinations?tenantId=${encodeURIComponent(activeTenantId)}`)
+      .then((response) => response.json())
+      .then((data) => {
+        if (!cancelled && data.success && Array.isArray(data.data)) {
+          setCityDestinations(data.data.map((destination: { _id: unknown; name?: unknown; slug?: unknown }) => ({
+            _id: String(destination._id),
+            name: String(destination.name || 'Untitled destination'),
+            slug: destination.slug ? String(destination.slug) : undefined,
+          })));
+        }
+      })
+      .catch(() => undefined);
+    return () => { cancelled = true; };
+  }, [activeTenantId]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -272,22 +301,11 @@ export default function AttractionPageForm({ pageId, initialPageType = 'attracti
   // Labelled selections for the Listings pickers (ids live in formData)
   const [selectedTours, setSelectedTours] = useState<PickerOption[]>([]);
   const [selectedPages, setSelectedPages] = useState<PickerOption[]>([]);
-  const [entityTenantId, setEntityTenantId] = useState('');
-  const activeTenantId = pageId
-    ? entityTenantId
-    : selectedTenantId !== 'all'
-      ? selectedTenantId
-      : '';
-  const selectedBrand = getSelectedTenant();
 
   const fetchCategories = useCallback(async () => {
-    if (!activeTenantId) {
-      setCategories([]);
-      return;
-    }
     try {
-      const params = new URLSearchParams({ kind: 'categories', tenantId: activeTenantId });
-      const response = await fetch(`/api/admin/pages/options?${params.toString()}`);
+      if (!activeTenantId) return;
+      const response = await fetch(`/api/categories?tenantId=${encodeURIComponent(activeTenantId)}`);
       const data = await response.json();
       if (data.success) {
         setCategories(data.data);
@@ -317,14 +335,21 @@ export default function AttractionPageForm({ pageId, initialPageType = 'attracti
         const linkedPageIds: string[] = Array.isArray(page.linkedPageIds) ? page.linkedPageIds.map(String) : [];
         const linkedCategoryIds: string[] = Array.isArray(page.linkedCategoryIds) ? page.linkedCategoryIds.map(String) : [];
 
+        setSavedUrlType(page.urlType || 'default');
         setFormData({
           title: page.title || '',
           slug: page.slug || '',
           description: page.description || '',
           longDescription: page.longDescription || '',
           pageType: page.pageType || 'attraction',
+          pageTemplate: normalizePageTemplate(page.pageTemplate),
           categoryId: typeof page.categoryId === 'object' ? page.categoryId._id : (page.categoryId || ''),
           urlType: page.urlType || 'default',
+          breadcrumbLabel: page.breadcrumbLabel || '',
+          parentPage: page.parentPage || null,
+          cityDestination: page.cityDestination
+            ? String((page.cityDestination as { _id?: unknown })._id || page.cityDestination)
+            : '',
           heroImage: page.heroImage || '',
           images: Array.isArray(page.images) ? page.images : [], // FIX: Ensure it's always an array
           imageMetadata: ensureImageMetadata(page.imageMetadata, [page.heroImage || '', ...(page.images || [])]),
@@ -486,17 +511,23 @@ export default function AttractionPageForm({ pageId, initialPageType = 'attracti
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!activeTenantId) {
+      setError('Select one brand before creating a page.');
+      toast.error('Select one brand first.');
+      return;
+    }
+    if (formData.urlType === 'city' && !formData.cityDestination) {
+      setError('The City URL type needs an owning city — pick one under URL Type.');
+      toast.error('Pick the owning city for the City URL type.');
+      return;
+    }
     setSaving(true);
     setError(null);
 
     try {
-      if (!activeTenantId) {
-        throw new Error('Select a specific brand before creating a page.');
-      }
-      const baseUrl = pageId
+      const url = pageId
         ? `/api/admin/attraction-pages/${pageId}`
         : '/api/admin/attraction-pages';
-      const url = `${baseUrl}?tenantId=${encodeURIComponent(activeTenantId)}`;
       
       const method = pageId ? 'PUT' : 'POST';
 
@@ -512,7 +543,7 @@ export default function AttractionPageForm({ pageId, initialPageType = 'attracti
       const { linkedTours, linkedPages, linkedCategories, ...restData } = cleanedData;
       const payload = {
         ...restData,
-        ...(!pageId ? { tenantId: activeTenantId } : {}),
+        tenantId: activeTenantId,
         highlights: Array.isArray(cleanedData.highlights) ? cleanedData.highlights.filter(item => item && item.trim() !== '') : [],
         features: Array.isArray(cleanedData.features) ? cleanedData.features.filter(item => item && item.trim() !== '') : [],
         images: Array.isArray(cleanedData.images) ? cleanedData.images.filter(item => item && item.trim() !== '') : [], // FIX: Check for truthy value first
@@ -520,6 +551,7 @@ export default function AttractionPageForm({ pageId, initialPageType = 'attracti
         faqs: (cleanedData.faqs || []).filter((item) => item.question.trim() && item.answer.trim()),
         travelTips: (cleanedData.travelTips || []).filter((item) => item.title.trim() && item.content.trim()),
         keywords: Array.isArray(cleanedData.keywords) ? cleanedData.keywords.filter(item => item && item.trim() !== '') : [],
+        cityDestination: cleanedData.urlType === 'city' ? cleanedData.cityDestination || undefined : undefined,
         // Curated listings persist under their model field names
         linkedTourIds: Array.isArray(linkedTours) ? linkedTours : [],
         linkedPageIds: Array.isArray(linkedPages) ? linkedPages : [],
@@ -531,7 +563,8 @@ export default function AttractionPageForm({ pageId, initialPageType = 'attracti
       console.log('📸 FRONTEND: Images being sent:', payload.images);
       console.log('💾 FRONTEND: Full payload:', payload);
 
-      const response = await fetch(url, {
+      const scopedUrl = `${url}${url.includes('?') ? '&' : '?'}tenantId=${encodeURIComponent(activeTenantId)}`;
+      const response = await fetch(scopedUrl, {
         method,
         headers: {
           'Content-Type': 'application/json',
@@ -549,15 +582,13 @@ export default function AttractionPageForm({ pageId, initialPageType = 'attracti
         router.refresh();
       } else {
         // The API sends `details` for validation problems; showing only the
-        // headline turned every one of them into "failed to create a page".
+        // headline turned every one of them into a generic save failure.
         const message = [data.error, data.details].filter(Boolean).join(' — ') || 'Failed to save page';
         setError(message);
         toast.error(message);
       }
     } catch (err) {
-      const errorMessage = err instanceof Error
-        ? err.message
-        : 'Network error occurred while saving the page';
+      const errorMessage = 'Network error occurred while saving the page';
       setError(errorMessage);
       toast.error(errorMessage);
       console.error('Submit error:', err);
@@ -642,7 +673,7 @@ export default function AttractionPageForm({ pageId, initialPageType = 'attracti
         <div className="mb-12">
           <div className="flex items-center gap-4 mb-6">
             <button 
-              onClick={() => router.back()}
+              onClick={() => router.push('/admin/pages')}
               className="flex items-center justify-center w-10 h-10 bg-white border border-slate-200 rounded-xl hover:border-indigo-300 hover:bg-indigo-50 transition-all duration-200 group"
             >
               <ArrowLeft className="h-5 w-5 text-slate-600 group-hover:text-indigo-600" />
@@ -656,18 +687,8 @@ export default function AttractionPageForm({ pageId, initialPageType = 'attracti
                   {pageId ? 'EDITING' : 'CREATING'}
                 </div>
               </div>
-              <p className="text-sm text-slate-500 mt-2">
-                Brand: {pageId
-                  ? (entityTenantId || 'Loading…')
-                  : (selectedBrand?.name || 'Select a specific brand')}
-              </p>
             </div>
           </div>
-          {!pageId && !activeTenantId && (
-            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-              Select a specific brand from the top navigation before creating a page. This prevents content from being assigned to the wrong storefront.
-            </div>
-          )}
         </div>
 
         <div className="space-y-8">
@@ -759,10 +780,14 @@ export default function AttractionPageForm({ pageId, initialPageType = 'attracti
                             <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg">
                               <span className="text-xs font-medium text-slate-500">Preview:</span>
                               <span className="text-xs font-mono text-slate-700 bg-white px-2 py-1 rounded border">
-                                {pagePath(
+                                {attractionPagePath(
                                   formData.slug || 'your-slug',
                                   formData.pageType,
                                   formData.urlType,
+                                  formData.urlType === 'city'
+                                    ? cityDestinations.find(d => d._id === formData.cityDestination)?.slug || '{destination}'
+                                    : undefined,
+                                  formData.parentPage?.slug,
                                 )}
                               </span>
                             </div>
@@ -799,45 +824,97 @@ export default function AttractionPageForm({ pageId, initialPageType = 'attracti
                             </SmallHint>
                           </div>
                           <div className="space-y-3">
-                            <FormLabel icon={Globe}>URL Type</FormLabel>
-                            <div className="relative">
-                              <select
-                                name="urlType"
-                                value={formData.urlType || 'default'}
-                                onChange={handleChange}
-                                className={`${inputBase} appearance-none cursor-pointer`}
-                              >
-                                {PAGE_URL_TYPES.map((type) => (
-                                  <option key={type} value={type}>
-                                    {PAGE_URL_TYPE_LABELS[type as PageUrlType]}
-                                  </option>
-                                ))}
-                              </select>
-                              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
-                            </div>
-                            <SmallHint>Choose the public URL shape. The old route redirects to the selected URL.</SmallHint>
-                          </div>
-                          {formData.pageType === 'category' && (
-                            <div className="space-y-3">
-                              <FormLabel icon={MapPin}>Category</FormLabel>
+                              <FormLabel icon={Globe}>URL Type</FormLabel>
                               <div className="relative">
-                                <select 
-                                  name="categoryId" 
-                                  value={formData.categoryId} 
-                                  onChange={handleChange} 
+                                <select
+                                  name="urlType"
+                                  value={formData.urlType || 'direct'}
+                                  onChange={handleChange}
                                   className={`${inputBase} appearance-none cursor-pointer`}
                                 >
-                                  <option value="">Select a category</option>
-                                  {categories.map((category) => (
-                                    <option key={category._id} value={category._id}>
-                                      {category.name}
+                                  {selectableUrlTypes(savedUrlType ?? 'direct').map((type) => (
+                                    <option key={type} value={type}>
+                                      {URL_TYPE_LABELS[type as UrlType]}
                                     </option>
                                   ))}
                                 </select>
                                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
                               </div>
+                              <SmallHint>Choose the public URL shape. Changing it 301-redirects the old URL.</SmallHint>
+                              {formData.urlType === 'city' && (
+                                <div className="space-y-2">
+                                  <FormLabel icon={Globe}>City (destination)</FormLabel>
+                                  <select
+                                    name="cityDestination"
+                                    value={formData.cityDestination}
+                                    onChange={handleChange}
+                                    className={`${inputBase} appearance-none cursor-pointer`}
+                                    required
+                                  >
+                                    <option value="">Select the owning city…</option>
+                                    {cityDestinations.map(d => (
+                                      <option key={d._id} value={d._id}>{d.name}</option>
+                                    ))}
+                                  </select>
+                                  <SmallHint>The page will live under this city&apos;s slug.</SmallHint>
+                                </div>
+                              )}
+                            </div>
+                          {formData.pageType === 'category' && (
+                            <div className="space-y-3">
+                              <FormLabel icon={MapPin}>Category</FormLabel>
+                              <SearchableCheckboxList
+                                options={categories.map((category) => ({ id: String(category._id), label: category.name }))}
+                                selectedIds={formData.categoryId ? [String(formData.categoryId)] : []}
+                                onToggle={(id) => setFormData((prev) => ({
+                                  ...prev,
+                                  categoryId: String(prev.categoryId) === id ? '' : id,
+                                }))}
+                                emptyLabel="No categories available"
+                                searchPlaceholder="Search categories…"
+                              />
                             </div>
                           )}
+                        </div>
+
+                        <ContentNavigationFields
+                          tenantId={activeTenantId || undefined}
+                          breadcrumbLabel={formData.breadcrumbLabel}
+                          parentPage={formData.parentPage}
+                          onBreadcrumbLabelChange={(breadcrumbLabel) => setFormData((prev) => ({ ...prev, breadcrumbLabel }))}
+                          onParentPageChange={(parentPage) => setFormData((prev) => ({ ...prev, parentPage }))}
+                          excludeId={pageId}
+                        />
+
+                        <div className="space-y-3">
+                          <FormLabel icon={Grid3x3}>Landing page template</FormLabel>
+                          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                            {PAGE_TEMPLATES.map((template) => {
+                              const selected = formData.pageTemplate === template;
+                              const preview = template === 'classic'
+                                ? 'grid grid-cols-3 gap-1'
+                                : template === 'editorial'
+                                  ? 'grid grid-cols-[1.15fr_.85fr] gap-1'
+                                  : 'grid grid-cols-2 grid-rows-2 gap-1';
+                              return (
+                                <button
+                                  key={template}
+                                  type="button"
+                                  onClick={() => setFormData((current) => ({ ...current, pageTemplate: template }))}
+                                  aria-pressed={selected}
+                                  className={`rounded-2xl border p-3 text-left transition ${selected ? 'border-indigo-500 bg-indigo-50 ring-2 ring-indigo-100' : 'border-slate-200 bg-white hover:border-slate-400'}`}
+                                >
+                                  <div className={`${preview} h-20 overflow-hidden rounded-xl bg-slate-100 p-1.5`} aria-hidden="true">
+                                    {template === 'classic' ? <><span className="col-span-3 rounded bg-slate-700" /><span className="rounded bg-white" /><span className="rounded bg-white" /><span className="rounded bg-white" /></> : null}
+                                    {template === 'editorial' ? <><span className="row-span-2 rounded bg-white" /><span className="rounded bg-slate-700" /><span className="rounded bg-slate-300" /></> : null}
+                                    {template === 'immersive' ? <><span className="row-span-2 rounded bg-slate-700" /><span className="rounded bg-slate-300" /><span className="rounded bg-white" /></> : null}
+                                  </div>
+                                  <p className="mt-3 text-sm font-bold text-slate-900">{PAGE_TEMPLATE_LABELS[template].title}</p>
+                                  <p className="mt-1 text-xs leading-5 text-slate-600">{PAGE_TEMPLATE_LABELS[template].description}</p>
+                                </button>
+                              );
+                            })}
+                          </div>
                         </div>
 
                         <div className="space-y-3">
@@ -877,8 +954,8 @@ export default function AttractionPageForm({ pageId, initialPageType = 'attracti
                           {formData.heroImage ? (
                             <div className="group relative overflow-hidden rounded-2xl border-2 border-slate-200">
                               <Image
-                                src={formData.heroImage} 
-                                alt="Hero preview" 
+                                src={formData.heroImage}
+                                alt="Hero preview"
                                 width={1200}
                                 height={256}
                                 unoptimized
@@ -1124,8 +1201,8 @@ export default function AttractionPageForm({ pageId, initialPageType = 'attracti
                           hint="Embed links to other pages (attraction pages, catalogues, or categories). They appear as an “Explore more” card grid on this page."
                           placeholder="Search pages and categories…"
                           optionsKind="pages"
-                          excludeId={pageId}
                           tenantId={activeTenantId}
+                          excludeId={pageId}
                           selected={selectedPages}
                           onChange={(next) => {
                             setSelectedPages(next);

@@ -2,6 +2,8 @@
 import mongoose, { Document, Schema, models } from 'mongoose';
 import type { ImageMetadata } from '@/lib/content/imageMetadata';
 import { ImageMetadataSchema } from '@/lib/models/schemas/ImageMetadataSchema';
+import { URL_TYPES, type UrlType } from '@/lib/content/contentUrl';
+import { ParentPageSchema, breadcrumbLabelField } from '@/lib/models/contentNavigationSchema';
 
 const FaqSchema = new Schema({
   question: { type: String, required: true, trim: true, maxlength: 300 },
@@ -20,6 +22,9 @@ export interface IDestination extends Document {
   // Basic Info
   name: string;
   slug: string;
+  urlType?: UrlType;
+  breadcrumbLabel?: string;
+  parentPage?: { id?: string; slug: string; label: string; kind: 'destination' | 'attraction' | 'category' | 'category-2'; href?: string } | null;
   country?: string;
   
   // Media
@@ -130,6 +135,13 @@ const DestinationSchema: Schema<IDestination> = new Schema({
     match: [/^[a-z0-9-]+$/, 'Slug can only contain lowercase letters, numbers, and hyphens'],
     index: true,
   },
+  urlType: {
+    type: String,
+    enum: URL_TYPES,
+    default: 'direct',
+  },
+  breadcrumbLabel: breadcrumbLabelField,
+  parentPage: { type: ParentPageSchema, default: undefined },
 country: {
   type: String,
   required: false,

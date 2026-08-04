@@ -6,7 +6,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import { Plus, Edit, Trash2, Eye, Search, Loader2, Archive, Undo2 } from 'lucide-react';
+import { Plus, Edit, Trash2, Eye, Search, Loader2, Archive, Undo2, Link2 } from 'lucide-react';
 import Image from 'next/image';
 import { useAdminTenant } from '@/contexts/AdminTenantContext';
 import { storefrontPreviewUrl } from '@/lib/admin/storefrontPreviewUrl';
@@ -232,13 +232,22 @@ export default function UnifiedPagesAdmin() {
               {getSelectedTenant()?.name || 'All Brands'}
             </p>
           </div>
-          <Link
-            href="/admin/pages/create"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Create New Page
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href="/admin/pages/internal-links"
+              className="inline-flex items-center gap-2 px-4 py-2 border border-slate-300 bg-white text-slate-800 rounded-lg hover:border-slate-500 transition-colors"
+            >
+              <Link2 className="w-4 h-4" />
+              Internal Links
+            </Link>
+            <Link
+              href="/admin/pages/create"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Create New Page
+            </Link>
+          </div>
         </div>
 
         {/* Filters (server-side, span the whole dataset) */}

@@ -54,6 +54,8 @@ async function getCategoryPage(categoryName: string, locale: string) {
       String(page.slug),
       page.pageType === 'category' ? 'category' : 'attraction',
       page.urlType,
+      null,
+      page.parentPage?.slug,
     ),
     page: {
       ...localized,
@@ -94,13 +96,9 @@ export async function generateMetadata({ params }: CategoryPageProps): Promise<M
   };
 }
 
-export default async function CategoryPage({ params }: CategoryPageProps) {
-  const { locale, 'category-name': categoryName } = await params;
+export async function renderCataloguePage(categoryName: string, locale: string) {
   const result = await getCategoryPage(categoryName, locale);
   if (!result) notFound();
-
-  const expectedPath = `/category/${categoryName}`;
-  if (result.canonicalPath !== expectedPath) permanentRedirect(result.canonicalPath);
 
   return (
     <>
@@ -113,4 +111,13 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
       <Footer />
     </>
   );
+}
+
+export default async function CategoryPage({ params }: CategoryPageProps) {
+  const { locale, 'category-name': categoryName } = await params;
+  const result = await getCategoryPage(categoryName, locale);
+  if (!result) notFound();
+  const expectedPath = `/category/${categoryName}`;
+  if (result.canonicalPath !== expectedPath) permanentRedirect(result.canonicalPath);
+  return renderCataloguePage(categoryName, locale);
 }

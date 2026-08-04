@@ -35,6 +35,10 @@ import { toDateOnlyString } from '@/utils/date';
 import { sanitizeRichHtml } from '@/lib/security/sanitizeRichHtml';
 import { formatExperienceDescription } from '@/lib/content/experienceDescription';
 import { imageMetadataFor } from '@/lib/content/imageMetadata';
+import { buildContentBreadcrumbs } from '@/lib/content/breadcrumbs';
+import ContentBreadcrumbs from '@/components/navigation/ContentBreadcrumbs';
+import { itineraryMapStops } from '@/lib/tours/itineraryMap';
+import { meetingPointEmbedUrl, meetingPointMapUrl } from '@/lib/tours/meetingPointMap';
 
 // Enhanced interfaces for additional tour data
 interface ItineraryItem {
@@ -430,16 +434,11 @@ const ItineraryIcon = ({ iconType, className = "w-5 h-5" }: { iconType?: string,
   return icons[iconType || 'location'] || icons.location;
 };
 
-const ItinerarySection = ({ itinerary, tourTitle, sectionRef }: { itinerary: ItineraryItem[], tourTitle: string, sectionRef: React.RefObject<HTMLDivElement | null> }) => {
+const ItinerarySection = ({ itinerary, sectionRef }: { itinerary: ItineraryItem[], sectionRef: React.RefObject<HTMLDivElement | null> }) => {
   const t = useTranslations('tour');
-  // Extract locations for map
-  const locations = itinerary
-    .filter(item => item.location)
-    .map(item => item.location)
-    .join('|');
-
-  // Use tour title as fallback if no locations
-  const mapQuery = locations || tourTitle;
+  const stops = itineraryMapStops(itinerary);
+  const showMap = stops.length > 0;
+  const mapQuery = stops.join('|');
 
   return (
     <div ref={sectionRef} id="itinerary" className="space-y-6 scroll-mt-24">
@@ -449,7 +448,7 @@ const ItinerarySection = ({ itinerary, tourTitle, sectionRef }: { itinerary: Iti
       </h3>
 
       {/* Split Layout: Itinerary Items + Map */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className={`grid grid-cols-1 ${showMap ? 'lg:grid-cols-2' : ''} gap-6`}>
         {/* Left: Itinerary Timeline */}
         <div className="relative order-2 lg:order-1">
           {/* Dotted line connector */}
@@ -532,7 +531,7 @@ const ItinerarySection = ({ itinerary, tourTitle, sectionRef }: { itinerary: Iti
         </div>
 
         {/* Right: Google Map */}
-        <div className="relative order-1 lg:order-2 lg:sticky lg:top-24 h-[400px] lg:h-[700px]">
+        {showMap ? <div className="relative order-1 lg:order-2 lg:sticky lg:top-24 h-[400px] lg:h-[700px]">
           <div className="h-full rounded-2xl overflow-hidden border-2 border-slate-200 shadow-lg">
             <iframe
               width="100%"
@@ -541,7 +540,7 @@ const ItinerarySection = ({ itinerary, tourTitle, sectionRef }: { itinerary: Iti
               loading="lazy"
               allowFullScreen
               referrerPolicy="no-referrer-when-downgrade"
-              src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${encodeURIComponent(mapQuery)}&zoom=12`}
+              src={`https://www.google.com/maps?q=${encodeURIComponent(stops[0])}&output=embed`}
             ></iframe>
           </div>
 
@@ -561,7 +560,7 @@ const ItinerarySection = ({ itinerary, tourTitle, sectionRef }: { itinerary: Iti
               </button>
             </div>
           </div>
-        </div>
+        </div> : null}
       </div>
     </div>
   );
@@ -1061,6 +1060,9 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
   const t = useTranslations('tour');
   const tCommon = useTranslations('common');
   const tWishlist = useTranslations('wishlist');
+  const breadcrumbs = buildContentBreadcrumbs({ currentTitle: tour.title, breadcrumbLabel: tour.breadcrumbLabel, parentPage: tour.parentPage, rootLabel: t('tours'), rootHref: '/search' });
+  const meetingMapHref = meetingPointMapUrl(tour.meetingPoint);
+  const meetingMapEmbed = meetingPointEmbedUrl(tour.meetingPoint);
   const [isBookingSidebarOpen, setBookingSidebarOpen] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const { addToWishlist, removeFromWishlist, isWishlisted } = useWishlist();
@@ -1251,17 +1253,7 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
         <div className="bg-slate-50/50 py-3 border-b border-slate-200/50">
           <div className="container mx-auto px-4">
             <div className="flex items-center justify-between gap-4">
-              <nav className="flex items-center gap-1.5 text-xs">
-                <Link href="/" className="text-slate-500 hover:text-red-600 transition-colors">
-                  {t('home')}
-                </Link>
-                <span className="text-slate-400">/</span>
-                <Link href="/search" className="text-slate-500 hover:text-red-600 transition-colors">
-                  {t('tours')}
-                </Link>
-                <span className="text-slate-400">/</span>
-                <span className="text-slate-800 font-medium truncate max-w-[200px] md:max-w-none">{tour.title}</span>
-              </nav>
+              <div className="min-w-0 text-xs"><ContentBreadcrumbs items={breadcrumbs} /></div>
               <Link
                 href="/search"
                 className="inline-flex items-center gap-1.5 text-red-600 font-semibold text-sm hover:underline transition-colors whitespace-nowrap"
@@ -1395,7 +1387,7 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
               <OverviewSection tour={tour} sectionRef={overviewRef} />
               
               {enhancement.itinerary && enhancement.itinerary.length > 0 && (
-                <ItinerarySection itinerary={enhancement.itinerary} tourTitle={tour.title} sectionRef={itineraryRef} />
+                <ItinerarySection itinerary={enhancement.itinerary} sectionRef={itineraryRef} />
               )}
               
               <PracticalInfoSection enhancement={enhancement} sectionRef={practicalRef} />
@@ -1413,7 +1405,7 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
               
               <EnhancedFAQ faqs={tour.faq || []} sectionRef={faqRef} />
 
-              {tour.meetingPoint && (
+              {tour.meetingPoint && meetingMapHref && meetingMapEmbed && (
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                   <h2 className="text-2xl font-bold text-slate-800 mb-4">{t('meetingPoint')}</h2>
                   <div className="space-y-4">
@@ -1422,13 +1414,15 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
                       <div>
                         <p className="font-semibold text-slate-800">{tour.meetingPoint}</p>
                         <p className="text-sm text-slate-600 mt-1">{t('checkIn15Min')}</p>
-                        <button
-                          onClick={() => window.open(`https://www.google.com/maps/search/${encodeURIComponent(tour.meetingPoint!)}`, '_blank')}
+                        <a
+                          href={meetingMapHref}
+                          target="_blank"
+                          rel="noopener noreferrer"
                           className="text-red-600 hover:underline text-sm font-medium mt-2 inline-flex items-center gap-1"
                         >
                           <Navigation size={14} />
                           {t('openInGoogleMaps')}
-                        </button>
+                        </a>
                       </div>
                     </div>
 
@@ -1441,7 +1435,7 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
                         loading="lazy"
                         allowFullScreen
                         referrerPolicy="no-referrer-when-downgrade"
-                        src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${encodeURIComponent(tour.meetingPoint!)}&zoom=15`}
+                        src={meetingMapEmbed}
                       ></iframe>
                     </div>
                   </div>

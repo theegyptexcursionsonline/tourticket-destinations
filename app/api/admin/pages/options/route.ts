@@ -4,6 +4,7 @@ import dbConnect from '@/lib/dbConnect';
 import Tour from '@/lib/models/Tour';
 import AttractionPage from '@/lib/models/AttractionPage';
 import Category from '@/lib/models/Category';
+import Destination from '@/lib/models/Destination';
 import {
   canAccessTenant,
   requireAdminAuth,
@@ -14,7 +15,7 @@ import { findMatchingTourOptionIds } from '@/lib/admin/tourOptionIdentifiers';
 import { localizeAndDedupeTours } from '@/lib/translation/localizeTourCollection';
 
 const LIMIT = 20;
-const VALID_KINDS = ['tours', 'pages', 'categories'] as const;
+const VALID_KINDS = ['tours', 'pages', 'categories', 'parents'] as const;
 
 function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -116,6 +117,31 @@ export async function GET(request: NextRequest) {
           kind: 'category',
           isPublished: category.isPublished !== false,
         })),
+      });
+    }
+
+    if (kind === 'parents') {
+      const parentFilter: Record<string, unknown> = { ...scope, isPublished: { $ne: false } };
+      const pageParentFilter: Record<string, unknown> = { ...parentFilter };
+      if (excludeId && Types.ObjectId.isValid(excludeId)) pageParentFilter._id = { $ne: excludeId };
+      if (search) {
+        parentFilter.$or = [{ name: search }, { slug: search }];
+        pageParentFilter.$or = [{ title: search }, { slug: search }];
+      }
+      const [destinations, pages] = await Promise.all([
+        Destination.find(parentFilter).select('tenantId name slug image isPublished').sort({ name: 1 }).limit(LIMIT).lean(),
+        AttractionPage.find(pageParentFilter).select('tenantId title slug heroImage pageType isPublished').sort({ title: 1 }).limit(LIMIT).lean(),
+      ]);
+      return NextResponse.json({
+        success: true,
+        data: [
+          ...(destinations as Array<Record<string, unknown>>).map((destination) => ({
+            id: String(destination._id), tenantId: String(destination.tenantId || ''), label: String(destination.name || ''), title: String(destination.name || ''), slug: String(destination.slug || ''), image: destination.image ? String(destination.image) : undefined, kind: 'destination', isPublished: destination.isPublished !== false,
+          })),
+          ...(pages as Array<Record<string, unknown>>).map((page) => ({
+            id: String(page._id), tenantId: String(page.tenantId || ''), label: String(page.title || ''), title: String(page.title || ''), slug: String(page.slug || ''), image: page.heroImage ? String(page.heroImage) : undefined, kind: page.pageType === 'category' ? 'category-2' : 'attraction', isPublished: page.isPublished !== false,
+          })),
+        ],
       });
     }
 

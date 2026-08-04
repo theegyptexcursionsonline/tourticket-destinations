@@ -170,7 +170,7 @@ describe('DestinationPageClient', () => {
       render(<DestinationPageClient {...defaultProps} />)
 
       // The destination name is split across elements
-      expect(screen.getByText('Cairo')).toBeInTheDocument()
+      expect(screen.getAllByText('Cairo').length).toBeGreaterThan(0)
     })
 
     it('should render destination description', () => {

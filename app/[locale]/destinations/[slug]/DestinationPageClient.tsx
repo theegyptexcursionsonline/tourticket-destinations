@@ -35,6 +35,8 @@ import {
 import { filterSearchHitsByTenant } from '@/lib/tenantSearchHitFilter';
 import { imageMetadataFor } from '@/lib/content/imageMetadata';
 import { curateDestinationTours } from '@/lib/content/destinationTourCuration';
+import { buildContentBreadcrumbs } from '@/lib/content/breadcrumbs';
+import ContentBreadcrumbs from '@/components/navigation/ContentBreadcrumbs';
 
 const DESTINATION_HERO_FALLBACK_IMAGE = '/hero2.jpg';
 
@@ -1782,6 +1784,13 @@ const DestinationHeroSection = ({
   ];
 
   const currentSuggestion = useSlidingText(searchSuggestions, 3000);
+  const breadcrumbs = buildContentBreadcrumbs({
+    currentTitle: destination.name,
+    breadcrumbLabel: destination.breadcrumbLabel,
+    parentPage: destination.parentPage,
+    rootLabel: 'Destinations',
+    rootHref: '/destinations',
+  });
 
   return (
     <section className="relative w-full min-h-[500px] h-[70vh] sm:h-[75vh] md:h-[80vh] lg:h-screen max-h-[900px]">
@@ -1791,6 +1800,9 @@ const DestinationHeroSection = ({
       {/* Content */}
       <div className="relative z-20 h-full flex items-center justify-center text-white px-4 sm:px-6 lg:px-8 pt-20 md:pt-0" dir={rtl ? 'rtl' : 'ltr'}>
         <div className="w-full max-w-7xl mx-auto text-center md:text-start pt-20 md:pt-0">
+          <div className="mb-5 flex justify-center md:justify-start">
+            <ContentBreadcrumbs items={breadcrumbs} tone="dark" />
+          </div>
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold uppercase leading-tight tracking-wide mb-3 sm:mb-4">
             {copy.discover}
             <br />

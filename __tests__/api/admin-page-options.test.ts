@@ -52,6 +52,7 @@ jest.mock('@/lib/auth/adminAuth', () => ({
 }));
 jest.mock('@/lib/models/AttractionPage', () => ({ __esModule: true, default: { find: jest.fn() } }));
 jest.mock('@/lib/models/Category', () => ({ __esModule: true, default: { find: jest.fn() } }));
+jest.mock('@/lib/models/Destination', () => ({ __esModule: true, default: { find: jest.fn() } }));
 jest.mock('@/lib/models/Tour', () => ({
   __esModule: true,
   default: { find: mockTourFind },

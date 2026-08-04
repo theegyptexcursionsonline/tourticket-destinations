@@ -156,6 +156,7 @@ interface TourFormData {
     whatToWear: string[];
     physicalRequirements: string;
     accessibilityInfo: string[];
+    meetingPoint: string;
     transportationDetails: string;
     mealInfo: string;
     weatherPolicy: string;
@@ -486,6 +487,7 @@ export default function TourForm({ tourToEdit, onSave, fullPage = false }: { tou
         whatToWear: [''],
         physicalRequirements: '',
         accessibilityInfo: [''],
+        meetingPoint: '',
         transportationDetails: '',
         mealInfo: '',
         weatherPolicy: '',
@@ -567,6 +569,7 @@ export default function TourForm({ tourToEdit, onSave, fullPage = false }: { tou
                 whatToWear: (tourToEdit.whatToWear?.length ?? 0) > 0 ? tourToEdit.whatToWear! : [''],
                 physicalRequirements: tourToEdit.physicalRequirements || '',
                 accessibilityInfo: (tourToEdit.accessibilityInfo?.length ?? 0) > 0 ? tourToEdit.accessibilityInfo! : [''],
+                meetingPoint: tourToEdit.meetingPoint || '',
                 transportationDetails: tourToEdit.transportationDetails || '',
                 mealInfo: tourToEdit.mealInfo || '',
                 weatherPolicy: tourToEdit.weatherPolicy || '',
@@ -760,6 +763,7 @@ export default function TourForm({ tourToEdit, onSave, fullPage = false }: { tou
             whatToWear: [''],
             physicalRequirements: '',
             accessibilityInfo: [''],
+            meetingPoint: '',
             transportationDetails: '',
             mealInfo: '',
             weatherPolicy: '',
@@ -1186,6 +1190,7 @@ const addItineraryItem = () => {
                 whatToWear: cleanedData.whatToWear.filter((item) => item.trim()),
                 physicalRequirements: cleanedData.physicalRequirements.trim(),
                 accessibilityInfo: cleanedData.accessibilityInfo.filter((item) => item.trim()),
+                meetingPoint: cleanedData.meetingPoint.trim(),
                 transportationDetails: cleanedData.transportationDetails.trim(),
                 mealInfo: cleanedData.mealInfo.trim(),
                 weatherPolicy: cleanedData.weatherPolicy.trim(),
@@ -2064,6 +2069,12 @@ const addItineraryItem = () => {
                                                     value={formData.physicalRequirements}
                                                     onChange={(value) => setFormData((prev) => ({ ...prev, physicalRequirements: value }))}
                                                     placeholder="Describe walking, stairs, swimming, or fitness requirements"
+                                                />
+                                                <ContentTextarea
+                                                    label="Meeting Point"
+                                                    value={formData.meetingPoint}
+                                                    onChange={(value) => setFormData((prev) => ({ ...prev, meetingPoint: value }))}
+                                                    placeholder="Exact pickup or meeting location shown on the storefront map"
                                                 />
                                                 <ContentTextarea
                                                     label="Transportation Details"

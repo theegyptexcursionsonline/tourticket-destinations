@@ -5,24 +5,34 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
-    Loader2, X, Plus, Check, Camera, Grid3x3, Info, Globe, 
-    UploadCloud, Trash2, Eye, Tag, FileText, Sparkles, ArrowLeft, 
+    Loader2, X, Plus, Check, ChevronDown, Camera, Grid3x3, Info, Globe,
+    UploadCloud, Trash2, Eye, Tag, FileText, Sparkles, ArrowLeft,
     Minus, HelpCircle, Palette
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import Image from 'next/image';
 import TranslationEditor from '@/components/admin/TranslationEditor';
 import ContentStructuredTranslationEditor from '@/components/admin/ContentStructuredTranslationEditor';
 import { categoryTranslationFields, normalizeTranslations } from '@/lib/i18n/translationFields';
-import { useAdminTenant } from '@/contexts/AdminTenantContext';
+import { URL_TYPE_LABELS, contentPath, selectableUrlTypes, type UrlType } from '@/lib/content/contentUrl';
 import ImageSeoFields from '@/components/admin/ImageSeoFields';
 import { FaqEditor, TravelTipsEditor } from '@/components/admin/StructuredContentEditor';
 import { uploadImageFiles } from '@/lib/admin/uploadImages';
 import { ensureImageMetadata } from '@/lib/content/imageMetadata';
-import type { ContentFaq, ContentTravelTip, ImageMetadata, Destination } from '@/types';
+import type { ContentFaq, ContentTravelTip, ImageMetadata } from '@/types';
+import ContentNavigationFields from '@/components/admin/ContentNavigationFields';
+import type { ParentPageValue } from '@/lib/content/contentNavigation';
+import { PAGE_TEMPLATES, PAGE_TEMPLATE_LABELS, normalizePageTemplate, type PageTemplate } from '@/lib/content/pageTemplate';
+import { useAdminTenant } from '@/contexts/AdminTenantContext';
 
 interface CategoryFormData {
   name: string;
   slug: string;
+  pageTemplate: PageTemplate;
+  urlType: UrlType;
+  breadcrumbLabel: string;
+  parentPage: ParentPageValue | null;
+  cityDestination: string;
   description: string;
   longDescription: string;
   heroImage: string;
@@ -51,6 +61,11 @@ interface CategoryFormProps {
 const defaultFormData: CategoryFormData = {
   name: '',
   slug: '',
+  pageTemplate: 'classic',
+  urlType: 'direct',
+  breadcrumbLabel: '',
+  parentPage: null,
+  cityDestination: '',
   description: '',
   longDescription: '',
   heroImage: '',
@@ -75,14 +90,14 @@ const defaultFormData: CategoryFormData = {
 // Helper Components
 const FormLabel = ({ children, icon: Icon, required = false }: {
   children: React.ReactNode;
-  icon?: any;
+  icon?: LucideIcon;
   required?: boolean;
 }) => (
   <div className="flex items-center gap-2 mb-3">
     {Icon && <Icon className="h-4 w-4 text-indigo-500" />}
     <label className="text-sm font-semibold text-slate-700">
       {children}
-      {required && <span className="text-red-500 text-xs ms-1">*</span>}
+      {required && <span className="text-red-500 text-xs ml-1">*</span>}
     </label>
   </div>
 );
@@ -96,24 +111,40 @@ const textareaBase = "block w-full px-4 py-3 border border-slate-300 rounded-xl 
 
 export default function CategoryForm({ categoryId }: CategoryFormProps) {
   const router = useRouter();
-  const { selectedTenantId, getSelectedTenant } = useAdminTenant();
-  const [isPanelOpen] = useState(true);
+  const { selectedTenantId } = useAdminTenant();
+  const [entityTenantId, setEntityTenantId] = useState('');
+  const activeTenantId = entityTenantId || (selectedTenantId !== 'all' ? selectedTenantId : '');
+  const isPanelOpen = true;
   const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(false);
   const [activeTab, setActiveTab] = useState('basic');
+  // The urlType the category was loaded with — keeps a legacy shape selectable
+  // for that record while new categories only ever offer Direct.
+  const [savedUrlType, setSavedUrlType] = useState<string | null>(null);
   
   const [formData, setFormData] = useState<CategoryFormData>(defaultFormData);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [destinations, setDestinations] = useState<Destination[]>([]);
-  const [entityTenantId, setEntityTenantId] = useState('');
-  const activeTenantId = categoryId
-    ? entityTenantId
-    : selectedTenantId !== 'all'
-      ? selectedTenantId
-      : '';
-  const selectedBrand = getSelectedTenant();
+  const [destinations, setDestinations] = useState<Array<{ _id: string; name: string; slug?: string }>>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!activeTenantId) return;
+    fetch(`/api/admin/tours/destinations?tenantId=${encodeURIComponent(activeTenantId)}`)
+      .then((response) => response.json())
+      .then((data) => {
+        if (!cancelled && data.success && Array.isArray(data.data)) {
+          setDestinations(data.data.map((destination: { _id: unknown; name?: unknown; slug?: unknown }) => ({
+            _id: String(destination._id),
+            name: String(destination.name || 'Untitled destination'),
+            slug: destination.slug ? String(destination.slug) : undefined,
+          })));
+        }
+      })
+      .catch(() => undefined);
+    return () => { cancelled = true; };
+  }, [activeTenantId]);
 
   const fetchCategoryData = useCallback(async () => {
     if (!categoryId) return;
@@ -126,10 +157,18 @@ export default function CategoryForm({ categoryId }: CategoryFormProps) {
       if (data.success) {
         const category = data.data;
         setEntityTenantId(String(category.tenantId || ''));
-        
+
+        setSavedUrlType((category.urlType as UrlType) || 'default');
         setFormData({
           name: category.name || '',
           slug: category.slug || '',
+          pageTemplate: normalizePageTemplate(category.pageTemplate),
+          urlType: (category.urlType as UrlType) || 'default',
+          breadcrumbLabel: category.breadcrumbLabel || '',
+          parentPage: category.parentPage || null,
+          cityDestination: category.cityDestination
+            ? String((category.cityDestination as { _id?: unknown })._id || category.cityDestination)
+            : '',
           description: category.description || '',
           longDescription: category.longDescription || '',
           heroImage: category.heroImage || '',
@@ -158,7 +197,7 @@ export default function CategoryForm({ categoryId }: CategoryFormProps) {
         setError(data.error || 'Failed to fetch category data');
         toast.error(data.error || 'Failed to load category');
       }
-    } catch (_err) {
+    } catch {
       setError('Network error');
       toast.error('Failed to load category');
     } finally {
@@ -167,21 +206,8 @@ export default function CategoryForm({ categoryId }: CategoryFormProps) {
   }, [categoryId]);
 
   useEffect(() => {
-    if (categoryId) {
-      fetchCategoryData();
-    }
+    if (categoryId) queueMicrotask(() => void fetchCategoryData());
   }, [categoryId, fetchCategoryData]);
-
-  useEffect(() => {
-    if (!activeTenantId) {
-      setDestinations([]);
-      return;
-    }
-    fetch(`/api/admin/tours/destinations?tenantId=${encodeURIComponent(activeTenantId)}`)
-      .then((response) => response.json())
-      .then((data) => setDestinations(Array.isArray(data.data) ? data.data : []))
-      .catch(() => setDestinations([]));
-  }, [activeTenantId]);
 
   const generateSlug = (name: string) => {
     return name
@@ -266,23 +292,32 @@ export default function CategoryForm({ categoryId }: CategoryFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!activeTenantId) {
+      setError('Select one brand before creating a category.');
+      toast.error('Select one brand first.');
+      return;
+    }
+    if (formData.urlType === 'city' && !formData.cityDestination) {
+      setError('The City URL type needs an owning city — pick one under URL Type.');
+      toast.error('Pick the owning city for the City URL type.');
+      return;
+    }
     setSaving(true);
     setError(null);
 
     try {
-      if (!activeTenantId) {
-        throw new Error('Select a specific brand before creating a category page.');
-      }
-      const baseUrl = categoryId
+      const url = categoryId
         ? `/api/categories/${categoryId}`
         : '/api/categories';
-      const url = `${baseUrl}?tenantId=${encodeURIComponent(activeTenantId)}`;
       
       const method = categoryId ? 'PUT' : 'POST';
 
+      const { translations, ...rest } = formData;
+      const hasTranslations = Object.keys(translations).length > 0;
+
       const payload = {
-        ...formData,
-        ...(!categoryId ? { tenantId: activeTenantId } : {}),
+        ...rest,
+        tenantId: activeTenantId,
         highlights: Array.isArray(formData.highlights) ? formData.highlights.filter(item => item && item.trim() !== '') : [],
         features: Array.isArray(formData.features) ? formData.features.filter(item => item && item.trim() !== '') : [],
         images: Array.isArray(formData.images) ? formData.images.filter(item => item && item.trim() !== '') : [],
@@ -291,9 +326,12 @@ export default function CategoryForm({ categoryId }: CategoryFormProps) {
         travelTips: formData.travelTips.filter((item) => item.title.trim() && item.content.trim()),
         popularDestinationIds: formData.popularDestinationIds,
         keywords: Array.isArray(formData.keywords) ? formData.keywords.filter(item => item && item.trim() !== '') : [],
+        cityDestination: formData.urlType === 'city' ? formData.cityDestination || undefined : undefined,
+        ...(hasTranslations ? { translations } : {}),
       };
 
-      const response = await fetch(url, {
+      const scopedUrl = `${url}${url.includes('?') ? '&' : '?'}tenantId=${encodeURIComponent(activeTenantId)}`;
+      const response = await fetch(scopedUrl, {
         method,
         headers: {
           'Content-Type': 'application/json',
@@ -314,9 +352,10 @@ export default function CategoryForm({ categoryId }: CategoryFormProps) {
         toast.error(data.error || 'Failed to save category');
       }
     } catch (err) {
-      const errorMessage = err instanceof Error
-        ? err.message
-        : 'Network error occurred while saving the category';
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : 'Network error occurred while saving the category';
       setError(errorMessage);
       toast.error(errorMessage);
       console.error('Submit error:', err);
@@ -358,7 +397,7 @@ export default function CategoryForm({ categoryId }: CategoryFormProps) {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-6">
-            <button 
+            <button
               onClick={() => router.push('/admin/pages')}
               className="flex items-center justify-center w-10 h-10 bg-white border border-slate-200 rounded-xl hover:border-indigo-300 hover:bg-indigo-50 transition-all duration-200 group"
             >
@@ -376,18 +415,8 @@ export default function CategoryForm({ categoryId }: CategoryFormProps) {
               <p className="text-slate-500 mt-2">
                 {categoryId ? `Editing: ${formData.name || 'Category'}` : 'Fill out the form to create your category'}
               </p>
-              <p className="text-sm text-slate-500 mt-1">
-                Brand: {categoryId
-                  ? (entityTenantId || 'Loading…')
-                  : (selectedBrand?.name || 'Select a specific brand')}
-              </p>
             </div>
           </div>
-          {!categoryId && !activeTenantId && (
-            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-              Select a specific brand from the top navigation before creating a category page.
-            </div>
-          )}
         </div>
 
         <div className="space-y-8">
@@ -454,9 +483,93 @@ export default function CategoryForm({ categoryId }: CategoryFormProps) {
                             <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg">
                               <span className="text-xs font-medium text-slate-500">Preview:</span>
                               <span className="text-xs font-mono text-slate-700 bg-white px-2 py-1 rounded border">
-                                /category/{formData.slug || 'your-slug'}
+                                {contentPath(
+                                  'category',
+                                  formData.slug || 'your-slug',
+                                  formData.urlType,
+                                  formData.urlType === 'city'
+                                    ? destinations.find(d => d._id === formData.cityDestination)?.slug || '{destination}'
+                                    : undefined,
+                                  formData.parentPage?.slug,
+                                )}
                               </span>
                             </div>
+                          </div>
+                          <div className="space-y-3">
+                            <FormLabel icon={Globe}>URL Type</FormLabel>
+                            <div className="relative">
+                              <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                              <select
+                                name="urlType"
+                                value={formData.urlType || 'default'}
+                                onChange={handleChange}
+                                className={`${inputBase} pl-10 appearance-none cursor-pointer`}
+                              >
+                                {selectableUrlTypes(savedUrlType ?? 'direct').map((ut) => (
+                                  <option key={ut} value={ut}>{URL_TYPE_LABELS[ut]}</option>
+                                ))}
+                              </select>
+                              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+                            </div>
+                            <p className="text-xs text-slate-500">Choose the public URL shape. Changing it 301-redirects the old URL.</p>
+                            {formData.urlType === 'city' && (
+                              <div className="space-y-2">
+                                <FormLabel icon={Globe}>City (destination)</FormLabel>
+                                <select
+                                  name="cityDestination"
+                                  value={formData.cityDestination}
+                                  onChange={handleChange}
+                                  className={`${inputBase} appearance-none cursor-pointer`}
+                                  required
+                                >
+                                  <option value="">Select the owning city…</option>
+                                  {destinations.map(d => (
+                                    <option key={d._id} value={d._id}>{d.name}</option>
+                                  ))}
+                                </select>
+                                <p className="text-xs text-slate-500">The category will live under this city&apos;s slug.</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <ContentNavigationFields
+                          tenantId={activeTenantId || undefined}
+                          breadcrumbLabel={formData.breadcrumbLabel}
+                          parentPage={formData.parentPage}
+                          onBreadcrumbLabelChange={(breadcrumbLabel) => setFormData((prev) => ({ ...prev, breadcrumbLabel }))}
+                          onParentPageChange={(parentPage) => setFormData((prev) => ({ ...prev, parentPage }))}
+                          excludeId={categoryId}
+                        />
+
+                        <div className="space-y-3">
+                          <FormLabel icon={Grid3x3}>Landing page template</FormLabel>
+                          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                            {PAGE_TEMPLATES.map((template) => {
+                              const selected = formData.pageTemplate === template;
+                              const preview = template === 'classic'
+                                ? 'grid grid-cols-3 gap-1'
+                                : template === 'editorial'
+                                  ? 'grid grid-cols-[1.15fr_.85fr] gap-1'
+                                  : 'grid grid-cols-2 grid-rows-2 gap-1';
+                              return (
+                                <button
+                                  key={template}
+                                  type="button"
+                                  onClick={() => setFormData((current) => ({ ...current, pageTemplate: template }))}
+                                  aria-pressed={selected}
+                                  className={`rounded-2xl border p-3 text-left transition ${selected ? 'border-indigo-500 bg-indigo-50 ring-2 ring-indigo-100' : 'border-slate-200 bg-white hover:border-slate-400'}`}
+                                >
+                                  <div className={`${preview} h-20 overflow-hidden rounded-xl bg-slate-100 p-1.5`} aria-hidden="true">
+                                    {template === 'classic' ? <><span className="col-span-3 rounded bg-slate-700" /><span className="rounded bg-white" /><span className="rounded bg-white" /><span className="rounded bg-white" /></> : null}
+                                    {template === 'editorial' ? <><span className="row-span-2 rounded bg-white" /><span className="rounded bg-slate-700" /><span className="rounded bg-slate-300" /></> : null}
+                                    {template === 'immersive' ? <><span className="row-span-2 rounded bg-slate-700" /><span className="rounded bg-slate-300" /><span className="rounded bg-white" /></> : null}
+                                  </div>
+                                  <p className="mt-3 text-sm font-bold text-slate-900">{PAGE_TEMPLATE_LABELS[template].title}</p>
+                                  <p className="mt-1 text-xs leading-5 text-slate-600">{PAGE_TEMPLATE_LABELS[template].description}</p>
+                                </button>
+                              );
+                            })}
                           </div>
                         </div>
 
@@ -624,7 +737,7 @@ export default function CategoryForm({ categoryId }: CategoryFormProps) {
                             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                               {formData.images.map((img, i) => (
                                 <div key={`${img}-${i}`} className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-2">
-                                  <div className="relative group w-full h-32">
+                                  <div className="relative w-full h-32 group">
                                     <Image
                                       src={img}
                                       alt={formData.imageMetadata.find((item) => item.url === img)?.alt || `Gallery ${i + 1}`}
@@ -635,7 +748,7 @@ export default function CategoryForm({ categoryId }: CategoryFormProps) {
                                     <button
                                       type="button"
                                       onClick={() => removeFromArray('images', i)}
-                                      className="absolute -top-2 -end-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600 transition-all shadow-lg"
+                                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600 transition-all shadow-lg"
                                       aria-label={`Remove gallery image ${i + 1}`}
                                     >
                                       <X className="w-3 h-3" />
@@ -653,7 +766,7 @@ export default function CategoryForm({ categoryId }: CategoryFormProps) {
                           ) : (
                             <div className="text-center py-8 text-slate-500">
                               <Grid3x3 className="h-12 w-12 mx-auto mb-4 text-slate-300" />
-                              <p>No gallery images yet. Click "Add Image" to upload photos.</p>
+                              <p>No gallery images yet. Click &quot;Add Images&quot; to upload one or more photos.</p>
                             </div>
                           )}
                         </div>
@@ -775,42 +888,33 @@ export default function CategoryForm({ categoryId }: CategoryFormProps) {
                       </div>
                     )}
 
+                    {/* Translations Tab */}
                     {activeTab === 'translations' && (
                       <div className="space-y-6">
-                        {categoryId ? (
-                          <>
-                            <TranslationEditor
-                              fields={categoryTranslationFields}
-                              value={formData.translations}
-                              onChange={(translations) => setFormData((prev) => ({ ...prev, translations }))}
-                              modelType="category"
-                              entityId={categoryId}
-                              sourceDraft={{
-                                ...formData,
-                                imageMetadata: ensureImageMetadata(
-                                  formData.imageMetadata,
-                                  [formData.heroImage, ...formData.images].filter(Boolean),
-                                ),
-                              }}
-                            />
-                            <ContentStructuredTranslationEditor
-                              value={formData.translations}
-                              onChange={(translations) => setFormData(prev => ({ ...prev, translations }))}
-                              faqs={formData.faqs}
-                              travelTips={formData.travelTips}
-                              imageMetadata={ensureImageMetadata(
-                                formData.imageMetadata,
-                                [formData.heroImage, ...formData.images].filter(Boolean),
-                              )}
-                            />
-                          </>
-                        ) : (
-                          <div className="text-center py-10 bg-slate-50 rounded-xl border border-dashed border-slate-300">
-                            <Globe className="w-10 h-10 mx-auto mb-3 text-slate-300" />
-                            <p className="text-slate-600 font-medium">Save the category first, then add translations</p>
-                            <p className="text-sm text-slate-400 mt-1">Auto-translate needs a saved page to work from.</p>
-                          </div>
-                        )}
+                        <TranslationEditor
+                          fields={categoryTranslationFields}
+                          value={formData.translations}
+                          onChange={(translations) => setFormData(prev => ({ ...prev, translations }))}
+                          modelType="category"
+                          entityId={categoryId}
+                          sourceDraft={{
+                            ...formData,
+                            imageMetadata: ensureImageMetadata(
+                              formData.imageMetadata,
+                              [formData.heroImage, ...formData.images].filter(Boolean),
+                            ),
+                          }}
+                        />
+                        <ContentStructuredTranslationEditor
+                          value={formData.translations}
+                          onChange={(translations) => setFormData(prev => ({ ...prev, translations }))}
+                          faqs={formData.faqs}
+                          travelTips={formData.travelTips}
+                          imageMetadata={ensureImageMetadata(
+                            formData.imageMetadata,
+                            [formData.heroImage, ...formData.images].filter(Boolean),
+                          )}
+                        />
                       </div>
                     )}
 
@@ -1035,7 +1139,7 @@ export default function CategoryForm({ categoryId }: CategoryFormProps) {
         </div>
 
         {error && (
-          <div className="fixed bottom-4 end-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg shadow-lg z-50">
+          <div className="fixed bottom-4 right-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg shadow-lg z-50">
             {error}
           </div>
         )}

@@ -142,7 +142,7 @@ export async function GET(request: NextRequest) {
     const [pages, categories] = await Promise.all([
       wantPages
         ? AttractionPage.find(attractionFilter)
-            .select('tenantId title slug description heroImage pageType urlType isPublished featured createdAt')
+            .select('tenantId title slug description heroImage pageType urlType parentPage isPublished featured createdAt')
             .sort({ createdAt: -1, _id: -1 })
             .limit(fetchSize)
             .lean()
@@ -172,6 +172,10 @@ export async function GET(request: NextRequest) {
             String(page.slug || ''),
             isLanding ? 'category' : 'attraction',
             page.urlType as string | undefined,
+            null,
+            typeof page.parentPage === 'object' && page.parentPage
+              ? String((page.parentPage as Record<string, unknown>).slug || '')
+              : undefined,
           ),
           editHref: `/admin/attraction-pages/${String(page._id)}/edit`,
           isPublished: page.isPublished === true,

@@ -1,8 +1,10 @@
  
 import mongoose, { Document, Schema, Model } from 'mongoose';
-import { PAGE_URL_TYPES, type PageUrlType } from '@/lib/attractionPages/pageUrl';
+import { URL_TYPES, type UrlType } from '@/lib/content/contentUrl';
 import type { ImageMetadata } from '@/lib/content/imageMetadata';
 import { ImageMetadataSchema } from '@/lib/models/schemas/ImageMetadataSchema';
+import { ParentPageSchema, breadcrumbLabelField } from '@/lib/models/contentNavigationSchema';
+import { PAGE_TEMPLATES, type PageTemplate } from '@/lib/content/pageTemplate';
 
 const FaqSchema = new Schema({
   question: { type: String, required: true, trim: true, maxlength: 300 },
@@ -43,8 +45,12 @@ export interface IAttractionPage extends Document {
   
   // Page Type
   pageType: 'attraction' | 'category';
+  pageTemplate?: PageTemplate;
   categoryId?: mongoose.Schema.Types.ObjectId;
-  urlType?: PageUrlType;
+  urlType?: UrlType;
+  breadcrumbLabel?: string;
+  parentPage?: { id?: string; slug: string; label: string; kind: 'destination' | 'attraction' | 'category' | 'category-2'; href?: string } | null;
+  cityDestination?: mongoose.Types.ObjectId;
   
   // Content
   heroImage?: string; // NOW OPTIONAL
@@ -142,6 +148,11 @@ const AttractionPageSchema: Schema<IAttractionPage> = new Schema({
     required: true,
     index: true,
   },
+  pageTemplate: {
+    type: String,
+    enum: PAGE_TEMPLATES,
+    default: 'classic',
+  },
   categoryId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Category',
@@ -163,9 +174,12 @@ const AttractionPageSchema: Schema<IAttractionPage> = new Schema({
   },
   urlType: {
     type: String,
-    enum: PAGE_URL_TYPES,
-    default: 'default',
+    enum: URL_TYPES,
+    default: 'direct',
   },
+  breadcrumbLabel: breadcrumbLabelField,
+  parentPage: { type: ParentPageSchema, default: undefined },
+  cityDestination: { type: mongoose.Schema.Types.ObjectId, ref: 'Destination', default: undefined },
   heroImage: {
     type: String,
     required: false,

@@ -9,6 +9,8 @@ import { filterVisibleTaxonomyEntries } from '@/lib/utils/taxonomy';
 import { localizeEntityFields } from '@/lib/i18n/contentLocalization';
 import { categoryTranslationFields } from '@/lib/i18n/translationFields';
 import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
+import { sanitizeContentNavigation } from '@/lib/content/contentNavigation';
+import { ParentPageValidationError, validateParentPageSelection } from '@/lib/content/validateParentPage';
 
 export async function GET(request: NextRequest) {
   try {
@@ -107,6 +109,12 @@ export async function POST(request: NextRequest) {
     if (!tenantId || !canAccessTenant(adminAuth, tenantId)) return tenantForbiddenResponse();
     await dbConnect(tenantId);
     body.tenantId = tenantId;
+    Object.assign(body, sanitizeContentNavigation(body));
+    body.parentPage = await validateParentPageSelection({
+      parentPage: body.parentPage,
+      currentSlug: body.slug,
+      tenantFilter: { tenantId },
+    });
     
     // Validate required fields
     if (!body.name || !body.slug) {
@@ -135,6 +143,9 @@ export async function POST(request: NextRequest) {
     }, { status: 201 });
   } catch (error) {
     console.error('Error creating category:', error);
+    if (error instanceof ParentPageValidationError) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 400 });
+    }
     
     if (error instanceof Error && error.name === 'ValidationError') {
       return NextResponse.json({
