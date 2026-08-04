@@ -181,7 +181,7 @@ const AdminSidebar = () => {
     ? `fixed inset-y-0 start-0 z-50 transform transition-transform duration-300 ease-in-out ${
         isMobileOpen ? "translate-x-0" : "-translate-x-full"
       }`
-    : "lg:sticky lg:top-0";
+    : "relative lg:sticky lg:top-0";
 
   return (
     <>
@@ -209,7 +209,8 @@ const AdminSidebar = () => {
       {isMobile && (
         <button
           onClick={toggleSidebar}
-          className="fixed top-4 start-4 z-50 flex items-center justify-center h-12 w-12 rounded-xl bg-white shadow-lg border border-slate-200 text-slate-600 hover:text-slate-900 transition-all duration-200 lg:hidden"
+          aria-label={isMobileOpen ? "Close admin navigation" : "Open admin navigation"}
+          className="fixed top-3 start-3 z-[70] flex items-center justify-center h-11 w-11 rounded-xl bg-white shadow-lg border border-slate-200 text-slate-600 hover:text-slate-900 transition-all duration-200 lg:hidden"
         >
           {isMobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
@@ -217,7 +218,7 @@ const AdminSidebar = () => {
 
       {/* Sidebar */}
       <aside
-        className={`relative bg-white border-e border-slate-200/60 backdrop-blur-sm flex flex-col transition-all duration-300 ease-out shadow-lg overflow-hidden flex-shrink-0 h-full ${sidebarWidth} ${mobileClass}`}
+        className={`bg-white border-e border-slate-200/60 backdrop-blur-sm flex flex-col transition-all duration-300 ease-out shadow-lg overflow-hidden flex-shrink-0 h-full ${sidebarWidth} ${mobileClass}`}
         aria-label="Admin navigation"
         aria-expanded={isMobile ? isMobileOpen : isOpen}
       >
