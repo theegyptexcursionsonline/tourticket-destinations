@@ -37,7 +37,7 @@ import { formatExperienceDescription } from '@/lib/content/experienceDescription
 import { imageMetadataFor } from '@/lib/content/imageMetadata';
 import { buildContentBreadcrumbs } from '@/lib/content/breadcrumbs';
 import ContentBreadcrumbs from '@/components/navigation/ContentBreadcrumbs';
-import { itineraryMapStops } from '@/lib/tours/itineraryMap';
+import { itineraryEmbedMapUrl, itineraryMapStops } from '@/lib/tours/itineraryMap';
 import { meetingPointEmbedUrl, meetingPointMapUrl } from '@/lib/tours/meetingPointMap';
 
 // Enhanced interfaces for additional tour data
@@ -540,7 +540,7 @@ const ItinerarySection = ({ itinerary, sectionRef }: { itinerary: ItineraryItem[
               loading="lazy"
               allowFullScreen
               referrerPolicy="no-referrer-when-downgrade"
-              src={`https://www.google.com/maps?q=${encodeURIComponent(stops[0])}&output=embed`}
+              src={itineraryEmbedMapUrl(stops[0])}
             ></iframe>
           </div>
 

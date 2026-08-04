@@ -1,4 +1,4 @@
-import { itineraryMapStops, itineraryStaticMapUrl } from '@/lib/tours/itineraryMap';
+import { itineraryEmbedMapUrl, itineraryMapStops, itineraryStaticMapUrl } from '@/lib/tours/itineraryMap';
 
 describe('itineraryMapStops', () => {
   it('uses only real editor-entered places and removes duplicates', () => {
@@ -32,5 +32,11 @@ describe('itineraryStaticMapUrl', () => {
       'size:mid|color:red|label:1|Luxor, Egypt',
       'size:small|color:blue|Luxor Restaurant, Egypt',
     ]);
+  });
+});
+
+describe('itineraryEmbedMapUrl', () => {
+  it('country-scopes the no-key fallback to Egypt', () => {
+    expect(itineraryEmbedMapUrl('Luxor Restaurant')).toContain('Luxor%20Restaurant%2C%20Egypt');
   });
 });
