@@ -128,7 +128,7 @@ async function PUTHandler(
       { _id: id, tenantId },
       body,
       { new: true, runValidators: true }
-    );
+    ).lean();
     revalidateStorefrontContent();
 
     if (!category) {

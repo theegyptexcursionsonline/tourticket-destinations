@@ -175,7 +175,7 @@ async function PUTHandler(
       path: 'categoryId',
       model: Category,
       select: 'name slug'
-    });
+    }).lean();
 
     if (!page) {
       return NextResponse.json({

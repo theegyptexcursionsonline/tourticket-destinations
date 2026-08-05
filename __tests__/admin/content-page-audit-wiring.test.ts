@@ -30,4 +30,12 @@ describe('unified Pages audit wiring', () => {
     expect(source).not.toContain('FRONTEND: Full payload');
     expect(source).not.toContain('Form data before submit');
   });
+
+  it.each([
+    'app/api/admin/attraction-pages/[id]/route.ts',
+    'app/api/categories/[id]/route.ts',
+  ])('%s compares the saved lean database result instead of hydrated schema defaults', (file) => {
+    const source = read(file);
+    expect(source).toMatch(/findOneAndUpdate[\s\S]*?\.lean\(\)/);
+  });
 });
