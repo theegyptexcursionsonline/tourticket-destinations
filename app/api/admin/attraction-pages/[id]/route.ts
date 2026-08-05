@@ -1,4 +1,8 @@
-import { withAdminAudit } from '@/lib/admin/adminAudit';
+import { registerAdminAuditDetail, withAdminAudit } from '@/lib/admin/adminAudit';
+import {
+  contentPageAuditAttemptDetail,
+  contentPageAuditDetail,
+} from '@/lib/admin/contentPageAudit';
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidateStorefrontContent } from '@/lib/storefront/revalidateTourStorefront';
 import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
@@ -96,10 +100,16 @@ async function PUTHandler(
 
     const body = await request.json();
     Object.assign(body, sanitizeContentNavigation(body));
-    const existingTarget = await AttractionPage.findById(id).select('tenantId slug').lean();
+    const existingTarget = await AttractionPage.findById(id).lean();
     if (!existingTarget) return NextResponse.json({ success: false, error: 'Page not found' }, { status: 404 });
     const targetTenantId = String((existingTarget as any).tenantId || 'default');
     if (!canAccessTenant(auth, targetTenantId)) return tenantForbiddenResponse();
+    registerAdminAuditDetail(contentPageAuditAttemptDetail({
+      kind: 'attraction page',
+      operation: 'update',
+      record: existingTarget,
+      resourceId: id,
+    }));
     delete body.tenantId;
     if (Object.prototype.hasOwnProperty.call(body, 'parentPage')) {
       body.parentPage = await validateParentPageSelection({
@@ -176,7 +186,12 @@ async function PUTHandler(
 
     revalidateStorefrontContent();
 
-    console.log('✅ Page updated successfully');
+    registerAdminAuditDetail(contentPageAuditDetail({
+      kind: 'attraction page',
+      operation: 'update',
+      before: existingTarget,
+      after: page,
+    }));
 
     return NextResponse.json({
       success: true,
@@ -238,7 +253,7 @@ async function DELETEHandler(
       }, { status: 400 });
     }
 
-    const existingTarget = await AttractionPage.findById(id).select('tenantId').lean();
+    const existingTarget = await AttractionPage.findById(id).lean();
     if (!existingTarget) return NextResponse.json({ success: false, error: 'Page not found' }, { status: 404 });
     const targetTenantId = String((existingTarget as any).tenantId || 'default');
     if (!canAccessTenant(auth, targetTenantId)) return tenantForbiddenResponse();
@@ -257,7 +272,11 @@ async function DELETEHandler(
 
     revalidateStorefrontContent();
 
-    console.log('Attraction page deleted successfully:', id);
+    registerAdminAuditDetail(contentPageAuditDetail({
+      kind: 'attraction page',
+      operation: 'delete',
+      before: page,
+    }));
 
     return NextResponse.json({
       success: true,

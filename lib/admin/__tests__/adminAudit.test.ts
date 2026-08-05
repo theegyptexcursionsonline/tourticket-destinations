@@ -10,6 +10,7 @@ import {
   escapeCsvCell,
   recordAdminMutation,
   registerAdminAuditActor,
+  registerAdminAuditDetail,
   withAdminAudit,
 } from '@/lib/admin/adminAudit';
 
@@ -155,6 +156,36 @@ describe('automatic admin mutation capture', () => {
       outcome: 'failed',
       statusCode: 500,
       failureCode: 'UNHANDLED_EXCEPTION',
+    }));
+  });
+
+  it('lets a business-aware route replace submitted fields with effective persisted changes', async () => {
+    const request = makeRequest('https://dashboard.example.com/api/admin/attraction-pages/page-1', {
+      method: 'PUT',
+      body: { title: 'Historic Cairo', slug: 'historic-cairo', featured: false },
+    });
+    const wrapped = withAdminAudit(async () => {
+      registerAdminAuditActor({
+        userId: 'admin-1', role: 'admin', permissions: ['manageContent'], tenantIds: ['default'],
+      });
+      registerAdminAuditDetail({
+        resourceType: 'pages',
+        resourceId: 'page-1',
+        resourceLabel: 'Historic Cairo',
+        summary: 'Updated attraction page “Historic Cairo”: title',
+        changedFields: ['title'],
+        changes: [{ field: 'title', before: 'Old Cairo', after: 'Historic Cairo' }],
+        replaceCapturedInput: true,
+      });
+      return { status: 200, headers: { get: () => null } } as never;
+    });
+
+    await wrapped(request);
+    expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({
+      resourceType: 'pages',
+      resourceLabel: 'Historic Cairo',
+      changedFields: ['title'],
+      changes: [{ field: 'title', before: 'Old Cairo', after: 'Historic Cairo' }],
     }));
   });
 

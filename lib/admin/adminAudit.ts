@@ -54,6 +54,7 @@ export interface AdminAuditDetail {
   changedFields?: string[];
   changes?: AdminAuditChange[];
   tenantIds?: string[];
+  replaceCapturedInput?: boolean;
 }
 
 interface CapturedAuditInput {
@@ -326,11 +327,14 @@ async function writeAdminAudit(params: {
       summary: detail?.summary || descriptor.summary,
       outcome,
       statusCode,
-      changedFields: Array.from(new Set([
-        ...input.changedFields,
-        ...(detail?.changedFields || []),
-      ])).slice(0, MAX_CHANGED_FIELDS),
-      changes: [...input.changes, ...(detail?.changes || [])].slice(0, MAX_SAFE_CHANGES),
+      changedFields: Array.from(new Set(detail?.replaceCapturedInput
+        ? (detail.changedFields || [])
+        : [...input.changedFields, ...(detail?.changedFields || [])]
+      )).slice(0, MAX_CHANGED_FIELDS),
+      changes: (detail?.replaceCapturedInput
+        ? (detail.changes || [])
+        : [...input.changes, ...(detail?.changes || [])]
+      ).slice(0, MAX_SAFE_CHANGES),
       failureCode,
       method,
       path,

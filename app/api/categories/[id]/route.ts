@@ -1,4 +1,8 @@
-import { withAdminAudit } from '@/lib/admin/adminAudit';
+import { registerAdminAuditDetail, withAdminAudit } from '@/lib/admin/adminAudit';
+import {
+  contentPageAuditAttemptDetail,
+  contentPageAuditDetail,
+} from '@/lib/admin/contentPageAudit';
 // app/api/categories/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidateStorefrontContent } from '@/lib/storefront/revalidateTourStorefront';
@@ -84,10 +88,16 @@ async function PUTHandler(
 
     const body = await request.json();
     Object.assign(body, sanitizeContentNavigation(body));
-    const existing = await Category.findById(id).select('tenantId slug').lean();
+    const existing = await Category.findById(id).lean();
     if (!existing) return NextResponse.json({ success: false, error: 'Category not found' }, { status: 404 });
     const tenantId = String((existing as any).tenantId || 'default');
     if (!canAccessTenant(adminAuth, tenantId)) return tenantForbiddenResponse();
+    registerAdminAuditDetail(contentPageAuditAttemptDetail({
+      kind: 'category page',
+      operation: 'update',
+      record: existing,
+      resourceId: id,
+    }));
     delete body.tenantId;
     if (Object.prototype.hasOwnProperty.call(body, 'parentPage')) {
       body.parentPage = await validateParentPageSelection({
@@ -127,6 +137,12 @@ async function PUTHandler(
         error: 'Category not found'
       }, { status: 404 });
     }
+    registerAdminAuditDetail(contentPageAuditDetail({
+      kind: 'category page',
+      operation: 'update',
+      before: existing,
+      after: category,
+    }));
 
     return NextResponse.json({
       success: true,
@@ -173,7 +189,7 @@ async function DELETEHandler(
       }, { status: 400 });
     }
 
-    const existing = await Category.findById(id).select('tenantId').lean();
+    const existing = await Category.findById(id).lean();
     if (!existing) return NextResponse.json({ success: false, error: 'Category not found' }, { status: 404 });
     const tenantId = String((existing as any).tenantId || 'default');
     if (!canAccessTenant(adminAuth, tenantId)) return tenantForbiddenResponse();
@@ -186,6 +202,11 @@ async function DELETEHandler(
         error: 'Category not found'
       }, { status: 404 });
     }
+    registerAdminAuditDetail(contentPageAuditDetail({
+      kind: 'category page',
+      operation: 'delete',
+      before: category,
+    }));
 
     return NextResponse.json({
       success: true,

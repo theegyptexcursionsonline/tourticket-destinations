@@ -1,4 +1,5 @@
-import { withAdminAudit } from '@/lib/admin/adminAudit';
+import { registerAdminAuditDetail, withAdminAudit } from '@/lib/admin/adminAudit';
+import { contentPageAuditDetail } from '@/lib/admin/contentPageAudit';
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidateStorefrontContent } from '@/lib/storefront/revalidateTourStorefront';
 import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
@@ -215,7 +216,11 @@ async function POSTHandler(request: NextRequest) {
       console.warn('Created page but could not populate category:', populateError);
     }
 
-    console.log('Attraction page created successfully:', page._id);
+    registerAdminAuditDetail(contentPageAuditDetail({
+      kind: 'attraction page',
+      operation: 'create',
+      after: page,
+    }));
 
     return NextResponse.json({
       success: true,

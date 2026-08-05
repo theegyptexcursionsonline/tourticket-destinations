@@ -27,10 +27,10 @@ describe('Audit admin page', () => {
           action: 'update',
           outcome: 'failed',
           statusCode: 503,
-          resourceType: 'tours',
+          resourceType: 'pages',
           resourceId: 'tour-1',
           resourceLabel: 'Desert Safari',
-          summary: 'Updated Tours',
+          summary: 'Updated attraction page “Desert Safari”: published state',
           changedFields: ['status'],
           changes: [{ field: 'status', before: 'draft', after: 'published' }],
           failureCode: 'PROVIDER_UNAVAILABLE',
@@ -67,6 +67,7 @@ describe('Audit admin page', () => {
     expect(screen.getByText('8')).toBeInTheDocument();
     expect(screen.getAllByText('Failed').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Desert Safari').length).toBeGreaterThan(0);
+    expect(screen.getByText('Page / target')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Details' }));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
@@ -77,5 +78,6 @@ describe('Audit admin page', () => {
     expect(screen.getByText('draft')).toBeInTheDocument();
     expect(screen.getByText('published')).toBeInTheDocument();
     expect(screen.getByText('Mobile Safari')).toBeInTheDocument();
+    expect(screen.getByText('Affected page or target')).toBeInTheDocument();
   });
 });
