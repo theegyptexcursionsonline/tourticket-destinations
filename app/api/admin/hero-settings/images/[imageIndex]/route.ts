@@ -1,3 +1,4 @@
+import { withAdminAudit } from '@/lib/admin/adminAudit';
 // app/api/admin/hero-settings/images/[imageIndex]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidateStorefrontContent } from '@/lib/storefront/revalidateTourStorefront';
@@ -5,7 +6,7 @@ import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/li
 import dbConnect from '@/lib/dbConnect';
 import HeroSettings from '@/lib/models/HeroSettings';
 
-export async function DELETE(
+async function DELETEHandler(
   request: NextRequest,
   { params }: { params: Promise<{ imageIndex: string }> }
 ) {
@@ -69,3 +70,5 @@ export async function DELETE(
     );
   }
 }
+
+export const DELETE = withAdminAudit(DELETEHandler);

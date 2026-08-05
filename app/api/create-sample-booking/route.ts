@@ -1,3 +1,4 @@
+import { withAdminAudit } from '@/lib/admin/adminAudit';
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Booking from '@/lib/models/Booking';
@@ -6,7 +7,7 @@ import Tour from '@/lib/models/Tour';
 import { requireAdminAuth } from '@/lib/auth/adminAuth';
 import { buildStrictTenantQuery, getTenantFromRequest } from '@/lib/tenant';
 
-export async function POST(request: NextRequest) {
+async function POSTHandler(request: NextRequest) {
   try {
     if (process.env.NODE_ENV === 'production') {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
@@ -56,3 +57,5 @@ export async function POST(request: NextRequest) {
     }, { status: 500 });
   }
 }
+
+export const POST = withAdminAudit(POSTHandler);

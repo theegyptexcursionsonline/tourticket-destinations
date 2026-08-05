@@ -1,3 +1,4 @@
+import { withAdminAudit } from '@/lib/admin/adminAudit';
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/dbConnect";
 import InternalLinkBlock from "@/lib/models/InternalLinkBlock";
@@ -47,7 +48,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function PUT(request: NextRequest) {
+async function PUTHandler(request: NextRequest) {
   const auth = await requireAdminAuth(request, {
     permissions: ["manageContent"],
   });
@@ -93,3 +94,5 @@ export async function PUT(request: NextRequest) {
     );
   }
 }
+
+export const PUT = withAdminAudit(PUTHandler);

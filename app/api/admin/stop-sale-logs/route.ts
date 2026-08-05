@@ -1,3 +1,4 @@
+import { withAdminAudit } from '@/lib/admin/adminAudit';
 // app/api/admin/stop-sale-logs/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
@@ -149,7 +150,7 @@ export async function GET(request: NextRequest) {
 /**
  * POST: Get logs by specific criteria (logId or date+tour)
  */
-export async function POST(request: NextRequest) {
+async function POSTHandler(request: NextRequest) {
   try {
     // Authenticate admin user
     const authResult = await requireAdminAuth(request, { permissions: ['manageTours'] });
@@ -271,3 +272,5 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export const POST = withAdminAudit(POSTHandler);

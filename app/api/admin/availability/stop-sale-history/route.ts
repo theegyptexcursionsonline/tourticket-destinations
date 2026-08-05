@@ -1,3 +1,4 @@
+import { withAdminAudit } from '@/lib/admin/adminAudit';
 // app/api/admin/availability/stop-sale-history/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
@@ -145,7 +146,7 @@ export async function GET(request: NextRequest) {
 /**
  * GET single log entry by ID (for detail view)
  */
-export async function POST(request: NextRequest) {
+async function POSTHandler(request: NextRequest) {
   try {
     // Authenticate admin user
     const authResult = await requireAdminAuth(request, { permissions: ['manageTours'] });
@@ -210,3 +211,5 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export const POST = withAdminAudit(POSTHandler);

@@ -1,3 +1,4 @@
+import { withAdminAudit } from '@/lib/admin/adminAudit';
 // app/api/bookings/route.ts
 import { NextResponse } from 'next/server';
 import { NextRequest } from 'next/server';
@@ -140,7 +141,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(_request: NextRequest) {
+async function POSTHandler(_request: NextRequest) {
   // Direct booking creation trusted client-provided prices and marked records
   // confirmed without payment verification. All new bookings must use checkout,
   // which verifies the payment provider before confirming a booking.
@@ -368,3 +369,5 @@ async function _legacyDirectBookingCreation(request: NextRequest) {
     );
   }
 }
+
+export const POST = withAdminAudit(POSTHandler);

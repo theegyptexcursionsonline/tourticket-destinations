@@ -1,3 +1,4 @@
+import { withAdminAudit } from '@/lib/admin/adminAudit';
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import HeroSettings from '@/lib/models/HeroSettings';
@@ -14,7 +15,7 @@ import { revalidateStorefrontContent } from '@/lib/storefront/revalidateTourStor
  * matching on URL means a stale request reorders nothing rather than
  * scrambling the gallery.
  */
-export async function PUT(request: NextRequest) {
+async function PUTHandler(request: NextRequest) {
   const auth = await requireAdminAuth(request, { permissions: ['manageContent'] });
   if (auth instanceof NextResponse) return auth;
 
@@ -74,3 +75,5 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ success: false, error: 'Failed to reorder images' }, { status: 500 });
   }
 }
+
+export const PUT = withAdminAudit(PUTHandler);

@@ -1,3 +1,4 @@
+import { withAdminAudit } from '@/lib/admin/adminAudit';
 // app/api/admin/tenants/[tenantId]/route.ts
 // Admin API for single tenant operations - Get, Update, Delete
 
@@ -65,7 +66,7 @@ export async function GET(
  * PUT /api/admin/tenants/[tenantId]
  * Update a tenant
  */
-export async function PUT(
+async function PUTHandler(
   request: NextRequest,
   { params }: RouteParams
 ) {
@@ -161,7 +162,7 @@ export async function PUT(
  * DELETE /api/admin/tenants/[tenantId]
  * Delete a tenant (soft delete by setting isActive to false)
  */
-export async function DELETE(
+async function DELETEHandler(
   request: NextRequest,
   { params }: RouteParams
 ) {
@@ -239,7 +240,7 @@ export async function DELETE(
  * PATCH /api/admin/tenants/[tenantId]
  * Partial update of tenant (e.g., toggle active status)
  */
-export async function PATCH(
+async function PATCHHandler(
   request: NextRequest,
   { params }: RouteParams
 ) {
@@ -329,3 +330,7 @@ export async function PATCH(
     );
   }
 }
+
+export const PUT = withAdminAudit(PUTHandler);
+export const DELETE = withAdminAudit(DELETEHandler);
+export const PATCH = withAdminAudit(PATCHHandler);

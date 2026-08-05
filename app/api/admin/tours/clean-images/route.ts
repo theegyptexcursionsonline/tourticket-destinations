@@ -1,3 +1,4 @@
+import { withAdminAudit } from '@/lib/admin/adminAudit';
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Tour from '@/lib/models/Tour';
@@ -19,7 +20,7 @@ const _isPlaceholderUrl = (url: string) => {
   );
 };
 
-export async function POST(request: NextRequest) {
+async function POSTHandler(request: NextRequest) {
   const auth = await requireAdminAuth(request, { permissions: ['manageTenants'] });
   if (auth instanceof NextResponse) return auth;
   if (auth.role !== 'super_admin') return NextResponse.json({ success: false, error: 'Super admin required' }, { status: 403 });
@@ -328,3 +329,5 @@ export async function GET(request: NextRequest) {
     }, { status: 500 });
   }
 }
+
+export const POST = withAdminAudit(POSTHandler);

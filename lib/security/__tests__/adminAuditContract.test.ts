@@ -3,7 +3,7 @@ import path from 'node:path';
 import { ADMIN_PERMISSIONS, ROLE_PERMISSION_MAP } from '@/lib/constants/adminPermissions';
 
 function adminMutationRouteFiles(): string[] {
-  const root = path.join(process.cwd(), 'app/api/admin');
+  const root = path.join(process.cwd(), 'app/api');
   const files: string[] = [];
   const walk = (dir: string) => {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -15,17 +15,21 @@ function adminMutationRouteFiles(): string[] {
   walk(root);
   return files.filter((file) => {
     const source = fs.readFileSync(file, 'utf8');
-    return /export\s+(async\s+)?function\s+(POST|PUT|PATCH|DELETE)\b/.test(source);
+    const mutation = /(?:export\s+(?:async\s+)?function|export\s+const)\s+(POST|PUT|PATCH|DELETE)\b/.test(source);
+    const adminNamespace = file.startsWith(path.join(root, 'admin') + path.sep);
+    const authenticatedOutsideNamespace = [
+      'requireAdminAuth',
+      'verifyAdmin',
+      'verifyContentEngine',
+    ].some((marker) => source.includes(marker));
+    return mutation && (adminNamespace || authenticatedOutsideNamespace);
   });
 }
 
 describe('every admin mutation is auditable', () => {
-  // The session audit hook lives inside requireAdminAuth. Sign-ins record via
-  // recordAdminLogin. Non-session surfaces authenticate their own way — the
-  // content-engine Bearer bridge, accept-invitation's invitation token, and
-  // logout which only clears the caller's own cookie. A mutation route with
-  // NONE of these is both unauthenticated and invisible to Audit: the exact
-  // regression this guard catches. New mechanisms are added here deliberately.
+  // Every authenticated mutation needs both authentication and a
+  // response-aware outcome. Login establishes the session explicitly; logout
+  // only clears the caller's own cookie and has no attributable server actor.
   const RECOGNIZED_AUTH = [
     'requireAdminAuth',
     'verifyAdmin',
@@ -35,7 +39,7 @@ describe('every admin mutation is auditable', () => {
   ];
   const SELF_SERVICE_EXCEPTIONS = ['app/api/admin/logout/route.ts']; // ends own session
 
-  it('authenticates and (for session actions) audits every admin mutation route', () => {
+  it('authenticates every admin mutation route', () => {
     const offenders = adminMutationRouteFiles().filter((file) => {
       const rel = path.relative(process.cwd(), file);
       if (SELF_SERVICE_EXCEPTIONS.includes(rel)) return false;
@@ -45,9 +49,27 @@ describe('every admin mutation is auditable', () => {
     expect(offenders.map((file) => path.relative(process.cwd(), file))).toEqual([]);
   });
 
-  it('records the mutation on both auth branches', () => {
+  it('records a final outcome for every authenticated admin mutation route', () => {
+    const offenders = adminMutationRouteFiles().filter((file) => {
+      const rel = path.relative(process.cwd(), file);
+      if (SELF_SERVICE_EXCEPTIONS.includes(rel)) return false;
+      const source = fs.readFileSync(file, 'utf8');
+      return !source.includes('withAdminAudit') && !source.includes('recordAdminLogin');
+    });
+    expect(offenders.map((file) => path.relative(process.cwd(), file))).toEqual([]);
+  });
+
+  it('registers the actor on both session auth branches instead of writing before the handler', () => {
     const source = fs.readFileSync(path.join(process.cwd(), 'lib/auth/adminAuth.ts'), 'utf8');
-    expect(source.match(/recordAdminMutation\(/g)?.length ?? 0).toBeGreaterThanOrEqual(1);
+    expect(source.match(/registerAdminAuditActor\(/g)?.length ?? 0).toBeGreaterThanOrEqual(2);
+    expect(source).not.toContain('await recordAdminMutation(request');
+  });
+
+  it('registers auditable actors for non-session mutation principals', () => {
+    const contentAuth = fs.readFileSync(path.join(process.cwd(), 'lib/auth/verifyContentEngine.ts'), 'utf8');
+    const invitationRoute = fs.readFileSync(path.join(process.cwd(), 'app/api/admin/accept-invitation/route.ts'), 'utf8');
+    expect(contentAuth).toContain('registerAdminAuditActor');
+    expect(invitationRoute).toContain('registerAdminAuditActor');
   });
 });
 

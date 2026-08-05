@@ -32,10 +32,12 @@ describe('audit cursor pagination', () => {
     });
   });
 });
+
 describe('audit filters', () => {
   it('builds server-side action, resource, actor, and date filters', () => {
     const params = new URLSearchParams({
       action: 'update',
+      outcome: 'failed',
       resourceType: 'tours',
       actor: 'jane+ops@example.com',
       from: '2026-08-01',
@@ -43,10 +45,16 @@ describe('audit filters', () => {
     });
     const filters = buildAuditFilters(params) as any;
     expect(filters.action).toBe('update');
+    expect(filters.outcome).toBe('failed');
     expect(filters.resourceType).toBe('tours');
     expect(filters.$or[1].actorEmail.$regex).toContain('\\+');
     expect(filters.createdAt.$gte).toEqual(new Date('2026-08-01T00:00:00.000Z'));
     expect(filters.createdAt.$lte).toEqual(new Date('2026-08-04T23:59:59.999Z'));
+  });
+
+  it('maps legacy recorded outcome to rows without an outcome field', () => {
+    const filters = buildAuditFilters(new URLSearchParams({ outcome: 'recorded' }));
+    expect(filters.outcome).toEqual({ $exists: false });
   });
 
   it('ignores invalid dates instead of widening them into invalid Mongo queries', () => {

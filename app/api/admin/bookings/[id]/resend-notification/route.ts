@@ -1,3 +1,4 @@
+import { withAdminAudit } from '@/lib/admin/adminAudit';
 // app/api/admin/bookings/[id]/resend-notification/route.ts
 // Admin-initiated resend of a booking's notification emails (customer +
 // operator) — used when a send failed or the customer reports nothing
@@ -21,7 +22,7 @@ function formatBookingDate(dateValue: Date | string | undefined): string {
   });
 }
 
-export async function POST(
+async function POSTHandler(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -157,3 +158,5 @@ export async function POST(
     return NextResponse.json({ success: false, error: 'Failed to resend notifications.' }, { status: 500 });
   }
 }
+
+export const POST = withAdminAudit(POSTHandler);

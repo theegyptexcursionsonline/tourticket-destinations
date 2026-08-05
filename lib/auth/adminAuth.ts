@@ -101,13 +101,14 @@ export async function requireAdminAuth(
       twoFactorEnabled: true,
       twoFactorRecoveryPending: false,
     };
+    const { registerAdminAuditActor } = await import('@/lib/admin/adminAudit');
+    registerAdminAuditActor(authContext);
+
     const { permissions = [], requireAll = true } = options;
     const hasPermissions = permissions.length === 0 || (requireAll
       ? permissions.every((permission) => authContext.permissions.includes(permission))
       : permissions.some((permission) => authContext.permissions.includes(permission)));
     if (!hasPermissions) return forbiddenResponse();
-    const { recordAdminMutation } = await import('@/lib/admin/adminAudit');
-    await recordAdminMutation(request, authContext);
     return authContext;
   }
 
@@ -166,6 +167,16 @@ export async function requireAdminAuth(
     twoFactorRecoveryPending: recoveryPending,
   };
 
+  // The route wrapper writes after the handler finishes so completed,
+  // rejected, and failed actions remain distinguishable. Actor tenantIds are
+  // the authoritative English-network scope; never widen to a default brand.
+  const { registerAdminAuditActor } = await import('@/lib/admin/adminAudit');
+  // Enrollment sessions intentionally return no tenant authority to the route,
+  // but their 2FA mutations still need to be visible in every tenant the actor
+  // is actually assigned to. Register the verified database scope for audit
+  // attribution without widening the authorization context returned below.
+  registerAdminAuditActor({ ...authContext, tenantIds });
+
   const requestedTenantId = request.nextUrl.searchParams.get('tenantId')
     || request.nextUrl.searchParams.get('brandId')
     || request.nextUrl.searchParams.get('brand_id');
@@ -185,9 +196,6 @@ export async function requireAdminAuth(
   if (!hasPermissions) {
     return forbiddenResponse();
   }
-
-  const { recordAdminMutation } = await import('@/lib/admin/adminAudit');
-  await recordAdminMutation(request, authContext);
 
   return authContext;
 }

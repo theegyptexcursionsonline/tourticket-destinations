@@ -1,3 +1,4 @@
+import { withAdminAudit } from '@/lib/admin/adminAudit';
 // app/api/admin/bookings/[id]/cancel/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
@@ -36,7 +37,7 @@ function formatBookingDate(dateValue: Date | string | undefined): string {
   });
 }
 
-export async function POST(
+async function POSTHandler(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -167,3 +168,5 @@ export async function POST(
     );
   }
 }
+
+export const POST = withAdminAudit(POSTHandler);

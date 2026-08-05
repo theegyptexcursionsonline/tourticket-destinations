@@ -1,3 +1,4 @@
+import { withAdminAudit } from '@/lib/admin/adminAudit';
 import { NextRequest, NextResponse } from 'next/server';
 import {
   canAccessTenant,
@@ -36,7 +37,7 @@ import type { Model } from 'mongoose';
 const VALID_MODEL_TYPES = ['tour', 'destination', 'category', 'attraction-page'] as const;
 type ModelType = (typeof VALID_MODEL_TYPES)[number];
 
-export async function POST(request: NextRequest) {
+async function POSTHandler(request: NextRequest) {
   const auth = await requireAdminAuth(request, {
     permissions: ['manageTours', 'manageContent'],
     requireAll: false,
@@ -235,3 +236,5 @@ export async function POST(request: NextRequest) {
     },
   });
 }
+
+export const POST = withAdminAudit(POSTHandler);

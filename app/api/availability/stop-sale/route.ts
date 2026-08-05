@@ -1,3 +1,4 @@
+import { withAdminAudit } from '@/lib/admin/adminAudit';
 // app/api/availability/stop-sale/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
@@ -147,7 +148,7 @@ async function markLogsAsRemoved(
  * - optionIds omitted/empty => all options (stored as optionIds: [])
  * - optionIds provided => creates one stop-sale doc per optionId (stored as [optionId])
  */
-export async function PUT(request: NextRequest) {
+async function PUTHandler(request: NextRequest) {
   try {
     // Authenticate admin user
     const authResult = await requireAdminAuth(request, { permissions: ['manageTours'] });
@@ -231,7 +232,7 @@ export async function PUT(request: NextRequest) {
  * - optionIds omitted/empty => removes "all options" stop-sales for that range
  * - optionIds provided => removes those option-specific stop-sales for that range
  */
-export async function DELETE(request: NextRequest) {
+async function DELETEHandler(request: NextRequest) {
   try {
     // Authenticate admin user
     const authResult = await requireAdminAuth(request, { permissions: ['manageTours'] });
@@ -282,3 +283,6 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ success: false, error: 'Failed to remove stop-sale' }, { status: 500 });
   }
 }
+
+export const PUT = withAdminAudit(PUTHandler);
+export const DELETE = withAdminAudit(DELETEHandler);

@@ -7,8 +7,10 @@ import {
   PENDING_ADMIN_FIELDS,
   applyPendingAdminGrant,
 } from '@/lib/admin/teamMembership';
+import { registerAdminAuditActor, registerAdminAuditDetail, withAdminAudit } from '@/lib/admin/adminAudit';
+import type { AdminPermission, AdminRole } from '@/lib/constants/adminPermissions';
 
-export async function POST(request: NextRequest) {
+async function POSTHandler(request: NextRequest) {
   try {
     await dbConnect();
 
@@ -45,6 +47,22 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
+
+    registerAdminAuditActor({
+      userId: String(user._id),
+      email: user.email,
+      name: [user.firstName, user.lastName].filter(Boolean).join(' ').trim() || undefined,
+      role: (user.pendingAdminRole || user.role) as AdminRole,
+      permissions: (user.pendingAdminPermissions || user.permissions || []) as AdminPermission[],
+      tenantIds: user.pendingAdminTenantIds || user.tenantIds || [],
+    });
+    registerAdminAuditDetail({
+      action: 'execute',
+      resourceType: 'team',
+      resourceId: String(user._id),
+      resourceLabel: user.email,
+      summary: 'Accepted team invitation',
+    });
 
     const granted = applyPendingAdminGrant(user);
     if (!granted) {
@@ -123,6 +141,8 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export const POST = withAdminAudit(POSTHandler);
 
 // GET endpoint to verify token validity
 export async function GET(request: NextRequest) {

@@ -1,5 +1,9 @@
 jest.mock('@/lib/jwt', () => ({ verifyToken: jest.fn() }));
 jest.mock('@/lib/dbConnect', () => ({ __esModule: true, default: jest.fn().mockResolvedValue(undefined) }));
+const mockRegisterAdminAuditActor = jest.fn();
+jest.mock('@/lib/admin/adminAudit', () => ({
+  registerAdminAuditActor: mockRegisterAdminAuditActor,
+}));
 let mockAdminRecord = {
   _id: 'admin-id',
   email: 'admin@example.com',
@@ -143,5 +147,10 @@ describe('requireAdminAuth', () => {
       tenantIds: [],
       twoFactorEnabled: false,
     });
+    expect(mockRegisterAdminAuditActor).toHaveBeenCalledWith(expect.objectContaining({
+      userId: 'admin-id',
+      permissions: [],
+      tenantIds: ['hurghada-speedboat'],
+    }));
   });
 });

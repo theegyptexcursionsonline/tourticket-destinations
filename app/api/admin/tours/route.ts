@@ -1,3 +1,4 @@
+import { withAdminAudit } from '@/lib/admin/adminAudit';
 // app/api/admin/tours/route.ts
 import dbConnect from '@/lib/dbConnect';
 import Tour from '@/lib/models/Tour';
@@ -205,7 +206,7 @@ export async function GET(request: NextRequest) {
 }
 
 // POST a new tour
-export async function POST(request: NextRequest) {
+async function POSTHandler(request: NextRequest) {
   const auth = await requireAdminAuth(request, { permissions: ['manageTours'] });
   if (auth instanceof NextResponse) return auth;
 
@@ -332,3 +333,5 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: message }, { status: 400 });
   }
 }
+
+export const POST = withAdminAudit(POSTHandler);

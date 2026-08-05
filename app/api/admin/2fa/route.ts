@@ -17,6 +17,7 @@ import { verifyAndConsumeUserSecondFactor } from '@/lib/auth/userSecondFactor';
 import { ADMIN_SESSION_MAX_AGE_SECONDS, signAdminSessionToken } from '@/lib/auth/adminSession';
 import { getDefaultPermissions } from '@/lib/constants/adminPermissions';
 import { serializeTenantIds } from '@/lib/auth/serializeAdminIdentity';
+import { withAdminAudit } from '@/lib/admin/adminAudit';
 
 function invalidCodeResponse() {
   return NextResponse.json(
@@ -54,7 +55,7 @@ export async function GET(request: NextRequest) {
   });
 }
 
-export async function POST(request: NextRequest) {
+async function POSTHandler(request: NextRequest) {
   if (!isSameOriginMutation(request)) {
     return NextResponse.json({ success: false, error: 'Invalid request origin.' }, { status: 403 });
   }
@@ -192,3 +193,5 @@ export async function POST(request: NextRequest) {
   }
   return NextResponse.json({ success: false, error: 'Invalid request.' }, { status: 400 });
 }
+
+export const POST = withAdminAudit(POSTHandler);

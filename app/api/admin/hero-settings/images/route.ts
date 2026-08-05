@@ -1,3 +1,4 @@
+import { withAdminAudit } from '@/lib/admin/adminAudit';
 // app/api/admin/hero-settings/images/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidateStorefrontContent } from '@/lib/storefront/revalidateTourStorefront';
@@ -5,7 +6,7 @@ import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/li
 import dbConnect from '@/lib/dbConnect';
 import HeroSettings from '@/lib/models/HeroSettings';
 
-export async function POST(request: NextRequest) {
+async function POSTHandler(request: NextRequest) {
   const auth = await requireAdminAuth(request, { permissions: ['manageContent'] });
   if (auth instanceof NextResponse) return auth;
   try {
@@ -55,3 +56,5 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export const POST = withAdminAudit(POSTHandler);

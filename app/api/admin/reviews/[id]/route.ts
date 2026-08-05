@@ -1,3 +1,4 @@
+import { withAdminAudit } from '@/lib/admin/adminAudit';
 // app/api/admin/reviews/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidateStorefrontContent } from '@/lib/storefront/revalidateTourStorefront';
@@ -15,7 +16,7 @@ function getTenantScope(request: NextRequest): string | undefined {
 }
 
 // --- PATCH: Update a specific review (e.g., approve it) ---
-export async function PATCH(
+async function PATCHHandler(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -56,7 +57,7 @@ export async function PATCH(
 }
 
 // --- DELETE: Remove a specific review ---
-export async function DELETE(
+async function DELETEHandler(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -88,3 +89,6 @@ export async function DELETE(
     return NextResponse.json({ message: 'Failed to delete review', error: (error as Error).message }, { status: 500 });
   }
 }
+
+export const PATCH = withAdminAudit(PATCHHandler);
+export const DELETE = withAdminAudit(DELETEHandler);

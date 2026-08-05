@@ -1,3 +1,4 @@
+import { withAdminAudit } from '@/lib/admin/adminAudit';
 // app/api/admin/availability/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
@@ -225,7 +226,7 @@ export async function GET(request: NextRequest) {
 }
 
 // POST - Create or update availability
-export async function POST(request: NextRequest) {
+async function POSTHandler(request: NextRequest) {
   const auth = await requireAdminAuth(request, { permissions: ['manageTours'] });
   if (auth instanceof NextResponse) return auth;
 
@@ -310,7 +311,7 @@ export async function POST(request: NextRequest) {
 }
 
 // PUT - Bulk update availability
-export async function PUT(request: NextRequest) {
+async function PUTHandler(request: NextRequest) {
   const auth = await requireAdminAuth(request, { permissions: ['manageTours'] });
   if (auth instanceof NextResponse) return auth;
 
@@ -480,3 +481,6 @@ export async function PUT(request: NextRequest) {
     );
   }
 }
+
+export const POST = withAdminAudit(POSTHandler);
+export const PUT = withAdminAudit(PUTHandler);

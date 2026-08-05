@@ -1,3 +1,4 @@
+import { withAdminAudit } from '@/lib/admin/adminAudit';
 // app/api/algolia/sync/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
@@ -6,7 +7,7 @@ import { syncToursToAlgolia, configureAlgoliaIndex } from '@/lib/algolia';
 import { requireAdminAuth } from '@/lib/auth/adminAuth';
 import { buildStrictTenantQuery, getTenantFromRequest } from '@/lib/tenant';
 
-export async function POST(request: NextRequest) {
+async function POSTHandler(request: NextRequest) {
   try {
     const adminAuth = await requireAdminAuth(request, {
       permissions: ['manageTours'],
@@ -49,3 +50,5 @@ export async function POST(request: NextRequest) {
     }, { status: 500 });
   }
 }
+
+export const POST = withAdminAudit(POSTHandler);

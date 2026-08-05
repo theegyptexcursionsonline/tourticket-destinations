@@ -1,3 +1,4 @@
+import { withAdminAudit } from '@/lib/admin/adminAudit';
 // app/api/admin/bookings/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
@@ -283,7 +284,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
+async function POSTHandler(request: NextRequest) {
   const auth = await requireAdminAuth(request, { permissions: ['manageBookings'] });
   if (auth instanceof NextResponse) return auth;
 
@@ -292,3 +293,5 @@ export async function POST(request: NextRequest) {
     { status: 405 }
   );
 }
+
+export const POST = withAdminAudit(POSTHandler);

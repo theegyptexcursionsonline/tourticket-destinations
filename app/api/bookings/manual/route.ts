@@ -1,3 +1,4 @@
+import { withAdminAudit } from '@/lib/admin/adminAudit';
 // app/api/bookings/manual/route.ts
 /**
  * Manual Booking API (Admin-only)
@@ -109,7 +110,7 @@ function computeSubtotal(basePrice: number, adults: number, children: number): n
   return adultTotal + childTotal;
 }
 
-export async function POST(request: NextRequest) {
+async function POSTHandler(request: NextRequest) {
   const auth = await requireAdminAuth(request, { permissions: ['manageBookings'] });
   if (auth instanceof NextResponse) return auth;
 
@@ -464,3 +465,4 @@ export async function POST(request: NextRequest) {
   }
 }
 
+export const POST = withAdminAudit(POSTHandler);

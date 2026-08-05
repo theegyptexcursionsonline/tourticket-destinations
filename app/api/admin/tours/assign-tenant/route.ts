@@ -1,3 +1,4 @@
+import { withAdminAudit } from '@/lib/admin/adminAudit';
 // app/api/admin/tours/assign-tenant/route.ts
 // API endpoint to bulk assign tours to a tenant
 
@@ -22,7 +23,7 @@ export const dynamic = 'force-dynamic';
  *   syncAlgolia?: boolean     // Whether to sync to Algolia (default: true)
  * }
  */
-export async function POST(request: NextRequest) {
+async function POSTHandler(request: NextRequest) {
   const auth = await requireAdminAuth(request, { permissions: ['manageTours'] });
   if (auth instanceof NextResponse) return auth;
 
@@ -235,3 +236,5 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+export const POST = withAdminAudit(POSTHandler);

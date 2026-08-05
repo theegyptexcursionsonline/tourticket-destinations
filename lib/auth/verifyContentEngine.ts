@@ -5,6 +5,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "node:crypto";
+import { registerAdminAuditActor } from "@/lib/admin/adminAudit";
+import { ADMIN_NETWORK_TENANT_IDS } from "@/lib/auth/adminNetworkScope";
 
 export function verifyContentEngine(req: NextRequest): NextResponse | null {
   const expected = process.env.CONTENT_ENGINE_API_KEY;
@@ -30,6 +32,16 @@ export function verifyContentEngine(req: NextRequest): NextResponse | null {
   if (!timingSafeEqual(a, b)) {
     return NextResponse.json({ error: "Invalid token" }, { status: 401 });
   }
+
+  registerAdminAuditActor({
+    userId: "content-engine",
+    name: "Content Engine",
+    role: "system",
+    permissions: [],
+    // `default` remains supported only for the adapter's existing legacy
+    // fallback; named English-network brands are otherwise authoritative.
+    tenantIds: ["default", ...ADMIN_NETWORK_TENANT_IDS],
+  });
 
   return null;
 }

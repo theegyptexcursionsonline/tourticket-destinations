@@ -1,3 +1,4 @@
+import { withAdminAudit } from '@/lib/admin/adminAudit';
 // app/api/admin/destinations/route.ts
 import dbConnect from '@/lib/dbConnect';
 import Destination from '@/lib/models/Destination';
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
+async function POSTHandler(request: NextRequest) {
   const auth = await requireAdminAuth(request, { permissions: ['manageContent'] });
   if (auth instanceof NextResponse) return auth;
   await dbConnect();
@@ -96,3 +97,5 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: (error as Error).message }, { status: 400 });
   }
 }
+
+export const POST = withAdminAudit(POSTHandler);

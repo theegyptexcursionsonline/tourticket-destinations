@@ -1,3 +1,4 @@
+import { withAdminAudit } from '@/lib/admin/adminAudit';
 // app/api/admin/bookings/[id]/route.ts (Fixed - with correct EmailService)
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
@@ -165,7 +166,7 @@ export async function GET(
 }
 
 // PATCH - Update booking status (with email notifications)
-export async function PATCH(
+async function PATCHHandler(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -425,7 +426,7 @@ export async function PATCH(
 }
 
 // DELETE - Delete a booking
-export async function DELETE(
+async function DELETEHandler(
   request: NextRequest,
 ) {
   const auth = await requireAdminAuth(request, { permissions: ['manageBookings'] });
@@ -442,3 +443,6 @@ export async function DELETE(
     { status: 409 },
   );
 }
+
+export const PATCH = withAdminAudit(PATCHHandler);
+export const DELETE = withAdminAudit(DELETEHandler);

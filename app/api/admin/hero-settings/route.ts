@@ -1,3 +1,4 @@
+import { withAdminAudit } from '@/lib/admin/adminAudit';
 // app/api/admin/hero-settings/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidateStorefrontContent } from '@/lib/storefront/revalidateTourStorefront';
@@ -104,7 +105,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function PUT(request: NextRequest) {
+async function PUTHandler(request: NextRequest) {
   const auth = await requireAdminAuth(request, { permissions: ['manageContent'] });
   if (auth instanceof NextResponse) return auth;
 
@@ -137,3 +138,5 @@ export async function PUT(request: NextRequest) {
     );
   }
 }
+
+export const PUT = withAdminAudit(PUTHandler);

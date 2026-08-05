@@ -1,3 +1,4 @@
+import { withAdminAudit } from '@/lib/admin/adminAudit';
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import mongoose from 'mongoose';
@@ -66,7 +67,7 @@ const getSupportEmail = () =>
 
 const formatName = (user: any) => `${user.firstName || ''} ${user.lastName || ''}`.trim();
 
-export async function PATCH(
+async function PATCHHandler(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -213,7 +214,7 @@ export async function PATCH(
   return NextResponse.json({ success: true, data: sanitize(user) });
 }
 
-export async function DELETE(
+async function DELETEHandler(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -380,3 +381,6 @@ export async function DELETE(
         : 'Removed from the selected brands. Their other brands and portals are unchanged.',
   });
 }
+
+export const PATCH = withAdminAudit(PATCHHandler);
+export const DELETE = withAdminAudit(DELETEHandler);

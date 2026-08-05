@@ -1,3 +1,4 @@
+import { withAdminAudit } from '@/lib/admin/adminAudit';
 // app/api/admin/tenants/route.ts
 // Admin API for tenant management - List and Create tenants
 
@@ -93,7 +94,7 @@ export async function GET(request: NextRequest) {
  * POST /api/admin/tenants
  * Create a new tenant
  */
-export async function POST(request: NextRequest) {
+async function POSTHandler(request: NextRequest) {
   const auth = await requireAdminAuth(request, { permissions: ['manageTenants'] });
   if (auth instanceof NextResponse) return auth;
   try {
@@ -191,3 +192,5 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export const POST = withAdminAudit(POSTHandler);

@@ -1,3 +1,4 @@
+import { withAdminAudit } from '@/lib/admin/adminAudit';
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import User from '@/lib/models/user';
@@ -6,7 +7,7 @@ import Review from '@/lib/models/Review';
 import mongoose from 'mongoose';
 import { requireAdminAuth } from '@/lib/auth/adminAuth';
 
-export async function DELETE(
+async function DELETEHandler(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -66,3 +67,5 @@ export async function DELETE(
     }, { status: 500 });
   }
 }
+
+export const DELETE = withAdminAudit(DELETEHandler);

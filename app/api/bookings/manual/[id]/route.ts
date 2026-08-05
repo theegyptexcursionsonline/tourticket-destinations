@@ -1,3 +1,4 @@
+import { withAdminAudit } from '@/lib/admin/adminAudit';
 // app/api/bookings/manual/[id]/route.ts
 /**
  * Manual Booking Update API (Admin-only)
@@ -32,7 +33,7 @@ function computeSubtotal(basePrice: number, adults: number, children: number): n
   return adultTotal + childTotal;
 }
 
-export async function PUT(
+async function PUTHandler(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -215,3 +216,4 @@ export async function PUT(
   }
 }
 
+export const PUT = withAdminAudit(PUTHandler);

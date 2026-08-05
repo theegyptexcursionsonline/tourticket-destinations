@@ -1,3 +1,4 @@
+import { withAdminAudit } from '@/lib/admin/adminAudit';
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import User from '@/lib/models/user';
@@ -5,7 +6,7 @@ import { requireAdminAuth } from '@/lib/auth/adminAuth';
 import { clearPendingAdminGrant } from '@/lib/admin/teamMembership';
 
 /** Withdraw expired network invitations without deleting shared user records. */
-export async function POST(request: NextRequest) {
+async function POSTHandler(request: NextRequest) {
   const auth = await requireAdminAuth(request, { permissions: ['manageUsers'] });
   if (auth instanceof NextResponse) return auth;
   if (auth.role !== 'super_admin') {
@@ -47,3 +48,5 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export const POST = withAdminAudit(POSTHandler);

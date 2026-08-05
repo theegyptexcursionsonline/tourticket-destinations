@@ -1,3 +1,4 @@
+import { withAdminAudit } from '@/lib/admin/adminAudit';
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidateStorefrontContent } from '@/lib/storefront/revalidateTourStorefront';
 import dbConnect from '@/lib/dbConnect';
@@ -32,7 +33,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
+async function POSTHandler(request: NextRequest) {
   const auth = await requireAdminAuth(request, { permissions: ['manageContent'] });
   if (auth instanceof NextResponse) return auth;
 
@@ -72,3 +73,5 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: 'Failed to create category' }, { status: 500 });
   }
 }
+
+export const POST = withAdminAudit(POSTHandler);

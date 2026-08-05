@@ -1,3 +1,4 @@
+import { withAdminAudit } from '@/lib/admin/adminAudit';
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/dbConnect";
 import Tour from "@/lib/models/Tour";
@@ -168,7 +169,7 @@ export async function GET(
 }
 
 // UPDATE a tour by ID or Slug
-export async function PUT(
+async function PUTHandler(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
@@ -415,7 +416,7 @@ export async function PUT(
 
 // Archive a tour by ID or Slug. Tour documents are referenced by immutable
 // booking receipts, so permanent deletion would corrupt the financial trail.
-export async function DELETE(
+async function DELETEHandler(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
@@ -491,3 +492,6 @@ export async function DELETE(
         }, { status: 500 });
     }
 }
+
+export const PUT = withAdminAudit(PUTHandler);
+export const DELETE = withAdminAudit(DELETEHandler);

@@ -1,3 +1,4 @@
+import { registerAdminAuditDetail, withAdminAudit } from '@/lib/admin/adminAudit';
 import { NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import dbConnect from '@/lib/dbConnect';
@@ -8,7 +9,7 @@ import {
   inspectAccountDependencies,
 } from '@/lib/admin/permanentTeamAccount';
 
-export async function DELETE(
+async function DELETEHandler(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -47,6 +48,13 @@ export async function DELETE(
   }
 
   const normalizedEmail = user.email.toLowerCase().trim();
+  registerAdminAuditDetail({
+    action: 'delete',
+    resourceType: 'team',
+    resourceId: id,
+    resourceLabel: normalizedEmail,
+    summary: 'Permanently deleted team account',
+  });
   const dependencies = await inspectAccountDependencies(user._id, normalizedEmail);
   if (dependencies.total > 0) {
     return NextResponse.json(
@@ -84,24 +92,6 @@ export async function DELETE(
   }
 
   await cleanAccountAuthenticationData(normalizedEmail);
-  await mongoose.connection.db?.collection('adminmutationaudits').insertOne({
-    action: 'delete',
-    actorUserId: String(auth.userId),
-    actorEmail: auth.email,
-    actorName: auth.name,
-    actorRole: auth.role,
-    resourceType: 'team',
-    resourceId: id,
-    summary: 'Permanently deleted team account',
-    method: 'DELETE',
-    path: request.nextUrl.pathname,
-    tenantIds: [],
-    requestId: request.headers.get('x-request-id') || undefined,
-    targetUserId: id,
-    targetEmail: normalizedEmail,
-    portal: 'multiTenant',
-    createdAt: new Date(),
-  });
 
   return NextResponse.json({
     success: true,
@@ -109,3 +99,5 @@ export async function DELETE(
     message: 'The account was permanently deleted after confirming that it had no linked business records.',
   });
 }
+
+export const DELETE = withAdminAudit(DELETEHandler);

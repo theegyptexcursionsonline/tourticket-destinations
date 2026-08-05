@@ -1,3 +1,4 @@
+import { withAdminAudit } from '@/lib/admin/adminAudit';
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Discount from '@/lib/models/Discount';
@@ -12,7 +13,7 @@ function getTenantScope(request: NextRequest): string | undefined {
   return tenantIdParam && tenantIdParam !== 'all' ? tenantIdParam : undefined;
 }
 
-export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function PUTHandler(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAdminAuth(request, { permissions: ['manageDiscounts'] });
   if (auth instanceof NextResponse) return auth;
 
@@ -46,7 +47,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function DELETEHandler(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAdminAuth(request, { permissions: ['manageDiscounts'] });
   if (auth instanceof NextResponse) return auth;
 
@@ -74,3 +75,6 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     return NextResponse.json({ success: false, error: 'Server Error' }, { status: 500 });
   }
 }
+
+export const PUT = withAdminAudit(PUTHandler);
+export const DELETE = withAdminAudit(DELETEHandler);

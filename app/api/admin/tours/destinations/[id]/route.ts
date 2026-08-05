@@ -1,3 +1,4 @@
+import { withAdminAudit } from '@/lib/admin/adminAudit';
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidateStorefrontContent } from '@/lib/storefront/revalidateTourStorefront';
 import dbConnect from '@/lib/dbConnect';
@@ -6,7 +7,7 @@ import Tour from '@/lib/models/Tour';
 import mongoose from 'mongoose';
 import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 
-export async function PUT(
+async function PUTHandler(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -80,7 +81,7 @@ export async function PUT(
   }
 }
 
-export async function DELETE(
+async function DELETEHandler(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -151,3 +152,6 @@ export async function DELETE(
     }, { status: 500 });
   }
 }
+
+export const PUT = withAdminAudit(PUTHandler);
+export const DELETE = withAdminAudit(DELETEHandler);

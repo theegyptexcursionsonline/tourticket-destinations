@@ -1,3 +1,4 @@
+import { withAdminAudit } from '@/lib/admin/adminAudit';
 // app/api/admin/hero-settings/images/[imageIndex]/activate/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidateStorefrontContent } from '@/lib/storefront/revalidateTourStorefront';
@@ -5,7 +6,7 @@ import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/li
 import dbConnect from '@/lib/dbConnect';
 import HeroSettings from '@/lib/models/HeroSettings';
 
-export async function PUT(
+async function PUTHandler(
   request: NextRequest,
   { params }: { params: Promise<{ imageIndex: string }> }
 ) {
@@ -58,3 +59,5 @@ export async function PUT(
     );
   }
 }
+
+export const PUT = withAdminAudit(PUTHandler);

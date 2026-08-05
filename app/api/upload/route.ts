@@ -1,3 +1,4 @@
+import { withAdminAudit } from '@/lib/admin/adminAudit';
 // File: app/api/upload/route.ts
 
 import { v2 as cloudinary } from 'cloudinary';
@@ -21,7 +22,7 @@ function bufferToStream(buffer: Buffer): Readable {
   return stream;
 }
 
-export async function POST(request: NextRequest) {
+async function POSTHandler(request: NextRequest) {
   // Only authenticated admins can upload files
   const auth = await requireAdminAuth(request);
   if (auth instanceof NextResponse) return auth;
@@ -76,3 +77,5 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: `Upload failed on the server: ${errorMessage}` }, { status: 500 });
   }
 }
+
+export const POST = withAdminAudit(POSTHandler);
