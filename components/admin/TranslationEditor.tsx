@@ -69,6 +69,8 @@ export default function TranslationEditor({
   const translationsRef = useRef<Record<string, Record<string, unknown>>>({});
   const failedLocalesRef = useRef<string[]>([]);
   const fatalErrorRef = useRef('');
+  const requestedLocaleRef = useRef(activeLocale);
+  const preservedExistingRef = useRef(false);
 
   // Keep a stable ref to onChange so the streaming callback always uses the latest version
   const onChangeRef = useRef(onChange);
@@ -125,7 +127,7 @@ export default function TranslationEditor({
   // ── Streaming Auto Translate ──
 
   const completedCount = Object.values(localeStatuses).filter((s) => s === 'done').length;
-  const totalLocales = translatableLocales.length;
+  const totalLocales = 1;
   const progressPercent = isTranslating ? Math.round((completedCount / totalLocales) * 100) : 0;
 
   const handleAutoTranslate = async () => {
@@ -142,20 +144,25 @@ export default function TranslationEditor({
 
     setIsTranslating(true);
     translationsRef.current = { ...value };
+    requestedLocaleRef.current = activeLocale;
+    preservedExistingRef.current = false;
 
-    // Initialize all locale statuses to pending
-    const initialStatuses: Record<string, LocaleStatus> = {};
-    translatableLocales.forEach((l) => { initialStatuses[l] = 'pending'; });
-    setLocaleStatuses(initialStatuses);
+    // A click is an explicit per-locale commit boundary. Never start a bulk
+    // operation that can replace every language bucket.
+    setLocaleStatuses({ [activeLocale]: 'pending' });
 
     try {
+      const localeDraft = value[activeLocale];
+      const ownerDraft = localeDraft && Object.keys(localeDraft).length > 0
+        ? { localeDraft }
+        : {};
       const res = await fetch('/api/admin/translate/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(
           Object.keys(draft.draft).length > 0
-            ? { modelType, id: entityId, sourceDraft: draft.draft }
-            : { modelType, id: entityId }
+            ? { modelType, id: entityId, locale: activeLocale, sourceDraft: draft.draft, ...ownerDraft }
+            : { modelType, id: entityId, locale: activeLocale, ...ownerDraft }
         ),
       });
 
@@ -206,9 +213,14 @@ export default function TranslationEditor({
       }
       const failed = failedLocalesRef.current;
       if (failed.length > 0) {
-        toast.error(`Translation failed for: ${failed.join(', ')}. Successful languages were saved — retry for the rest.`);
+        toast.error(`${failed.join(', ')} was not saved. Reload the tour and try again.`);
       } else {
-        toast.success('All translations generated!');
+        const localeName = localeNames[requestedLocaleRef.current] || requestedLocaleRef.current;
+        toast.success(
+          preservedExistingRef.current
+            ? `${localeName} translated and saved. Existing manual text was preserved.`
+            : `${localeName} translated and saved.`,
+        );
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Auto-translate failed');
@@ -230,6 +242,7 @@ export default function TranslationEditor({
       case 'locale_done': {
         const locale = data.locale as string;
         const translations = data.translations as Record<string, unknown>;
+        preservedExistingRef.current = Boolean(data.preservedExisting);
 
         setLocaleStatuses((prev) => ({ ...prev, [locale]: 'done' }));
 
@@ -243,7 +256,7 @@ export default function TranslationEditor({
           onChangeRef.current({ ...translationsRef.current });
         }
 
-        // Auto-switch to the locale that just finished so user sees it
+        // Keep the committed language visible for review.
         setActiveLocale(locale as typeof activeLocale);
         break;
       }
@@ -270,7 +283,7 @@ export default function TranslationEditor({
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Globe className="h-4 w-4 text-indigo-500" />
           <span className="text-sm font-bold text-slate-700">Translations</span>
@@ -288,10 +301,21 @@ export default function TranslationEditor({
             ) : (
               <Sparkles className="h-4 w-4" />
             )}
-            {isTranslating ? 'Translating...' : 'Auto Translate'}
+            {isTranslating
+              ? `Translating ${localeNames[requestedLocaleRef.current] || requestedLocaleRef.current}...`
+              : `Translate & save ${localeNames[activeLocale] || activeLocale}`}
           </button>
         )}
       </div>
+
+      {canAutoTranslate && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <p className="font-semibold">One language is saved at a time.</p>
+          <p className="mt-1 text-xs leading-5 text-amber-800">
+            Auto-translate fills empty {localeNames[activeLocale] || activeLocale} fields and preserves every non-empty manual value. Clear and save a field first only when you intentionally want it regenerated.
+          </p>
+        </div>
+      )}
 
       {/* Real-time translation progress */}
       {isTranslating && (
@@ -299,7 +323,7 @@ export default function TranslationEditor({
           {/* Overall progress bar */}
           <div className="flex items-center justify-between text-sm">
             <span className="font-medium text-indigo-700">
-              Translating {completedCount}/{totalLocales} languages...
+              Translating {completedCount}/{totalLocales} language...
             </span>
             <span className="text-indigo-500 font-semibold">{progressPercent}%</span>
           </div>
@@ -351,10 +375,11 @@ export default function TranslationEditor({
               key={locale}
               type="button"
               onClick={() => setActiveLocale(locale)}
+              disabled={isTranslating}
               className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium transition-all duration-200 ${
                 activeLocale === locale
                   ? 'text-indigo-600 border-b-2 border-indigo-600 bg-white rounded-t-lg'
-                  : 'text-slate-500 hover:text-slate-800'
+                  : 'text-slate-500 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-50'
               }`}
             >
               {localeNames[locale] || locale}

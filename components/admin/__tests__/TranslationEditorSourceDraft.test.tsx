@@ -9,11 +9,12 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 
 const mockToastError = jest.fn();
+const mockToastSuccess = jest.fn();
 jest.mock('react-hot-toast', () => ({
   __esModule: true,
   default: {
     error: (...args: unknown[]) => mockToastError(...args),
-    success: jest.fn(),
+    success: (...args: unknown[]) => mockToastSuccess(...args),
   },
 }));
 
@@ -29,6 +30,25 @@ const emptyStreamResponse = () => ({
     }),
   },
 });
+
+const streamResponse = (events: Array<{ event: string; data: Record<string, unknown> }>) => {
+  const bytes = new TextEncoder().encode(
+    events.map(({ event, data }) => `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`).join(''),
+  );
+  let sent = false;
+  return {
+    ok: true,
+    body: {
+      getReader: () => ({
+        read: async () => {
+          if (sent) return { done: true, value: undefined };
+          sent = true;
+          return { done: false, value: bytes };
+        },
+      }),
+    },
+  };
+};
 
 const lastRequestBody = (fetchMock: jest.Mock) => {
   const [, init] = fetchMock.mock.calls[fetchMock.mock.calls.length - 1];
@@ -66,7 +86,7 @@ describe('TranslationEditor Auto Translate payload', () => {
       },
     });
 
-    fireEvent.click(screen.getByText('Auto Translate'));
+    fireEvent.click(screen.getByRole('button', { name: 'Translate & save Arabic' }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalled());
     const body = lastRequestBody(fetchMock);
@@ -74,6 +94,7 @@ describe('TranslationEditor Auto Translate payload', () => {
     expect(fetchMock).toHaveBeenCalledWith('/api/admin/translate/stream', expect.any(Object));
     expect(body.modelType).toBe('destination');
     expect(body.id).toBe('dest-1');
+    expect(body.locale).toBe('ar');
     expect(body.sourceDraft.imageMetadata).toEqual([
       { url: 'https://cdn/a.jpg', alt: 'Red Sea reef', title: 'Reef at dawn' },
     ]);
@@ -91,7 +112,7 @@ describe('TranslationEditor Auto Translate payload', () => {
       },
     });
 
-    fireEvent.click(screen.getByText('Auto Translate'));
+    fireEvent.click(screen.getByRole('button', { name: 'Translate & save Arabic' }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalled());
     expect(lastRequestBody(fetchMock).sourceDraft).toEqual({ name: 'Hurghada' });
@@ -100,19 +121,19 @@ describe('TranslationEditor Auto Translate payload', () => {
   it('omits sourceDraft entirely when the form has no source content yet', async () => {
     renderEditor({ sourceDraft: {} });
 
-    fireEvent.click(screen.getByText('Auto Translate'));
+    fireEvent.click(screen.getByRole('button', { name: 'Translate & save Arabic' }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalled());
-    expect(lastRequestBody(fetchMock)).toEqual({ modelType: 'destination', id: 'dest-1' });
+    expect(lastRequestBody(fetchMock)).toEqual({ modelType: 'destination', id: 'dest-1', locale: 'ar' });
   });
 
   it('still works for callers that pass no draft at all', async () => {
     renderEditor();
 
-    fireEvent.click(screen.getByText('Auto Translate'));
+    fireEvent.click(screen.getByRole('button', { name: 'Translate & save Arabic' }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalled());
-    expect(lastRequestBody(fetchMock)).toEqual({ modelType: 'destination', id: 'dest-1' });
+    expect(lastRequestBody(fetchMock)).toEqual({ modelType: 'destination', id: 'dest-1', locale: 'ar' });
   });
 
   it('reports an unusable draft instead of quietly translating saved values', async () => {
@@ -125,10 +146,62 @@ describe('TranslationEditor Auto Translate payload', () => {
       },
     });
 
-    fireEvent.click(screen.getByText('Auto Translate'));
+    fireEvent.click(screen.getByRole('button', { name: 'Translate & save Arabic' }));
 
     await waitFor(() => expect(mockToastError).toHaveBeenCalled());
     expect(mockToastError.mock.calls[0][0]).toMatch(/too large/i);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('makes the selected locale the explicit save boundary', async () => {
+    renderEditor({ sourceDraft: { name: 'Hurghada' } });
+
+    fireEvent.click(screen.getByRole('button', { name: /German \(de\)/ }));
+    expect(screen.getByRole('button', { name: 'Translate & save German' })).toBeInTheDocument();
+    expect(screen.getByText('One language is saved at a time.')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Translate & save German' }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    expect(lastRequestBody(fetchMock)).toEqual({
+      modelType: 'destination',
+      id: 'dest-1',
+      locale: 'de',
+      sourceDraft: { name: 'Hurghada' },
+    });
+  });
+
+  it('adopts the server-merged locale without changing any other language', async () => {
+    const onChange = jest.fn();
+    fetchMock.mockResolvedValue(streamResponse([
+      {
+        event: 'locale_done',
+        data: {
+          locale: 'ar',
+          translations: { name: 'اسم يدوي', description: 'وصف مولد' },
+          preservedExisting: true,
+        },
+      },
+      { event: 'done', data: { success: true, translatedLocales: ['ar'], failedLocales: [] } },
+    ]));
+    renderEditor({
+      value: {
+        ar: { name: 'اسم يدوي' },
+        de: { name: 'Manuell' },
+      },
+      onChange,
+      sourceDraft: { name: 'Hurghada', description: 'Red Sea resort' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Translate & save Arabic' }));
+
+    await waitFor(() => expect(onChange).toHaveBeenCalledWith({
+      ar: { name: 'اسم يدوي', description: 'وصف مولد' },
+      de: { name: 'Manuell' },
+    }));
+    expect(lastRequestBody(fetchMock).localeDraft).toEqual({ name: 'اسم يدوي' });
+    expect(mockToastSuccess).toHaveBeenCalledWith(
+      'Arabic translated and saved. Existing manual text was preserved.',
+    );
   });
 });
