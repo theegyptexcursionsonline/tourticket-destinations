@@ -26,6 +26,11 @@ import { ensureImageMetadata } from '@/lib/content/imageMetadata';
 import ContentNavigationFields from '@/components/admin/ContentNavigationFields';
 import { PAGE_TEMPLATES, PAGE_TEMPLATE_LABELS, normalizePageTemplate } from '@/lib/content/pageTemplate';
 import { useAdminTenant } from '@/contexts/AdminTenantContext';
+import {
+  contentPageDraftDefaults,
+  contentPageValidationFields,
+  missingContentPageFields,
+} from '@/lib/admin/contentPageValidation';
 
 interface AttractionPageFormProps {
   pageId?: string;
@@ -543,6 +548,7 @@ export default function AttractionPageForm({ pageId, initialPageType = 'attracti
       const { linkedTours, linkedPages, linkedCategories, ...restData } = cleanedData;
       const payload = {
         ...restData,
+        ...contentPageDraftDefaults(cleanedData),
         tenantId: activeTenantId,
         highlights: Array.isArray(cleanedData.highlights) ? cleanedData.highlights.filter(item => item && item.trim() !== '') : [],
         features: Array.isArray(cleanedData.features) ? cleanedData.features.filter(item => item && item.trim() !== '') : [],
@@ -602,6 +608,14 @@ export default function AttractionPageForm({ pageId, initialPageType = 'attracti
     { id: 'seo', label: 'SEO', icon: Globe },
     { id: 'settings', label: 'Settings', icon: Eye }
   ];
+  const validationFields = contentPageValidationFields({
+    ...formData,
+    tenantId: activeTenantId,
+  });
+  const missingRequiredFields = missingContentPageFields({
+    ...formData,
+    tenantId: activeTenantId,
+  });
 
   // Overview Component
   const PageOverview = () => (
@@ -857,7 +871,7 @@ export default function AttractionPageForm({ pageId, initialPageType = 'attracti
                             </div>
                           {formData.pageType === 'category' && (
                             <div className="space-y-3">
-                              <FormLabel icon={MapPin}>Category</FormLabel>
+                              <FormLabel icon={MapPin} required>Category</FormLabel>
                               <SearchableCheckboxList
                                 options={categories.map((category) => ({ id: String(category._id), label: category.name }))}
                                 selectedIds={formData.categoryId ? [String(formData.categoryId)] : []}
@@ -944,7 +958,10 @@ export default function AttractionPageForm({ pageId, initialPageType = 'attracti
                       <div className="space-y-8">
                         {/* Hero Image */}
                         <div className="space-y-4">
-                          <FormLabel icon={Camera} required>Hero Image</FormLabel>
+                          <FormLabel icon={Camera} required={formData.isPublished}>Hero Image</FormLabel>
+                          {!formData.isPublished && (
+                            <SmallHint>Optional while this page is a draft; required before publishing.</SmallHint>
+                          )}
                           
                           {formData.heroImage ? (
                             <div className="group relative overflow-hidden rounded-2xl border-2 border-slate-200">
@@ -1256,15 +1273,15 @@ export default function AttractionPageForm({ pageId, initialPageType = 'attracti
                       <div className="space-y-6">
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                           <div className="space-y-3">
-                            <FormLabel icon={Grid3x3} required>Grid Title</FormLabel>
+                            <FormLabel icon={Grid3x3}>Grid Title</FormLabel>
                             <input 
                               name="gridTitle" 
                               value={formData.gridTitle} 
                               onChange={handleChange} 
                               className={inputBase} 
                               placeholder="e.g., Top Amsterdam Attractions" 
-                              required 
                             />
+                            <SmallHint>Optional on a new draft. If blank, the page title is used.</SmallHint>
                           </div>
                           <div className="space-y-3">
                             <FormLabel icon={Grid3x3}>Items Per Row</FormLabel>
@@ -1452,20 +1469,15 @@ export default function AttractionPageForm({ pageId, initialPageType = 'attracti
                             Form Validation
                           </h5>
                           <div className="space-y-2">
-                            {[
-                              { field: 'title', label: 'Title', value: formData.title },
-                              { field: 'description', label: 'Description', value: formData.description },
-                              { field: 'heroImage', label: 'Hero Image', value: formData.heroImage },
-                              { field: 'gridTitle', label: 'Grid Title', value: formData.gridTitle },
-                            ].map((item) => (
-                              <div key={item.field} className="flex items-center gap-2 text-sm">
-                                {item.value ? (
+                            {validationFields.map((item) => (
+                              <div key={item.key} className="flex items-center gap-2 text-sm">
+                                {item.complete ? (
                                   <Check className="h-4 w-4 text-green-500" />
                                 ) : (
                                   <X className="h-4 w-4 text-red-500" />
                                 )}
-                                <span className={`${item.value ? 'text-slate-600' : 'text-red-600'}`}>
-                                  {item.label} {item.value ? '✓' : '(required)'}
+                                <span className={`${item.complete ? 'text-slate-600' : 'text-red-600'}`}>
+                                  {item.label} {item.complete ? '✓' : '(required)'}
                                 </span>
                               </div>
                             ))}
@@ -1488,11 +1500,7 @@ export default function AttractionPageForm({ pageId, initialPageType = 'attracti
                       <button 
                         type="submit" 
                         disabled={
-                          saving || isUploading || 
-                          !formData.title?.trim() || 
-                          !formData.description?.trim() || 
-                          !formData.heroImage || 
-                          !formData.gridTitle?.trim()
+                          saving || isUploading || missingRequiredFields.length > 0
                         } 
                         className="flex-1 inline-flex justify-center items-center gap-3 px-6 py-3 text-white font-bold bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 active:scale-95 disabled:transform-none"
                       >
@@ -1511,13 +1519,13 @@ export default function AttractionPageForm({ pageId, initialPageType = 'attracti
                     </div>
                     
                     {/* Validation Message */}
-                    {(!formData.title?.trim() || !formData.description?.trim() || !formData.heroImage || !formData.gridTitle?.trim()) && (
+                    {missingRequiredFields.length > 0 && (
                       <div className="flex items-start gap-2 mt-4 p-3 bg-amber-50 border border-amber-200 rounded-xl">
                         <HelpCircle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
                         <div>
                           <p className="text-xs text-amber-700 font-medium">Missing required fields:</p>
                           <p className="text-xs text-amber-600 mt-1">
-                            Please fill in all required fields marked with (*) before saving.
+                            {missingRequiredFields.join(', ')}.
                           </p>
                         </div>
                       </div>

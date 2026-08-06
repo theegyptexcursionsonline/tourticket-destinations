@@ -13,6 +13,10 @@ import {
 } from '@/lib/attractionPages/validatePageLinks';
 import { sanitizeContentNavigation } from '@/lib/content/contentNavigation';
 import { ParentPageValidationError, validateParentPageSelection } from '@/lib/content/validateParentPage';
+import {
+  contentPageDraftDefaults,
+  missingContentPageFields,
+} from '@/lib/admin/contentPageValidation';
 
 export async function GET(request: NextRequest) {
   const auth = await requireAdminAuth(request, { permissions: ['manageContent'] });
@@ -158,22 +162,21 @@ async function POSTHandler(request: NextRequest) {
     }
     const targetTenantId = String(body.tenantId || '');
     if (!targetTenantId || !canAccessTenant(auth, targetTenantId)) return tenantForbiddenResponse();
-    body.parentPage = await validateParentPageSelection({
-      parentPage: body.parentPage,
-      currentSlug: body.slug,
-      tenantFilter: { tenantId: targetTenantId },
-    });
+    Object.assign(body, contentPageDraftDefaults(body));
 
-    // Validate required fields
-    const requiredFields = ['title', 'slug', 'description', 'heroImage', 'gridTitle', 'pageType'];
-    const missingFields = requiredFields.filter(field => !body[field]);
-    
+    const missingFields = missingContentPageFields(body);
     if (missingFields.length > 0) {
       return NextResponse.json({
         success: false,
         error: `Missing required fields: ${missingFields.join(', ')}`
       }, { status: 400 });
     }
+
+    body.parentPage = await validateParentPageSelection({
+      parentPage: body.parentPage,
+      currentSlug: body.slug,
+      tenantFilter: { tenantId: targetTenantId },
+    });
 
     // Check if slug already exists
     const existingPage = await AttractionPage.findOne({ slug: body.slug, tenantId: targetTenantId });
