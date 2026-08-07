@@ -1,6 +1,7 @@
 // WebSite + WebPage + SiteNavigationElement + BreadcrumbList schema
 import React from 'react';
 import { requestBaseUrl } from '@/lib/seo/requestBaseUrl';
+import { getTenantConfigCached, getTenantFromRequest } from '@/lib/tenant';
 import { serializeJsonLd } from '@/lib/security/serializeJsonLd';
 
 
@@ -12,12 +13,21 @@ interface Props {
 }
 
 export default async function WebSiteSchema({
-  pageName = 'Egypt Excursions Online - Tours & Day Trips in Egypt',
-  pageDescription = 'Book the best tours, day trips, and excursions across Egypt. Explore Hurghada, Cairo, Luxor, Sharm El Sheikh and more.',
+  pageName,
+  pageDescription,
   pageUrl,
   breadcrumbs,
 }: Props) {
   const BASE_URL = await requestBaseUrl();
+  // The site described here belongs to the brand the visitor is on. Hardcoded,
+  // every white-label WebSite/WebPage node carried the flagship's name — the
+  // page titles and OG tags were already tenant-aware, so only the structured
+  // data still misnamed the site.
+  const tenant = await getTenantConfigCached(await getTenantFromRequest()).catch(() => null);
+  const brandName = tenant?.name || 'Egypt Excursions Online';
+  const resolvedPageName = pageName || `${brandName} - Tours & Day Trips in Egypt`;
+  const resolvedPageDescription = pageDescription
+    || `Book tours, day trips and excursions across Egypt with ${brandName}.`;
   // Defaults to this brand's own origin, resolved per request.
   const resolvedPageUrl = pageUrl || BASE_URL;
   const breadcrumbItems = breadcrumbs || [{ name: 'Home', url: BASE_URL }];
@@ -29,7 +39,7 @@ export default async function WebSiteSchema({
         '@type': 'WebSite',
         '@id': `${BASE_URL}/#website`,
         url: BASE_URL,
-        name: 'Egypt Excursions Online',
+        name: brandName,
         description: 'Tours, day trips, and excursions across Egypt',
         publisher: { '@id': `${BASE_URL}/#organization` },
         potentialAction: {
@@ -46,8 +56,8 @@ export default async function WebSiteSchema({
         '@type': 'WebPage',
         '@id': `${resolvedPageUrl}/#webpage`,
         url: resolvedPageUrl,
-        name: pageName,
-        description: pageDescription,
+        name: resolvedPageName,
+        description: resolvedPageDescription,
         isPartOf: { '@id': `${BASE_URL}/#website` },
         about: { '@id': `${BASE_URL}/#organization` },
         inLanguage: 'en',
