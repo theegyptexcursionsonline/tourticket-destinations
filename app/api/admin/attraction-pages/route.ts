@@ -13,6 +13,7 @@ import {
 } from '@/lib/attractionPages/validatePageLinks';
 import { sanitizeContentNavigation } from '@/lib/content/contentNavigation';
 import { ParentPageValidationError, validateParentPageSelection } from '@/lib/content/validateParentPage';
+import { escapeRegex } from '@/lib/utils/escapeRegex';
 import {
   contentPageDraftDefaults,
   missingContentPageFields,
@@ -86,17 +87,33 @@ export async function GET(request: NextRequest) {
             ].filter(Boolean);
 
             if (searchTerms.length > 0) {
+              // Titles, keywords and highlights are editor content. Escape each
+              // one before it becomes a pattern — the alternation between terms
+              // is ours, the terms themselves must stay literal. An unescaped
+              // keyword emptied the EEO storefront homepage on 2026-08-07, and
+              // every tenant here shares this query shape.
+              const alternation = (values: string[]) => values
+                .filter((value) => value && value.trim().length > 0)
+                .map(escapeRegex)
+                .join('|');
+
               const searchQueries = [];
-              searchQueries.push({ title: { $regex: new RegExp(page.title, 'i') } });
-              searchQueries.push({ description: { $regex: new RegExp(page.title, 'i') } });
-              
+              searchQueries.push({ title: { $regex: new RegExp(escapeRegex(page.title), 'i') } });
+              searchQueries.push({ description: { $regex: new RegExp(escapeRegex(page.title), 'i') } });
+
               if (page.keywords && page.keywords.length > 0) {
+                const keywordPattern = alternation(page.keywords);
                 searchQueries.push({ tags: { $in: page.keywords } });
-                searchQueries.push({ highlights: { $elemMatch: { $regex: new RegExp(page.keywords.join('|'), 'i') } } });
+                if (keywordPattern) {
+                  searchQueries.push({ highlights: { $elemMatch: { $regex: new RegExp(keywordPattern, 'i') } } });
+                }
               }
-              
+
               if (page.highlights && page.highlights.length > 0) {
-                searchQueries.push({ highlights: { $elemMatch: { $regex: new RegExp(page.highlights.join('|'), 'i') } } });
+                const highlightPattern = alternation(page.highlights);
+                if (highlightPattern) {
+                  searchQueries.push({ highlights: { $elemMatch: { $regex: new RegExp(highlightPattern, 'i') } } });
+                }
               }
 
               tourCount = await Tour.countDocuments({
