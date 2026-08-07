@@ -1,10 +1,11 @@
 // Organization + LocalBusiness + TravelAgency schema for homepage
 import React from 'react';
+import { requestBaseUrl } from '@/lib/seo/requestBaseUrl';
 import { serializeJsonLd } from '@/lib/security/serializeJsonLd';
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://egypt-excursionsonline.com';
 
-export default function OrganizationSchema() {
+export default async function OrganizationSchema() {
+  const BASE_URL = await requestBaseUrl();
   const ld = {
     '@context': 'https://schema.org',
     '@graph': [

@@ -1,8 +1,8 @@
 // ItemList schema for tour listing pages — Google Things To Do
 import React from 'react';
+import { requestBaseUrl } from '@/lib/seo/requestBaseUrl';
 import { serializeJsonLd } from '@/lib/security/serializeJsonLd';
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://egypt-excursionsonline.com';
 
 interface TourItem {
   title: string;
@@ -21,11 +21,12 @@ interface Props {
   listDescription?: string;
 }
 
-export default function ToursListSchema({
+export default async function ToursListSchema({
   tours,
   listName = 'Popular Tours & Excursions in Egypt',
   listDescription = 'Browse the best-rated tours, day trips, and activities across Egypt',
 }: Props) {
+  const BASE_URL = await requestBaseUrl();
   if (!tours || tours.length === 0) return null;
 
   const ld = {

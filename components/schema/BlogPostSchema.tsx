@@ -1,8 +1,8 @@
 // BlogPosting + Article schema for blog detail pages
 import React from 'react';
+import { requestBaseUrl } from '@/lib/seo/requestBaseUrl';
 import { serializeJsonLd } from '@/lib/security/serializeJsonLd';
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://egypt-excursionsonline.com';
 
 interface Props {
   title: string;
@@ -16,7 +16,8 @@ interface Props {
   tags?: string[];
 }
 
-export default function BlogPostSchema({ title, slug, description, excerpt, image, author, publishedAt, updatedAt, tags }: Props) {
+export default async function BlogPostSchema({ title, slug, description, excerpt, image, author, publishedAt, updatedAt, tags }: Props) {
+  const BASE_URL = await requestBaseUrl();
   const postUrl = `${BASE_URL}/blog/${slug}`;
 
   const ld = {

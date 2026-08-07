@@ -1,8 +1,8 @@
 // Place + TouristDestination schema for destination detail pages
 import React from 'react';
+import { requestBaseUrl } from '@/lib/seo/requestBaseUrl';
 import { serializeJsonLd } from '@/lib/security/serializeJsonLd';
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://egypt-excursionsonline.com';
 
 interface Tour {
   title: string;
@@ -23,7 +23,8 @@ interface Props {
   tours?: Tour[];
 }
 
-export default function DestinationSchema({ name, slug, description, image, country, tours = [] }: Props) {
+export default async function DestinationSchema({ name, slug, description, image, country, tours = [] }: Props) {
+  const BASE_URL = await requestBaseUrl();
   const destUrl = `${BASE_URL}/destinations/${slug}`;
 
   const ld = {

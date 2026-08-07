@@ -1,8 +1,8 @@
 // WebSite + WebPage + SiteNavigationElement + BreadcrumbList schema
 import React from 'react';
+import { requestBaseUrl } from '@/lib/seo/requestBaseUrl';
 import { serializeJsonLd } from '@/lib/security/serializeJsonLd';
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://egypt-excursionsonline.com';
 
 interface Props {
   pageName?: string;
@@ -11,12 +11,15 @@ interface Props {
   breadcrumbs?: { name: string; url: string }[];
 }
 
-export default function WebSiteSchema({
+export default async function WebSiteSchema({
   pageName = 'Egypt Excursions Online - Tours & Day Trips in Egypt',
   pageDescription = 'Book the best tours, day trips, and excursions across Egypt. Explore Hurghada, Cairo, Luxor, Sharm El Sheikh and more.',
-  pageUrl = BASE_URL,
+  pageUrl,
   breadcrumbs,
 }: Props) {
+  const BASE_URL = await requestBaseUrl();
+  // Defaults to this brand's own origin, resolved per request.
+  const resolvedPageUrl = pageUrl || BASE_URL;
   const breadcrumbItems = breadcrumbs || [{ name: 'Home', url: BASE_URL }];
 
   const ld = {
@@ -41,8 +44,8 @@ export default function WebSiteSchema({
       },
       {
         '@type': 'WebPage',
-        '@id': `${pageUrl}/#webpage`,
-        url: pageUrl,
+        '@id': `${resolvedPageUrl}/#webpage`,
+        url: resolvedPageUrl,
         name: pageName,
         description: pageDescription,
         isPartOf: { '@id': `${BASE_URL}/#website` },
