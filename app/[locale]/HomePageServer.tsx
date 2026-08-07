@@ -194,13 +194,18 @@ async function getHomePageDataInternal(tenantId: string) {
       featured: category.featured
     }));
 
-    // For attractions, use a simplified count (skip expensive regex queries)
-    // The tour count will be approximate based on featured status
+    // Attraction counts come from the stored value rather than a per-page regex
+    // query, which is deliberate — those queries are expensive here.
+    //
+    // What is NOT acceptable is inventing one. This defaulted to `5`, so a page
+    // with no stored count advertised "5 tours" to customers as if it were
+    // measured. An unknown count is not a number; it is the absence of one, and
+    // the card renders without the figure instead.
     const attractionsWithCounts = attractionPages.map((page: any) => ({
       type: 'attraction' as const,
       name: page.title,
       slug: page.slug,
-      products: page.tourCount || 5, // Use stored count or default
+      products: Number.isFinite(page.tourCount) ? Number(page.tourCount) : null,
       _id: JSON.parse(JSON.stringify(page._id)),
       featured: page.featured,
       image: page.heroImage

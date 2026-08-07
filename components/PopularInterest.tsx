@@ -17,7 +17,8 @@ interface Interest {
   type: 'category' | 'attraction';
   name: string;
   slug: string;
-  products: number;
+  // null means the count is unknown — render nothing rather than a guess.
+  products: number | null;
   featured?: boolean;
   image?: string;
 }
@@ -86,7 +87,7 @@ const InterestCard = ({
       )}
 
       {/* Trending Badge */}
-      {interest.products > 50 && (
+      {(interest.products ?? 0) > 50 && (
         <div className="absolute top-4 start-4 z-20 bg-gradient-to-r from-green-400 to-emerald-500 text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-lg flex items-center gap-1">
           <TrendingUp className="w-3 h-3" />
           Trending
@@ -99,9 +100,11 @@ const InterestCard = ({
           {interest.name}
         </h3>
         <div className="flex items-center justify-between">
-          <p className="text-white/90 font-medium">
-            {interest.products} experiences
-          </p>
+          {typeof interest.products === 'number' ? (
+            <p className="text-white/90 font-medium">
+              {interest.products} experiences
+            </p>
+          ) : <span />}
           <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center group-hover:bg-white/30 transition-all">
             <ArrowRight className="w-5 h-5 text-white transform group-hover:translate-x-1 transition-transform" />
           </div>
