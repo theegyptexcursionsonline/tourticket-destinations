@@ -18,6 +18,7 @@ import { buildContentBreadcrumbs } from '@/lib/content/breadcrumbs';
 import ContentBreadcrumbs from '@/components/navigation/ContentBreadcrumbs';
 import { normalizePageTemplate, type PageTemplate } from '@/lib/content/pageTemplate';
 import { tourFromPrice } from '@/lib/pricing/displayPrice';
+import { contentPath } from '@/lib/content/contentUrl';
 
 type CategoryPageCopy = {
   searchToursPlaceholder: string;
@@ -181,8 +182,18 @@ type CategoryInsightDestination = {
   name: string;
   slug: string;
   image?: string;
+  urlType?: string;
+  parentPage?: { slug: string } | null;
   count: number;
 };
+
+const tourDetailPath = (tour: Tour) => contentPath(
+  'tour',
+  tour.slug,
+  tour.urlType,
+  typeof tour.destination === 'object' && tour.destination ? tour.destination.slug : undefined,
+  tour.parentPage?.slug,
+);
 
 type CategoryFaqItem = {
   question: string;
@@ -471,7 +482,13 @@ const AboutSection = ({
                 {popularDestinations.map((destination) => (
                   <Link
                     key={destination.slug}
-                    href={`/destinations/${destination.slug}`}
+                    href={contentPath(
+                      'destination',
+                      destination.slug,
+                      destination.urlType,
+                      undefined,
+                      destination.parentPage?.slug,
+                    )}
                     className="group bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-all"
                   >
                     <div className="relative h-40">
@@ -603,7 +620,7 @@ const TopPicksSection = ({
                     {tour.description?.replace(/<[^>]+>/g, '')}
                   </p>
                   <Link
-                    href={`/${tour.slug}`}
+                    href={tourDetailPath(tour)}
                     className="inline-flex items-center gap-2 text-red-600 font-semibold"
                   >
                     {copy.learnMore}
@@ -752,7 +769,7 @@ const TourCard = ({
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow flex flex-col group">
       <div className="relative">
-        <Link href={`/${tour.slug}`}>
+        <Link href={tourDetailPath(tour)}>
           <Image
             src={tour.image}
             alt={tour.title}
@@ -774,7 +791,7 @@ const TourCard = ({
       </div>
       <div className="p-4 flex-grow flex flex-col">
         <h3 className="font-bold text-lg text-slate-900 mb-2 line-clamp-2 flex-grow">
-          <Link href={`/${tour.slug}`} className="hover:text-red-600 transition-colors">
+          <Link href={tourDetailPath(tour)} className="hover:text-red-600 transition-colors">
             {tour.title}
           </Link>
         </h3>
@@ -789,7 +806,7 @@ const TourCard = ({
             )}
             <span className="text-xl font-bold text-red-600">{formatPrice(displayedPrice)}</span>
           </div>
-          <Link href={`/${tour.slug}`} className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors text-sm font-medium">
+          <Link href={tourDetailPath(tour)} className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors text-sm font-medium">
             {copy.viewDetails}
           </Link>
         </div>
@@ -854,6 +871,8 @@ export default function CategoryPageClient({
                     name: destinationName,
                     slug: destinationSlug,
                     image: rawDestination.image,
+                    urlType: rawDestination.urlType,
+                    parentPage: rawDestination.parentPage,
                     count: (existing?.count || 0) + 1,
                 });
             }
@@ -884,6 +903,8 @@ export default function CategoryPageClient({
                 name: destination.name,
                 slug: destination.slug,
                 image: destination.image,
+                urlType: destination.urlType,
+                parentPage: destination.parentPage,
                 count: destinationMap.get(destination.slug)?.count || 0,
             }));
         const popularDestinations = curatedPopularDestinations.length > 0
@@ -979,7 +1000,12 @@ export default function CategoryPageClient({
                 filtered.sort((a, b) => tourFromPrice(a).price - tourFromPrice(b).price);
                 break;
             case 'price_high':
-                filtered.sort((a, b) => ((b as { pricingSummary?: { fromPrice?: number } }).pricingSummary?.fromPrice ?? b.discountPrice ?? b.originalPrice ?? 0) - ((a as { pricingSummary?: { fromPrice?: number } }).pricingSummary?.fromPrice ?? a.discountPrice ?? a.originalPrice ?? 0));
+                // Sort by the same number the card shows. This branch used to read
+                // `pricingSummary.fromPrice`, a field this network's Tour model does
+                // not have, so it silently fell back to discountPrice/originalPrice
+                // and ordered tours by a price the customer never sees — visibly
+                // wrong for any tour whose cheapest booking option differs.
+                filtered.sort((a, b) => tourFromPrice(b).price - tourFromPrice(a).price);
                 break;
             case 'rating':
                 filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));

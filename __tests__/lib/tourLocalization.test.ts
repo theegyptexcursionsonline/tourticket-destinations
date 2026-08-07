@@ -3,6 +3,7 @@ import {
   localizeAndDedupeTours,
   selectLocalizedTourCandidate,
 } from '@/lib/translation/localizeTourCollection';
+import { localizeDestinationRecord } from '@/lib/i18n/localizeDestinationRecord';
 
 describe('tour localization helpers', () => {
   it('prefers translations.en over a foreign raw title on English pages', () => {
@@ -88,5 +89,28 @@ describe('tour localization helpers', () => {
     );
 
     expect(selected?.title).toBe('Beach and Desert Horse Riding Tour');
+  });
+
+  it('localizes populated destination fields with English fallback', () => {
+    const localized = localizeDestinationRecord(
+      {
+        name: 'Port Ghalib',
+        description: 'A Red Sea marina.',
+        faqs: [{ question: 'Where is it?', answer: 'Near Marsa Alam.' }],
+        translations: {
+          de: {
+            name: 'Port Ghalib Hafen',
+            faqs: [{ question: 'Wo liegt er?', answer: '' }],
+          },
+        },
+      },
+      'de',
+    );
+
+    expect(localized.name).toBe('Port Ghalib Hafen');
+    expect(localized.description).toBe('A Red Sea marina.');
+    expect(localized.faqs).toEqual([
+      { question: 'Wo liegt er?', answer: 'Near Marsa Alam.' },
+    ]);
   });
 });

@@ -13,8 +13,11 @@ import { getLocale } from 'next-intl/server';
 import { localizeAndDedupeTours } from '@/lib/translation/localizeTourCollection';
 import { localizeEntityFields, localizeStructuredEntries } from '@/lib/i18n/contentLocalization';
 import { categoryStructuredFields, categoryTranslationFields } from '@/lib/i18n/translationFields';
+import { localizeDestinationRecord } from '@/lib/i18n/localizeDestinationRecord';
+import { metadataAlternates } from '@/lib/i18n/metadataAlternates';
 import CollectionSchema from '@/components/schema/CollectionSchema';
 import { decideForSegment } from '@/lib/content/resolveContentBySlug';
+import { contentPath } from '@/lib/content/contentUrl';
 
 // Force dynamic rendering to fix ISR caching issues on Netlify
 export const dynamic = 'force-dynamic';
@@ -27,11 +30,13 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     const tenantId = await getTenantFromRequest();
     const tenantConfig = await getTenantConfig(tenantId);
     const siteName = tenantConfig?.name || 'Egypt Excursions Online';
+    const locale = await getLocale();
     
     await dbConnect();
     
     const category = await CategoryModel.findOne(buildStrictTenantQuery({ slug }, tenantId))
-      .select('name description heroImage metaTitle metaDescription keywords')
+      .select('name description heroImage metaTitle metaDescription keywords translations urlType parentPage')
+      .populate({ path: 'parentPage', select: 'slug' })
       .lean() as any;
 
     if (!category) {
@@ -41,14 +46,37 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       };
     }
 
+    const localizedCategory = localizeEntityFields(
+      category,
+      locale,
+      categoryTranslationFields.map((field) => field.key),
+    );
+    const title = localizedCategory.metaTitle || `${localizedCategory.name} Tours | ${siteName}`;
+    const description = localizedCategory.metaDescription
+      || (typeof localizedCategory.description === 'string'
+        ? localizedCategory.description.substring(0, 160)
+        : undefined)
+      || `Explore ${localizedCategory.name} tours and activities`;
+
     return {
-      title: category.metaTitle || `${category.name} Tours | ${siteName}`,
-      description: category.metaDescription || category.description?.substring(0, 160) || `Explore ${category.name} tours and activities`,
-      keywords: category.keywords?.join(', '),
+      title,
+      description,
+      keywords: Array.isArray(localizedCategory.keywords)
+        ? localizedCategory.keywords.join(', ')
+        : undefined,
+      // A category's public path depends on its urlType — new categories default
+      // to 'direct' (/{slug}), so hardcoding /categories/{slug} pointed the
+      // canonical and every hreflang at a URL that 301s back here. Redirecting
+      // hreflang URLs are discarded wholesale, which would have silently voided
+      // the multilingual work this metadata exists to deliver.
+      alternates: metadataAlternates(
+        locale,
+        contentPath('category', slug, category.urlType, undefined, category.parentPage?.slug),
+      ),
       openGraph: {
-        title: category.name,
-        description: category.description?.substring(0, 160),
-        images: category.heroImage ? [category.heroImage] : [],
+        title,
+        description,
+        images: localizedCategory.heroImage ? [String(localizedCategory.heroImage)] : [],
         type: 'website',
       },
     };
@@ -67,9 +95,14 @@ async function getPageData(slug: string, tenantId: string) {
   const category = await CategoryModel.findOne(buildStrictTenantQuery({ slug }, tenantId))
     .populate({
       path: 'popularDestinationIds',
-      select: 'name slug image',
-      // An unpublished destination must never surface on the storefront rail.
-      match: { isPublished: { $ne: false } },
+      select: 'name slug image urlType parentPage translations faqs travelTips imageMetadata',
+      // An unpublished destination must never surface on the storefront rail —
+      // and neither must another brand's. The ids are stored ObjectIds written
+      // straight from the admin body, so the join is a real tenant boundary:
+      // without this scope one brand's rail could render a second brand's
+      // destination, and (with the widened select above) ship its FAQs, travel
+      // tips, captions and every locale translation into this brand's page.
+      match: buildStrictTenantQuery({ isPublished: { $ne: false } }, tenantId),
     })
     .lean() as any;
   if (!category) {
@@ -168,13 +201,29 @@ export async function renderCategoryPage(slug: string) {
   );
 
   // Apply translations for the current locale
-  const localizedTours = localizeAndDedupeTours(categoryTours as any[], locale);
+  const localizedTours = localizeAndDedupeTours(categoryTours as any[], locale)
+    .map((tour: any) => ({
+      ...tour,
+      destination: tour.destination && typeof tour.destination === 'object'
+        ? localizeDestinationRecord(tour.destination, locale)
+        : tour.destination,
+    }));
   const catFields = categoryTranslationFields.map(f => f.key);
-  const localizedCategory = localizeStructuredEntries(
+  const localizedCategoryBase = localizeStructuredEntries(
     localizeEntityFields(category, locale, catFields),
     locale,
     categoryStructuredFields,
   );
+  const localizedCategory = {
+    ...localizedCategoryBase,
+    popularDestinationIds: Array.isArray((localizedCategoryBase as any).popularDestinationIds)
+      ? (localizedCategoryBase as any).popularDestinationIds.map((destination: unknown) => (
+        destination && typeof destination === 'object'
+          ? localizeDestinationRecord(destination as Record<string, unknown>, locale)
+          : destination
+      ))
+      : [],
+  };
 
   return (
     <>
@@ -184,7 +233,13 @@ export async function renderCategoryPage(slug: string) {
         url={`/categories/${slug}`}
         items={(localizedTours as any[]).map((t: any) => ({
           name: t.title,
-          url: `/${t.slug}`,
+          url: contentPath(
+            'tour',
+            t.slug,
+            t.urlType,
+            t.destination && typeof t.destination === 'object' ? t.destination.slug : undefined,
+            t.parentPage?.slug,
+          ),
           image: t.image,
         }))}
         breadcrumbs={[

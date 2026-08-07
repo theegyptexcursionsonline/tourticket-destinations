@@ -30,6 +30,30 @@ describe('page-system helpers', () => {
     }
   });
 
+  it('keeps the category wrapper tenant-safe, localized, and URL-type aware', () => {
+    const source = readFileSync(
+      join(process.cwd(), 'app/[locale]/categories/[slug]/page.tsx'),
+      'utf8',
+    );
+
+    // The canonical must follow the category's own urlType. Hardcoding the
+    // /categories/ shape aimed canonical + every hreflang at a 301, because new
+    // categories default to 'direct'.
+    expect(source).not.toContain('metadataAlternates(locale, `/categories/${slug}`)');
+    expect(source).toMatch(/metadataAlternates\(\s*locale,\s*contentPath\('category',\s*slug,/);
+    expect(source).toMatch(/\.select\([^)]*urlType[^)]*parentPage/);
+
+    // The popular-destinations rail joins on ids written straight from the admin
+    // body, so the populate is a tenant boundary, not just a publish filter.
+    expect(source).toMatch(/match: buildStrictTenantQuery\(\{ isPublished/);
+
+    expect(source).toContain('localizeDestinationRecord(tour.destination, locale)');
+    // Assert the behaviour (tour links resolve through contentPath), not the
+    // exact indentation — a reformat must not fail the build.
+    expect(source).toMatch(/contentPath\(\s*'tour'/);
+    expect(source).not.toContain('url: `/${t.slug}`');
+  });
+
   it('builds direct, prefixed, city and parent-owned canonical paths', () => {
     expect(contentPath('tour', 'luxor', 'direct')).toBe('/luxor');
     expect(contentPath('tour', 'luxor', 'tour')).toBe('/tour/luxor');
