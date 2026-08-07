@@ -1,35 +1,48 @@
 // Organization + LocalBusiness + TravelAgency schema for homepage
 import React from 'react';
 import { requestBaseUrl } from '@/lib/seo/requestBaseUrl';
+import { getTenantConfigCached, getTenantFromRequest } from '@/lib/tenant';
 import { serializeJsonLd } from '@/lib/security/serializeJsonLd';
 
 
 export default async function OrganizationSchema() {
   const BASE_URL = await requestBaseUrl();
+  // One build serves every brand, so the business described here has to be the
+  // brand the visitor is on. Hardcoded, every white-label site was declaring
+  // itself to search engines as the flagship company — its name, phone, email,
+  // address and social profiles.
+  const tenant = await getTenantConfigCached(await getTenantFromRequest()).catch(() => null);
+  const brandName = tenant?.name || 'Egypt Excursions Online';
+  const brandEmail = tenant?.contact?.email || 'info@egypt-excursionsonline.com';
+  const brandPhone = tenant?.contact?.phone || '+20-100-000-0000';
+  const brandCity = tenant?.contact?.city || 'Hurghada';
+  const brandLogo = tenant?.branding?.logo || `${BASE_URL}/logo.png`;
+  const brandSocial = [
+    tenant?.socialLinks?.facebook,
+    tenant?.socialLinks?.instagram,
+    tenant?.socialLinks?.tripadvisor,
+  ].filter(Boolean) as string[];
   const ld = {
     '@context': 'https://schema.org',
     '@graph': [
       {
         '@type': ['TravelAgency', 'LocalBusiness', 'Organization'],
         '@id': `${BASE_URL}/#organization`,
-        name: 'Egypt Excursions Online',
-        alternateName: 'EEO',
+        name: brandName,
         url: BASE_URL,
         logo: {
           '@type': 'ImageObject',
-          url: `${BASE_URL}/logo.png`,
+          url: brandLogo,
           width: 512,
           height: 512,
         },
         image: `${BASE_URL}/og-image.jpg`,
-        description:
-          'Egypt Excursions Online offers unforgettable tours, day trips, and excursions across Egypt including Hurghada, Cairo, Luxor, Sharm El Sheikh, and Aswan.',
-        telephone: '+20-100-000-0000',
-        email: 'info@egypt-excursionsonline.com',
+        description: `${brandName} offers tours, day trips and excursions across Egypt.`,
+        telephone: brandPhone,
+        email: brandEmail,
         address: {
           '@type': 'PostalAddress',
-          streetAddress: 'Hurghada',
-          addressLocality: 'Hurghada',
+          addressLocality: brandCity,
           addressRegion: 'Red Sea Governorate',
           addressCountry: 'EG',
         },
@@ -55,18 +68,12 @@ export default async function OrganizationSchema() {
           opens: '00:00',
           closes: '23:59',
         },
-        sameAs: [
-          'https://www.facebook.com/egyptexcursionsonline',
-          'https://www.instagram.com/egyptexcursionsonline',
-          'https://www.tripadvisor.com/Attraction_Review-Egypt_Excursions_Online',
-        ],
-        aggregateRating: {
-          '@type': 'AggregateRating',
-          ratingValue: '4.8',
-          reviewCount: '2450',
-          bestRating: '5',
-          worstRating: '1',
-        },
+        ...(brandSocial.length > 0 ? { sameAs: brandSocial } : {}),
+        // A hardcoded 4.8 from 2,450 reviews used to be emitted here for every
+        // brand. Structured data is a factual claim to search engines, and that
+        // figure was backed by nothing — same invented-numbers class already
+        // removed from the page templates. Omitted until it can be computed
+        // from this brand's real reviews.
         speakable: {
           '@type': 'SpeakableSpecification',
           cssSelector: ['h1', '.organization-description'],
