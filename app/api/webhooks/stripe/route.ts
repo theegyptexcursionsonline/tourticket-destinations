@@ -14,6 +14,7 @@ import { getTenantConfigCached } from '@/lib/tenant';
 import { ITenant } from '@/lib/models/Tenant';
 import { TenantEmailBranding } from '@/lib/email/type';
 import { deliverCheckoutNotifications } from '@/lib/bookings/checkoutNotificationDelivery';
+import { unpackCartMetadata } from '@/lib/checkout/cartMetadata';
 
 // Lazy Stripe initialization to avoid build-time errors
 let stripeInstance: Stripe | null = null;
@@ -339,7 +340,8 @@ async function processSuccessfulPayment(paymentIntent: Stripe.PaymentIntent) {
   // Parse cart data from metadata
   let cartData;
   try {
-    const cartJson = metadata.cart_data + (metadata.cart_data_2 || '');
+    // Reassembles every chunk the checkout wrote, not only the first two.
+    const cartJson = unpackCartMetadata(metadata);
     cartData = JSON.parse(cartJson);
   } catch (e) {
     console.error(`[Webhook] Failed to parse cart data for payment ${paymentId}:`, e);

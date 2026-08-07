@@ -4,6 +4,7 @@ import Stripe from 'stripe';
 import dbConnect from '@/lib/dbConnect';
 import { getTenantConfigCached, getTenantFromRequest } from '@/lib/tenant';
 import { calculateCheckoutPricing, checkoutCustomerRef, checkoutFingerprint } from '@/lib/security/checkoutPricing';
+import { CartMetadataTooLargeError, packCartMetadata } from '@/lib/checkout/cartMetadata';
 
 // Lazy initialization to avoid build-time errors when env vars are missing
 let _stripe: Stripe | null = null;
@@ -94,9 +95,25 @@ export async function POST(request: Request) {
     }));
 
     // Serialize cart data, split if needed (Stripe metadata value limit is 500 chars)
-    const cartJson = JSON.stringify(cartSummary);
-    const cartData = cartJson.substring(0, 500);
-    const cartData2 = cartJson.length > 500 ? cartJson.substring(500) : '';
+    // Everything past 500 characters used to go into a single second key, but
+    // Stripe caps each value at 500 — so a cart over about six tours made Stripe
+    // reject the request and the customer simply could not check out, with no
+    // useful message. Chunk across as many keys as the cart needs, and refuse
+    // explicitly if it still will not fit.
+    let packedCart: Record<string, string>;
+    try {
+      packedCart = packCartMetadata(cartSummary);
+    } catch (cartMetadataError) {
+      if (!(cartMetadataError instanceof CartMetadataTooLargeError)) throw cartMetadataError;
+      return NextResponse.json(
+        {
+          success: false,
+          code: 'CART_TOO_LARGE',
+          message: 'This booking has too many items to process in one payment. Please book them in two smaller orders.',
+        },
+        { status: 400, headers: { 'Cache-Control': 'no-store' } },
+      );
+    }
 
     // Use tenant-specific Stripe account if configured, otherwise use default
     // Note: For Stripe Connect, you would use stripeAccount parameter
@@ -114,8 +131,7 @@ export async function POST(request: Request) {
         customer_email: normalizedEmail,
         customer_first_name: customer.firstName,
         customer_last_name: customer.lastName,
-        cart_data: cartData,
-        ...(cartData2 && { cart_data_2: cartData2 }),
+        ...packedCart,
         pricing_total: String(pricing.total),
         pricing_subtotal: String(pricing.subtotal || 0),
         pricing_service_fee: String(pricing.serviceFee || 0),
