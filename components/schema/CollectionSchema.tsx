@@ -1,8 +1,28 @@
 // CollectionPage + BreadcrumbList schema for listing pages (destinations, categories, interests, blog)
 import React from 'react';
+import { headers } from 'next/headers';
 import { serializeJsonLd } from '@/lib/security/serializeJsonLd';
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://egypt-excursionsonline.com';
+// One build serves every white-label brand, so a build-time base URL is always
+// the wrong brand for someone. Left as an env constant, these listing pages
+// published structured data pointing at the shared Netlify host — a customer
+// site telling search engines it lives somewhere else, and leaking the internal
+// deployment name onto a branded surface. Resolve the origin per request
+// instead; the env value stays only as a build/test fallback.
+const FALLBACK_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://egypt-excursionsonline.com';
+
+async function requestBaseUrl(): Promise<string> {
+  try {
+    const headerList = await headers();
+    const host = headerList.get('x-tenant-domain') || headerList.get('host');
+    if (!host) return FALLBACK_BASE_URL;
+    const forwardedProto = headerList.get('x-forwarded-proto');
+    const protocol = forwardedProto || (host.startsWith('localhost') || host.startsWith('127.0.0.1') ? 'http' : 'https');
+    return `${protocol}://${host}`;
+  } catch {
+    return FALLBACK_BASE_URL;
+  }
+}
 
 interface ListItem {
   name: string;
@@ -18,7 +38,8 @@ interface Props {
   breadcrumbs?: { name: string; url: string }[];
 }
 
-export default function CollectionSchema({ name, description, url, items = [], breadcrumbs }: Props) {
+export default async function CollectionSchema({ name, description, url, items = [], breadcrumbs }: Props) {
+  const BASE_URL = await requestBaseUrl();
   const fullUrl = url.startsWith('http') ? url : `${BASE_URL}${url}`;
   const crumbs = breadcrumbs || [
     { name: 'Home', url: BASE_URL },
@@ -31,7 +52,9 @@ export default function CollectionSchema({ name, description, url, items = [], b
       {
         '@type': 'CollectionPage',
         name,
-        description: description || `Browse ${name} on Egypt Excursions Online`,
+        // Naming one brand here put that brand's name on every other brand's
+        // pages. The collection name alone is brand-neutral and true anywhere.
+        description: description || `Browse ${name}`,
         url: fullUrl,
         isPartOf: { '@id': `${BASE_URL}/#website` },
         about: { '@id': `${BASE_URL}/#organization` },
