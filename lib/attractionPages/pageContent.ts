@@ -7,6 +7,8 @@ import Destination from '@/lib/models/Destination';
 import { localizeEntityFields } from '@/lib/i18n/contentLocalization';
 import { buildStrictTenantQuery } from '@/lib/tenant';
 import { pagePath } from '@/lib/attractionPages/pageUrl';
+import { contentPath } from '@/lib/content/contentUrl';
+import { escapeRegex } from '@/lib/utils/escapeRegex';
 
 export const ATTRACTION_PAGE_LOCALIZED_FIELDS = [
   'title',
@@ -149,7 +151,8 @@ export async function resolveLinkedPageCards(
       : [],
     categoryIds.length
       ? Category.find({ _id: { $in: categoryIds }, tenantId, isPublished: { $ne: false } })
-          .select('name slug description heroImage translations')
+          .select('name slug description heroImage translations urlType parentPage')
+          .populate({ path: 'parentPage', select: 'slug' })
           .lean()
       : [],
   ]);
@@ -181,7 +184,18 @@ export async function resolveLinkedPageCards(
       title: String(localized.name || ''),
       description: localized.description ? String(localized.description) : undefined,
       image: doc.heroImage ? String(doc.heroImage) : undefined,
-      href: `/categories/${String(doc.slug || '')}`,
+      // A category's public path follows its own urlType — new ones default to
+      // 'direct' (/{slug}), so a hardcoded /categories/ link sends the visitor
+      // through a 301 on the most common shape.
+      href: contentPath(
+        'category',
+        String(doc.slug || ''),
+        doc.urlType as string | undefined,
+        undefined,
+        typeof doc.parentPage === 'object' && doc.parentPage
+          ? String((doc.parentPage as Record<string, unknown>).slug || '')
+          : undefined,
+      ),
       kind: 'category',
     });
   }
@@ -192,6 +206,3 @@ export async function resolveLinkedPageCards(
   return cards;
 }
 
-function escapeRegex(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}

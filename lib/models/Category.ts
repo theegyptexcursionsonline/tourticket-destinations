@@ -44,7 +44,11 @@ export interface ICategory extends Document {
   faqs?: Array<{ question: string; answer: string }>;
   travelTips?: Array<{ title: string; content: string }>;
   popularDestinationIds?: mongoose.Types.ObjectId[];
-  
+  linkedPageIds?: mongoose.Types.ObjectId[];
+  linkedCategoryIds?: mongoose.Types.ObjectId[];
+  linkedPagesTitle?: string;
+  linkedPagesSubtitle?: string;
+
   // SEO
   metaTitle?: string;
   metaDescription?: string;
@@ -167,7 +171,32 @@ const CategorySchema: Schema<ICategory> = new Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Destination',
   }],
-  
+
+  // Curated "other page listings" — editor-chosen pages and categories shown
+  // beneath the tour grid. Ids are resolved through resolveLinkedPageCards(),
+  // which scopes them to the owning tenant; a stored id is a request, never a
+  // grant, because it arrives from the admin body.
+  linkedPageIds: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'AttractionPage',
+  }],
+  linkedCategoryIds: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Category',
+  }],
+  linkedPagesTitle: {
+    type: String,
+    trim: true,
+    maxlength: [200, 'Other page listings title cannot exceed 200 characters'],
+    default: 'Explore more',
+  },
+  linkedPagesSubtitle: {
+    type: String,
+    trim: true,
+    maxlength: [500, 'Other page listings subtitle cannot exceed 500 characters'],
+    default: 'Hand-picked guides and collections related to this page',
+  },
+
   // SEO
   metaTitle: {
     type: String,

@@ -4,6 +4,7 @@ import dbConnect from '@/lib/dbConnect';
 import TourModel from '@/lib/models/Tour';
 import CategoryModel from '@/lib/models/Category';
 import CategoryPageClient from './CategoryPageClient';
+import { resolveLinkedPageCards } from '@/lib/attractionPages/pageContent';
 import {
   buildStrictTenantQuery,
   getTenantFromRequest,
@@ -193,6 +194,10 @@ export async function renderCategoryPage(slug: string) {
     notFound();
   }
 
+  // Curated "other page listings". Resolved with the request tenant so a
+  // stored id can only ever surface this brand's own pages.
+  const linkedPages = await resolveLinkedPageCards(category, tenantId, locale);
+
   const relatedInterests = await getRelatedCategoryInterests(
     String(category._id),
     slug,
@@ -252,6 +257,7 @@ export async function renderCategoryPage(slug: string) {
         category={localizedCategory}
         categoryTours={localizedTours}
         relatedInterests={relatedInterests}
+        linkedPages={linkedPages}
       />
     </>
   );

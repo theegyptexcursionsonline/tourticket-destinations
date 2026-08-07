@@ -6,6 +6,7 @@ import {
 // app/api/categories/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidateStorefrontContent } from '@/lib/storefront/revalidateTourStorefront';
+import { scopeCategoryRelationIds } from '@/lib/admin/tenantOwnedIds';
 import dbConnect from '@/lib/dbConnect';
 import Category from '@/lib/models/Category';
 import mongoose from 'mongoose';
@@ -123,6 +124,10 @@ async function PUTHandler(
         }, { status: 400 });
       }
     }
+
+    // Curated ids arrive as raw ObjectIds from the admin body; keep only the
+    // ones this brand actually owns so a foreign id can never be stored.
+    await scopeCategoryRelationIds(body, tenantId);
 
     const category = await Category.findOneAndUpdate(
       { _id: id, tenantId },

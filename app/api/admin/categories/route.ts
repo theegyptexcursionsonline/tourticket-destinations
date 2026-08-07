@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { revalidateStorefrontContent } from '@/lib/storefront/revalidateTourStorefront';
 import dbConnect from '@/lib/dbConnect';
 import Category from '@/lib/models/Category';
+import { scopeCategoryRelationIds } from '@/lib/admin/tenantOwnedIds';
 import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 
 export async function GET(request: NextRequest) {
@@ -56,6 +57,10 @@ async function POSTHandler(request: NextRequest) {
     }
 
     await dbConnect(tenantId && tenantId !== 'all' ? tenantId : undefined);
+    // Same boundary as the update path: a curated id is only stored if this
+    // brand owns the record it points at.
+    await scopeCategoryRelationIds(body, String(targetTenantId || ''));
+
     const category = await Category.create(body);
     revalidateStorefrontContent();
 

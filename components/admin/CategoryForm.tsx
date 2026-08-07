@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 import {
     Loader2, X, Plus, Check, ChevronDown, Camera, Grid3x3, Info, Globe,
     UploadCloud, Trash2, Eye, Tag, FileText, Sparkles, ArrowLeft,
-    Minus, HelpCircle, Palette
+    Minus, HelpCircle, Palette, LayoutGrid
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import Image from 'next/image';
@@ -24,6 +24,7 @@ import ContentNavigationFields from '@/components/admin/ContentNavigationFields'
 import type { ParentPageValue } from '@/lib/content/contentNavigation';
 import { PAGE_TEMPLATES, PAGE_TEMPLATE_LABELS, normalizePageTemplate, type PageTemplate } from '@/lib/content/pageTemplate';
 import { useAdminTenant } from '@/contexts/AdminTenantContext';
+import ListingPicker, { type PickerOption } from '@/components/admin/ListingPicker';
 
 interface CategoryFormData {
   name: string;
@@ -43,6 +44,10 @@ interface CategoryFormData {
   faqs: ContentFaq[];
   travelTips: ContentTravelTip[];
   popularDestinationIds: string[];
+  linkedPageIds: string[];
+  linkedCategoryIds: string[];
+  linkedPagesTitle: string;
+  linkedPagesSubtitle: string;
   metaTitle: string;
   metaDescription: string;
   keywords: string[];
@@ -76,6 +81,10 @@ const defaultFormData: CategoryFormData = {
   faqs: [],
   travelTips: [],
   popularDestinationIds: [],
+  linkedPageIds: [],
+  linkedCategoryIds: [],
+  linkedPagesTitle: '',
+  linkedPagesSubtitle: '',
   metaTitle: '',
   metaDescription: '',
   keywords: [],
@@ -114,6 +123,7 @@ export default function CategoryForm({ categoryId }: CategoryFormProps) {
   const { selectedTenantId } = useAdminTenant();
   const [entityTenantId, setEntityTenantId] = useState('');
   const activeTenantId = entityTenantId || (selectedTenantId !== 'all' ? selectedTenantId : '');
+  const [selectedPages, setSelectedPages] = useState<PickerOption[]>([]);
   const isPanelOpen = true;
   const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(false);
   const [activeTab, setActiveTab] = useState('basic');
@@ -182,6 +192,10 @@ export default function CategoryForm({ categoryId }: CategoryFormProps) {
           faqs: Array.isArray(category.faqs) ? category.faqs : [],
           travelTips: Array.isArray(category.travelTips) ? category.travelTips : [],
           popularDestinationIds: Array.isArray(category.popularDestinationIds) ? category.popularDestinationIds.map(String) : [],
+          linkedPageIds: Array.isArray(category.linkedPageIds) ? category.linkedPageIds.map(String) : [],
+          linkedCategoryIds: Array.isArray(category.linkedCategoryIds) ? category.linkedCategoryIds.map(String) : [],
+          linkedPagesTitle: category.linkedPagesTitle || '',
+          linkedPagesSubtitle: category.linkedPagesSubtitle || '',
           metaTitle: category.metaTitle || '',
           metaDescription: category.metaDescription || '',
           keywords: Array.isArray(category.keywords) ? category.keywords : [],
@@ -192,6 +206,24 @@ export default function CategoryForm({ categoryId }: CategoryFormProps) {
           featured: category.featured || false,
           translations: normalizeTranslations(category.translations),
         });
+
+        // Show the saved curation in the picker, in the stored order, so an
+        // editor opening the tab sees what is live rather than an empty box.
+        const linkedRefIds = [
+          ...(Array.isArray(category.linkedPageIds) ? category.linkedPageIds.map(String) : []),
+          ...(Array.isArray(category.linkedCategoryIds) ? category.linkedCategoryIds.map(String) : []),
+        ];
+        if (linkedRefIds.length > 0 && activeTenantId) {
+          fetch(`/api/admin/pages/options?kind=pages&ids=${linkedRefIds.join(',')}&tenantId=${encodeURIComponent(activeTenantId)}`)
+            .then((res) => res.json())
+            .then((json) => {
+              if (!json.success) return;
+              const byId = new Map((json.data as PickerOption[]).map((option) => [option.id, option]));
+              setSelectedPages(linkedRefIds.map((refId) => byId.get(refId)).filter(Boolean) as PickerOption[]);
+            })
+            .catch(() => {});
+        }
+
         setIsSlugManuallyEdited(Boolean(category.slug));
       } else {
         setError(data.error || 'Failed to fetch category data');
@@ -325,6 +357,10 @@ export default function CategoryForm({ categoryId }: CategoryFormProps) {
         faqs: formData.faqs.filter((item) => item.question.trim() && item.answer.trim()),
         travelTips: formData.travelTips.filter((item) => item.title.trim() && item.content.trim()),
         popularDestinationIds: formData.popularDestinationIds,
+        linkedPageIds: formData.linkedPageIds,
+        linkedCategoryIds: formData.linkedCategoryIds,
+        linkedPagesTitle: formData.linkedPagesTitle,
+        linkedPagesSubtitle: formData.linkedPagesSubtitle,
         keywords: Array.isArray(formData.keywords) ? formData.keywords.filter(item => item && item.trim() !== '') : [],
         cityDestination: formData.urlType === 'city' ? formData.cityDestination || undefined : undefined,
         ...(hasTranslations ? { translations } : {}),
@@ -368,6 +404,7 @@ export default function CategoryForm({ categoryId }: CategoryFormProps) {
     { id: 'basic', label: 'Basic Info', icon: Info },
     { id: 'media', label: 'Media', icon: Camera },
     { id: 'content', label: 'Content', icon: Sparkles },
+    { id: 'listings', label: 'Listings', icon: LayoutGrid },
     { id: 'translations', label: 'Translations', icon: Globe },
     { id: 'seo', label: 'SEO', icon: Globe },
     { id: 'settings', label: 'Settings', icon: Eye }
@@ -889,6 +926,61 @@ export default function CategoryForm({ categoryId }: CategoryFormProps) {
                     )}
 
                     {/* Translations Tab */}
+                    {activeTab === 'listings' && (
+                      <div className="space-y-8">
+                        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                          <h2 className="text-lg font-bold text-slate-900">Other Page Listings</h2>
+                          <p className="mt-1 text-sm text-slate-600">
+                            Hand-pick attraction pages, catalogues and categories to show as a card grid beneath the tours on this page.
+                          </p>
+                        </div>
+                        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                          <div className="space-y-3">
+                            <label className="text-sm font-semibold text-slate-700">Section title</label>
+                            <input
+                              name="linkedPagesTitle"
+                              value={formData.linkedPagesTitle}
+                              onChange={handleChange}
+                              maxLength={200}
+                              className={inputBase}
+                              placeholder="Explore more"
+                            />
+                            <p className="mt-2 text-xs text-slate-500">Shown above the cards. Leave empty to use “Explore more”.</p>
+                          </div>
+                          <div className="space-y-3">
+                            <label className="text-sm font-semibold text-slate-700">Section subtitle</label>
+                            <textarea
+                              name="linkedPagesSubtitle"
+                              value={formData.linkedPagesSubtitle}
+                              onChange={handleChange}
+                              maxLength={500}
+                              rows={3}
+                              className={inputBase}
+                              placeholder="Hand-picked guides and collections related to this page"
+                            />
+                            <p className="mt-2 text-xs text-slate-500">Clear this to show the cards with no subtitle at all.</p>
+                          </div>
+                        </div>
+                        <ListingPicker
+                          label="Pages and categories"
+                          hint="Cards appear in this order: selected pages first, then selected categories. Unpublished pages never reach the public site."
+                          placeholder="Search pages and categories…"
+                          optionsKind="pages"
+                          tenantId={activeTenantId}
+                          excludeId={categoryId}
+                          selected={selectedPages}
+                          onChange={(next) => {
+                            setSelectedPages(next);
+                            setFormData((current) => ({
+                              ...current,
+                              linkedPageIds: next.filter((item) => item.kind !== 'category').map((item) => item.id),
+                              linkedCategoryIds: next.filter((item) => item.kind === 'category').map((item) => item.id),
+                            }));
+                          }}
+                        />
+                      </div>
+                    )}
+
                     {activeTab === 'translations' && (
                       <div className="space-y-6">
                         <TranslationEditor
