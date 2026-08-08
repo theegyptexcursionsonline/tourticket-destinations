@@ -18,6 +18,7 @@ import { signToken } from '@/lib/jwt';
 import mongoose from 'mongoose';
 import Availability from '@/lib/models/Availability';
 import StopSale from '@/lib/models/StopSale';
+import { assertStripePaymentAvailableForBooking } from '@/lib/security/stripePaymentState';
 
 // Helper to convert tenant config to email branding
 function getTenantEmailBranding(tenantConfig: ITenant | null, baseUrl: string): TenantEmailBranding | undefined {
@@ -343,11 +344,10 @@ export async function POST(request: Request) {
         // If paymentIntentId is provided, verify the payment
         if (paymentDetails?.paymentIntentId) {
           const stripe = getStripe();
-          const paymentIntent = await stripe.paymentIntents.retrieve(paymentDetails.paymentIntentId);
-
-          if (paymentIntent.status !== 'succeeded') {
-            throw new Error('Payment has not been completed. Please complete the payment and try again.');
-          }
+          const paymentIntent = await stripe.paymentIntents.retrieve(paymentDetails.paymentIntentId, {
+            expand: ['latest_charge'],
+          });
+          assertStripePaymentAvailableForBooking(paymentIntent);
 
           if (
             paymentIntent.metadata?.has_booking_data !== 'true' ||
