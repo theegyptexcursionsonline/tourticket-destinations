@@ -254,15 +254,15 @@ describe('checkout pricing applies the tour discount exactly like the booking wr
     }], 'brand-a')).rejects.toThrow('Invalid tour price');
   });
 
-  it('leaves the no-option tour price untouched by the percentage', async () => {
+  it('applies the percentage to the no-option tour base price', async () => {
     const result = await calculateCheckoutPricing([{
       id: '507f1f77bcf86cd799439011',
       quantity: 1,
       selectedDate: '2099-01-01',
     }], 'brand-a');
 
-    // Tour-level price carries no per-option opt-in, so no percentage applies —
-    // identical to authoritativeBasePrice's no-option branch.
-    expect(result.pricing.subtotal).toBe(100);
+    // The percentage always applies to the tour base; only named booking
+    // options require the explicit opt-in checkbox.
+    expect(result.pricing.subtotal).toBe(80);
   });
 });

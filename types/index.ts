@@ -336,6 +336,8 @@ export interface AttractionPage {
   linkedTourIds?: string[];
   linkedPageIds?: string[];
   linkedCategoryIds?: string[];
+  linkedPagesTitle?: string;
+  linkedPagesSubtitle?: string;
   translations?: Record<string, Record<string, unknown>>;
 }
 
@@ -370,6 +372,8 @@ export interface AttractionPageFormData {
   linkedTours?: string[];
   linkedPages?: string[];
   linkedCategories?: string[];
+  linkedPagesTitle: string;
+  linkedPagesSubtitle: string;
   translations?: Record<string, Record<string, unknown>>;
 }
 

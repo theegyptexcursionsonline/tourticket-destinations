@@ -70,6 +70,8 @@ const defaultFormData: AttractionPageFormData = {
   linkedTours: [],
   linkedPages: [],
   linkedCategories: [],
+  linkedPagesTitle: 'Explore more',
+  linkedPagesSubtitle: '',
   translations: {},
 };
 
@@ -207,6 +209,8 @@ export default function AttractionPageForm({ pageId, initialPageType = 'attracti
           linkedTours: linkedTourIds,
           linkedPages: linkedPageIds,
           linkedCategories: linkedCategoryIds,
+          linkedPagesTitle: page.linkedPagesTitle || 'Explore more',
+          linkedPagesSubtitle: page.linkedPagesSubtitle ?? '',
           translations: normalizeTranslations(page.translations),
         });
         setIsSlugManuallyEdited(Boolean(page.slug));
@@ -1041,6 +1045,32 @@ export default function AttractionPageForm({ pageId, initialPageType = 'attracti
                           }}
                         />
                         <div className="border-t border-slate-200" />
+                        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                          <div className="space-y-3">
+                            <FormLabel icon={FileText}>Other Page Listings Title</FormLabel>
+                            <input
+                              name="linkedPagesTitle"
+                              value={formData.linkedPagesTitle}
+                              onChange={handleChange}
+                              className={inputBase}
+                              placeholder="Explore more"
+                              maxLength={200}
+                            />
+                            <SmallHint>Shown above the linked page cards.</SmallHint>
+                          </div>
+                          <div className="space-y-3">
+                            <FormLabel icon={FileText}>Other Page Listings Subtitle</FormLabel>
+                            <input
+                              name="linkedPagesSubtitle"
+                              value={formData.linkedPagesSubtitle}
+                              onChange={handleChange}
+                              className={inputBase}
+                              placeholder="Optional supporting text"
+                              maxLength={500}
+                            />
+                            <SmallHint>Leave blank to show no subtitle.</SmallHint>
+                          </div>
+                        </div>
                         <ListingPicker
                           label="Other page listings (attractions and categories)"
                           hint="Embed links to other pages (attraction pages, catalogues, or categories). They appear as an “Explore more” card grid on this page."

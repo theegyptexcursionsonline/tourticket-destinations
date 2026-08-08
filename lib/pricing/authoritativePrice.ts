@@ -1,8 +1,9 @@
-import { effectiveOptionPrice } from './effectivePrice';
+import { effectiveOptionPrice, effectiveTourPrice } from './effectivePrice';
 
 interface StoredBookingOption {
   id?: string;
   _id?: unknown;
+  pricingKey?: string;
   label?: string;
   price?: number;
   applyTourDiscount?: boolean;
@@ -18,10 +19,17 @@ interface StoredTour {
 }
 
 interface CartItemLike {
-  selectedBookingOption?: { id?: string; price?: number } | null;
+  selectedBookingOption?: { id?: string; pricingKey?: string; price?: number } | null;
   selectedTime?: string | null;
   discountPrice?: number;
   price?: number;
+}
+
+export class AuthoritativePriceError extends Error {
+  constructor(message: 'Pricing option unavailable' | 'Invalid catalogue price') {
+    super(message);
+    this.name = 'AuthoritativePriceError';
+  }
 }
 
 /**
@@ -37,11 +45,19 @@ export function authoritativeBasePrice(
   cartItem: CartItemLike | null | undefined,
 ): number {
   const requestedOptionId = cartItem?.selectedBookingOption?.id;
+  const requestedPricingKey = cartItem?.selectedBookingOption?.pricingKey;
   const options = Array.isArray(tour?.bookingOptions) ? tour!.bookingOptions! : [];
 
-  const option = requestedOptionId
-    ? options.find((candidate) => String(candidate.id ?? candidate._id ?? '') === String(requestedOptionId))
-    : undefined;
+  const option = (requestedPricingKey
+    ? options.find((candidate) => String(candidate.pricingKey ?? '') === String(requestedPricingKey))
+    : undefined)
+    ?? (requestedOptionId
+      ? options.find((candidate) => String(candidate.id ?? candidate._id ?? '') === String(requestedOptionId))
+      : undefined);
+
+  if ((requestedPricingKey || requestedOptionId) && !option) {
+    throw new AuthoritativePriceError('Pricing option unavailable');
+  }
 
   if (option) {
     const slot = Array.isArray(option.timeSlots) && cartItem?.selectedTime
@@ -54,15 +70,13 @@ export function authoritativeBasePrice(
     ? tour.availability.slots.find((entry) => entry.time === cartItem.selectedTime)
     : undefined;
   if (typeof universalSlot?.price === 'number' && Number.isFinite(universalSlot.price)) {
-    return universalSlot.price;
+    return effectiveTourPrice(tour, universalSlot).price;
   }
 
-  // No option selected (or it no longer exists): the tour's own price stands.
   const tourPrice = tour?.discountPrice ?? tour?.price;
-  if (typeof tourPrice === 'number' && Number.isFinite(tourPrice)) return tourPrice;
+  if (typeof tourPrice === 'number' && Number.isFinite(tourPrice)) {
+    return effectiveTourPrice(tour).price;
+  }
 
-  return cartItem?.selectedBookingOption?.price
-    ?? cartItem?.discountPrice
-    ?? cartItem?.price
-    ?? 0;
+  throw new AuthoritativePriceError('Invalid catalogue price');
 }

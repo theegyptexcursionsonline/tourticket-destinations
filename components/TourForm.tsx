@@ -53,6 +53,9 @@ import SearchableCheckboxList from '@/components/admin/SearchableCheckboxList';
 import ImageSeoFields from '@/components/admin/ImageSeoFields';
 import { uploadImageFiles } from '@/lib/admin/uploadImages';
 import { ensureImageMetadata, type ImageMetadata } from '@/lib/content/imageMetadata';
+import { applyDiscountPercent } from '@/lib/pricing/effectivePrice';
+import ContentNavigationFields from '@/components/admin/ContentNavigationFields';
+import type { ParentPageValue } from '@/lib/content/contentNavigation';
 
 // --- Interface Definitions ---
 interface Category {
@@ -135,12 +138,13 @@ interface TourFormData {
     translations: Record<string, Record<string, unknown>>;
     title: string;
     slug: string;
+    breadcrumbLabel: string;
+    parentPage: ParentPageValue | null;
     description: string;
     longDescription: string;
     duration: string;
     discountPrice: string | number;
     discountPercent: string | number;
-    originalPrice: string | number;
     destination: string;
     category: string[];
     image: string;
@@ -466,12 +470,13 @@ export default function TourForm({ tourToEdit, onSave, fullPage = false }: { tou
             translations: {},
             title: '',
         slug: '',
+        breadcrumbLabel: '',
+        parentPage: null,
         description: '',
         longDescription: '',
         duration: '',
         discountPrice: '',
         discountPercent: '',
-        originalPrice: '',
         destination: '',
         category: [],
         image: '',
@@ -546,12 +551,13 @@ export default function TourForm({ tourToEdit, onSave, fullPage = false }: { tou
                 translations: normalizeTranslations((tourToEdit as any).translations),
                 title: tourToEdit.title || '',
                 slug: tourToEdit.slug || '',
+                breadcrumbLabel: tourToEdit.breadcrumbLabel || '',
+                parentPage: tourToEdit.parentPage || null,
                 description: tourToEdit.description || '',
                 longDescription: tourToEdit.longDescription || '',
                 duration: tourToEdit.duration || '',
                 discountPrice: tourToEdit.discountPrice || tourToEdit.price || '',
                 discountPercent: tourToEdit.discountPercent ?? '',
-                originalPrice: tourToEdit.originalPrice || '',
                 destination: (tourToEdit.destination as any)?._id?.toString() || tourToEdit.destination || '',
                 category: Array.isArray(tourToEdit.category)
                     ? tourToEdit.category.map((cat: any) => cat?._id?.toString() || cat?.toString() || cat)
@@ -742,12 +748,13 @@ export default function TourForm({ tourToEdit, onSave, fullPage = false }: { tou
             translations: {},
             title: '',
             slug: '',
+            breadcrumbLabel: '',
+            parentPage: null,
             description: '',
             longDescription: '',
             duration: '',
             discountPrice: '',
             discountPercent: '',
-            originalPrice: '',
             destination: '',
             category: [],
             image: '',
@@ -1160,6 +1167,8 @@ const addItineraryItem = () => {
                     : {}),
                 title: cleanedData.title.trim(),
                 slug: cleanedData.slug.trim(),
+                breadcrumbLabel: cleanedData.breadcrumbLabel.trim(),
+                parentPage: cleanedData.parentPage,
                 description: cleanedData.description.trim(),
                 duration: cleanedData.duration.trim(),
                 price: parseFloat(String(cleanedData.discountPrice)) || 0,
@@ -1169,7 +1178,6 @@ const addItineraryItem = () => {
                     ? undefined
                     : Math.max(0, Math.min(100, parseFloat(String(cleanedData.discountPercent)) || 0)),
                 longDescription: cleanedData.longDescription?.trim() || cleanedData.description.trim(),
-                originalPrice: cleanedData.originalPrice ? parseFloat(String(cleanedData.originalPrice)) : undefined,
                 destination: cleanedData.destination,
                 category: cleanedData.category,
                 difficulty: cleanedData.difficulty || 'Easy',
@@ -1539,6 +1547,15 @@ const addItineraryItem = () => {
                                             </div>
                                         </div>
 
+                                        <ContentNavigationFields
+                                            breadcrumbLabel={formData.breadcrumbLabel}
+                                            parentPage={formData.parentPage}
+                                            onBreadcrumbLabelChange={(breadcrumbLabel) => setFormData((prev) => ({ ...prev, breadcrumbLabel }))}
+                                            onParentPageChange={(parentPage) => setFormData((prev) => ({ ...prev, parentPage }))}
+                                            excludeId={tourToEdit?._id}
+                                            tenantId={formData.tenantId}
+                                        />
+
                                         <div className="space-y-3">
                                             <FormLabel icon={FileText} required>Short Description</FormLabel>
                                             <textarea 
@@ -1630,7 +1647,7 @@ const addItineraryItem = () => {
                                 {/* Pricing & Details Tab */}
                                 {activeTab === 'pricing' && (
                                     <div className="space-y-6">
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <div className="space-y-3">
                                                 <FormLabel icon={CurrencyIcon} required>Base Price ({selectedCurrency.symbol})</FormLabel>
                                                 <div className="relative">
@@ -1661,24 +1678,18 @@ const addItineraryItem = () => {
                                                     placeholder="e.g. 15"
                                                 />
                                                 <SmallHint>
-                                                    Applies to any booking option you tick “Apply tour discount” on.
-                                                    Customers still see a discounted price, not a percentage.
+                                                    Automatically applies to the Base Price and universal departure slots.
+                                                    Booking options use it only when “Apply tour discount” is selected.
                                                 </SmallHint>
-                                            </div>
-                                            <div className="space-y-3">
-                                                <FormLabel icon={CurrencyIcon}>Original Price ({selectedCurrency.symbol})</FormLabel>
-                                                <div className="relative">
-                                                    <CurrencyIcon className="absolute start-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-                                                    <input 
-                                                        name="originalPrice" 
-                                                        type="number" 
-                                                        step="0.01" 
-                                                        value={formData.originalPrice || ''} 
-                                                        onChange={handleChange} 
-                                                        className={`${inputBase} ps-10`} 
-                                                        placeholder="20.00" 
-                                                    />
-                                                </div>
+                                                {Number(formData.discountPrice) > 0 && Number(formData.discountPercent) > 0 && (
+                                                    <p className="text-sm font-semibold text-emerald-700" data-testid="customer-price-preview">
+                                                        Customer price: {selectedCurrency.symbol}
+                                                        {applyDiscountPercent(
+                                                            Number(formData.discountPrice),
+                                                            Number(formData.discountPercent),
+                                                        ).toFixed(2)}
+                                                    </p>
+                                                )}
                                             </div>
                                             <div className="space-y-3">
                                                 <FormLabel icon={Tag}>Tags (comma separated)</FormLabel>

@@ -198,7 +198,7 @@ describe('fixes made on the main site are present here too', () => {
     ['archived is its own tab', 'app/admin/tours/ToursListClient.tsx', "id: 'archived' as TabFilter"],
     ['hero images reorder', 'app/admin/hero-settings/page.tsx', 'Move image earlier'],
     ['pages remember filters', 'app/admin/pages/page.tsx', 'window.history.replaceState'],
-    ['catalogue subtitle trimmed', 'components/AttractionPageTemplate.tsx', 'Related guides and collections</p>'],
+    ['catalogue listing copy is editor-controlled', 'components/AttractionPageTemplate.tsx', '<LinkedPageCardsSection'],
     ['attraction highlights always show', 'components/AttractionLandingPage.tsx', 'Highlights must not depend on the expanded state'],
   ])('%s', (_label, file, needle) => {
     expect(read(file)).toContain(needle);

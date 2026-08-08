@@ -16,6 +16,7 @@ import ContentBreadcrumbs from '@/components/navigation/ContentBreadcrumbs';
 import { normalizePageTemplate } from '@/lib/content/pageTemplate';
 import { contentPath } from '@/lib/content/contentUrl';
 import { imageMetadataFor } from '@/lib/content/imageMetadata';
+import LinkedPageCardsSection from '@/components/content/LinkedPageCardsSection';
 
 interface AttractionPageTemplateProps {
   page: CategoryPageData;
@@ -749,46 +750,11 @@ export default function AttractionPageTemplate({ page, linkedPages = [] }: Attra
           </section>
         )}
 
-        {linkedPages.length > 0 && (
-          <section className="py-14 bg-slate-50">
-            <div className="container mx-auto px-6">
-              <h2 className="text-3xl font-bold text-slate-900 mb-2">Explore more</h2>
-              <p className="text-slate-600 mb-8">Related guides and collections</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {linkedPages.map((linkedPage) => (
-                  <Link
-                    key={linkedPage.id}
-                    href={linkedPage.href}
-                    className="group bg-white rounded-xl border border-slate-200 overflow-hidden hover:shadow-lg hover:border-red-300 transition-all"
-                  >
-                    {linkedPage.image && (
-                      <div className="relative h-40 w-full overflow-hidden">
-                        <Image
-                          src={linkedPage.image}
-                          alt={linkedPage.title}
-                          fill
-                          className="object-cover group-hover:scale-105 transition-transform duration-300"
-                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                        />
-                      </div>
-                    )}
-                    <div className="p-5">
-                      <div className="flex items-center justify-between gap-3">
-                        <h3 className="font-semibold text-slate-900 group-hover:text-red-600 transition-colors">
-                          {linkedPage.title}
-                        </h3>
-                        <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-red-600 flex-shrink-0 transition-colors" />
-                      </div>
-                      {linkedPage.description && (
-                        <p className="text-sm text-slate-600 mt-2 line-clamp-2">{linkedPage.description}</p>
-                      )}
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
+        <LinkedPageCardsSection
+          pages={linkedPages}
+          title={page.linkedPagesTitle}
+          subtitle={page.linkedPagesSubtitle}
+        />
 
         {/* Reviews Section */}
         {page.reviews && page.reviews.length > 0 && (

@@ -6,7 +6,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import { Plus, Edit, Trash2, Eye, Search, Loader2, Archive, Undo2, Link2 } from 'lucide-react';
+import { Plus, Edit, Trash2, Eye, Search, Loader2, Archive, Undo2, Link2, Copy } from 'lucide-react';
 import Image from 'next/image';
 import { useAdminTenant } from '@/contexts/AdminTenantContext';
 import { storefrontPreviewUrl } from '@/lib/admin/storefrontPreviewUrl';
@@ -66,6 +66,7 @@ export default function UnifiedPagesAdmin() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [duplicatingRowKey, setDuplicatingRowKey] = useState<string | null>(null);
   // Filters live in the URL so returning from an editor (back button or the
   // list link) restores the last view instead of resetting to defaults.
   const initialParams = () =>
@@ -204,6 +205,34 @@ export default function UnifiedPagesAdmin() {
     } catch (err) {
       alert('Network error');
       console.error('Error changing archive state:', err);
+    }
+  };
+
+  const duplicateRow = async (row: UnifiedRow) => {
+    if (row.kind === 'category' || duplicatingRowKey) return;
+    const key = `${row.tenantId}-${row.kind}-${row.id}`;
+    setDuplicatingRowKey(key);
+    try {
+      const response = await fetch('/api/admin/pages/duplicate', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ kind: row.kind, id: row.id }),
+      });
+      const data = await response.json().catch(() => ({})) as {
+        success?: boolean;
+        error?: string;
+        editHref?: string;
+      };
+      if (!response.ok || !data.success || !data.editHref) {
+        setError(data.error || `Duplicate failed (${response.status})`);
+        return;
+      }
+      window.location.assign(data.editHref);
+    } catch (error) {
+      console.error('Error duplicating page:', error);
+      setError('Network error while duplicating page');
+    } finally {
+      setDuplicatingRowKey(null);
     }
   };
 
@@ -383,6 +412,20 @@ export default function UnifiedPagesAdmin() {
                         >
                           <Edit className="w-4 h-4" />
                         </Link>
+                        {row.kind !== 'category' && filterStatus !== 'archived' && (
+                          <button
+                            type="button"
+                            onClick={() => void duplicateRow(row)}
+                            disabled={duplicatingRowKey === `${row.tenantId}-${row.kind}-${row.id}`}
+                            className="text-indigo-600 hover:text-indigo-900 p-1 rounded disabled:cursor-wait disabled:opacity-60"
+                            title="Duplicate as unpublished draft"
+                            aria-label={`Duplicate ${row.title} as draft`}
+                          >
+                            {duplicatingRowKey === `${row.tenantId}-${row.kind}-${row.id}`
+                              ? <Loader2 className="w-4 h-4 animate-spin" />
+                              : <Copy className="w-4 h-4" />}
+                          </button>
+                        )}
                         {filterStatus === 'archived' ? (
                           <button
                             onClick={() => setArchived(row, false)}

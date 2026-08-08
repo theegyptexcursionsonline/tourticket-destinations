@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ChevronDown, Link2, Search, X } from 'lucide-react';
+import { ChevronDown, House, Link2, Search, X } from 'lucide-react';
 import type { ParentPageValue } from '@/lib/content/contentNavigation';
 
 type ParentOption = ParentPageValue & { image?: string; isPublished?: boolean };
@@ -60,7 +60,7 @@ export default function ContentNavigationFields({
         <div className="rounded-xl bg-indigo-100 p-2 text-indigo-700"><Link2 className="h-4 w-4" /></div>
         <div>
           <h3 className="text-sm font-bold text-slate-900">Navigation & breadcrumbs</h3>
-          <p className="mt-1 text-xs text-slate-600">Optionally place this item beneath a destination or page. Leave empty for a direct URL.</p>
+          <p className="mt-1 text-xs text-slate-600">Choose Home for a direct main-domain URL, or place this item beneath a destination or page.</p>
         </div>
       </div>
 
@@ -79,24 +79,39 @@ export default function ContentNavigationFields({
 
         <div className="relative space-y-2">
           <label className="text-sm font-semibold text-slate-700">Parent page</label>
-          {parentPage ? (
-            <div className="flex min-h-12 items-center justify-between gap-3 rounded-xl border border-indigo-200 bg-white px-4 py-2.5 shadow-sm">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-slate-900">{parentPage.label}</p>
-                <p className="truncate text-xs text-slate-500">/{parentPage.slug}</p>
-              </div>
-              <button type="button" onClick={() => onParentPageChange(null)} aria-label="Remove parent page" className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900">
+          <div className={`flex min-h-12 items-center gap-2 rounded-xl border bg-white px-2 py-1.5 shadow-sm ${parentPage ? 'border-indigo-200' : 'border-slate-300'}`}>
+            <button
+              type="button"
+              aria-expanded={open}
+              aria-label={`Change parent page. Current: ${parentPage?.label || 'Home'}`}
+              onClick={() => setOpen((value) => !value)}
+              className="flex min-w-0 flex-1 items-center gap-3 rounded-lg px-2 py-1 text-left hover:bg-indigo-50"
+            >
+              {!parentPage ? <House className="h-4 w-4 shrink-0 text-indigo-600" /> : null}
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-semibold text-slate-900">{parentPage?.label || 'Home'}</span>
+                <span className="block truncate text-xs text-slate-500">{parentPage ? `/${parentPage.slug}` : '/ · Main website'}</span>
+              </span>
+              <ChevronDown className={`h-4 w-4 shrink-0 text-slate-500 transition-transform ${open ? 'rotate-180' : ''}`} />
+            </button>
+            {parentPage ? (
+              <button
+                type="button"
+                onClick={() => {
+                  onParentPageChange(null);
+                  setOpen(false);
+                  setQuery('');
+                }}
+                aria-label="Use Home as parent page"
+                title="Use Home"
+                className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+              >
                 <X className="h-4 w-4" />
               </button>
-            </div>
-          ) : (
-            <button type="button" onClick={() => setOpen((value) => !value)} className="flex min-h-12 w-full items-center justify-between rounded-xl border border-slate-300 bg-white px-4 py-3 text-left text-sm font-medium text-slate-600 shadow-sm hover:border-indigo-300">
-              <span>Select a destination or page</span>
-              <ChevronDown className="h-4 w-4" />
-            </button>
-          )}
+            ) : null}
+          </div>
 
-          {open && !parentPage ? (
+          {open ? (
             <div className="absolute z-40 mt-2 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
               <div className="border-b border-slate-100 p-3">
                 <div className="relative">
@@ -105,8 +120,34 @@ export default function ContentNavigationFields({
                 </div>
               </div>
               <div className="max-h-64 overflow-y-auto p-2">
+                {!query.trim() || 'home'.includes(query.trim().toLowerCase()) ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onParentPageChange(null);
+                      setOpen(false);
+                      setQuery('');
+                    }}
+                    className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left hover:bg-indigo-50 ${!parentPage ? 'bg-indigo-50' : ''}`}
+                  >
+                    <span className="flex min-w-0 items-center gap-3">
+                      <span className="rounded-lg bg-indigo-100 p-2 text-indigo-700"><House className="h-4 w-4" /></span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-semibold text-slate-800">Home</span>
+                        <span className="block truncate text-xs text-slate-500">/ · Main website</span>
+                      </span>
+                    </span>
+                    <span className="rounded-full bg-indigo-100 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-indigo-700">Root</span>
+                  </button>
+                ) : null}
                 {loading ? <p className="p-3 text-sm text-slate-500">Loading…</p> : null}
-                {!loading && options.length === 0 ? <p className="p-3 text-sm text-slate-500">No matching parent pages.</p> : null}
+                {!loading && options.length === 0 ? (
+                  <p className="p-3 text-sm text-slate-500">
+                    {!query.trim() || 'home'.includes(query.trim().toLowerCase())
+                      ? 'No other matching parent pages.'
+                      : 'No matching parent pages.'}
+                  </p>
+                ) : null}
                 {options.map((option) => (
                   <button
                     key={`${option.kind}:${option.id || option.slug}`}

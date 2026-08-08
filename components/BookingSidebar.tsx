@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { effectiveOptionPrice } from '@/lib/pricing/effectivePrice';
+import { effectiveOptionPrice, effectiveTourPrice, percentageOff } from '@/lib/pricing/effectivePrice';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from '@/i18n/navigation';
 import Image from 'next/image';
@@ -774,6 +774,7 @@ const TourOptionCard: React.FC<{
             const isLowAvailability = timeSlot.available <= 3;
             const isSoldOut = timeSlot.available === 0;
             const isDisabled = isSoldOut || Boolean(option.isStopSale);
+            const slotDiscount = percentageOff(timeSlot.originalPrice, timeSlot.price);
 
             return (
               <motion.button
@@ -802,6 +803,16 @@ const TourOptionCard: React.FC<{
                     {timeSlot.isPopular && !isSelected && (
                       <div className="bg-orange-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">
                         {t('booking.popular')}
+                      </div>
+                    )}
+                    {timeSlot.originalPrice && timeSlot.originalPrice > timeSlot.price && (
+                      <div className={`text-[10px] line-through ${isSelected ? 'text-red-100' : 'text-gray-400'}`}>
+                        {formatPrice(timeSlot.originalPrice)}
+                      </div>
+                    )}
+                    {slotDiscount > 0 && (
+                      <div className={`text-[10px] font-bold ${isSelected ? 'text-white' : 'text-red-600'}`}>
+                        {slotDiscount}% off
                       </div>
                     )}
                     <div className={`text-xs font-semibold ${isSelected ? 'text-white' : 'text-gray-600'}`}>
@@ -1414,26 +1425,36 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
     };
   }, [tour]);
 
+  const tourBasePricing = useMemo(
+    () => effectiveTourPrice(tourDisplayData),
+    [tourDisplayData],
+  );
+
   // Helper function to generate time slots from tour availability settings
-  const generateTimeSlotsFromAvailability = useCallback((price: number, optionIndex: number): TimeSlot[] => {
+  const generateTimeSlotsFromAvailability = useCallback((price: number, optionIndex: number, option?: BookingOption): TimeSlot[] => {
     // Use actual slots from tour.availability if available
     if (tour?.availability?.slots && tour.availability.slots.length > 0) {
-      return tour.availability.slots.map((slot, slotIndex) => ({
-        id: `slot-${optionIndex}-${slotIndex}`,
-        time: slot.time,
-        available: slot.capacity,
-        price: typeof slot.price === 'number' && Number.isFinite(slot.price) ? slot.price : price,
-        isPopular: slotIndex === 0, // Mark first slot as popular
-        originalAvailable: slot.capacity,
-      }));
+      return tour.availability.slots.map((slot, slotIndex) => {
+        const pricing = option
+          ? effectiveOptionPrice(tourDisplayData, option, slot)
+          : effectiveTourPrice(tourDisplayData, slot);
+        const resolvedPrice = pricing.price || price;
+        return {
+          id: `slot-${optionIndex}-${slotIndex}`,
+          time: slot.time,
+          available: slot.capacity,
+          price: resolvedPrice,
+          originalPrice: pricing.discountApplied ? pricing.originalPrice : undefined,
+          discount: pricing.discountApplied ? percentageOff(pricing.originalPrice, resolvedPrice) : undefined,
+          isPopular: slotIndex === 0,
+          originalAvailable: slot.capacity,
+        };
+      });
     }
 
-    // Fallback to default slots if none configured in admin
-    return [
-      { id: `slot-${optionIndex}-1`, time: '09:00', available: 15, price: price, isPopular: false },
-      { id: `slot-${optionIndex}-2`, time: '14:00', available: 15, price: price, isPopular: true },
-    ];
-  }, [tour]);
+    // Availability is authoritative. Never invent a departure time.
+    return [];
+  }, [tour, tourDisplayData]);
 
   // OPTIMIZED: Use pre-fetched data from tour prop (SSR/ISR) instead of client-side API calls
   const fetchAvailability = useCallback(async (date: Date, _totalGuests: number) => {
@@ -1474,7 +1495,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
                   isPopular: slotIndex === 0,
                 };
               })
-            : generateTimeSlotsFromAvailability(optionPrice, index);
+            : generateTimeSlotsFromAvailability(optionPrice, index, option);
           return {
             id: optionId,
             title: option.label || option.title || 'Tour Option',
@@ -1494,19 +1515,21 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
             groupSize: option.groupSize || `Max ${tourDisplayData?.maxGroupSize || 15} people`,
             difficulty: option.difficulty || 'Easy',
             badge: option.badge || (index === 0 ? 'Most Popular' : undefined),
-            discount: option.discount || (tourDisplayData?.originalPrice && tourDisplayData.originalPrice > tourDisplayData.discountPrice ? Math.round(((tourDisplayData.originalPrice - tourDisplayData.discountPrice) / tourDisplayData.originalPrice) * 100) : undefined),
+            discount: pricing.discountApplied
+              ? percentageOff(pricing.originalPrice, pricing.price)
+              : option.discount,
             isRecommended: option.isRecommended ?? index === 0,
           };
         });
       } else {
         // Fallback to default tour options using actual availability slots
-        const standardPrice = tourDisplayData?.discountPrice || 50;
+        const standardPrice = tourBasePricing.price;
         tourOptions = [
           {
             id: 'standard-tour',
             title: 'Standard Tour Experience',
             price: standardPrice,
-            originalPrice: tourDisplayData?.originalPrice || standardPrice,
+            originalPrice: tourBasePricing.discountApplied ? tourBasePricing.originalPrice : standardPrice,
             duration: tourDisplayData?.duration || '3 hours',
             languages: tourDisplayData?.languages || ['English'],
             description: 'Perfect introduction to the destination with expert guide',
@@ -1519,7 +1542,9 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
             groupSize: `Max ${tourDisplayData?.maxGroupSize || 15} people`,
             difficulty: 'Easy',
             badge: 'Most Popular',
-            discount: tourDisplayData?.originalPrice && tourDisplayData.originalPrice > tourDisplayData.discountPrice ? Math.round(((tourDisplayData.originalPrice - tourDisplayData.discountPrice) / tourDisplayData.originalPrice) * 100) : undefined,
+            discount: tourBasePricing.discountApplied
+              ? percentageOff(tourBasePricing.originalPrice, tourBasePricing.price)
+              : undefined,
             isRecommended: true,
           }
         ];
@@ -1594,7 +1619,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
     } finally {
       setIsLoading(false);
     }
-  }, [generateTimeSlotsFromAvailability, tour, tourDisplayData]);
+  }, [generateTimeSlotsFromAvailability, tour, tourBasePricing, tourDisplayData]);
 
   // Enhanced price calculations with savings
   const { subtotal, addOnsTotal, total, totalSavings } = useMemo(() => {
@@ -1614,8 +1639,8 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
                          selectedOption?.originalPrice || 
                          bookingData.selectedTimeSlot.price;
     } else if (tourDisplayData) {
-      basePrice = tourDisplayData.discountPrice;
-      originalBasePrice = tourDisplayData.originalPrice || tourDisplayData.discountPrice;
+      basePrice = tourBasePricing.price;
+      originalBasePrice = tourBasePricing.originalPrice;
     }
 
     const subtotalCalc = (bookingData.adults * basePrice) + (bookingData.children * basePrice * 0.5);
@@ -1648,7 +1673,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
       total: subtotalCalc + addOnsCalc,
       totalSavings: totalSavingsCalc,
     };
-  }, [bookingData, availability, tourDisplayData]);
+  }, [bookingData, availability, tourBasePricing, tourDisplayData]);
 
   // Reset when sidebar opens
   useEffect(() => {
@@ -2105,13 +2130,18 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
             {/* Compact Price Section */}
             <div className="flex justify-between items-center bg-gray-100 rounded-2xl p-4 text-gray-800 border border-gray-200">
               <div>
-                {tourDisplayData?.originalPrice && (
+                {tourBasePricing.discountApplied && (
                   <span className="text-sm text-gray-500 line-through block">
-                    {formatPrice(tourDisplayData.originalPrice)}
+                    {formatPrice(tourBasePricing.originalPrice)}
+                  </span>
+                )}
+                {tourBasePricing.discountApplied && percentageOff(tourBasePricing.originalPrice, tourBasePricing.price) > 0 && (
+                  <span className="mb-1 inline-block rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700">
+                    {percentageOff(tourBasePricing.originalPrice, tourBasePricing.price)}% OFF
                   </span>
                 )}
                 <span className="text-2xl sm:text-3xl font-bold text-red-600 block">
-                  {formatPrice(tourDisplayData?.discountPrice || 0)}
+                  {formatPrice(tourBasePricing.price)}
                 </span>
                 <span className="text-xs text-gray-500">{t('price.perPerson')}</span>
               </div>

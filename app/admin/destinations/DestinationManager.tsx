@@ -27,7 +27,8 @@ import {
   EyeOff,
   Info,
   Plus,
-  Minus
+  Minus,
+  Copy,
 } from 'lucide-react';
 import { IDestination } from '@/lib/models/Destination';
 import { useAdminTenant } from '@/contexts/AdminTenantContext';
@@ -39,6 +40,9 @@ import { destinationTranslationFields, normalizeTranslations } from '@/lib/i18n/
 import { uploadImageFiles } from '@/lib/admin/uploadImages';
 import { ensureImageMetadata } from '@/lib/content/imageMetadata';
 import type { ContentFaq, ContentTravelTip, ImageMetadata } from '@/types';
+import ContentNavigationFields from '@/components/admin/ContentNavigationFields';
+import type { ParentPageValue } from '@/lib/content/contentNavigation';
+import { storefrontPreviewUrl } from '@/lib/admin/storefrontPreviewUrl';
 
 interface Tour {
   _id: string;
@@ -50,6 +54,8 @@ interface FormData {
   translations: Record<string, Record<string, unknown>>;
   name: string;
   slug: string;
+  breadcrumbLabel: string;
+  parentPage: ParentPageValue | null;
   country: string;
   image: string;
   images: string[];
@@ -92,12 +98,13 @@ const generateSlug = (name: string) =>
 
 export default function DestinationManager({ initialDestinations }: { initialDestinations: IDestination[] }) {
   const router = useRouter();
-  const { selectedTenantId } = useAdminTenant();
+  const { selectedTenantId, tenants } = useAdminTenant();
   const [destinations, setDestinations] = useState<IDestination[]>(initialDestinations);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [editingDestination, setEditingDestination] = useState<IDestination | null>(null);
+  const [duplicatingDestinationId, setDuplicatingDestinationId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('basic');
 
   // Re-fetch destinations when selected brand changes
@@ -124,6 +131,8 @@ export default function DestinationManager({ initialDestinations }: { initialDes
     translations: {},
     name: '',
     slug: '',
+    breadcrumbLabel: '',
+    parentPage: null,
     country: '',
     image: '',
     images: [],
@@ -189,6 +198,8 @@ export default function DestinationManager({ initialDestinations }: { initialDes
       translations: {},
       name: '',
       slug: '',
+      breadcrumbLabel: '',
+      parentPage: null,
       country: '',
       image: '',
       images: [],
@@ -238,6 +249,8 @@ export default function DestinationManager({ initialDestinations }: { initialDes
       translations: normalizeTranslations(dest.translations),
       name: dest.name || '',
       slug: dest.slug || '',
+      breadcrumbLabel: dest.breadcrumbLabel || '',
+      parentPage: dest.parentPage || null,
       country: dest.country || '',
       image: dest.image || '',
       images: dest.images || [],
@@ -560,6 +573,41 @@ setTimeout(() => router.refresh(), 0);
     });
   };
 
+  const handleDuplicate = async (dest: IDestination) => {
+    const destinationId = String(dest._id);
+    if (duplicatingDestinationId) return;
+    setDuplicatingDestinationId(destinationId);
+    const promise = (async () => {
+      const response = await fetch(`/api/admin/destinations/${destinationId}/duplicate`, { method: 'POST' });
+      const data = await response.json().catch(() => ({})) as {
+        success?: boolean;
+        error?: string;
+        message?: string;
+        data?: IDestination;
+      };
+      if (!response.ok || !data.success || !data.data) {
+        throw new Error(data.error || `Duplicate failed (${response.status})`);
+      }
+      return data;
+    })();
+
+    toast.promise(promise, {
+      loading: `Creating a draft copy of ${dest.name}...`,
+      success: (data) => data.message || 'Draft destination copy created.',
+      error: (error) => `Duplicate failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    });
+
+    try {
+      const data = await promise;
+      openPanelForEdit(data.data!);
+      router.refresh();
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setDuplicatingDestinationId(null);
+    }
+  };
+
   const inputStyles = "block w-full px-4 py-3 border border-slate-300 rounded-xl shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent sm:text-sm disabled:bg-slate-50 disabled:cursor-not-allowed transition-all duration-200 font-medium text-slate-700";
   const textareaStyles = "block w-full px-4 py-3 border border-slate-300 rounded-xl shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent sm:text-sm disabled:bg-slate-50 disabled:cursor-not-allowed transition-all duration-200 font-medium text-slate-700 resize-vertical min-h-[100px]";
 
@@ -584,6 +632,15 @@ setTimeout(() => router.refresh(), 0);
       return { ...prev, [field]: next, [otherField]: selected ? prev[otherField] : prev[otherField].filter((id) => id !== tourId) };
     });
   };
+
+  const destinationPreviewUrl = (dest: IDestination) => storefrontPreviewUrl(
+    `/destinations/${dest.slug || ''}`,
+    {
+      tenantDomain: tenants.find((tenant) => tenant.tenantId === dest.tenantId)?.domain,
+      configuredBaseUrl: process.env.NEXT_PUBLIC_BASE_URL,
+      adminOrigin: typeof window !== 'undefined' ? window.location.origin : null,
+    },
+  );
 
   return (
     <div className="space-y-8">
@@ -653,13 +710,47 @@ setTimeout(() => router.refresh(), 0);
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
               
               {/* Action Buttons */}
-              <div className="absolute top-3 end-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
+              <div className="absolute end-3 top-3 z-10 flex translate-x-0 flex-col gap-2 opacity-100 transition-all duration-300 sm:translate-x-2 sm:opacity-0 sm:group-hover:translate-x-0 sm:group-hover:opacity-100">
+                {dest.isPublished ? (
+                  <a
+                    href={destinationPreviewUrl(dest)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/90 text-slate-700 shadow-lg backdrop-blur-sm transition-all duration-200 hover:scale-110 hover:bg-white hover:text-indigo-600"
+                    title="Preview destination"
+                    aria-label={`Preview ${dest.name} on live site`}
+                  >
+                    <Eye size={16} />
+                  </a>
+                ) : (
+                  <button
+                    type="button"
+                    disabled
+                    className="flex h-10 w-10 cursor-not-allowed items-center justify-center rounded-xl bg-white/80 text-slate-400 shadow-lg backdrop-blur-sm"
+                    title="Preview unavailable until published"
+                    aria-label={`Preview ${dest.name} unavailable until published`}
+                  >
+                    <Eye size={16} />
+                  </button>
+                )}
                 <button 
                   onClick={() => openPanelForEdit(dest)} 
                   className="flex items-center justify-center w-10 h-10 bg-white/90 backdrop-blur-sm rounded-xl text-slate-700 hover:bg-white hover:text-indigo-600 shadow-lg transition-all duration-200 transform hover:scale-110"
                   title="Edit destination"
                 >
                   <Edit size={16} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleDuplicate(dest)}
+                  disabled={duplicatingDestinationId === String(dest._id)}
+                  className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/90 text-slate-700 shadow-lg backdrop-blur-sm transition-all duration-200 hover:scale-110 hover:bg-white hover:text-indigo-600 disabled:cursor-wait disabled:opacity-60"
+                  title="Duplicate destination as draft"
+                  aria-label={`Duplicate ${dest.name} as draft`}
+                >
+                  {duplicatingDestinationId === String(dest._id)
+                    ? <Loader2 size={16} className="animate-spin" />
+                    : <Copy size={16} />}
                 </button>
                 <button
                   onClick={() => handleDelete(String(dest._id), dest.name)}
@@ -1000,6 +1091,17 @@ setTimeout(() => router.refresh(), 0);
                         </div>
                       </div>
                     </div>
+
+                    <ContentNavigationFields
+                      breadcrumbLabel={formData.breadcrumbLabel}
+                      parentPage={formData.parentPage}
+                      onBreadcrumbLabelChange={(breadcrumbLabel) => setFormData((prev) => ({ ...prev, breadcrumbLabel }))}
+                      onParentPageChange={(parentPage) => setFormData((prev) => ({ ...prev, parentPage }))}
+                      excludeId={editingDestination?._id?.toString()}
+                      tenantId={selectedTenantId && selectedTenantId !== 'all'
+                        ? selectedTenantId
+                        : editingDestination?.tenantId}
+                    />
 
                     {/* Description Fields */}
                     <div className="space-y-6">

@@ -22,6 +22,7 @@ import TourPageAIWidget from '@/components/TourPageAIWidget';
 import ReviewList from '@/components/reviews/ReviewList';
 import ReviewForm from '@/components/reviews/ReviewForm';
 import ReviewsStructuredData from '@/components/ReviewsStructuredData';
+import TourPriceDisplay from '@/components/pricing/TourPriceDisplay';
 
 // Hooks and contexts
 import { useSettings } from '@/hooks/useSettings';
@@ -40,6 +41,7 @@ import ContentBreadcrumbs from '@/components/navigation/ContentBreadcrumbs';
 import { itineraryEmbedMapUrl, itineraryMapStops } from '@/lib/tours/itineraryMap';
 import { meetingPointEmbedUrl, meetingPointMapUrl } from '@/lib/tours/meetingPointMap';
 import { provableRating } from '@/lib/tours/ratingDisplay';
+import { effectiveTourPrice } from '@/lib/pricing/effectivePrice';
 
 // Enhanced interfaces for additional tour data
 interface ItineraryItem {
@@ -1067,6 +1069,7 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
   const tCommon = useTranslations('common');
   const tWishlist = useTranslations('wishlist');
   const breadcrumbs = buildContentBreadcrumbs({ currentTitle: tour.title, breadcrumbLabel: tour.breadcrumbLabel, parentPage: tour.parentPage, rootLabel: t('tours'), rootHref: '/search' });
+  const tourBasePricing = effectiveTourPrice(tour);
   const meetingMapHref = meetingPointMapUrl(tour.meetingPoint);
   const meetingMapEmbed = meetingPointEmbedUrl(tour.meetingPoint);
   const [isBookingSidebarOpen, setBookingSidebarOpen] = useState(false);
@@ -1214,7 +1217,7 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
         selectedDate: toDateOnlyString(new Date()),
         selectedTime: 'Anytime',
         selectedAddOns: {},
-        totalPrice: tour.discountPrice,
+        totalPrice: tourBasePricing.price,
       };
       addToCart(quickAddCartItem);
       setAdded(true);
@@ -1374,15 +1377,12 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
                     </div>
                   </div>
 
-                  <div className="text-end flex-shrink-0">
-                    {tour.originalPrice && tour.originalPrice > tour.discountPrice && (
-                      <p className="text-slate-500 line-through text-lg mb-1">{formatPrice(tour.originalPrice)}</p>
-                    )}
-                    <p className="text-3xl md:text-4xl font-extrabold text-red-600 mb-1">
-                      {formatPrice(tour.discountPrice)}
-                    </p>
-                    <p className="text-sm text-slate-500">{t('perPerson')}</p>
-                  </div>
+                  <TourPriceDisplay
+                    tour={tour}
+                    formatPrice={formatPrice}
+                    perPersonLabel={t('perPerson')}
+                    align="right"
+                  />
                 </div>
               </div>
 
@@ -1499,7 +1499,7 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
                                 <Star size={12} className="text-yellow-500 fill-current" />
                                 <span className="text-xs font-bold">{relatedTour.rating}</span>
                               </div>
-                              <span className="font-bold text-red-600">{formatPrice(relatedTour.discountPrice)}</span>
+                              <span className="font-bold text-red-600">{formatPrice(effectiveTourPrice(relatedTour).price)}</span>
                             </div>
                           </div>
                         </div>
@@ -1514,14 +1514,13 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
             <div className="lg:col-span-1">
               <div className="sticky top-24">
                 <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-6 mb-6">
-                  <div className="text-center mb-6">
-                    <div className="flex items-baseline justify-center gap-2 mb-2">
-                      {tour.originalPrice && tour.originalPrice > tour.discountPrice && (
-                        <span className="text-slate-500 line-through text-lg">{formatPrice(tour.originalPrice)}</span>
-                      )}
-                      <span className="text-4xl font-extrabold text-red-600">{formatPrice(tour.discountPrice)}</span>
-                    </div>
-                    <p className="text-sm text-slate-500">{t('perPerson')}</p>
+                  <div className="mb-6 flex justify-center">
+                    <TourPriceDisplay
+                      tour={tour}
+                      formatPrice={formatPrice}
+                      perPersonLabel={t('perPerson')}
+                      align="center"
+                    />
                   </div>
 
                   <div className="space-y-4 mb-6">
@@ -1678,7 +1677,7 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
       <BookingSidebar isOpen={isBookingSidebarOpen} onClose={() => setBookingSidebarOpen(false)} tour={tour} initialStopSaleDates={initialStopSaleDates} />
 
       <StickyBookButton
-        price={tour.discountPrice}
+        price={tourBasePricing.price}
         currency={'$'}
         onClick={openBookingSidebar}
       />
