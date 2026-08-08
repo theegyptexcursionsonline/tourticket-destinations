@@ -39,6 +39,7 @@ import { buildContentBreadcrumbs } from '@/lib/content/breadcrumbs';
 import ContentBreadcrumbs from '@/components/navigation/ContentBreadcrumbs';
 import { itineraryEmbedMapUrl, itineraryMapStops } from '@/lib/tours/itineraryMap';
 import { meetingPointEmbedUrl, meetingPointMapUrl } from '@/lib/tours/meetingPointMap';
+import { provableRating } from '@/lib/tours/ratingDisplay';
 
 // Enhanced interfaces for additional tour data
 interface ItineraryItem {
@@ -916,20 +917,25 @@ const ReviewsSection = ({ tour, reviews, onReviewSubmitted, sectionRef, onBookNo
     onReviewSubmitted(newReview);
   };
 
+  // Only real reviews produce an average. Falling back to the admin-set
+  // tour.rating printed a score above an empty review list.
   const averageRating = currentReviews.length > 0
     ? (currentReviews.reduce((acc, review) => acc + review.rating, 0) / currentReviews.length).toFixed(1)
-    : tour.rating?.toFixed(1) || 'N/A';
+    : null;
 
   return (
     <div ref={sectionRef} id="reviews" className="space-y-6 scroll-mt-24">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-slate-800">{t('reviews')}</h2>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1">
-            <Star size={18} className="text-yellow-500 fill-current" />
-            <span className="font-bold text-lg">{averageRating}</span>
+        {averageRating && (
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
+              <Star size={18} className="text-yellow-500 fill-current" />
+              <span className="font-bold text-lg">{averageRating}</span>
+            </div>
+            <span className="text-slate-500">({t('reviewsCount', { count: currentReviews?.length || 0 })})</span>
           </div>
-<span className="text-slate-500">({t('reviewsCount', { count: currentReviews?.length || 0 })})</span>        </div>
+        )}
       </div>
 
       <ReviewsStructuredData />
@@ -1348,12 +1354,15 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
                       {tour.title}
                     </h1>
                     <div className="flex flex-wrap items-center gap-4 text-sm text-slate-600 mb-4">
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-1">
-                          <Star size={16} className="text-yellow-500 fill-current" />
-                          <span className="font-semibold text-slate-800">{tour.rating}</span>
+                      {provableRating(tour.rating, reviews) && (
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1">
+                            <Star size={16} className="text-yellow-500 fill-current" />
+                            <span className="font-semibold text-slate-800">{tour.rating}</span>
+                          </div>
+                          <span className="text-slate-500">({t('reviewsCount', { count: reviews?.length || 0 })})</span>
                         </div>
-<span className="text-slate-500">({t('reviewsCount', { count: reviews?.length || 0 })})</span>                      </div>
+                      )}
                       <div className="flex items-center gap-1">
                         <Clock size={16} />
                         <span>{tour.duration}</span>
@@ -1520,9 +1529,12 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
                       <Clock size={20} className="text-red-500" />
                       <span>{t('duration')}: {tour.duration}</span>
                     </div>
-                    <div className="flex items-center gap-3 text-slate-600">
-                      <Star size={20} className="text-yellow-500" />
-<span>{t('rating')}: {tour.rating} ({t('reviewsCount', { count: reviews?.length || 0 })})</span>                    </div>
+                    {provableRating(tour.rating, reviews) && (
+                      <div className="flex items-center gap-3 text-slate-600">
+                        <Star size={20} className="text-yellow-500" />
+                        <span>{t('rating')}: {tour.rating} ({t('reviewsCount', { count: reviews?.length || 0 })})</span>
+                      </div>
+                    )}
                     <div className="flex items-center gap-3 text-slate-600">
                       <Users size={20} className="text-blue-500" />
                       <span>{t('availableDaily')}</span>

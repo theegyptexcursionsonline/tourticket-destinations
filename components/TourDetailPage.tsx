@@ -33,6 +33,7 @@ import { useCart } from '@/hooks/useCart';
 import { Tour, CartItem, Review as ReviewType } from '@/types';
 import { toDateOnlyString } from '@/utils/date';
 import { sanitizeRichHtml } from '@/lib/security/sanitizeRichHtml';
+import { ratingLabel } from '@/lib/tours/ratingDisplay';
 
 // Enhanced interfaces for additional tour data
 interface ItineraryItem {
@@ -1314,7 +1315,7 @@ export default function TourPageClient({ tour, relatedTours, initialReviews }: T
                     </div>
                     <div className="flex items-center gap-3 text-slate-600">
                       <Star size={20} className="text-yellow-500" />
-                      <span>Rating: {tour.rating} ({reviews.length} reviews)</span>
+                      <span>Rating: {ratingLabel(tour.rating, reviews)}</span>
                     </div>
                     <div className="flex items-center gap-3 text-slate-600">
                       <Users size={20} className="text-blue-500" />
