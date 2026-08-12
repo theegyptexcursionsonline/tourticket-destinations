@@ -148,13 +148,22 @@ export default async function PlannerOfferPage({ params }: { params: Promise<{ t
   }
 
   const byValue = [...sellable].sort((a, b) => a.offerPrice - b.offerPrice);
-  // Planner picks lead with the operator's featured tours, then top up with the
-  // premium experiences so the row is always a full grid, never a stub.
-  const featured = sellable.filter((tour) => (tours.find((t: any) => String(t._id) === tour.id) as any)?.isFeatured);
-  const featuredIds = new Set(featured.map((tour) => tour.id));
-  const picks = [...featured, ...[...byValue].reverse().filter((tour) => !featuredIds.has(tour.id))].slice(0, PICK_COUNT);
-  const pickIds = new Set(picks.map((tour) => tour.id));
-  const bundles = byValue.filter((tour) => !pickIds.has(tour.id)).slice(0, BUNDLE_COUNT);
+  // Both sections are part of the brief, so a tenant with a small catalogue must
+  // still fill both: reserve the value row first, capped at half the catalogue,
+  // then hand the rest to the planner picks.
+  const bundleTarget = Math.min(BUNDLE_COUNT, Math.max(1, Math.floor(sellable.length / 2)));
+  const bundles = byValue.slice(0, bundleTarget);
+  const bundleIds = new Set(bundles.map((tour) => tour.id));
+  const remaining = sellable.filter((tour) => !bundleIds.has(tour.id));
+  // Picks lead with the operator's featured tours, then the premium end of what is left.
+  const featuredIds = new Set(
+    tours.filter((t: any) => t.isFeatured).map((t: any) => String(t._id)),
+  );
+  const featured = remaining.filter((tour) => featuredIds.has(tour.id));
+  const picks = [
+    ...featured,
+    ...remaining.filter((tour) => !featuredIds.has(tour.id)).sort((a, b) => b.offerPrice - a.offerPrice),
+  ].slice(0, PICK_COUNT);
 
   const view: OfferView = {
     firstName: offer.firstName,
