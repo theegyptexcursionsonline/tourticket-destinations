@@ -8,6 +8,7 @@ import { AlertCircle, ArrowRight, CheckCircle2, CreditCard, Loader2, Lock, Shiel
 import { clearCheckoutAttemptId, getOrCreateCheckoutAttemptId } from '@/lib/checkout/checkoutAttempt';
 import type { PaymentExperience } from '@/lib/checkout/paymentExperience';
 import { isAllowedStripeCheckoutUrl } from '@/lib/checkout/stripeCheckoutDestination';
+import { useStorefrontTheme } from '@/contexts/StorefrontThemeContext';
 
 const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
@@ -105,6 +106,7 @@ function PaymentPanel({
   experience: 'inline' | 'modal';
   onProcessingChange: (value: boolean) => void;
 }) {
+  const { resolvedTheme } = useStorefrontTheme();
   const [clientSecret, setClientSecret] = useState('');
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
@@ -182,18 +184,18 @@ function PaymentPanel({
   const options = {
     clientSecret,
     appearance: {
-      theme: 'stripe' as const,
+      theme: resolvedTheme === 'dark' ? 'night' as const : 'stripe' as const,
       inputs: 'spaced' as const,
       labels: 'above' as const,
       variables: {
-        colorPrimary: '#dc2626', colorBackground: '#ffffff', colorText: '#0f172a', colorDanger: '#dc2626',
+        colorPrimary: '#dc2626', colorBackground: resolvedTheme === 'dark' ? '#111827' : '#ffffff', colorText: resolvedTheme === 'dark' ? '#f8fafc' : '#0f172a', colorDanger: '#dc2626',
         colorSuccess: '#059669', fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif', fontSizeBase: '16px', spacingUnit: '4px', borderRadius: '12px',
       },
       rules: {
-        '.Input': { border: '1px solid #cbd5e1', padding: '13px 14px' },
+        '.Input': { border: resolvedTheme === 'dark' ? '1px solid #475569' : '1px solid #cbd5e1', padding: '13px 14px' },
         '.Input:focus': { borderColor: '#dc2626', boxShadow: '0 0 0 3px rgba(220,38,38,.14)' },
-        '.Label': { color: '#334155', fontSize: '14px', fontWeight: '600' },
-        '.Tab': { border: '1px solid #e2e8f0', boxShadow: 'none', padding: '11px 14px' },
+        '.Label': { color: resolvedTheme === 'dark' ? '#e2e8f0' : '#334155', fontSize: '14px', fontWeight: '600' },
+        '.Tab': { border: resolvedTheme === 'dark' ? '1px solid #475569' : '1px solid #e2e8f0', boxShadow: 'none', padding: '11px 14px' },
         '.Tab--selected': { borderColor: '#dc2626', boxShadow: '0 0 0 1px #dc2626' },
       },
     },

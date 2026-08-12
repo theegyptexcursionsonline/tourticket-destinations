@@ -23,6 +23,7 @@ import { Link } from '@/i18n/navigation';
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/contexts/AuthContext';
 import CurrencyLanguageSwitcher from '@/components/shared/CurrencyLanguageSwitcher';
+import ThemeToggle from '@/components/ThemeToggle';
 import AuthModal from '@/components/AuthModal';
 import { Destination, Category, Tour } from '@/types';
 import { useWishlist } from '@/contexts/WishlistContext';
@@ -817,6 +818,10 @@ const MobileMenu: FC<{
                 </div>
               </div>
 
+              <div className="flex items-center justify-between px-6 pt-5">
+                <span className="font-semibold text-slate-700">Appearance</span>
+                <ThemeToggle />
+              </div>
               <div className="p-6 border-t">
                 <CurrencyLanguageSwitcher variant="footer" />
               </div>
@@ -931,6 +936,8 @@ export default function Header2({ startSolid = false }: { startSolid?: boolean }
 
             <div className="flex items-center gap-3 md:gap-5">
               <CurrencyLanguageSwitcher variant="header" headerLinkClasses={`${headerText} ${linkHoverColor}`} isTransparent={isTransparent} />
+
+              <ThemeToggle className="hidden md:inline-flex" />
 
               <button onClick={openWishlistSidebar} className="relative group p-2" aria-label="View your wishlist">
                 <Heart size={24} className={`${headerText} ${linkHoverColor}`} />

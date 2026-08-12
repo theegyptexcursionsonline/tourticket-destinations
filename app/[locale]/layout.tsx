@@ -19,6 +19,8 @@ import { getTenantFromRequest, getTenantPublicConfig, TenantPublicConfig } from 
 import ComingSoonPage from "@/components/ComingSoonPage";
 import { routing } from '@/i18n/routing';
 import { notFound } from 'next/navigation';
+import { StorefrontThemeProvider } from '@/contexts/StorefrontThemeContext';
+import { STOREFRONT_THEME_BOOTSTRAP } from '@/lib/storefrontTheme';
 
 const COMING_SOON_MODE = false;
 
@@ -266,8 +268,12 @@ export default async function LocaleLayout({
 
   return (
     <html lang={locale} dir={dir} suppressHydrationWarning>
-      <head>{brandingStyles ? <style>{brandingStyles}</style> : null}</head>
-      <body className={fontClass} suppressHydrationWarning>
+      <head>
+        {brandingStyles ? <style>{brandingStyles}</style> : null}
+        <script id="storefront-theme-bootstrap" dangerouslySetInnerHTML={{ __html: STOREFRONT_THEME_BOOTSTRAP }} />
+      </head>
+      <body className={`${fontClass} storefront-theme`} suppressHydrationWarning>
+        <StorefrontThemeProvider>
         <NextIntlClientProvider messages={messages}>
           {/* TenantProvider wraps all other providers */}
           <TenantProvider
@@ -290,6 +296,7 @@ export default async function LocaleLayout({
             </AuthProvider>
           </TenantProvider>
         </NextIntlClientProvider>
+        </StorefrontThemeProvider>
       </body>
     </html>
   );

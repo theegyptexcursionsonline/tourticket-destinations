@@ -358,3 +358,19 @@
 [dir="rtl"] .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
 }
+
+/* Public storefront color system. Admin layouts do not use .storefront-theme. */
+html[data-storefront-theme="dark"] body.storefront-theme { color-scheme: dark; background: #08111f; color: #e2e8f0; }
+body.storefront-theme { transition: background-color 180ms ease, color 180ms ease; }
+html[data-storefront-theme="dark"] body.storefront-theme :where([class~="bg-white"], [class~="bg-white/95"], [class~="bg-white/90"], [class~="bg-white/80"]) { background-color: #111827 !important; }
+html[data-storefront-theme="dark"] body.storefront-theme :where([class~="bg-slate-50"], [class~="bg-slate-50/50"], [class~="bg-slate-50/70"], [class~="bg-slate-50/80"], [class~="bg-gray-50"], [class~="bg-gray-50/80"]) { background-color: #0f172a !important; }
+html[data-storefront-theme="dark"] body.storefront-theme :where([class~="bg-slate-100"], [class~="bg-slate-200"], [class~="bg-gray-100"], [class~="bg-gray-100/80"]) { background-color: #1e293b !important; }
+html[data-storefront-theme="dark"] body.storefront-theme :where([class~="text-slate-950"], [class~="text-slate-900"], [class~="text-slate-800"], [class~="text-gray-900"], [class~="text-gray-800"], [class~="text-black"]) { color: #f8fafc !important; }
+html[data-storefront-theme="dark"] body.storefront-theme :where([class~="text-slate-700"], [class~="text-slate-600"], [class~="text-gray-700"], [class~="text-gray-600"]) { color: #cbd5e1 !important; }
+html[data-storefront-theme="dark"] body.storefront-theme :where([class~="text-slate-500"], [class~="text-slate-400"], [class~="text-gray-500"], [class~="text-gray-400"]) { color: #94a3b8 !important; }
+html[data-storefront-theme="dark"] body.storefront-theme :where([class~="border-slate-100"], [class~="border-slate-200"], [class~="border-slate-300"], [class~="border-gray-100"], [class~="border-gray-200"], [class~="border-gray-300"], [class~="border-b"], [class~="border-t"]) { border-color: #334155 !important; }
+html[data-storefront-theme="dark"] body.storefront-theme :where(input, textarea, select) { background-color: #111827; border-color: #475569; color: #f8fafc; }
+html[data-storefront-theme="dark"] body.storefront-theme :where(input, textarea)::placeholder { color: #94a3b8; }
+html[data-storefront-theme="dark"] body.storefront-theme :where([class~="hover:bg-slate-50"]:hover, [class~="hover:bg-slate-100"]:hover, [class~="hover:bg-gray-50"]:hover, [class~="hover:bg-gray-100"]:hover) { background-color: #1e293b !important; }
+html[data-storefront-theme="dark"] body.storefront-theme .custom-scrollbar::-webkit-scrollbar-track { background: #0f172a; }
+html[data-storefront-theme="dark"] body.storefront-theme .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; }

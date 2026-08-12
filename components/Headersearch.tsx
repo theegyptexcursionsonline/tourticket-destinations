@@ -8,6 +8,7 @@ import { Link } from '@/i18n/navigation';
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/contexts/AuthContext';
 import CurrencyLanguageSwitcher from '@/components/shared/CurrencyLanguageSwitcher';
+import ThemeToggle from '@/components/ThemeToggle';
 import AuthModal from '@/components/AuthModal';
 import { Destination, Category } from '@/types';
 import { useTenant } from '@/contexts/TenantContext';
@@ -399,6 +400,10 @@ const MobileMenu: FC<{ isOpen: boolean; onClose: () => void; onOpenSearch: () =>
                 </div>
               </div>
 
+              <div className="flex items-center justify-between px-6 pt-5">
+                <span className="font-semibold text-slate-700">Appearance</span>
+                <ThemeToggle />
+              </div>
               <div className="p-6 border-t">
                 <CurrencyLanguageSwitcher variant="footer" />
               </div>
@@ -777,6 +782,7 @@ const linkHoverColor = 'hover:text-red-500';
                       headerLinkClasses={`${headerText} ${linkHoverColor}`}
                       isTransparent={isTransparent}
                     />
+                    <ThemeToggle transparent={isTransparent} className="hidden md:inline-flex" />
                     <button onClick={openWishlistSidebar} className="relative group p-2" aria-label="View your wishlist">
                         <Star size={24} className={`${headerText} ${linkHoverColor}`} />
                         {wishlist.length > 0 && (
