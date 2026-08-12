@@ -36,7 +36,11 @@ describe('storefront dark-mode wiring', () => {
     const localeRoot = path.join(process.cwd(), 'app/[locale]');
     const publicPages = listPageFiles(localeRoot);
 
-    expect(publicPages).toHaveLength(43);
+    // Bump deliberately: every new public page must be reviewed for theme wiring.
+    // 44 includes app/[locale]/offer/[token] (planner offer links), which renders
+    // inside the themed locale layout and styles itself with the gray/white
+    // utilities `body.storefront-theme` remaps for dark mode.
+    expect(publicPages).toHaveLength(44);
     expect(read('app/[locale]/layout.tsx')).toContain('StorefrontThemeProvider');
     for (const page of publicPages) {
       const source = fs.readFileSync(page, 'utf8');
