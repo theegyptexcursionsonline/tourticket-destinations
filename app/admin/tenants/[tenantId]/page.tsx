@@ -16,6 +16,7 @@ import {
   ExternalLink, Copy, Loader2, Star, CheckCircle2, XCircle
 } from 'lucide-react';
 import withAuth from '@/components/admin/withAuth';
+import { buildTenantUpdatePayload } from '@/lib/admin/tenantUpdatePayload';
 
 interface TenantData {
   _id: string;
@@ -259,6 +260,7 @@ function EditTenantPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('general');
   const [hasChanges, setHasChanges] = useState(false);
+  const [dirtyFields, setDirtyFields] = useState<Set<string>>(() => new Set());
 
   // Fetch tenant data
   const fetchTenant = useCallback(async () => {
@@ -283,6 +285,8 @@ function EditTenantPage() {
           homepage: { ...defaultTenant.homepage, ...data.data.homepage },
         };
         setTenant(merged as TenantData);
+        setDirtyFields(new Set());
+        setHasChanges(false);
       } else {
         toast.error('Tenant not found');
         router.push('/admin/tenants');
@@ -316,6 +320,11 @@ function EditTenantPage() {
     if (!tenant) return;
     
     setHasChanges(true);
+    setDirtyFields((current) => {
+      const next = new Set(current);
+      next.add(path);
+      return next;
+    });
     const keys = path.split('.');
     const newTenant = { ...tenant };
     
@@ -341,7 +350,7 @@ function EditTenantPage() {
 
   // Save tenant
   const saveTenant = useCallback(async () => {
-    if (!tenant) return;
+    if (!tenant || dirtyFields.size === 0) return;
     
     try {
       setIsSaving(true);
@@ -349,7 +358,10 @@ function EditTenantPage() {
       const response = await fetch(`/api/admin/tenants/${tenantId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(tenant),
+        body: JSON.stringify(buildTenantUpdatePayload(
+          tenant as unknown as Record<string, unknown>,
+          dirtyFields,
+        )),
       });
       
       const data = await response.json();
@@ -357,6 +369,7 @@ function EditTenantPage() {
       if (data.success) {
         toast.success('Tenant saved successfully!');
         setHasChanges(false);
+        setDirtyFields(new Set());
       } else {
         toast.error(data.error || 'Failed to save tenant');
       }
@@ -366,7 +379,7 @@ function EditTenantPage() {
     } finally {
       setIsSaving(false);
     }
-  }, [tenant, tenantId]);
+  }, [dirtyFields, tenant, tenantId]);
 
   // Cmd/Ctrl+S to save
   useEffect(() => {
