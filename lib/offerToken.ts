@@ -116,3 +116,31 @@ export function priceAfterDiscount(
 ): number {
   return Number((subtotal - discountAmountFor(subtotal, discount)).toFixed(2));
 }
+
+/**
+ * Short, human-readable link slugs: `amira-7k2m`.
+ *
+ * The alphabet omits characters that are misread when a link is spoken aloud or
+ * retyped from a screenshot (0/O, 1/l/I), because these get shared by hand.
+ */
+const SLUG_ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789';
+
+export function offerSlugFor(firstName: string, random: () => number = Math.random): string {
+  const name = firstName
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z]/g, '')
+    .slice(0, 14);
+  let suffix = '';
+  for (let index = 0; index < 4; index += 1) {
+    suffix += SLUG_ALPHABET[Math.floor(random() * SLUG_ALPHABET.length)];
+  }
+  return name ? `${name}-${suffix}` : `offer-${suffix}`;
+}
+
+/** A short slug never contains a dot; a signed token always does. */
+export function looksLikeOfferSlug(value: string): boolean {
+  return /^[a-z]{0,14}-?[a-z0-9-]{1,20}$/.test(value) && !value.includes('.');
+}

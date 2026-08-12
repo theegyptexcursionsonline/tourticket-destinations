@@ -15,8 +15,9 @@
  * are only served in their locale-prefixed form on this platform.
  */
 import mongoose from 'mongoose';
-import { signOffer } from '../lib/offerToken';
+import { offerSlugFor, signOffer } from '../lib/offerToken';
 import Discount from '../lib/models/Discount';
+import PlannerOfferModel from '../lib/models/PlannerOffer';
 
 async function main() {
   const [firstName, code, hoursRaw, tenantId, origin, locale = 'en'] = process.argv.slice(2);
@@ -51,14 +52,37 @@ async function main() {
       process.exit(2);
     }
 
-    const expiresAt = new Date(Date.now() + hours * 3_600_000).toISOString();
-    const token = signOffer({ firstName, discountCode: record.code, expiresAt });
+    const expiresAt = new Date(Date.now() + hours * 3_600_000);
     const base = (origin || '').replace(/\/$/, '');
     const worth = record.discountType === 'percentage' ? `${record.value}%` : `$${record.value}`;
 
-    console.log(`\nOffer for ${firstName} — ${record.code} (${worth}), valid ${hours}h (until ${expiresAt})`);
-    const path = `/${locale}/offer/${token}`;
+    // Short, shareable slug — retried on the rare collision with the unique index.
+    let slug = '';
+    for (let attempt = 0; attempt < 6 && !slug; attempt += 1) {
+      const candidate = offerSlugFor(firstName);
+      try {
+        await PlannerOfferModel.create({
+          tenantId,
+          slug: candidate,
+          firstName: firstName.trim(),
+          discountCode: record.code,
+          expiresAt,
+          createdBy: 'mint-planner-offer',
+        });
+        slug = candidate;
+      } catch (error: any) {
+        if (error?.code !== 11000) throw error;
+      }
+    }
+    if (!slug) throw new Error('Could not allocate a unique offer slug — try again');
+
+    console.log(`\nOffer for ${firstName} — ${record.code} (${worth}), valid ${hours}h (until ${expiresAt.toISOString()})`);
+    const path = `/${locale}/offer/${slug}`;
     console.log(base ? `${base}${path}` : path);
+    console.log('');
+    // The signed token remains valid for the same offer if a link ever needs to
+    // work without a database lookup.
+    console.log(`(fallback signed link: ${base}/${locale}/offer/${signOffer({ firstName, discountCode: record.code, expiresAt: expiresAt.toISOString() })})`);
     console.log('');
   } finally {
     await mongoose.disconnect();

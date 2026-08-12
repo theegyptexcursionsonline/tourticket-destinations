@@ -4,6 +4,8 @@ import {
   signOffer,
   verifyOffer,
   type OfferPayload,
+  offerSlugFor,
+  looksLikeOfferSlug,
 } from '@/lib/offerToken';
 
 const OLD_ENV = process.env.OFFER_TOKEN_SECRET;
@@ -110,5 +112,31 @@ describe('offer pricing matches checkout pricing exactly', () => {
   it('never produces a negative price', () => {
     expect(priceAfterDiscount(8, { discountType: 'fixed', value: 25 })).toBe(0);
     expect(priceAfterDiscount(30, { discountType: 'percentage', value: 150 })).toBe(0);
+  });
+});
+
+describe('short shareable offer slugs', () => {
+  it('builds a readable slug from the customer name', () => {
+    const slug = offerSlugFor('Amira', () => 0);
+    expect(slug).toMatch(/^amira-[a-z0-9]{4}$/);
+  });
+
+  it('strips accents, spaces and punctuation so the link stays typable', () => {
+    expect(offerSlugFor('Renée O\'Brien', () => 0)).toMatch(/^reneeobrien-/);
+    expect(offerSlugFor('  ', () => 0)).toMatch(/^offer-/);
+  });
+
+  it('omits characters that are misread when a link is retyped', () => {
+    const alphabet = new Set('abcdefghjkmnpqrstuvwxyz23456789'.split(''));
+    for (let i = 0; i < 200; i += 1) {
+      for (const char of offerSlugFor('Sam').split('-')[1]) {
+        expect(alphabet.has(char)).toBe(true);
+      }
+    }
+  });
+
+  it('separates slugs from signed tokens', () => {
+    expect(looksLikeOfferSlug('amira-7k2m')).toBe(true);
+    expect(looksLikeOfferSlug(signOffer(validOffer()))).toBe(false);
   });
 });

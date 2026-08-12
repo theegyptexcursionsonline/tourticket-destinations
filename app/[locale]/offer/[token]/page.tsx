@@ -11,7 +11,8 @@ import {
   getTenantFromRequest,
   getTenantPublicConfig,
 } from '@/lib/tenant';
-import { priceAfterDiscount, verifyOffer } from '@/lib/offerToken';
+import PlannerOfferModel from '@/lib/models/PlannerOffer';
+import { looksLikeOfferSlug, priceAfterDiscount, verifyOffer, type VerifiedOffer } from '@/lib/offerToken';
 import OfferPageClient, { type OfferTour, type OfferView } from './OfferPageClient';
 
 // The offer is personal and time-boxed: never cached, never indexed.
@@ -109,10 +110,38 @@ function toOfferTour(tour: any, discount: ActiveDiscount): OfferTour | null {
   };
 }
 
+/**
+ * Resolve a short shareable slug (`amira-7k2m`) into the same shape a signed
+ * token produces, so both link styles run one code path. Opens are counted for
+ * the planner; a revoked link dies immediately.
+ */
+async function offerFromSlug(slug: string, tenantId: string): Promise<VerifiedOffer> {
+  const record = await PlannerOfferModel.findOneAndUpdate(
+    { tenantId, slug: slug.toLowerCase(), revokedAt: null },
+    { $inc: { opens: 1 }, $set: { lastOpenedAt: new Date() } },
+    { new: true },
+  ).lean() as { firstName: string; discountCode: string; expiresAt: Date } | null;
+  if (!record) return { state: 'invalid', reason: 'bad_payload' };
+  const offer = {
+    firstName: record.firstName,
+    discountCode: record.discountCode,
+    expiresAt: new Date(record.expiresAt).toISOString(),
+  };
+  if (new Date(record.expiresAt).getTime() <= Date.now()) return { state: 'expired', offer };
+  return { state: 'valid', offer };
+}
+
 export default async function PlannerOfferPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   const locale = await getLocale();
-  const verified = verifyOffer(decodeURIComponent(token));
+  const raw = decodeURIComponent(token);
+
+  // Tenant first: a short slug is only meaningful inside its own workspace.
+  await dbConnect();
+  const tenantId = await resolveTenantId();
+  const verified = looksLikeOfferSlug(raw)
+    ? await offerFromSlug(raw, tenantId)
+    : verifyOffer(raw);
 
   if (verified.state === 'invalid') {
     return (
@@ -134,8 +163,6 @@ export default async function PlannerOfferPage({ params }: { params: Promise<{ t
   }
 
   const offer = verified.offer;
-  await dbConnect();
-  const tenantId = await resolveTenantId();
 
   const [discount, tenant, tenantRecord] = await Promise.all([
     activeDiscountFor(offer.discountCode, tenantId),
