@@ -25,6 +25,10 @@ export type OfferView = {
   expiresAt: string;
   currencySymbol: string;
   siteName: string;
+  logo: string | null;
+  brandColor: string;
+  heroImage: string | null;
+  heroAlt: string;
   bundles: OfferTour[];
   picks: OfferTour[];
   totalCount: number;
@@ -66,7 +70,7 @@ function Countdown({ expiresAt }: { expiresAt: string }) {
   );
 }
 
-function CodeTicket({ code, label }: { code: string; label: string }) {
+function CodeTicket({ code, label, brandColor }: { code: string; label: string; brandColor: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <button
@@ -88,9 +92,12 @@ function CodeTicket({ code, label }: { code: string; label: string }) {
         <span className="text-2xl font-extrabold tracking-[0.14em] text-gray-900">{code}</span>
       </span>
       <span aria-hidden className="my-2 w-px border-l-2 border-dashed border-gray-300" />
-      <span className="flex flex-col items-center justify-center gap-1 bg-gray-900 px-5 text-white transition-colors group-hover:bg-gray-800">
+      <span
+        className="flex flex-col items-center justify-center gap-1 px-5 text-white transition-opacity group-hover:opacity-90"
+        style={{ backgroundColor: brandColor }}
+      >
         <span className="text-lg font-extrabold leading-none">−{label}</span>
-        <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/70">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/80">
           {copied ? 'Copied ✓' : 'Tap to copy'}
         </span>
       </span>
@@ -226,38 +233,65 @@ export default function OfferPageClient({ view, locale }: { view: OfferView; loc
   const totalSaving = [...view.bundles, ...view.picks].reduce((sum, tour) => sum + tour.saving, 0);
   return (
     <main className="min-h-screen bg-gray-50 pb-28 md:pb-0">
-      <section className="relative overflow-hidden bg-gray-900">
-        <div aria-hidden className="pointer-events-none absolute inset-0">
-          <div className="absolute inset-0 bg-[radial-gradient(55%_45%_at_75%_-5%,rgba(255,255,255,0.14),transparent_65%)]" />
-          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
-        </div>
-        <div className="relative mx-auto max-w-6xl px-6 pb-16 pt-12 md:pb-24 md:pt-16">
-          <div className="flex items-center gap-2.5">
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-base font-semibold text-white ring-1 ring-white/20">
+      <section className="relative isolate overflow-hidden bg-gray-900">
+        {view.heroImage && (
+          <Image
+            src={view.heroImage}
+            alt={view.heroAlt}
+            fill
+            priority
+            sizes="100vw"
+            className="-z-10 object-cover"
+          />
+        )}
+        {/* Scrims: the headline has to stay readable over any photograph, so the
+            image sits under a vertical wash plus a left-weighted one behind the copy. */}
+        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-b from-gray-950/85 via-gray-950/70 to-gray-950/95" />
+        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-r from-gray-950/85 via-gray-950/45 to-transparent" />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-px"
+          style={{ background: `linear-gradient(90deg, transparent, ${view.brandColor}, transparent)` }}
+        />
+
+        <div className="relative mx-auto max-w-6xl px-6 pb-16 pt-10 md:pb-24 md:pt-12">
+          {view.logo && (
+            <img
+              src={view.logo}
+              alt={view.siteName}
+              className="h-11 w-auto drop-shadow-lg md:h-12"
+            />
+          )}
+
+          <div className="mt-8 flex items-center gap-2.5">
+            <span
+              className="flex h-8 w-8 items-center justify-center rounded-full text-base font-bold text-white ring-1 ring-white/25"
+              style={{ backgroundColor: view.brandColor }}
+            >
               {view.firstName.charAt(0).toUpperCase()}
             </span>
-            <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-white/70">
+            <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-white/80">
               A private offer, prepared by your personal planner
             </p>
           </div>
 
-          <h1 className="mt-8 max-w-4xl text-[2.5rem] font-extrabold leading-[1.07] tracking-tight text-white md:text-[3.75rem]">
+          <h1 className="mt-7 max-w-4xl text-[2.5rem] font-extrabold leading-[1.07] tracking-tight text-white drop-shadow-sm md:text-[3.75rem]">
             {view.firstName}, your {view.label} is ready to use.
           </h1>
-          <p className="mt-6 max-w-2xl text-lg leading-relaxed text-white/70 md:text-xl">
+          <p className="mt-6 max-w-2xl text-lg leading-relaxed text-white/85 md:text-xl">
             A hand-picked selection at live {view.siteName} prices. Your code applies at checkout on every tour
             below — on as many bookings as you make before it ends.
           </p>
 
           <div className="mt-10 flex flex-wrap items-center gap-x-10 gap-y-6">
-            <CodeTicket code={view.code} label={view.label} />
+            <CodeTicket code={view.code} label={view.label} brandColor={view.brandColor} />
             <div>
-              <p className="mb-2.5 text-[11px] font-bold uppercase tracking-[0.2em] text-white/70">Offer ends in</p>
+              <p className="mb-2.5 text-[11px] font-bold uppercase tracking-[0.2em] text-white/80">Offer ends in</p>
               <Countdown expiresAt={view.expiresAt} />
             </div>
           </div>
 
-          <ul className="mt-12 grid max-w-3xl grid-cols-1 gap-x-8 gap-y-2.5 text-[0.92rem] text-white/70 sm:grid-cols-2">
+          <ul className="mt-12 grid max-w-3xl grid-cols-1 gap-x-8 gap-y-2.5 text-[0.92rem] text-white/85 sm:grid-cols-2">
             {[
               'Free cancellation up to 24h on most tours',
               'Hotel pickup included where offered',
@@ -265,7 +299,13 @@ export default function OfferPageClient({ view, locale }: { view: OfferView; loc
               'Your code is applied and verified at checkout',
             ].map((line) => (
               <li key={line} className="flex items-center gap-2.5">
-                <span aria-hidden className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-white/15 text-[9px] font-bold text-white">✓</span>
+                <span
+                  aria-hidden
+                  className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold text-white"
+                  style={{ backgroundColor: view.brandColor }}
+                >
+                  ✓
+                </span>
                 {line}
               </li>
             ))}

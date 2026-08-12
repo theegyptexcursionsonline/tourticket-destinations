@@ -7,6 +7,7 @@ import {
   buildStrictTenantQuery,
   getTenantByDomain,
   getTenantDomainFromRequest,
+  getTenantConfigCached,
   getTenantFromRequest,
   getTenantPublicConfig,
 } from '@/lib/tenant';
@@ -136,9 +137,12 @@ export default async function PlannerOfferPage({ params }: { params: Promise<{ t
   await dbConnect();
   const tenantId = await resolveTenantId();
 
-  const [discount, tenant] = await Promise.all([
+  const [discount, tenant, tenantRecord] = await Promise.all([
     activeDiscountFor(offer.discountCode, tenantId),
     getTenantPublicConfig(tenantId),
+    // The public config deliberately omits `homepage`, and that is where the
+    // operator's own hero photography lives.
+    getTenantConfigCached(tenantId),
   ]);
 
   // The tenant's discount record is the authority. If it will not apply at
@@ -190,13 +194,21 @@ export default async function PlannerOfferPage({ params }: { params: Promise<{ t
     ...remaining.filter((tour) => !featuredIds.has(tour.id)).sort((a, b) => b.offerPrice - a.offerPrice),
   ].slice(0, PICK_COUNT);
 
+  // Real tenant branding: the customer should recognise the operator instantly.
+  const currencySymbol = tenant?.payments?.currencySymbol || '$';
+  const heroImage = tenantRecord?.homepage?.heroImages?.[0] || tenant?.seo?.ogImage || null;
+
   const view: OfferView = {
     firstName: offer.firstName,
     code: discount.code,
-    label: discount.discountType === 'percentage' ? `${discount.value}%` : `$${discount.value}`,
+    label: discount.discountType === 'percentage' ? `${discount.value}%` : `${currencySymbol}${discount.value}`,
     expiresAt: offer.expiresAt,
-    currencySymbol: '$',
+    currencySymbol,
     siteName: tenant?.name || 'our tours',
+    logo: tenant?.branding?.logo || null,
+    brandColor: tenant?.branding?.primaryColor || '#111827',
+    heroImage,
+    heroAlt: `${tenant?.name || 'Our'} experiences`,
     bundles,
     picks,
     totalCount: sellable.length,
