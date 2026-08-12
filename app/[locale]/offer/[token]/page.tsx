@@ -3,7 +3,13 @@ import { getLocale } from 'next-intl/server';
 import dbConnect from '@/lib/dbConnect';
 import Discount from '@/lib/models/Discount';
 import TourModel from '@/lib/models/Tour';
-import { buildStrictTenantQuery, getTenantFromRequest, getTenantPublicConfig } from '@/lib/tenant';
+import {
+  buildStrictTenantQuery,
+  getTenantByDomain,
+  getTenantDomainFromRequest,
+  getTenantFromRequest,
+  getTenantPublicConfig,
+} from '@/lib/tenant';
 import { priceAfterDiscount, verifyOffer } from '@/lib/offerToken';
 import OfferPageClient, { type OfferTour, type OfferView } from './OfferPageClient';
 
@@ -38,6 +44,25 @@ function ClosedOffer({ title, body, reason }: { title: string; body: string; rea
       </div>
     </main>
   );
+}
+
+/**
+ * Resolve the tenant for THIS request, falling back to the host that was actually
+ * requested.
+ *
+ * The proxy's tenant header does not always survive into a server component, and
+ * the cookie fallback only exists for visitors who have been here before. A
+ * planner link is opened cold by a first-time visitor, so relying on either alone
+ * silently resolves to the default tenant — which would hide the customer's
+ * discount and show another brand's tours. Same failure the sitemap already
+ * guards against.
+ */
+async function resolveTenantId(): Promise<string> {
+  const fromRequest = await getTenantFromRequest();
+  const host = (await getTenantDomainFromRequest()).split(':')[0];
+  if (!host || host === 'localhost') return fromRequest;
+  const byDomain = await getTenantByDomain(host);
+  return byDomain?.tenantId || fromRequest;
 }
 
 /**
@@ -108,8 +133,8 @@ export default async function PlannerOfferPage({ params }: { params: Promise<{ t
   }
 
   const offer = verified.offer;
-  const tenantId = await getTenantFromRequest();
   await dbConnect();
+  const tenantId = await resolveTenantId();
 
   const [discount, tenant] = await Promise.all([
     activeDiscountFor(offer.discountCode, tenantId),
