@@ -70,7 +70,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
         type="button"
         disabled={!stripe || isProcessing}
         onClick={handleSubmit}
-        className="w-full py-4 bg-red-600 text-white font-extrabold text-lg hover:bg-red-700 active:translate-y-[1px] transform-gpu shadow-md transition disabled:bg-red-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        className="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-4 text-base font-extrabold text-white shadow-md transition hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 active:translate-y-[1px] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none"
       >
         {isProcessing ? (
           <Loader2 className="animate-spin" size={24} />
@@ -265,46 +265,39 @@ const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
   const numberOfTours = cart?.length || 1;
 
   return (
-    <div className="bg-white border border-slate-100 rounded-3xl shadow-xl overflow-hidden">
-      <div className="bg-gradient-to-r from-red-600 via-rose-500 to-orange-500 text-white px-6 py-6 md:px-8 md:py-8 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-        <div>
-          <p className="text-xs uppercase tracking-[0.3em] text-white/70 flex items-center gap-2">
-            <ShieldCheck size={16} className="text-emerald-300" />
-            Secure Payment
-          </p>
-          <p className="text-3xl font-extrabold mt-2">{formattedTotal}</p>
-            <p className="text-sm text-white/80">
-              for {numberOfTours} {numberOfTours === 1 ? 'experience' : 'experiences'}
-            </p>
-        </div>
-        <div className="space-y-2 text-sm text-white/90">
-          <div className="flex items-center gap-2">
-            <Lock size={18} className="text-emerald-300" />
-            256-bit SSL encryption
+    <section
+      data-testid="inline-payment-experience"
+      aria-labelledby="inline-payment-title"
+      className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_22px_60px_-36px_rgba(15,23,42,0.55)]"
+    >
+      <header className="relative overflow-hidden bg-slate-950 px-5 py-6 text-white sm:px-7 sm:py-7">
+        <div className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-red-600/25 blur-3xl" aria-hidden="true" />
+        <div className="relative flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-white ring-1 ring-inset ring-white/15">
+              <CreditCard size={20} aria-hidden="true" />
+            </div>
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-red-300">Secure inline checkout</p>
+              <h3 id="inline-payment-title" className="mt-1 text-xl font-black tracking-tight text-white sm:text-2xl">Complete your payment</h3>
+              <p className="mt-2 max-w-md text-sm leading-6 text-slate-300">Cards and eligible wallets stay on this page while Stripe handles the payment details.</p>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <ShieldCheck size={18} className="text-emerald-300" />
-            Fraud detection & buyer protection
+          <div className="shrink-0 rounded-2xl bg-white/10 px-4 py-3 ring-1 ring-inset ring-white/15 sm:min-w-36 sm:text-right">
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">Total due</p>
+            <p className="mt-1 text-2xl font-black text-white">{formattedTotal}</p>
+            <p className="mt-1 text-xs text-slate-300">{numberOfTours} {numberOfTours === 1 ? 'experience' : 'experiences'}</p>
           </div>
         </div>
-      </div>
+        <div className="relative mt-5 flex flex-wrap gap-x-5 gap-y-2 border-t border-white/10 pt-4 text-xs text-slate-300">
+          <span className="inline-flex items-center gap-1.5"><ShieldCheck size={14} className="text-emerald-400" aria-hidden="true" /> Stripe protected</span>
+          <span className="inline-flex items-center gap-1.5"><Lock size={14} className="text-slate-300" aria-hidden="true" /> Encrypted payment</span>
+          <span className="inline-flex items-center gap-1.5"><CheckCircle2 size={14} className="text-emerald-400" aria-hidden="true" /> Total confirmed before charge</span>
+        </div>
+      </header>
 
-      <div className="px-6 md:px-8 py-8 space-y-6 bg-slate-50/60">
-        <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
-          <div className="flex items-center gap-3">
-            <CreditCard size={16} className="text-slate-400" />
-            <span>Visa</span>
-            <span>Mastercard</span>
-            <span>Amex</span>
-            <span>Apple Pay</span>
-          </div>
-          <div className="flex items-center gap-2 text-emerald-600 font-semibold text-xs uppercase tracking-wide">
-            <CheckCircle2 size={16} />
-            No hidden fees
-          </div>
-        </div>
-
-        <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-4 md:p-6">
+      <div className="bg-slate-50/80 p-3 sm:p-5">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
           <Elements stripe={stripePromise} options={options}>
             <PaymentForm
               clientSecret={clientSecret}
@@ -316,18 +309,12 @@ const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
           </Elements>
         </div>
 
-        <div className="flex items-center justify-between flex-wrap gap-3 text-xs text-slate-500">
-          <div className="flex items-center gap-2">
-            <ShieldCheck size={14} className="text-slate-400" />
-            Your card is never stored on our servers
-          </div>
-          <div className="flex items-center gap-2">
-            <Lock size={14} className="text-slate-400" />
-            Powered by Stripe
-          </div>
-        </div>
       </div>
-    </div>
+      <footer className="flex flex-col gap-1.5 border-t border-slate-200 bg-white px-5 py-4 text-xs leading-5 text-slate-500 sm:flex-row sm:items-center sm:justify-between sm:px-7">
+        <span>Payment details are handled by Stripe.</span>
+        <span>We do not store your card number.</span>
+      </footer>
+    </section>
   );
 };
 

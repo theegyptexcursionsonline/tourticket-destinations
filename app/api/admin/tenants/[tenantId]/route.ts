@@ -8,6 +8,10 @@ import dbConnect from '@/lib/dbConnect';
 import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 import Tenant from '@/lib/models/Tenant';
 import { clearTenantCache } from '@/lib/tenant';
+import {
+  resolveExecutablePaymentMethods,
+  validatePaymentMethodUpdate,
+} from '@/lib/payments/paymentProviderPolicy';
 
 export const dynamic = 'force-dynamic';
 
@@ -48,9 +52,16 @@ export async function GET(
       );
     }
     
+    const paymentMethods = resolveExecutablePaymentMethods(
+      tenant.payments?.supportedPaymentMethods ?? ['card'],
+    );
+
     return NextResponse.json({
       success: true,
-      data: tenant,
+      data: {
+        ...tenant,
+        payments: { ...tenant.payments, supportedPaymentMethods: paymentMethods },
+      },
     });
     
   } catch (error) {
@@ -77,6 +88,19 @@ async function PUTHandler(
     
     const { tenantId } = await params;
     const body = await request.json();
+
+    if (body?.payments && typeof body.payments === 'object') {
+      const paymentValidation = validatePaymentMethodUpdate(body.payments);
+      if (!paymentValidation.ok) {
+        return NextResponse.json(
+          { success: false, code: paymentValidation.code, error: paymentValidation.error },
+          { status: paymentValidation.status },
+        );
+      }
+      if (paymentValidation.methods) {
+        body.payments.supportedPaymentMethods = paymentValidation.methods;
+      }
+    }
     
     // Find existing tenant
     const existingTenant = await Tenant.findOne({ tenantId });

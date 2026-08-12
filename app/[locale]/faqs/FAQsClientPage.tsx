@@ -115,7 +115,7 @@ const faqsData = [
       },
       {
         question: "What payment methods do you accept?",
-        answer: "We accept all major credit and debit cards, including Visa, MasterCard, and American Express. We also accept payments via PayPal, Apple Pay, and Google Pay in supported regions."
+        answer: "We accept major credit and debit cards, including Visa, MasterCard, and American Express. Any eligible wallet options are shown securely by Stripe during checkout."
       },
     ]
   },

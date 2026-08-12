@@ -6,6 +6,7 @@ import dbConnect from './dbConnect';
 import Tenant, { ITenant } from './models/Tenant';
 import { resolveTenantBranding } from './tenantBranding';
 import { getTenantPresentationSourceTenantId, resolveTenantPresentation } from './tenantPresentation';
+import { resolveExecutablePaymentMethods } from './payments/paymentProviderPolicy';
 
 // ============================================
 // TYPES
@@ -330,7 +331,9 @@ export async function getTenantPublicConfig(tenantId: string): Promise<TenantPub
         currency: tenant.payments?.currency ?? 'USD',
         currencySymbol: tenant.payments?.currencySymbol ?? '$',
         supportedCurrencies: tenant.payments?.supportedCurrencies ?? ['USD'],
-        supportedPaymentMethods: tenant.payments?.supportedPaymentMethods ?? ['card'],
+        supportedPaymentMethods: resolveExecutablePaymentMethods(
+          tenant.payments?.supportedPaymentMethods ?? ['card'],
+        ),
       },
     };
   } catch (error) {
@@ -670,7 +673,7 @@ export function getDefaultTenantConfig(tenantId: string, name: string): Partial<
       currency: 'USD',
       currencySymbol: '$',
       supportedCurrencies: ['USD', 'EUR', 'GBP', 'EGP'],
-      supportedPaymentMethods: ['card', 'paypal'],
+      supportedPaymentMethods: ['card'],
     },
     email: {
       fromName: name,

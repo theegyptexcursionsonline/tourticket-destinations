@@ -61,7 +61,7 @@ export default async function OrganizationSchema() {
         ],
         priceRange: '$$',
         currenciesAccepted: 'USD, EUR, GBP',
-        paymentAccepted: 'Credit Card, PayPal, Cash',
+        paymentAccepted: 'Credit Card',
         openingHoursSpecification: {
           '@type': 'OpeningHoursSpecification',
           dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],

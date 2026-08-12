@@ -5,6 +5,7 @@ import dbConnect from '@/lib/dbConnect';
 import { getTenantConfigCached, getTenantFromRequest } from '@/lib/tenant';
 import { calculateCheckoutPricing, checkoutCustomerRef, checkoutFingerprint } from '@/lib/security/checkoutPricing';
 import { CartMetadataTooLargeError, packCartMetadata } from '@/lib/checkout/cartMetadata';
+import { resolveExecutablePaymentMethods } from '@/lib/payments/paymentProviderPolicy';
 
 // Lazy initialization to avoid build-time errors when env vars are missing
 let _stripe: Stripe | null = null;
@@ -34,6 +35,20 @@ export async function POST(request: Request) {
     
     // Get tenant config for potential tenant-specific Stripe account
     const tenantConfig = await getTenantConfigCached(tenantId);
+
+    const executablePaymentMethods = resolveExecutablePaymentMethods(
+      tenantConfig?.payments?.supportedPaymentMethods ?? ['card'],
+    );
+    if (!executablePaymentMethods.includes('card')) {
+      return NextResponse.json(
+        {
+          success: false,
+          code: 'CARD_PAYMENT_DISABLED',
+          message: 'Online card payment is not available for this website.',
+        },
+        { status: 409, headers: { 'Cache-Control': 'no-store' } },
+      );
+    }
 
     // Validate required fields
     if (!customer || !cart || cart.length === 0) {

@@ -386,8 +386,8 @@ const CheckoutFormStep = ({
   promoCode: string;
   paymentIntentId: string;
   setPaymentIntentId: (id: string) => void;
-  paymentMethod: 'card' | 'paypal';
-  setPaymentMethod: (method: 'card' | 'paypal') => void;
+  paymentMethod: 'card';
+  setPaymentMethod: (method: 'card') => void;
   supportedPaymentMethods: string[];
 }) => {
   const t = useTranslations();
@@ -556,7 +556,13 @@ const CheckoutFormStep = ({
         <section>
           <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 mb-4">{t('checkout.paymentDetails')}</h2>
 
-          <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-6">
+          {supportedPaymentMethods.length === 0 ? (
+            <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-amber-950" role="status">
+              <p className="font-semibold">Online payment is temporarily unavailable</p>
+              <p className="mt-1 text-sm text-amber-800">Please contact this website&apos;s support team before confirming your booking.</p>
+            </div>
+          ) : (
+          <div className="grid grid-cols-1 gap-2 sm:gap-3 mb-6">
             {isPaymentMethodSupported('card') && (
               <button
                 type="button"
@@ -571,27 +577,10 @@ const CheckoutFormStep = ({
               </button>
             )}
 
-            {isPaymentMethodSupported('paypal') && (
-              <button
-                type="button"
-                onClick={() => setPaymentMethod('paypal')}
-                aria-pressed={paymentMethod === 'paypal'}
-                className={`flex flex-col items-center justify-center gap-1 sm:gap-2 p-3 sm:p-4 border border-slate-200 rounded-lg transition-shadow relative ${paymentMethod === 'paypal' ? 'bg-red-50 border-red-200 shadow-sm' : 'bg-white hover:shadow-sm'}`}
-              >
-                <span className="absolute top-1 end-1 sm:top-2 sm:end-2 bg-blue-500 text-white text-[8px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full">
-                  SOON
-                </span>
-                <div className="h-7 sm:h-10 flex items-center">
-                  <Image src="/payment/paypal2.png" alt="PayPal" width={48} height={30} className="object-contain w-[38px] h-[24px] sm:w-[48px] sm:h-[30px]" />
-                </div>
-                <span className="text-xs sm:text-sm font-medium text-slate-700">PayPal</span>
-              </button>
-            )}
-
-
           </div>
+          )}
 
-          <AnimatePresence mode="wait">
+          {supportedPaymentMethods.length > 0 && <AnimatePresence mode="wait">
             <motion.div
               key={paymentMethod}
               initial={{ opacity: 0, y: 8 }}
@@ -627,14 +616,8 @@ const CheckoutFormStep = ({
                   />
                 </div>
               )}
-              {paymentMethod === 'paypal' && (
-                <div className="p-6 bg-slate-50 border border-slate-200 rounded-lg text-center text-slate-700">
-                  <p className="font-medium">{t('checkout.payOnline')}</p>
-                  <p className="text-sm text-slate-500 mt-2">{t('checkout.payOnlineDescription')}</p>
-                </div>
-              )}
             </motion.div>
-          </AnimatePresence>
+          </AnimatePresence>}
         </section>
       )}
     </form>
@@ -1180,15 +1163,13 @@ export default function CheckoutPage() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<'login' | 'signup'>('login');
 
-  const baseMethods =
-    tenant?.payments?.supportedPaymentMethods && tenant.payments.supportedPaymentMethods.length > 0
-      ? tenant.payments.supportedPaymentMethods.filter((m: string) => m !== 'pay_later')
-      : ['card', 'paypal'];
+  const configuredMethods = tenant?.payments?.supportedPaymentMethods;
+  const baseMethods = Array.isArray(configuredMethods)
+    ? configuredMethods.filter((method: string) => method === 'card')
+    : ['card'];
   const supportedPaymentMethods = baseMethods;
 
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'paypal'>(
-    (supportedPaymentMethods[0] as 'card' | 'paypal') || 'card'
-  );
+  const [paymentMethod, setPaymentMethod] = useState<'card'>('card');
 
   // Stripe payment intent ID
   const [paymentIntentId, setPaymentIntentId] = useState<string>('');
@@ -1256,8 +1237,7 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     if (!supportedPaymentMethods.includes(paymentMethod)) {
-      const fallback = supportedPaymentMethods[0] as 'card' | 'paypal' | undefined;
-      setPaymentMethod(fallback || 'card');
+      setPaymentMethod('card');
     }
   }, [supportedPaymentMethods, paymentMethod]);
 

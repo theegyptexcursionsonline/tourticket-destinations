@@ -164,7 +164,7 @@ export default function TermsAndConditionsPage() {
                 <strong>Accepted cash currencies:</strong> GBP (Pounds Sterling), USD, EUR, and EGP, calculated per the prevailing Egypt rate on the tour date.
               </p>
               <p className="leading-relaxed mb-4">
-                <strong className="text-slate-900">Card payment:</strong> If you prefer to pay the outstanding balance by card, we accept <strong>Visa, MasterCard, American Express, and PayPal</strong>.
+                <strong className="text-slate-900">Card payment:</strong> If you prefer to pay the outstanding balance by card, we accept <strong>Visa, MasterCard, and American Express</strong> through our secure payment provider.
               </p>
               <p className="leading-relaxed">
                 <strong>Merchant of Record / Statement Name:</strong> Excursions Online LLC FZ.

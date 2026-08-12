@@ -19,6 +19,10 @@ import mongoose from 'mongoose';
 import Availability from '@/lib/models/Availability';
 import StopSale from '@/lib/models/StopSale';
 import { assertStripePaymentAvailableForBooking } from '@/lib/security/stripePaymentState';
+import {
+  isCustomerPaymentMethod,
+  resolveExecutablePaymentMethods,
+} from '@/lib/payments/paymentProviderPolicy';
 
 // Helper to convert tenant config to email branding
 function getTenantEmailBranding(tenantConfig: ITenant | null, baseUrl: string): TenantEmailBranding | undefined {
@@ -218,7 +222,16 @@ export async function POST(request: Request) {
       currency: tenantConfig?.payments?.currency || 'USD',
       symbol: tenantConfig?.payments?.currencySymbol || '$',
     };
-    const supportedPaymentMethods = tenantConfig?.payments?.supportedPaymentMethods;
+    const supportedPaymentMethods = resolveExecutablePaymentMethods(
+      tenantConfig?.payments?.supportedPaymentMethods ?? ['card'],
+    );
+
+    if (!isCustomerPaymentMethod(paymentMethod) || !supportedPaymentMethods.includes(paymentMethod)) {
+      return NextResponse.json(
+        { success: false, message: 'Selected payment method is not available for this tenant.' },
+        { status: 400, headers: { 'Cache-Control': 'no-store' } },
+      );
+    }
 
     let user = null;
 
@@ -299,44 +312,10 @@ export async function POST(request: Request) {
       );
     }
 
-    // Reject pay_later — no longer supported on tenant websites
-    if (paymentMethod === 'pay_later') {
-      return NextResponse.json(
-        { success: false, message: 'Pay Later is not available. Please select another payment method.' },
-        { status: 400 }
-      );
-    }
-
-    if (supportedPaymentMethods?.length && !supportedPaymentMethods.includes(paymentMethod)) {
-      return NextResponse.json(
-        { success: false, message: 'Selected payment method is not available for this tenant.' },
-        { status: 400 }
-      );
-    }
-
-    // Process payment based on payment method
+    // Card is currently the only provider with a complete executable lifecycle.
     let paymentResult;
-    const isBankTransfer = paymentMethod === 'bank';
-    const isPayLater = paymentMethod === 'pay_later';
-
-    if (isBankTransfer) {
-      // For bank transfer, no Stripe processing needed
-      paymentResult = {
-        paymentId: `BANK-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
-        status: 'pending',
-        amount: pricing.total,
-        currency: (pricing.currency || 'USD').toUpperCase(),
-      };
-    } else if (isPayLater) {
-      // For pay later, no payment processing needed
-      paymentResult = {
-        paymentId: `PAYLATER-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
-        status: 'pending',
-        amount: pricing.total,
-        currency: (pricing.currency || 'USD').toUpperCase(),
-      };
-    } else {
-      // Process payment with Stripe for card payments
+    {
+      // Process payment with Stripe for card payments.
       try {
         if (!paymentDetails?.paymentIntentId) {
           throw new Error('A verified payment intent is required.');
@@ -411,7 +390,7 @@ export async function POST(request: Request) {
     }
 
     // Idempotency guard for Stripe payments to avoid duplicate bookings/emails
-    if (!isBankTransfer && !isPayLater && paymentResult?.paymentId) {
+    if (paymentResult?.paymentId) {
       const existingBookings = await Booking.find({
         tenantId,
         paymentId: paymentResult.paymentId,
@@ -450,52 +429,6 @@ export async function POST(request: Request) {
           receiptToken,
         });
       }
-    }
-
-    // Send Payment Confirmation or Bank Transfer Instructions or Pay Later Instructions
-    try {
-      if (isBankTransfer) {
-        // Get tenant-specific bank details or use defaults
-        const bankDetails = (tenantConfig?.payments as any)?.bankDetails || {
-          bankName: 'Commercial International Bank (CIB)',
-          accountName: tenantConfig?.name || 'Egypt Excursions Online',
-          accountNumber: '1001234567890',
-          iban: 'EG380001001001234567890',
-          swiftCode: 'CIBEEGCX',
-        };
-        
-        // Send bank transfer instructions email
-        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || '';
-        await EmailService.sendBankTransferInstructions({
-          customerName: `${customer.firstName} ${customer.lastName}`,
-          customerEmail: customer.email,
-          tourTitle: cart.length === 1 ? cart[0].title : `${cart.length} Tours`,
-          bookingId: `BOOKING-${Date.now()}`,
-          bookingDate: formatBookingDate(cart[0]?.selectedDate),
-          bookingTime: cart[0]?.selectedTime || '10:00',
-          participants: `${cart.reduce((sum: number, item: any) => sum + (item.quantity || 0) + (item.childQuantity || 0) + (item.infantQuantity || 0), 0)} participant(s)`,
-          totalPrice: `${tenantConfig?.payments?.currencySymbol || '$'}${pricing.total.toFixed(2)}`,
-          bankName: bankDetails.bankName,
-          accountName: bankDetails.accountName,
-          accountNumber: bankDetails.accountNumber,
-          iban: bankDetails.iban,
-          swiftCode: bankDetails.swiftCode,
-          currency: paymentResult.currency,
-          specialRequests: customer.specialRequests,
-          hotelPickupDetails: customer.hotelPickupDetails,
-          baseUrl,
-          tenantBranding: getTenantEmailBranding(tenantConfig, baseUrl)
-        });
-      } else if (isPayLater) {
-        // Pay later - no payment email needed, booking confirmation will be sent separately
-        console.log('Pay Later booking - skipping payment confirmation email');
-      } else {
-        // Card payments: skip payment confirmation email to avoid duplicates
-        console.log('Card payment - skipping payment confirmation email');
-      }
-    } catch (emailError) {
-      console.error('Failed to send payment/bank transfer email:', emailError);
-      // Don't fail the booking if email fails
     }
 
     // Create every item atomically. A paid multi-item order must never leave a
@@ -575,7 +508,7 @@ export async function POST(request: Request) {
           time: bookingTime,
           guests: totalGuests,
           totalPrice: itemTotalPrice,
-          status: (isBankTransfer || isPayLater) ? 'Pending' : 'Confirmed',
+          status: 'Confirmed',
           paymentId: paymentResult.paymentId,
           checkoutItemKey: `${tenantId}:${paymentResult.paymentId}:${i}`,
           paymentMethod,
@@ -831,8 +764,8 @@ export async function POST(request: Request) {
         bookingDate: emailBookingDate,
         bookingTime: cart[0]?.time || undefined,
         totalPrice: formatMoney(pricing?.total),
-        paymentMethod: paymentMethod === 'pay_later' ? 'Pay on Arrival' : paymentMethod === 'card' ? 'Card (Stripe)' : paymentMethod,
-        paymentStatus: paymentMethod === 'pay_later' ? 'Pay on Arrival' : 'Paid',
+        paymentMethod: 'Card (Stripe)',
+        paymentStatus: 'Paid',
         bookingSource: 'online',
         specialRequests: customer.specialRequests,
         hotelPickupDetails: customer.hotelPickupDetails,

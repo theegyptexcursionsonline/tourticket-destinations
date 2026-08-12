@@ -97,9 +97,7 @@ interface TenantData {
     currency: string;
     currencySymbol: string;
     supportedCurrencies: string[];
-    stripeEnabled: boolean;
-    paypalEnabled: boolean;
-    bankTransferEnabled: boolean;
+    supportedPaymentMethods: string[];
   };
   analytics: {
     googleAnalyticsId: string;
@@ -201,9 +199,7 @@ const defaultTenant: Partial<TenantData> = {
     currency: 'USD',
     currencySymbol: '$',
     supportedCurrencies: ['USD', 'EUR', 'GBP', 'EGP'],
-    stripeEnabled: true,
-    paypalEnabled: false,
-    bankTransferEnabled: false,
+    supportedPaymentMethods: ['card'],
   },
   analytics: {
     googleAnalyticsId: '',
@@ -1266,6 +1262,11 @@ function FeaturesTab({ tenant, updateField }: { tenant: TenantData; updateField:
 }
 
 function PaymentsTab({ tenant, updateField }: { tenant: TenantData; updateField: (path: string, value: unknown) => void }) {
+  const configuredMethods = Array.isArray(tenant.payments?.supportedPaymentMethods)
+    ? tenant.payments.supportedPaymentMethods
+    : ['card'];
+  const cardEnabled = configuredMethods.includes('card');
+
   return (
     <div className="space-y-8">
       <div>
@@ -1324,28 +1325,63 @@ function PaymentsTab({ tenant, updateField }: { tenant: TenantData; updateField:
       </div>
 
       <div className="rounded-3xl border border-slate-200 bg-slate-50/60 p-5">
-        <h4 className="text-sm font-semibold text-slate-900">Payment methods</h4>
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h4 className="text-sm font-semibold text-slate-900">Payment providers</h4>
+            <p className="mt-1 text-xs text-slate-500">Only verified, end-to-end providers can be activated.</p>
+          </div>
+          {!cardEnabled && (
+            <span className="inline-flex w-fit rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
+              Customer checkout disabled
+            </span>
+          )}
+        </div>
         <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <label className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-white p-4 hover:bg-emerald-50/40 cursor-pointer transition-colors">
+            <input
+              type="checkbox"
+              checked={cardEnabled}
+              onChange={(e) => updateField('payments.supportedPaymentMethods', e.target.checked ? ['card'] : [])}
+              className={`${UI.checkbox} mt-0.5`}
+            />
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-semibold text-slate-900">Stripe</span>
+                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-800">Ready</span>
+              </div>
+              <p className="mt-1 text-sm text-slate-500">Cards and Stripe-eligible wallets</p>
+            </div>
+          </label>
+
           {[
-            { key: 'stripeEnabled', label: 'Stripe', description: 'Credit/Debit cards' },
-            { key: 'paypalEnabled', label: 'PayPal', description: 'PayPal payments' },
-            { key: 'bankTransferEnabled', label: 'Bank transfer', description: 'Direct bank transfer' },
-          ].map(({ key, label, description }) => (
-            <label
-              key={key}
-              className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 hover:bg-slate-50 cursor-pointer transition-colors"
+            {
+              label: 'PayPal',
+              description: 'Requires PayPal credentials, webhooks, refunds and recovery verification.',
+            },
+            {
+              label: 'Bank transfer',
+              description: 'Requires approved bank details and a pending-payment reconciliation flow.',
+            },
+          ].map(({ label, description }) => (
+            <div
+              key={label}
+              className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-100/80 p-4 text-slate-500"
             >
               <input
                 type="checkbox"
-                checked={Boolean((tenant.payments as any)?.[key])}
-                onChange={(e) => updateField(`payments.${key}`, e.target.checked)}
+                checked={false}
+                disabled
+                aria-label={`${label} unavailable`}
                 className={`${UI.checkbox} mt-0.5`}
               />
               <div className="min-w-0">
-                <span className="font-semibold text-slate-900">{label}</span>
-                <p className="text-sm text-slate-500">{description}</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-semibold text-slate-700">{label}</span>
+                  <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[11px] font-semibold text-slate-700">Setup required</span>
+                </div>
+                <p className="mt-1 text-sm text-slate-500">{description}</p>
               </div>
-            </label>
+            </div>
           ))}
         </div>
       </div>
