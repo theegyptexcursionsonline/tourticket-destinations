@@ -9,14 +9,17 @@
  *
  * Usage:
  *   OFFER_TOKEN_SECRET=… MONGODB_URI=… \
- *   npx tsx scripts/mint-planner-offer.ts <FirstName> <CODE> <hoursValid> <tenantId> [origin]
+ *   npx tsx scripts/mint-planner-offer.ts <FirstName> <CODE> <hoursValid> <tenantId> [origin] [locale]
+ *
+ * The printed URL carries the locale prefix (default `en`) because nested paths
+ * are only served in their locale-prefixed form on this platform.
  */
 import mongoose from 'mongoose';
 import { signOffer } from '../lib/offerToken';
 import Discount from '../lib/models/Discount';
 
 async function main() {
-  const [firstName, code, hoursRaw, tenantId, origin] = process.argv.slice(2);
+  const [firstName, code, hoursRaw, tenantId, origin, locale = 'en'] = process.argv.slice(2);
   if (!firstName || !code || !hoursRaw || !tenantId) {
     console.error('Usage: mint-planner-offer.ts <FirstName> <CODE> <hoursValid> <tenantId> [origin]');
     process.exit(1);
@@ -54,7 +57,8 @@ async function main() {
     const worth = record.discountType === 'percentage' ? `${record.value}%` : `$${record.value}`;
 
     console.log(`\nOffer for ${firstName} — ${record.code} (${worth}), valid ${hours}h (until ${expiresAt})`);
-    console.log(base ? `${base}/offer/${token}` : `/offer/${token}`);
+    const path = `/${locale}/offer/${token}`;
+    console.log(base ? `${base}${path}` : path);
     console.log('');
   } finally {
     await mongoose.disconnect();
