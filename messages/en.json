@@ -836,7 +836,7 @@
     "faqGroupDiscounts": "Do you offer group discounts?",
     "faqGroupDiscountsAnswer": "Absolutely! We offer special rates for groups of 10 or more. Contact us for a custom quote.",
     "faqPaymentMethods": "What payment methods do you accept?",
-    "faqPaymentMethodsAnswer": "We accept all major credit cards, PayPal, and bank transfers. Payment is secure and encrypted.",
+    "faqPaymentMethodsAnswer": "We accept major credit and debit cards through Stripe. Any eligible wallet options are shown securely during checkout.",
     "stillHaveQuestions": "Still have questions?",
     "chatWithOurTeam": "Chat with our team"
   },

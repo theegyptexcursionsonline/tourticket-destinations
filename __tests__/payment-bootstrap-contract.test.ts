@@ -43,6 +43,11 @@ describe('payment bootstrap contract', () => {
     expect(checkoutSource).not.toContain('paypal2.png');
     expect(footerSource).not.toContain('PaymentIcons.PayPal');
     expect(footerSource).not.toContain('PaymentIcons.Alipay');
+
+    for (const locale of ['en', 'de', 'es', 'fr', 'ru']) {
+      const messages = fs.readFileSync(path.join(process.cwd(), `messages/${locale}.json`), 'utf8');
+      expect(messages).not.toMatch(/PayPal|bank transfers|Banküberweisungen|transferencias bancarias|virements bancaires|банковские переводы/i);
+    }
   });
 
   it('enforces the same executable-provider policy before payment and booking', () => {

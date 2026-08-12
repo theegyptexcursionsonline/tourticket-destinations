@@ -835,7 +835,7 @@
     "faqGroupDiscounts": "¿Ofrecen descuentos para grupos?",
     "faqGroupDiscountsAnswer": "¡Absolutamente! Ofrecemos tarifas especiales para grupos de 10 o más. Contáctanos para una cotización personalizada.",
     "faqPaymentMethods": "¿Qué métodos de pago aceptan?",
-    "faqPaymentMethodsAnswer": "Aceptamos todas las tarjetas de crédito principales, PayPal y transferencias bancarias. El pago es seguro y encriptado.",
+    "faqPaymentMethodsAnswer": "Aceptamos las principales tarjetas de crédito y débito a través de Stripe. Las opciones de monedero elegibles se muestran de forma segura durante el pago.",
     "stillHaveQuestions": "¿Aún tienes preguntas?",
     "chatWithOurTeam": "Chatea con nuestro equipo"
   },

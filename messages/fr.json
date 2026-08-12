@@ -835,7 +835,7 @@
     "faqGroupDiscounts": "Offrez-vous des rabais de groupe?",
     "faqGroupDiscountsAnswer": "Absolument! Nous offrons des tarifs spéciaux pour les groupes de 10 personnes ou plus. Contactez-nous pour un devis personnalisé.",
     "faqPaymentMethods": "Quels modes de paiement acceptez-vous?",
-    "faqPaymentMethodsAnswer": "Nous acceptons toutes les principales cartes de crédit, PayPal et les virements bancaires. Le paiement est sécurisé et chiffré.",
+    "faqPaymentMethodsAnswer": "Nous acceptons les principales cartes de crédit et de débit via Stripe. Les portefeuilles numériques éligibles s’affichent de manière sécurisée lors du paiement.",
     "stillHaveQuestions": "Vous avez encore des questions?",
     "chatWithOurTeam": "Discutez avec notre équipe"
   },

@@ -835,7 +835,7 @@
     "faqGroupDiscounts": "Bieten Sie Gruppenrabatte an?",
     "faqGroupDiscountsAnswer": "Absolut! Wir bieten Sonderpreise für Gruppen ab 10 Personen. Kontaktieren Sie uns für ein individuelles Angebot.",
     "faqPaymentMethods": "Welche Zahlungsmethoden akzeptieren Sie?",
-    "faqPaymentMethodsAnswer": "Wir akzeptieren alle gängigen Kreditkarten, PayPal und Banküberweisungen. Die Zahlung ist sicher und verschlüsselt.",
+    "faqPaymentMethodsAnswer": "Wir akzeptieren gängige Kredit- und Debitkarten über Stripe. Geeignete Wallet-Optionen werden beim Checkout sicher angezeigt.",
     "stillHaveQuestions": "Noch Fragen?",
     "chatWithOurTeam": "Chatten Sie mit unserem Team"
   },
