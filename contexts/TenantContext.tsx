@@ -186,6 +186,7 @@ export interface TenantPayments {
   currencySymbol: string;
   supportedCurrencies?: string[];
   supportedPaymentMethods?: string[];
+  paymentExperience?: 'inline' | 'modal' | 'hosted';
 }
 
 export interface TenantLocalization {
@@ -272,7 +273,8 @@ const DEFAULT_TENANT_CONFIG: TenantConfig = {
     currency: 'USD',
     currencySymbol: '$',
     supportedCurrencies: ['USD', 'EUR', 'GBP', 'EGP'],
-    supportedPaymentMethods: ['card', 'paypal'],
+    supportedPaymentMethods: ['card'],
+    paymentExperience: 'inline',
   },
   localization: {
     defaultLanguage: 'en',

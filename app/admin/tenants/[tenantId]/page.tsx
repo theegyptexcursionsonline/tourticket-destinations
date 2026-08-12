@@ -98,6 +98,7 @@ interface TenantData {
     currencySymbol: string;
     supportedCurrencies: string[];
     supportedPaymentMethods: string[];
+    paymentExperience: 'inline' | 'modal' | 'hosted';
   };
   analytics: {
     googleAnalyticsId: string;
@@ -200,6 +201,7 @@ const defaultTenant: Partial<TenantData> = {
     currencySymbol: '$',
     supportedCurrencies: ['USD', 'EUR', 'GBP', 'EGP'],
     supportedPaymentMethods: ['card'],
+    paymentExperience: 'inline',
   },
   analytics: {
     googleAnalyticsId: '',
@@ -627,11 +629,12 @@ function EditTenantPage() {
           </div>
         </aside>
       </div>
+
     </div>
   );
 }
 
-export default withAuth(EditTenantPage, { permissions: ['manageUsers'] });
+export default withAuth(EditTenantPage, { permissions: ['manageTenants'] });
 
 // Tab Components
 function GeneralTab({ tenant, updateField }: { tenant: TenantData; updateField: (path: string, value: unknown) => void }) {
@@ -1384,6 +1387,50 @@ function PaymentsTab({ tenant, updateField }: { tenant: TenantData; updateField:
             </div>
           ))}
         </div>
+      </div>
+
+      <div className={`rounded-3xl border border-slate-200 bg-white p-5 ${cardEnabled ? '' : 'opacity-60'}`}>
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h4 className="text-sm font-semibold text-slate-900">Stripe checkout presentation</h4>
+            <p className="mt-1 text-xs text-slate-500">Choose how customers complete card payment for this website.</p>
+          </div>
+          <span className="inline-flex w-fit rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">Per website</span>
+        </div>
+        <fieldset className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-3" disabled={!cardEnabled}>
+          <legend className="sr-only">Stripe checkout presentation</legend>
+          {([
+            { value: 'inline', label: 'Inline payment', description: 'Stripe fields remain inside the checkout page.', icon: <Layout className="h-5 w-5" aria-hidden="true" /> },
+            { value: 'modal', label: 'Secure modal', description: 'A clean, focused payment dialog opens on this site.', icon: <Shield className="h-5 w-5" aria-hidden="true" /> },
+            { value: 'hosted', label: 'Stripe-hosted', description: 'Customers pay on Stripe and return for booking status.', icon: <ExternalLink className="h-5 w-5" aria-hidden="true" /> },
+          ] as const).map((option) => {
+            const selected = (tenant.payments?.paymentExperience || 'inline') === option.value;
+            return (
+              <label
+                key={option.value}
+                className={`relative flex cursor-pointer items-start gap-3 rounded-2xl border p-4 transition ${selected ? 'border-red-300 bg-red-50/70 ring-1 ring-red-200' : 'border-slate-200 bg-white hover:border-slate-300'}`}
+              >
+                <input
+                  type="radio"
+                  name="paymentExperience"
+                  value={option.value}
+                  checked={selected}
+                  onChange={() => updateField('payments.paymentExperience', option.value)}
+                  className="sr-only"
+                />
+                <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${selected ? 'bg-red-600 text-white' : 'bg-slate-100 text-slate-600'}`}>{option.icon}</span>
+                <span className="min-w-0">
+                  <span className="flex items-center gap-2 font-semibold text-slate-900">
+                    {option.label}
+                    {selected && <CheckCircle2 className="h-4 w-4 text-red-600" aria-label="Selected" />}
+                  </span>
+                  <span className="mt-1 block text-sm leading-5 text-slate-500">{option.description}</span>
+                </span>
+              </label>
+            );
+          })}
+        </fieldset>
+        {!cardEnabled && <p className="mt-3 text-xs font-medium text-amber-700">Enable Stripe above before choosing a presentation.</p>}
       </div>
     </div>
   );

@@ -36,6 +36,7 @@ import { CartItem } from '@/types';
 import toast from 'react-hot-toast';
 import { parseLocalDate } from '@/utils/date';
 import { useTranslations } from 'next-intl';
+import type { PaymentExperience } from '@/lib/checkout/paymentExperience';
 
 const FormInput = ({ label, name, type = 'text', placeholder, required = true, value, onChange, disabled = false }: any) => (
   <div>
@@ -255,7 +256,7 @@ const SummaryItem: React.FC<{ item: CartItem }> = ({ item }) => {
   );
 };
 
-const BookingSummary = ({ pricing, promoCode, setPromoCode, applyPromoCode, isProcessing, isApplyingCoupon, couponMessage }: any) => {
+const BookingSummary = ({ pricing, promoCode, setPromoCode, applyPromoCode, isProcessing, isApplyingCoupon, couponMessage, showPaymentLauncher }: any) => {
   const { formatPrice } = useSettings();
   const { cart } = useCart();
   const t = useTranslations();
@@ -315,14 +316,14 @@ const BookingSummary = ({ pricing, promoCode, setPromoCode, applyPromoCode, isPr
       </div>
 
       <div className="mt-6 hidden lg:block">
-        <button
+        {showPaymentLauncher && <button
           type="submit"
           form="checkout-form"
           disabled={isProcessing}
           className="w-full py-4 bg-red-600 text-white font-extrabold text-lg hover:bg-red-700 active:translate-y-[1px] transform-gpu shadow-md transition disabled:bg-red-400 disabled:cursor-not-allowed flex items-center justify-center"
         >
-          {isProcessing ? <Loader2 className="animate-spin" size={24} /> : <span className="inline-flex items-center justify-center gap-2"><Lock size={18} /> {t('checkout.completeBooking')}</span>}
-        </button>
+          {isProcessing ? <Loader2 className="animate-spin" size={24} /> : <span className="inline-flex items-center justify-center gap-2"><Lock size={18} /> Continue to secure payment</span>}
+        </button>}
         <p className="text-xs text-slate-500 text-center mt-3">
           {t('checkout.agreeToTerms')}
         </p>
@@ -371,6 +372,9 @@ const CheckoutFormStep = ({
   paymentMethod,
   setPaymentMethod,
   supportedPaymentMethods,
+  paymentExperience,
+  isPaymentOpen,
+  setIsPaymentOpen,
 }: {
   onPaymentProcess: () => void;
   onPaymentProcessWithIntent: (intentId: string) => void;
@@ -389,6 +393,9 @@ const CheckoutFormStep = ({
   paymentMethod: 'card';
   setPaymentMethod: (method: 'card') => void;
   supportedPaymentMethods: string[];
+  paymentExperience: PaymentExperience;
+  isPaymentOpen: boolean;
+  setIsPaymentOpen: (open: boolean) => void;
 }) => {
   const t = useTranslations();
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -401,7 +408,11 @@ const CheckoutFormStep = ({
 
     // Validate that we have a payment intent ID from Stripe
     if (!paymentIntentId) {
-      toast.error('Please complete the payment before submitting');
+      if (paymentExperience === 'modal') {
+        setIsPaymentOpen(true);
+      } else {
+        toast.error('Please complete the secure payment step below');
+      }
       return;
     }
 
@@ -597,10 +608,18 @@ const CheckoutFormStep = ({
                       email: formData.email,
                       firstName: formData.firstName,
                       lastName: formData.lastName,
+                      phone: formData.phone,
+                      emergencyContact: formData.emergencyContact,
+                      hotelPickupDetails: formData.hotelPickupDetails,
+                      hotelPickupLocation: formData.hotelPickupLocation,
+                      specialRequests: formData.specialRequests,
                     }}
                     cart={cart}
                     pricing={pricing}
                     discountCode={promoCode}
+                    experience={paymentExperience}
+                    isOpen={isPaymentOpen}
+                    onOpenChange={setIsPaymentOpen}
                     onSuccess={(paymentIntent) => {
                       // Set the payment intent ID immediately
                       setPaymentIntentId(paymentIntent);
@@ -1154,6 +1173,7 @@ export default function CheckoutPage() {
   const [discount, setDiscount] = useState(0);
   const [lastOrderId, setLastOrderId] = useState<string | undefined>(undefined);
   const [receiptToken, setReceiptToken] = useState<string | undefined>(undefined);
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
 
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   const [couponMessage, setCouponMessage] = useState('');
@@ -1168,6 +1188,7 @@ export default function CheckoutPage() {
     ? configuredMethods.filter((method: string) => method === 'card')
     : ['card'];
   const supportedPaymentMethods = baseMethods;
+  const paymentExperience = (tenant?.payments?.paymentExperience || 'inline') as PaymentExperience;
 
   const [paymentMethod, setPaymentMethod] = useState<'card'>('card');
 
@@ -1394,7 +1415,8 @@ export default function CheckoutPage() {
     }
   }, [isConfirmed]);
 
-  const showMobileStickyCTA = !isConfirmed && cart && cart.length > 0 && (customerType === 'guest' || user);
+  const showPaymentLauncher = paymentExperience === 'modal';
+  const showMobileStickyCTA = !isConfirmed && cart && cart.length > 0 && (customerType === 'guest' || user) && showPaymentLauncher;
 
   if (!cart) {
     return (
@@ -1448,6 +1470,9 @@ export default function CheckoutPage() {
                       paymentMethod={paymentMethod}
                       setPaymentMethod={setPaymentMethod}
                       supportedPaymentMethods={supportedPaymentMethods}
+                      paymentExperience={paymentExperience}
+                      isPaymentOpen={isPaymentOpen}
+                      setIsPaymentOpen={setIsPaymentOpen}
                     />
                   </div>
                   <div className="lg:col-span-1 order-1 lg:order-2">
@@ -1459,6 +1484,7 @@ export default function CheckoutPage() {
                       isProcessing={isProcessing}
                       isApplyingCoupon={isApplyingCoupon}
                       couponMessage={couponMessage}
+                      showPaymentLauncher={showPaymentLauncher}
                     />
                   </div>
                 </div>

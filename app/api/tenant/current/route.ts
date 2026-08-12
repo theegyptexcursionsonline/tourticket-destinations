@@ -50,6 +50,7 @@ const EEO_DEFAULT_TENANT = {
     currencySymbol: '$',
     supportedCurrencies: ['USD', 'EUR', 'GBP', 'EGP'],
     supportedPaymentMethods: ['card'],
+    paymentExperience: 'inline',
   },
   localization: {
     defaultLanguage: 'en',

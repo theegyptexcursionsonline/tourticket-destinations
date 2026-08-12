@@ -51,8 +51,8 @@ describe('payment bootstrap contract', () => {
   });
 
   it('enforces the same executable-provider policy before payment and booking', () => {
-    const intentSource = fs.readFileSync(
-      path.join(process.cwd(), 'app/api/checkout/create-payment-intent/route.ts'),
+    const preparationSource = fs.readFileSync(
+      path.join(process.cwd(), 'lib/checkout/prepareStripeCheckout.ts'),
       'utf8',
     );
     const checkoutSource = fs.readFileSync(
@@ -64,8 +64,9 @@ describe('payment bootstrap contract', () => {
       'utf8',
     );
 
-    expect(intentSource).toContain('resolveExecutablePaymentMethods');
-    expect(intentSource).toContain("code: 'CARD_PAYMENT_DISABLED'");
+    expect(preparationSource).toContain('resolveExecutablePaymentMethods');
+    expect(preparationSource).toContain("'CARD_PAYMENT_DISABLED'");
+    expect(preparationSource).toContain("'PAYMENT_EXPERIENCE_MISMATCH'");
     expect(checkoutSource).toContain('resolveExecutablePaymentMethods');
     expect(publicTenantSource).toContain('resolveExecutablePaymentMethods');
   });

@@ -7,6 +7,7 @@ import Tenant, { ITenant } from './models/Tenant';
 import { resolveTenantBranding } from './tenantBranding';
 import { getTenantPresentationSourceTenantId, resolveTenantPresentation } from './tenantPresentation';
 import { resolveExecutablePaymentMethods } from './payments/paymentProviderPolicy';
+import { paymentExperienceOrDefault, type PaymentExperience } from './checkout/paymentExperience';
 
 // ============================================
 // TYPES
@@ -68,6 +69,7 @@ export interface TenantConfig {
     currencySymbol: string;
     supportedCurrencies?: string[];
     supportedPaymentMethods?: string[];
+    paymentExperience?: PaymentExperience;
   };
   localization: {
     defaultLanguage: string;
@@ -95,7 +97,7 @@ export interface TenantPublicConfig {
   socialLinks: TenantConfig['socialLinks'];
   features: TenantConfig['features'];
   localization: Pick<TenantConfig['localization'], 'defaultLanguage' | 'supportedLanguages'>;
-  payments: Pick<TenantConfig['payments'], 'currency' | 'currencySymbol' | 'supportedCurrencies' | 'supportedPaymentMethods'>;
+  payments: Pick<TenantConfig['payments'], 'currency' | 'currencySymbol' | 'supportedCurrencies' | 'supportedPaymentMethods' | 'paymentExperience'>;
 }
 
 // ============================================
@@ -334,6 +336,7 @@ export async function getTenantPublicConfig(tenantId: string): Promise<TenantPub
         supportedPaymentMethods: resolveExecutablePaymentMethods(
           tenant.payments?.supportedPaymentMethods ?? ['card'],
         ),
+        paymentExperience: paymentExperienceOrDefault(tenant.payments?.paymentExperience),
       },
     };
   } catch (error) {

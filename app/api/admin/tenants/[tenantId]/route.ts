@@ -1,4 +1,4 @@
-import { withAdminAudit } from '@/lib/admin/adminAudit';
+import { registerAdminAuditDetail, withAdminAudit } from '@/lib/admin/adminAudit';
 // app/api/admin/tenants/[tenantId]/route.ts
 // Admin API for single tenant operations - Get, Update, Delete
 
@@ -12,6 +12,10 @@ import {
   resolveExecutablePaymentMethods,
   validatePaymentMethodUpdate,
 } from '@/lib/payments/paymentProviderPolicy';
+import {
+  paymentExperienceOrDefault,
+  validatePaymentExperienceUpdate,
+} from '@/lib/checkout/paymentExperience';
 
 export const dynamic = 'force-dynamic';
 
@@ -55,12 +59,13 @@ export async function GET(
     const paymentMethods = resolveExecutablePaymentMethods(
       tenant.payments?.supportedPaymentMethods ?? ['card'],
     );
+    const paymentExperience = paymentExperienceOrDefault(tenant.payments?.paymentExperience);
 
     return NextResponse.json({
       success: true,
       data: {
         ...tenant,
-        payments: { ...tenant.payments, supportedPaymentMethods: paymentMethods },
+        payments: { ...tenant.payments, supportedPaymentMethods: paymentMethods, paymentExperience },
       },
     });
     
@@ -87,6 +92,7 @@ async function PUTHandler(
     await dbConnect();
     
     const { tenantId } = await params;
+    if (!canAccessTenant(auth, tenantId)) return tenantForbiddenResponse();
     const body = await request.json();
 
     if (body?.payments && typeof body.payments === 'object') {
@@ -99,6 +105,16 @@ async function PUTHandler(
       }
       if (paymentValidation.methods) {
         body.payments.supportedPaymentMethods = paymentValidation.methods;
+      }
+      const experienceValidation = validatePaymentExperienceUpdate(body.payments);
+      if (!experienceValidation.ok) {
+        return NextResponse.json(
+          { success: false, code: experienceValidation.code, error: experienceValidation.error },
+          { status: experienceValidation.status },
+        );
+      }
+      if (experienceValidation.experience) {
+        body.payments.paymentExperience = experienceValidation.experience;
       }
     }
     
@@ -152,6 +168,22 @@ async function PUTHandler(
         runValidators: true,
       }
     ).populate('heroSettings').lean();
+
+    const previousExperience = paymentExperienceOrDefault(existingTenant.payments?.paymentExperience);
+    const nextExperience = paymentExperienceOrDefault(updatedTenant?.payments?.paymentExperience);
+    registerAdminAuditDetail({
+      resourceType: 'tenant',
+      resourceId: tenantId,
+      resourceLabel: existingTenant.name,
+      tenantIds: [tenantId],
+      summary: 'Updated tenant checkout settings',
+      changedFields: previousExperience === nextExperience ? [] : ['payments.paymentExperience'],
+      changes: previousExperience === nextExperience ? [] : [{
+        field: 'payments.paymentExperience',
+        before: previousExperience,
+        after: nextExperience,
+      }],
+    });
     
     // Clear cache
     clearTenantCache(tenantId);
@@ -196,6 +228,7 @@ async function DELETEHandler(
     await dbConnect();
     
     const { tenantId } = await params;
+    if (!canAccessTenant(auth, tenantId)) return tenantForbiddenResponse();
     
     // Get query param to determine hard or soft delete
     const { searchParams } = new URL(request.url);
@@ -274,6 +307,7 @@ async function PATCHHandler(
     await dbConnect();
     
     const { tenantId } = await params;
+    if (!canAccessTenant(auth, tenantId)) return tenantForbiddenResponse();
     const body = await request.json();
     
     const tenant = await Tenant.findOne({ tenantId });

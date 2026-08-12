@@ -230,6 +230,7 @@ export interface IPaymentConfig {
   currencySymbol: string;
   supportedCurrencies?: string[];
   supportedPaymentMethods: string[];
+  paymentExperience?: 'inline' | 'modal' | 'hosted';
   taxRate?: number;
   serviceFeePercent?: number;
   minBookingAmount?: number;
@@ -677,6 +678,11 @@ const PaymentConfigSchema = new Schema<IPaymentConfig>({
     type: String,
     enum: ['card', 'paypal', 'bank', 'cash', 'pay_later', 'apple_pay', 'google_pay'],
   }],
+  paymentExperience: {
+    type: String,
+    enum: ['inline', 'modal', 'hosted'],
+    default: 'inline',
+  },
   taxRate: {
     type: Number,
     default: 0,
@@ -1291,6 +1297,8 @@ TenantSchema.methods.getPublicConfig = function() {
       currency: this.payments.currency,
       currencySymbol: this.payments.currencySymbol,
       supportedCurrencies: this.payments.supportedCurrencies,
+      supportedPaymentMethods: this.payments.supportedPaymentMethods,
+      paymentExperience: this.payments.paymentExperience || 'inline',
     },
   };
 };
@@ -1298,4 +1306,3 @@ TenantSchema.methods.getPublicConfig = function() {
 const Tenant: Model<ITenant> = mongoose.models.Tenant || mongoose.model<ITenant>('Tenant', TenantSchema);
 
 export default Tenant;
-

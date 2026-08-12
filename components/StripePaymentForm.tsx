@@ -1,240 +1,180 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
-import { Loader2, Lock, ShieldCheck, CreditCard, CheckCircle2 } from 'lucide-react';
+import { AlertCircle, ArrowRight, CheckCircle2, CreditCard, Loader2, Lock, ShieldCheck, X } from 'lucide-react';
+import { clearCheckoutAttemptId, getOrCreateCheckoutAttemptId } from '@/lib/checkout/checkoutAttempt';
+import type { PaymentExperience } from '@/lib/checkout/paymentExperience';
+import { isAllowedStripeCheckoutUrl } from '@/lib/checkout/stripeCheckoutDestination';
 
-// Keep non-payment pages usable when Stripe is intentionally unavailable
-// (for example, isolated CI). Checkout renders its unavailable state instead
-// of asking Stripe.js to parse an undefined key.
 const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
 
-interface PaymentFormProps {
-  clientSecret: string;
+type Customer = {
+  email: string;
+  firstName: string;
+  lastName: string;
+  phone?: string;
+  emergencyContact?: string;
+  hotelPickupDetails?: string;
+  hotelPickupLocation?: { address?: string; lat: number; lng: number; placeId?: string; name?: string } | null;
+  specialRequests?: string;
+};
+
+export interface StripePaymentFormProps {
+  amount: number;
+  currency: string;
+  customer: Customer;
+  cart: Array<Record<string, unknown>>;
+  pricing: Record<string, any>;
+  discountCode?: string;
   onSuccess: (paymentIntentId: string) => void;
   onError: (error: string) => void;
-  isProcessing: boolean;
-  setIsProcessing: (value: boolean) => void;
+  experience?: PaymentExperience;
+  isOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-const PaymentForm: React.FC<PaymentFormProps> = ({
-  clientSecret: _clientSecret,
+function PaymentFields({
   onSuccess,
   onError,
-  isProcessing,
-  setIsProcessing,
-}) => {
+  processing,
+  setProcessing,
+}: {
+  onSuccess: (paymentIntentId: string) => void;
+  onError: (message: string) => void;
+  processing: boolean;
+  setProcessing: (value: boolean) => void;
+}) {
   const stripe = useStripe();
   const elements = useElements();
 
-  const handleSubmit = async () => {
-    if (!stripe || !elements) {
-      return;
-    }
-
-    setIsProcessing(true);
-
+  const submit = async () => {
+    if (!stripe || !elements || processing) return;
+    setProcessing(true);
     try {
-      const { error, paymentIntent } = await stripe.confirmPayment({
+      const result = await stripe.confirmPayment({
         elements,
-        confirmParams: {
-          return_url: `${window.location.origin}/checkout/success`,
-        },
+        confirmParams: { return_url: window.location.href },
         redirect: 'if_required',
       });
-
-      if (error) {
-        onError(error.message || 'Payment failed');
-      } else if (paymentIntent && paymentIntent.status === 'succeeded') {
-        onSuccess(paymentIntent.id);
+      if (result.error) {
+        onError(result.error.message || 'Payment failed. Please try another payment method.');
+      } else if (result.paymentIntent?.status === 'succeeded') {
+        clearCheckoutAttemptId();
+        onSuccess(result.paymentIntent.id);
+      } else {
+        onError('Stripe is still processing this payment. Please wait and try again.');
       }
-    } catch (err: any) {
-      console.error('Payment error:', err);
-      onError(err.message || 'An unexpected error occurred');
+    } catch (error) {
+      onError(error instanceof Error ? error.message : 'Payment could not be completed.');
     } finally {
-      setIsProcessing(false);
+      setProcessing(false);
     }
   };
 
   return (
     <div className="space-y-4">
-      <PaymentElement
-        options={{
-          layout: 'tabs',
-        }}
-      />
-
+      <PaymentElement options={{ layout: 'tabs' }} />
       <button
         type="button"
-        disabled={!stripe || isProcessing}
-        onClick={handleSubmit}
-        className="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-4 text-base font-extrabold text-white shadow-md transition hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 active:translate-y-[1px] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none"
+        disabled={!stripe || processing}
+        onClick={() => void submit()}
+        className="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-4 text-base font-extrabold text-white shadow-md transition hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none"
       >
-        {isProcessing ? (
-          <Loader2 className="animate-spin" size={24} />
-        ) : (
-          <>
-            <Lock size={18} />
-            <span>Complete Payment</span>
-          </>
-        )}
+        {processing ? <Loader2 className="animate-spin" size={20} /> : <Lock size={18} />}
+        {processing ? 'Processing payment…' : 'Complete payment'}
       </button>
-
-      <p className="text-xs text-slate-500 text-center">
-        Your payment is secured by Stripe. We never store your card details.
-      </p>
+      <p className="text-center text-xs text-slate-500">Stripe securely handles the payment details. This website never stores your card number.</p>
     </div>
   );
-};
-
-interface StripePaymentFormProps {
-  amount: number;
-  currency: string;
-  customer: {
-    email: string;
-    firstName: string;
-    lastName: string;
-  };
-  cart: any[];
-  pricing: any;
-  discountCode?: string;
-  onSuccess: (paymentIntentId: string) => void;
-  onError: (error: string) => void;
 }
 
-const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
-  amount,
-  currency,
+function PaymentPanel({
   customer,
   cart,
   pricing,
   discountCode,
+  experience: _experience,
   onSuccess,
   onError,
-}) => {
-  const [clientSecret, setClientSecret] = useState<string>('');
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  onProcessingChange,
+}: StripePaymentFormProps & {
+  experience: 'inline' | 'modal';
+  onProcessingChange: (value: boolean) => void;
+}) {
+  const [clientSecret, setClientSecret] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [processing, setProcessing] = useState(false);
+  const customerPayload = useMemo(() => ({
+    email: customer.email,
+    firstName: customer.firstName,
+    lastName: customer.lastName,
+    phone: customer.phone,
+    emergencyContact: customer.emergencyContact,
+    hotelPickupDetails: customer.hotelPickupDetails,
+    hotelPickupLocation: customer.hotelPickupLocation,
+    specialRequests: customer.specialRequests,
+  }), [customer]);
+  const requestSignature = useMemo(() => JSON.stringify({ customer: customerPayload, cart, pricing, discountCode }), [customerPayload, cart, pricing, discountCode]);
+
+  const setBusy = useCallback((value: boolean) => {
+    setProcessing(value);
+    onProcessingChange(value);
+  }, [onProcessingChange]);
 
   useEffect(() => {
-    // Helper function to validate email format
-    const isValidEmail = (email: string) => {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      return emailRegex.test(email);
-    };
-
-    // Validate customer data before creating PaymentIntent
-    if (!customer.email || !customer.firstName || !customer.lastName) {
-      setIsLoading(false);
+    const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerPayload.email);
+    if (!customerPayload.firstName || !customerPayload.lastName || !customerPayload.phone || !emailValid || cart.length === 0 || Number(pricing.total) <= 0) {
+      setLoading(false);
+      setClientSecret('');
       return;
     }
-
-    // Validate email format
-    if (!isValidEmail(customer.email)) {
-      setIsLoading(false);
-      return;
-    }
-
-    // Validate cart has items
-    if (!cart || cart.length === 0) {
-      setIsLoading(false);
-      return;
-    }
-
-    // Validate pricing
-    if (!pricing || pricing.total <= 0) {
-      setIsLoading(false);
-      return;
-    }
-
-    // Debounce payment intent creation to avoid creating it while user is typing
-    const timeoutId = setTimeout(() => {
-      const createPaymentIntent = async () => {
-        try {
-          const response = await fetch('/api/checkout/create-payment-intent', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              customer,
-              pricing,
-              cart,
-              discountCode,
-            }),
-          });
-
-          const data = await response.json();
-
-          if (data.success && data.clientSecret) {
-            setClientSecret(data.clientSecret);
-          } else {
-            // Don't show error toast here, just log it
-            console.error('Failed to create payment intent:', data.message);
-            onError(data.message || 'Failed to initialize payment');
-          }
-        } catch (error) {
-          // Don't show error toast here, just log it
-          console.error('Error creating payment intent:', error);
-          onError('Failed to initialize payment');
-        } finally {
-          setIsLoading(false);
+    let active = true;
+    const timer = window.setTimeout(async () => {
+      setLoading(true);
+      try {
+        const checkoutAttemptId = getOrCreateCheckoutAttemptId();
+        const response = await fetch('/api/checkout/create-payment-intent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ customer: customerPayload, cart, pricing, discountCode, checkoutAttemptId }),
+        });
+        const payload = await response.json() as { success?: boolean; clientSecret?: string; message?: string };
+        if (!response.ok || payload.success !== true || !payload.clientSecret) {
+          throw new Error(payload.message || 'Secure payment could not be prepared.');
         }
-      };
+        if (active) setClientSecret(payload.clientSecret);
+      } catch (error) {
+        if (active) {
+          setClientSecret('');
+          onError(error instanceof Error ? error.message : 'Secure payment could not be prepared.');
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+    }, 500);
+    return () => { active = false; window.clearTimeout(timer); };
+    // The serialized signature deliberately owns retries; using object identity
+    // here would create a new PaymentIntent on every checkout render.
+  }, [requestSignature, customerPayload, cart, pricing, discountCode, onError]);
 
-      createPaymentIntent();
-    }, 1000); // Wait 1 second after user stops typing
-
-    return () => clearTimeout(timeoutId);
-  }, [amount, currency, customer, cart, pricing, discountCode, onError]);
-
-  if (isLoading) {
+  if (loading) {
     return (
-      <div className="bg-white/80 border border-slate-200 rounded-2xl p-8 shadow-sm flex flex-col items-center text-center space-y-3">
-        <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center">
-          <Loader2 className="animate-spin text-red-600" size={28} />
-        </div>
-        <p className="text-lg font-semibold text-slate-900">Preparing secure payment</p>
-        <p className="text-sm text-slate-500 max-w-sm">
-          Please wait while we create a secure connection with our payment partner.
-        </p>
+      <div className="flex min-h-44 flex-col items-center justify-center gap-3 text-center" role="status">
+        <Loader2 className="animate-spin text-red-600" size={28} />
+        <p className="font-semibold text-slate-900">Preparing secure payment</p>
+        <p className="text-sm text-slate-500">Connecting to Stripe and confirming the current total.</p>
       </div>
     );
   }
-
-  // Helper function to validate email format
-  const isValidEmail = (email: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
-
-  // Show message if customer data is incomplete or invalid
-  if (!customer.email || !customer.firstName || !customer.lastName || !isValidEmail(customer.email)) {
+  if (!clientSecret || !stripePromise) {
     return (
-      <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
-        <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white px-6 py-4 flex items-center gap-3">
-          <Lock size={20} className="text-emerald-400" />
-          <div>
-            <p className="text-sm uppercase tracking-[0.2em] text-white/70">Secure Checkout</p>
-            <p className="text-lg font-semibold">Contact details required</p>
-          </div>
-        </div>
-        <div className="px-6 py-8 text-center space-y-3">
-          <p className="text-base text-slate-600">
-            {!customer.email || !customer.firstName || !customer.lastName
-              ? 'Please complete your contact information above to unlock payment.'
-              : 'Please enter a valid email address to continue with payment.'}
-          </p>
-          <p className="text-sm text-slate-400">We use your details to send booking confirmations and receipts.</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!clientSecret) {
-    return (
-      <div className="text-center py-8 text-red-600">
-        Failed to initialize payment. Please refresh and try again.
+      <div className="rounded-2xl border border-red-100 bg-red-50/60 p-5" role="alert">
+        <div className="flex items-center gap-2 font-semibold text-red-700"><AlertCircle size={20} /> Secure payment is unavailable</div>
+        <p className="mt-2 text-sm text-red-700/80">Check your contact details, then try again. If the problem continues, contact support.</p>
       </div>
     );
   }
@@ -243,79 +183,169 @@ const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
     clientSecret,
     appearance: {
       theme: 'stripe' as const,
+      inputs: 'spaced' as const,
+      labels: 'above' as const,
       variables: {
-        colorPrimary: '#dc2626',
-        colorBackground: '#ffffff',
-        colorText: '#1e293b',
-        colorDanger: '#ef4444',
-        fontFamily: 'system-ui, sans-serif',
-        borderRadius: '8px',
+        colorPrimary: '#dc2626', colorBackground: '#ffffff', colorText: '#0f172a', colorDanger: '#dc2626',
+        colorSuccess: '#059669', fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif', fontSizeBase: '16px', spacingUnit: '4px', borderRadius: '12px',
+      },
+      rules: {
+        '.Input': { border: '1px solid #cbd5e1', padding: '13px 14px' },
+        '.Input:focus': { borderColor: '#dc2626', boxShadow: '0 0 0 3px rgba(220,38,38,.14)' },
+        '.Label': { color: '#334155', fontSize: '14px', fontWeight: '600' },
+        '.Tab': { border: '1px solid #e2e8f0', boxShadow: 'none', padding: '11px 14px' },
+        '.Tab--selected': { borderColor: '#dc2626', boxShadow: '0 0 0 1px #dc2626' },
       },
     },
   };
 
-  const displayTotal = pricing?.total ?? amount ?? 0;
-  const displayCurrency = (pricing?.currency || currency || 'USD').toUpperCase();
-  const formatter = new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: displayCurrency,
-    minimumFractionDigits: 2,
-  });
-  const formattedTotal = formatter.format(displayTotal);
-  const numberOfTours = cart?.length || 1;
+  return (
+    <Elements stripe={stripePromise} options={options}>
+      <PaymentFields onSuccess={onSuccess} onError={onError} processing={processing} setProcessing={setBusy} />
+    </Elements>
+  );
+}
+
+function HostedLauncher({ amount, currency, customer, cart, pricing, discountCode, onError }: StripePaymentFormProps) {
+  const [redirecting, setRedirecting] = useState(false);
+  const valid = Boolean(customer.firstName && customer.lastName && customer.phone && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customer.email));
+  const total = new Intl.NumberFormat('en-US', { style: 'currency', currency: String(pricing.currency || currency || 'USD') }).format(Number(pricing.total ?? amount ?? 0));
+
+  const start = async () => {
+    if (!valid || redirecting) return;
+    setRedirecting(true);
+    try {
+      const localeCandidate = window.location.pathname.split('/').filter(Boolean)[0] || 'en';
+      const locale = ['en', 'de', 'es', 'fr', 'ru'].includes(localeCandidate) ? localeCandidate : 'en';
+      const checkoutAttemptId = getOrCreateCheckoutAttemptId();
+      const response = await fetch('/api/checkout/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customer, cart, pricing, discountCode, checkoutAttemptId, locale }),
+      });
+      const payload = await response.json() as { success?: boolean; url?: unknown; message?: string };
+      if (!response.ok || payload.success !== true || !isAllowedStripeCheckoutUrl(payload.url)) {
+        throw new Error(payload.message || 'Stripe Checkout could not be opened.');
+      }
+      window.location.assign(String(payload.url));
+    } catch (error) {
+      onError(error instanceof Error ? error.message : 'Stripe Checkout could not be opened.');
+      setRedirecting(false);
+    }
+  };
 
   return (
-    <section
-      data-testid="inline-payment-experience"
-      aria-labelledby="inline-payment-title"
-      className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_22px_60px_-36px_rgba(15,23,42,0.55)]"
-    >
-      <header className="relative overflow-hidden bg-slate-950 px-5 py-6 text-white sm:px-7 sm:py-7">
-        <div className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-red-600/25 blur-3xl" aria-hidden="true" />
-        <div className="relative flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex items-start gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-white ring-1 ring-inset ring-white/15">
-              <CreditCard size={20} aria-hidden="true" />
-            </div>
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-red-300">Secure inline checkout</p>
-              <h3 id="inline-payment-title" className="mt-1 text-xl font-black tracking-tight text-white sm:text-2xl">Complete your payment</h3>
-              <p className="mt-2 max-w-md text-sm leading-6 text-slate-300">Cards and eligible wallets stay on this page while Stripe handles the payment details.</p>
-            </div>
-          </div>
-          <div className="shrink-0 rounded-2xl bg-white/10 px-4 py-3 ring-1 ring-inset ring-white/15 sm:min-w-36 sm:text-right">
-            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">Total due</p>
-            <p className="mt-1 text-2xl font-black text-white">{formattedTotal}</p>
-            <p className="mt-1 text-xs text-slate-300">{numberOfTours} {numberOfTours === 1 ? 'experience' : 'experiences'}</p>
+    <section data-testid="hosted-payment-experience" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-start gap-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-violet-50 text-violet-700"><ArrowRight size={23} /></div>
+          <div>
+            <h3 className="text-lg font-extrabold text-slate-950">Continue to Stripe Checkout</h3>
+            <p className="mt-1 max-w-lg text-sm leading-6 text-slate-500">Pay on Stripe’s secure hosted page, then return here for verified booking status.</p>
           </div>
         </div>
-        <div className="relative mt-5 flex flex-wrap gap-x-5 gap-y-2 border-t border-white/10 pt-4 text-xs text-slate-300">
-          <span className="inline-flex items-center gap-1.5"><ShieldCheck size={14} className="text-emerald-400" aria-hidden="true" /> Stripe protected</span>
-          <span className="inline-flex items-center gap-1.5"><Lock size={14} className="text-slate-300" aria-hidden="true" /> Encrypted payment</span>
-          <span className="inline-flex items-center gap-1.5"><CheckCircle2 size={14} className="text-emerald-400" aria-hidden="true" /> Total confirmed before charge</span>
+        <div className="shrink-0 sm:text-right">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Total due</p>
+          <p className="mt-1 text-2xl font-black text-slate-950">{total}</p>
         </div>
-      </header>
-
-      <div className="bg-slate-50/80 p-3 sm:p-5">
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-          <Elements stripe={stripePromise} options={options}>
-            <PaymentForm
-              clientSecret={clientSecret}
-              onSuccess={onSuccess}
-              onError={onError}
-              isProcessing={isProcessing}
-              setIsProcessing={setIsProcessing}
-            />
-          </Elements>
-        </div>
-
       </div>
-      <footer className="flex flex-col gap-1.5 border-t border-slate-200 bg-white px-5 py-4 text-xs leading-5 text-slate-500 sm:flex-row sm:items-center sm:justify-between sm:px-7">
-        <span>Payment details are handled by Stripe.</span>
-        <span>We do not store your card number.</span>
-      </footer>
+      <button
+        type="button"
+        onClick={() => void start()}
+        disabled={!valid || redirecting}
+        className="mt-5 flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-4 text-base font-extrabold text-white shadow-md transition hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"
+      >
+        {redirecting ? <Loader2 className="animate-spin" size={19} /> : <Lock size={18} />}
+        {redirecting ? 'Opening Stripe Checkout…' : 'Pay securely with Stripe'}
+        {!redirecting && <ArrowRight size={18} />}
+      </button>
+      {!valid && <p className="mt-3 text-center text-sm text-slate-500">Complete your name, email, and phone number to continue.</p>}
+      <p className="mt-3 text-center text-xs text-slate-400">Cards, Link, and eligible wallets are shown by Stripe for this device.</p>
     </section>
   );
-};
+}
 
-export default StripePaymentForm;
+export default function StripePaymentForm(props: StripePaymentFormProps) {
+  const { amount, currency, customer, cart, pricing, experience = 'inline', isOpen, onOpenChange } = props;
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const [processing, setProcessing] = useState(false);
+  const openButtonRef = useRef<HTMLButtonElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLElement>(null);
+  const open = isOpen ?? uncontrolledOpen;
+  const setOpen = useCallback((value: boolean) => onOpenChange ? onOpenChange(value) : setUncontrolledOpen(value), [onOpenChange]);
+  const valid = Boolean(customer.firstName && customer.lastName && customer.phone && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customer.email));
+  const total = new Intl.NumberFormat('en-US', { style: 'currency', currency: String(pricing.currency || currency || 'USD') }).format(Number(pricing.total ?? amount ?? 0));
+
+  useEffect(() => {
+    if (experience !== 'modal' || !open) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const keydown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !processing) setOpen(false);
+      if (event.key !== 'Tab' || !dialogRef.current) return;
+      const focusable = Array.from(dialogRef.current.querySelectorAll<HTMLElement>('button:not([disabled]), [href], input:not([disabled]), [tabindex]:not([tabindex="-1"])'));
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    };
+    document.addEventListener('keydown', keydown);
+    window.requestAnimationFrame(() => closeButtonRef.current?.focus());
+    return () => { document.body.style.overflow = previous; document.removeEventListener('keydown', keydown); };
+  }, [experience, open, processing, setOpen]);
+
+  if (experience === 'hosted') return <HostedLauncher {...props} />;
+
+  if (experience === 'inline') {
+    return (
+      <section data-testid="inline-payment-experience" aria-labelledby="inline-payment-title" className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_22px_60px_-36px_rgba(15,23,42,0.55)]">
+        <header className="relative overflow-hidden bg-slate-950 px-5 py-6 text-white sm:px-7 sm:py-7">
+          <div className="relative flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex items-start gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/10"><CreditCard size={20} /></div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-red-300">Secure inline checkout</p>
+                <h3 id="inline-payment-title" className="mt-1 text-xl font-black text-white sm:text-2xl">Complete your payment</h3>
+                <p className="mt-2 max-w-md text-sm leading-6 text-slate-300">Cards and eligible wallets stay on this page while Stripe handles the payment details.</p>
+              </div>
+            </div>
+            <div className="rounded-2xl bg-white/10 px-4 py-3 sm:text-right"><p className="text-xs uppercase tracking-wider text-slate-400">Total due</p><p className="mt-1 text-2xl font-black">{total}</p></div>
+          </div>
+          <div className="relative mt-5 flex flex-wrap gap-4 border-t border-white/10 pt-4 text-xs text-slate-300">
+            <span className="inline-flex items-center gap-1.5"><ShieldCheck size={14} className="text-emerald-400" /> Stripe protected</span>
+            <span className="inline-flex items-center gap-1.5"><CheckCircle2 size={14} className="text-emerald-400" /> Total confirmed before charge</span>
+          </div>
+        </header>
+        <div className="bg-slate-50/80 p-3 sm:p-5"><div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6"><PaymentPanel {...props} experience="inline" onProcessingChange={setProcessing} /></div></div>
+      </section>
+    );
+  }
+
+  const dialog = open && valid && typeof document !== 'undefined' ? createPortal(
+    <div className="fixed inset-0 z-[120] flex items-end justify-center bg-slate-950/60 sm:items-center sm:p-6" onMouseDown={(event) => { if (event.target === event.currentTarget && !processing) setOpen(false); }}>
+      <section ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="secure-payment-title" className="flex max-h-[94dvh] w-full flex-col overflow-hidden rounded-t-3xl border border-slate-200 bg-white shadow-2xl sm:max-w-lg sm:rounded-3xl">
+        <header className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 sm:px-6">
+          <div className="flex items-start gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-950 text-white"><Lock size={18} /></div><div><h2 id="secure-payment-title" className="text-xl font-extrabold text-slate-950">Secure checkout</h2><p className="mt-0.5 text-sm text-slate-500">{total} for {cart.length} {cart.length === 1 ? 'experience' : 'experiences'}</p></div></div>
+          <button ref={closeButtonRef} type="button" onClick={() => { if (!processing) setOpen(false); }} disabled={processing} aria-label="Close secure payment" className="flex h-11 w-11 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 disabled:opacity-40"><X size={22} /></button>
+        </header>
+        <div data-testid="modal-payment-content" className="overflow-y-auto px-5 py-5 sm:px-6"><PaymentPanel {...props} experience="modal" onProcessingChange={setProcessing} /></div>
+        <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 bg-slate-50 px-5 py-3 text-xs text-slate-500 sm:px-6"><span className="inline-flex items-center gap-1.5"><ShieldCheck size={14} /> Protected by Stripe</span><span>Card details are never stored here</span></footer>
+      </section>
+    </div>, document.body) : null;
+
+  return (
+    <>
+      <section data-testid="modal-payment-experience" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-4"><div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50 text-red-600"><CreditCard size={23} /></div><div><h3 className="text-lg font-extrabold text-slate-950">Pay securely in the next step</h3><p className="mt-1 text-sm leading-6 text-slate-500">Open a focused Stripe payment window without leaving this website.</p></div></div>
+          <div className="sm:text-right"><p className="text-xs uppercase tracking-wider text-slate-400">Total due</p><p className="mt-1 text-2xl font-black text-slate-950">{total}</p></div>
+        </div>
+        <button ref={openButtonRef} type="button" onClick={() => { if (valid) setOpen(true); }} disabled={!valid} className="mt-5 flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-4 text-base font-extrabold text-white shadow-md hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"><Lock size={17} /> Continue to secure payment <ArrowRight size={18} /></button>
+        {!valid && <p className="mt-3 text-center text-sm text-slate-500">Complete your name, email, and phone number to continue.</p>}
+      </section>
+      {dialog}
+    </>
+  );
+}

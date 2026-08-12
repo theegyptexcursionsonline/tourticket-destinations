@@ -2,6 +2,7 @@
 // Multi-tenant Stripe webhook handler - adapted from EEO project
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import mongoose from 'mongoose';
 import { headers } from 'next/headers';
 import dbConnect from '@/lib/dbConnect';
 import Booking from '@/lib/models/Booking';
@@ -15,6 +16,10 @@ import { ITenant } from '@/lib/models/Tenant';
 import { TenantEmailBranding } from '@/lib/email/type';
 import { deliverCheckoutNotifications } from '@/lib/bookings/checkoutNotificationDelivery';
 import { unpackCartMetadata } from '@/lib/checkout/cartMetadata';
+import CheckoutPaymentQuote from '@/lib/models/CheckoutPaymentQuote';
+import Availability from '@/lib/models/Availability';
+import StopSale from '@/lib/models/StopSale';
+import { calculateCheckoutPricing } from '@/lib/security/checkoutPricing';
 
 // Lazy Stripe initialization to avoid build-time errors
 let stripeInstance: Stripe | null = null;
@@ -113,6 +118,41 @@ function buildDateBadge(dateValue?: string | Date): { dayLabel: string; dayNumbe
   };
 }
 
+async function reservePaidAvailability(
+  tenantId: string,
+  tourId: string,
+  dateText: string,
+  time: string,
+  optionId: string | undefined,
+  guests: number,
+  session: mongoose.ClientSession,
+) {
+  const start = new Date(`${dateText}T00:00:00.000Z`);
+  const end = new Date(`${dateText}T23:59:59.999Z`);
+  const stopped = await StopSale.exists({
+    tenantId,
+    tourId,
+    startDate: { $lte: end },
+    endDate: { $gte: start },
+    $or: [{ optionIds: { $size: 0 } }, ...(optionId ? [{ optionIds: optionId }] : [])],
+  }).session(session);
+  if (stopped) throw new Error('Selected tour is unavailable for this date');
+
+  const availability: any = await Availability.findOne({
+    tenantId,
+    tour: tourId,
+    date: { $gte: start, $lte: end },
+  }).session(session);
+  if (!availability) return;
+  if (availability.stopSale) throw new Error('Selected tour is unavailable for this date');
+  const slot = availability.slots.find((candidate: any) => candidate.time === time);
+  if (!slot || slot.blocked) throw new Error('Selected time is unavailable');
+  const remaining = Number(slot.capacity || 0) + Number(slot.extraCapacity || 0) - Number(slot.booked || 0);
+  if (remaining < guests) throw new Error('Not enough availability for the selected participants');
+  slot.booked = Number(slot.booked || 0) + guests;
+  await availability.save({ session });
+}
+
 // Generate unique booking reference with tenant prefix (same logic as checkout)
 async function generateUniqueBookingReference(tenantId: string, tenantConfig?: ITenant | null): Promise<string> {
   const maxAttempts = 10;
@@ -171,11 +211,63 @@ async function processSuccessfulPayment(paymentIntent: Stripe.PaymentIntent) {
   const currencySymbol = tenantConfig?.payments?.currencySymbol || '$';
   const formatMoney = (value: number) => formatCurrencyValue(value, currencySymbol);
   const contactNumber = tenantConfig?.contact?.phone || '+20 000 000 0000';
+  const hostedCheckout = metadata.checkout_experience === 'hosted';
+  const hostedQuote: any = hostedCheckout
+    ? await CheckoutPaymentQuote.findOne({
+        tenantId,
+        quoteBinding: metadata.quote_binding,
+        checkoutAttemptId: metadata.checkout_attempt_id,
+        paymentExperience: 'hosted',
+      }).lean()
+    : null;
+
+  const refundHostedPayment = async (reason: string) => {
+    await getStripe().refunds.create({
+      payment_intent: paymentId,
+      reason: 'requested_by_customer',
+      metadata: { reason, tenant_id: tenantId },
+    }, { idempotencyKey: `network-hosted-refund-${paymentId}` });
+    if (hostedQuote?._id) {
+      await CheckoutPaymentQuote.updateOne(
+        { _id: hostedQuote._id, tenantId },
+        { $set: { status: 'refunded', paymentIntentId: paymentId } },
+      );
+    }
+  };
+
+  if (hostedCheckout) {
+    const amountMatches = hostedQuote
+      && Math.round(Number(hostedQuote.pricing?.total || 0) * 100) === paymentIntent.amount
+      && String(hostedQuote.pricing?.currency || '').toLowerCase() === paymentIntent.currency.toLowerCase();
+    if (!amountMatches) {
+      console.error(`[Webhook] Hosted quote missing or mismatched for ${paymentId}`);
+      await refundHostedPayment('hosted_quote_invalid');
+      return { created: false, reason: 'hosted_quote_refunded' };
+    }
+    try {
+      const refreshed = await calculateCheckoutPricing(
+        hostedQuote.cart,
+        tenantId,
+        hostedQuote.discountCode,
+      );
+      const currentAmount = Math.round(Number(refreshed.pricing.total || 0) * 100);
+      if (currentAmount !== paymentIntent.amount) throw new Error('Authoritative price changed');
+    } catch (error) {
+      console.error(`[Webhook] Hosted booking is no longer sellable for ${paymentId}:`, error);
+      await refundHostedPayment('hosted_inventory_or_price_changed');
+      return { created: false, reason: 'hosted_payment_refunded' };
+    }
+    await CheckoutPaymentQuote.updateOne(
+      { _id: hostedQuote._id, tenantId },
+      { $set: { status: 'paid', paymentIntentId: paymentId } },
+    );
+  }
 
   // ── Check if booking already exists (created by checkout endpoint) ───────
   const existingBookings = await Booking.find({ tenantId, paymentId });
 
-  if (existingBookings.length > 0) {
+  const expectedBookingCount = Number(metadata.tour_count || hostedQuote?.cartSummary?.length || 1);
+  if (existingBookings.length >= expectedBookingCount) {
     const firstBooking = existingBookings[0];
     console.log(`[Webhook] Booking(s) exist for payment ${paymentId}, status: ${firstBooking.status}`);
 
@@ -313,10 +405,10 @@ async function processSuccessfulPayment(paymentIntent: Stripe.PaymentIntent) {
   console.log(`[Webhook] Creating booking for payment ${paymentId} (fallback - checkout didn't create it) - tenant: ${tenantId}`);
 
   // Extract customer info from metadata
-  const customerEmail = metadata.customer_email;
-  const customerFirstName = metadata.customer_first_name;
-  const customerLastName = metadata.customer_last_name;
-  const customerPhone = metadata.customer_phone || '';
+  const customerEmail = hostedQuote?.customer?.email || metadata.customer_email;
+  const customerFirstName = hostedQuote?.customer?.firstName || metadata.customer_first_name;
+  const customerLastName = hostedQuote?.customer?.lastName || metadata.customer_last_name;
+  const customerPhone = hostedQuote?.customer?.phone || metadata.customer_phone || '';
 
   if (!customerEmail || !customerFirstName || !customerLastName) {
     console.error(`[Webhook] Missing customer data for payment ${paymentId}`);
@@ -324,10 +416,10 @@ async function processSuccessfulPayment(paymentIntent: Stripe.PaymentIntent) {
   }
 
   // Extract hotel pickup info from metadata
-  const hotelPickupDetails = metadata.hotel_pickup_details || '';
-  let hotelPickupLocation: { lat: number; lng: number; name?: string; address?: string } | null = null;
+  const hotelPickupDetails = hostedQuote?.customer?.hotelPickupDetails || metadata.hotel_pickup_details || '';
+  let hotelPickupLocation: { lat: number; lng: number; name?: string; address?: string } | null = hostedQuote?.customer?.hotelPickupLocation || null;
   try {
-    if (metadata.hotel_pickup_location) {
+    if (!hotelPickupLocation && metadata.hotel_pickup_location) {
       hotelPickupLocation = JSON.parse(metadata.hotel_pickup_location);
     }
   } catch {
@@ -335,17 +427,19 @@ async function processSuccessfulPayment(paymentIntent: Stripe.PaymentIntent) {
   }
 
   // Extract special requests
-  const specialRequests = metadata.special_requests || '';
+  const specialRequests = hostedQuote?.customer?.specialRequests || metadata.special_requests || '';
 
   // Parse cart data from metadata
   let cartData;
   try {
-    // Reassembles every chunk the checkout wrote, not only the first two.
-    const cartJson = unpackCartMetadata(metadata);
-    cartData = JSON.parse(cartJson);
-  } catch (e) {
-    console.error(`[Webhook] Failed to parse cart data for payment ${paymentId}:`, e);
-    return { created: false, reason: 'invalid_cart_data' };
+    cartData = hostedQuote?.cartSummary?.length
+      ? hostedQuote.cartSummary
+      : JSON.parse(unpackCartMetadata(metadata));
+    if (!Array.isArray(cartData) || cartData.length === 0 || cartData.length > 10) throw new Error('Invalid cart');
+  } catch (error) {
+    console.error(`[Webhook] Failed to parse cart data for payment ${paymentId}:`, error);
+    if (hostedCheckout) await refundHostedPayment('hosted_cart_invalid');
+    return { created: false, reason: hostedCheckout ? 'hosted_payment_refunded' : 'invalid_cart_data' };
   }
 
   // Find or create user
@@ -373,91 +467,78 @@ async function processSuccessfulPayment(paymentIntent: Stripe.PaymentIntent) {
     return { created: false, reason: 'user_creation_failed' };
   }
 
-  // Create bookings for each cart item
+  // Create every paid item atomically and increment the same availability rows
+  // used by the browser checkout. A webhook retry cannot create a partial order.
   const createdBookings: Array<{ booking: any; tour: any }> = [];
-  const pricingTotal = parseFloat(metadata.pricing_total) || (paymentIntent.amount / 100);
-
-  for (let cartIndex = 0; cartIndex < cartData.length; cartIndex++) {
-    const item = cartData[cartIndex];
-    try {
+  const pricingTotal = Number(hostedQuote?.pricing?.total || metadata.pricing_total) || (paymentIntent.amount / 100);
+  const bookingSession = await mongoose.startSession();
+  bookingSession.startTransaction();
+  try {
+    for (let cartIndex = 0; cartIndex < cartData.length; cartIndex++) {
+      const item = cartData[cartIndex];
       const tourId = item.t;
-      const tour = await Tour.findById(tourId);
+      const tour = await Tour.findOne({
+        _id: tourId,
+        $or: [{ tenantId }, { tenantIds: tenantId }],
+      }).session(bookingSession);
+      if (!tour) throw new Error(`Tour is not available for tenant ${tenantId}`);
 
-      if (!tour) {
-        console.error(`[Webhook] Tour not found: ${tourId}`);
-        continue;
-      }
-
-      // Use tour's tenantId to ensure correct tenant scoping
-      const bookingTenantId = tour.tenantId || tenantId;
-
+      const bookingTenantId = tenantId;
       const bookingDate = parseLocalDate(item.d) || new Date();
       const bookingDateString = ensureDateOnlyString(item.d);
       const bookingTime = item.tm || '10:00';
-      const totalGuests = (item.a || 1) + (item.c || 0) + (item.n || 0);
+      const totalGuests = Number(item.a || 1) + Number(item.c || 0) + Number(item.n || 0);
+      await reservePaidAvailability(
+        bookingTenantId,
+        String(tour._id),
+        bookingDateString,
+        bookingTime,
+        item.bo || undefined,
+        totalGuests,
+        bookingSession,
+      );
 
-      // Calculate price for this item
-      const basePrice = item.bp || 0;
-      const adultPrice = basePrice * (item.a || 1);
-      const childPrice = (basePrice / 2) * (item.c || 0);
+      const basePrice = Number(item.bp || 0);
+      const adultPrice = basePrice * Number(item.a || 1);
+      const childPrice = (basePrice / 2) * Number(item.c || 0);
       let itemSubtotal = adultPrice + childPrice;
-
-      // Add-ons from metadata
       const addOns = Array.isArray(item.ao) ? item.ao : [];
-      if (addOns.length > 0) {
-        const totalGuestsForAddOns = (item.a || 0) + (item.c || 0);
-        for (const ao of addOns) {
-          const qty = Number(ao?.q || 0);
-          if (!Number.isFinite(qty) || qty <= 0) continue;
-          const price = Number(ao?.p || 0);
-          const perGuest = !!ao?.pg;
-          const billedQuantity = perGuest ? totalGuestsForAddOns : qty;
-          itemSubtotal += price * billedQuantity;
-        }
+      for (const addOn of addOns) {
+        const quantity = Number(addOn?.q || 0);
+        if (!Number.isFinite(quantity) || quantity <= 0) continue;
+        const billedQuantity = addOn?.pg ? Number(item.a || 0) + Number(item.c || 0) : quantity;
+        itemSubtotal += Number(addOn?.p || 0) * billedQuantity;
       }
 
       const itemSubtotalRounded = Math.round(itemSubtotal * 100) / 100;
-      const serviceFee = itemSubtotalRounded * 0.03;
-      const tax = itemSubtotalRounded * 0.05;
-      const itemTotalBeforeDiscount = itemSubtotalRounded + serviceFee + tax;
-
-      // Extract discount info
-      const discountCode = metadata.discount_code && metadata.discount_code !== 'none'
-        ? metadata.discount_code.toUpperCase()
-        : undefined;
-      const totalDiscount = parseFloat(metadata.pricing_discount) || 0;
-      const pricingSubtotal = parseFloat(metadata.pricing_subtotal) || itemSubtotalRounded;
-
-      // Prorate discount for multi-item carts
+      const itemTotalBeforeDiscount = itemSubtotalRounded * 1.08;
+      const discountCode = hostedQuote?.discountCode
+        || (metadata.discount_code && metadata.discount_code !== 'none' ? metadata.discount_code.toUpperCase() : undefined);
+      const totalDiscount = Number(hostedQuote?.pricing?.discount || metadata.pricing_discount || 0);
+      const pricingSubtotal = Number(hostedQuote?.pricing?.subtotal || metadata.pricing_subtotal || itemSubtotalRounded);
       const itemDiscountShare = cartData.length === 1
         ? totalDiscount
         : Math.round((itemSubtotalRounded / pricingSubtotal) * totalDiscount * 100) / 100;
-
       const itemTotalWithDiscount = Math.max(0, itemTotalBeforeDiscount - itemDiscountShare);
-
-      // Generate unique booking reference (tenant-aware)
       const bookingReference = await generateUniqueBookingReference(bookingTenantId, tenantConfig);
 
-      // Build add-on maps
       const selectedAddOns: Record<string, number> = {};
       const selectedAddOnDetails: Record<string, any> = {};
-      if (Array.isArray(item.ao)) {
-        for (const ao of item.ao) {
-          if (!ao?.id) continue;
-          const qty = Number(ao?.q || 0);
-          if (!Number.isFinite(qty) || qty <= 0) continue;
-          selectedAddOns[ao.id] = qty;
-          selectedAddOnDetails[ao.id] = {
-            id: ao.id,
-            title: ao.t || 'Add-on',
-            price: Number(ao.p || 0),
-            category: 'add-on',
-            perGuest: !!ao.pg,
-          };
-        }
+      for (const addOn of addOns) {
+        if (!addOn?.id) continue;
+        const quantity = Number(addOn?.q || 0);
+        if (!Number.isFinite(quantity) || quantity <= 0) continue;
+        selectedAddOns[addOn.id] = quantity;
+        selectedAddOnDetails[addOn.id] = {
+          id: addOn.id,
+          title: addOn.t || 'Add-on',
+          price: Number(addOn.p || 0),
+          category: 'add-on',
+          perGuest: Boolean(addOn.pg),
+        };
       }
 
-      const booking = await Booking.create({
+      const [booking] = await Booking.create([{
         tenantId: bookingTenantId,
         bookingReference,
         tour: tour._id,
@@ -467,62 +548,40 @@ async function processSuccessfulPayment(paymentIntent: Stripe.PaymentIntent) {
         time: bookingTime,
         guests: totalGuests,
         totalPrice: itemTotalWithDiscount,
-        currency: (metadata.pricing_currency || paymentIntent.currency || 'USD').toUpperCase(),
+        currency: (hostedQuote?.pricing?.currency || metadata.pricing_currency || paymentIntent.currency || 'USD').toUpperCase(),
         status: 'Confirmed',
-        paymentId: paymentId,
+        paymentId,
+        checkoutItemKey: `${bookingTenantId}:${paymentId}:${cartIndex}`,
         paymentMethod: 'card',
         adultGuests: item.a || 1,
         childGuests: item.c || 0,
         infantGuests: item.n || 0,
-        selectedAddOns: Object.keys(selectedAddOns).length > 0 ? selectedAddOns : undefined,
-        selectedAddOnDetails: Object.keys(selectedAddOnDetails).length > 0 ? selectedAddOnDetails : undefined,
-        selectedBookingOption: item.bo ? {
-          id: item.bo,
-          title: item.bot || '',
-          price: item.bp || 0,
-        } : undefined,
+        selectedAddOns: Object.keys(selectedAddOns).length ? selectedAddOns : undefined,
+        selectedAddOnDetails: Object.keys(selectedAddOnDetails).length ? selectedAddOnDetails : undefined,
+        selectedBookingOption: item.bo ? { id: item.bo, title: item.bot || '', price: item.bp || 0 } : undefined,
         discountCode,
         discountAmount: itemDiscountShare > 0 ? itemDiscountShare : undefined,
         hotelPickupDetails: hotelPickupDetails || undefined,
         hotelPickupLocation: hotelPickupLocation || undefined,
         specialRequests: specialRequests || undefined,
-      });
-
+      }], { session: bookingSession });
       createdBookings.push({ booking, tour });
-      console.log(`[Webhook] Created booking ${bookingReference} for tour ${tour.title} - tenant: ${bookingTenantId}`);
-    } catch (bookingError: any) {
-      // E11000 = duplicate key error - booking already exists
-      if (
-        bookingError.code === 11000 &&
-        (bookingError.keyPattern?.bookingReference || bookingError.keyPattern?.paymentId)
-      ) {
-        console.log(`[Webhook] Duplicate booking for payment ${paymentId} - skipping`);
-
-        const existingBooking = await Booking.findOne({ tenantId, paymentId });
-        if (existingBooking) {
-          const existingTour = await Tour.findById(existingBooking.tour);
-          if (existingTour) {
-            createdBookings.push({ booking: existingBooking, tour: existingTour });
-          }
-        } else {
-          const fallback = await Booking.findOne({ paymentId }).lean();
-          if (fallback) {
-            return {
-              created: false,
-              reason: 'already_exists_concurrent',
-              bookingId: fallback.bookingReference,
-            };
-          }
-        }
-      } else {
-        console.error(`[Webhook] Error creating booking:`, bookingError);
-      }
     }
+    await bookingSession.commitTransaction();
+  } catch (bookingError) {
+    await bookingSession.abortTransaction();
+    console.error(`[Webhook] Atomic booking creation failed for ${paymentId}:`, bookingError);
+    if (hostedCheckout) {
+      await refundHostedPayment('hosted_booking_creation_failed');
+      return { created: false, reason: 'hosted_payment_refunded' };
+    }
+    throw bookingError;
+  } finally {
+    await bookingSession.endSession();
   }
 
-  if (createdBookings.length === 0) {
-    console.error(`[Webhook] No bookings created for payment ${paymentId}`);
-    return { created: false, reason: 'no_bookings_created' };
+  if (createdBookings.length !== expectedBookingCount) {
+    throw new Error(`Expected ${expectedBookingCount} bookings but created ${createdBookings.length}`);
   }
 
   // ── Send confirmation & admin emails ─────────────────────────────────────
@@ -763,6 +822,23 @@ export async function POST(request: Request) {
         console.log(`[Webhook] Payment failed: ${failedPayment.id}`);
         // Log failed payment for monitoring
         break;
+
+      case 'checkout.session.expired': {
+        const expiredSession = event.data.object as Stripe.Checkout.Session;
+        if (expiredSession.metadata?.checkout_experience === 'hosted') {
+          await dbConnect();
+          await CheckoutPaymentQuote.updateOne(
+            {
+              tenantId: expiredSession.metadata.tenant_id,
+              quoteBinding: expiredSession.metadata.quote_binding,
+              checkoutSessionId: expiredSession.id,
+              status: 'open',
+            },
+            { $set: { status: 'expired' } },
+          );
+        }
+        break;
+      }
 
       case 'charge.succeeded':
         const charge = event.data.object as Stripe.Charge;
