@@ -13,7 +13,7 @@ import {
   getTenantPublicConfig,
 } from '@/lib/tenant';
 import PlannerOfferModel from '@/lib/models/PlannerOffer';
-import { looksLikeCampaignCode, looksLikeOfferSlug, priceAfterDiscount, verifyOffer, type VerifiedOffer } from '@/lib/offerToken';
+import { clampOfferEnd, looksLikeCampaignCode, looksLikeOfferSlug, priceAfterDiscount, sanitizeOfferName, verifyOffer, type VerifiedOffer } from '@/lib/offerToken';
 import OfferPageClient, { type OfferTour, type OfferView } from './OfferPageClient';
 
 // The offer is personal and time-boxed: never cached, never indexed.
@@ -140,8 +140,15 @@ async function offerFromSlug(slug: string, tenantId: string): Promise<VerifiedOf
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-export default async function PlannerOfferPage({ params }: { params: Promise<{ token: string }> }) {
+export default async function PlannerOfferPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ token: string }>;
+  searchParams: Promise<{ name?: string; ends?: string }>;
+}) {
   const { token } = await params;
+  const query = await searchParams;
   const locale = await getLocale();
   const raw = decodeURIComponent(token);
 
@@ -150,6 +157,7 @@ export default async function PlannerOfferPage({ params }: { params: Promise<{ t
   const tenantId = await resolveTenantId();
   let verified: VerifiedOffer;
   let campaign = false;
+  void campaign;
   if (raw.includes('.')) {
     verified = verifyOffer(raw);
   } else {
@@ -164,12 +172,13 @@ export default async function PlannerOfferPage({ params }: { params: Promise<{ t
         .lean() as { code: string; expiresAt?: Date } | null;
       if (record) {
         campaign = true;
+        const end = clampOfferEnd(query.ends, record.expiresAt ? new Date(record.expiresAt) : null);
         verified = {
           state: 'valid',
           offer: {
-            firstName: '',
+            firstName: sanitizeOfferName(query.name) || '',
             discountCode: record.code,
-            expiresAt: record.expiresAt ? new Date(record.expiresAt).toISOString() : '',
+            expiresAt: end ? end.toISOString() : '',
           },
         };
       }
@@ -309,7 +318,7 @@ export default async function PlannerOfferPage({ params }: { params: Promise<{ t
   const whatsappDigits = digits(tenant?.contact?.whatsapp) || null;
 
   const view: OfferView = {
-    firstName: campaign ? null : offer.firstName || null,
+    firstName: offer.firstName || null,
     code: discount.code,
     label: discount.discountType === 'percentage' ? `${discount.value}%` : `${currencySymbol}${discount.value}`,
     expiresAt,

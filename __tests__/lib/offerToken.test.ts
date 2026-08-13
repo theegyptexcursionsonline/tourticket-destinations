@@ -1,5 +1,7 @@
 import {
+  clampOfferEnd,
   looksLikeCampaignCode,
+  sanitizeOfferName,
   discountAmountFor,
   priceAfterDiscount,
   signOffer,
@@ -153,5 +155,29 @@ describe('looksLikeCampaignCode', () => {
     expect(looksLikeCampaignCode('abc.def')).toBe(false);
     expect(looksLikeCampaignCode('ab')).toBe(false);
     expect(looksLikeCampaignCode('a'.repeat(25))).toBe(false);
+  });
+});
+
+describe('URL personalization for campaign links', () => {
+  it('sanitizes names to display-safe text and capitalizes', () => {
+    expect(sanitizeOfferName('sara')).toBe('Sara');
+    expect(sanitizeOfferName('  mary-jane o\'neil  ')).toBe("Mary-jane o'neil");
+    expect(sanitizeOfferName('<script>alert(1)</script>')).toBe('Alert');
+    expect(sanitizeOfferName('%%%$$$')).toBeNull();
+    expect(sanitizeOfferName('a')).toBeNull();
+    expect(sanitizeOfferName(undefined)).toBeNull();
+    expect(sanitizeOfferName('x'.repeat(60))!.length).toBeLessThanOrEqual(24);
+  });
+
+  it('clamps a URL end date to the code expiry and ignores past/invalid dates', () => {
+    const now = new Date('2026-08-13T12:00:00Z');
+    const codeEnd = new Date('2026-08-19T23:59:59Z');
+    expect(clampOfferEnd('2026-08-15', codeEnd, now)!.toISOString()).toBe('2026-08-15T23:59:59.000Z');
+    expect(clampOfferEnd('2026-12-31', codeEnd, now)!.toISOString()).toBe(codeEnd.toISOString());
+    expect(clampOfferEnd('2026-08-01', codeEnd, now)!.toISOString()).toBe(codeEnd.toISOString());
+    expect(clampOfferEnd('garbage', codeEnd, now)!.toISOString()).toBe(codeEnd.toISOString());
+    expect(clampOfferEnd(undefined, codeEnd, now)!.toISOString()).toBe(codeEnd.toISOString());
+    expect(clampOfferEnd('2026-08-15', null, now)!.toISOString()).toBe('2026-08-15T23:59:59.000Z');
+    expect(clampOfferEnd(undefined, null, now)).toBeNull();
   });
 });

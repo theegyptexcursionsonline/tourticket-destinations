@@ -153,3 +153,45 @@ export function looksLikeOfferSlug(value: string): boolean {
 export function looksLikeCampaignCode(value: string): boolean {
   return /^[A-Za-z0-9]{3,24}$/.test(value);
 }
+
+/**
+ * Campaign links personalize straight from the URL
+ * (`/offer/AHMED10?name=Sara&ends=2026-08-20`) so a planner composes a link by
+ * hand — no minting, no records. The name is display-only: letters, spaces and
+ * hyphens survive, everything else is stripped, and React renders it as text.
+ */
+export function sanitizeOfferName(raw: string | undefined | null): string | null {
+  if (!raw) return null;
+  const cleaned = raw
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/[^\p{L} '-]/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 24)
+    .trim();
+  if (cleaned.length < 2) return null;
+  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+}
+
+/**
+ * A URL-supplied end date may only TIGHTEN the offer window, never extend it:
+ * the advertised deadline is clamped to the code's own expiry so the page can
+ * never promise a discount past the day checkout would refuse it. A date in
+ * the past or unparseable is ignored entirely.
+ */
+export function clampOfferEnd(
+  requested: string | undefined | null,
+  codeExpiresAt: Date | null,
+  now: Date = new Date(),
+): Date | null {
+  let candidate: Date | null = null;
+  if (requested && /^\d{4}-\d{2}-\d{2}(T[\d:.]+Z?)?$/.test(requested.trim())) {
+    const value = requested.trim();
+    candidate = value.includes('T')
+      ? new Date(value)
+      : new Date(`${value}T23:59:59.000Z`);
+    if (Number.isNaN(candidate.getTime()) || candidate.getTime() <= now.getTime()) candidate = null;
+  }
+  if (candidate && codeExpiresAt) return candidate < codeExpiresAt ? candidate : codeExpiresAt;
+  return candidate ?? codeExpiresAt;
+}
