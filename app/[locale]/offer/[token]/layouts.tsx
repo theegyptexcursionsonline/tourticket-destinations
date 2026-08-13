@@ -112,7 +112,7 @@ function ReefLayout({ view, design, locale }: LayoutProps) {
         <div className="pointer-events-none absolute inset-0 z-10"><Grain /></div>
         <div className="relative z-20 mx-auto grid min-h-[92vh] max-w-6xl items-center gap-12 px-6 pb-16 pt-10 md:pb-24 lg:grid-cols-[1fr_auto]">
           <div>
-            {view.logo && <img src={view.logo} alt={view.siteName} className="h-11 w-auto drop-shadow-lg md:h-12" />}
+            {view.logo && <img src={view.logo} alt={view.siteName} className="h-11 w-auto max-w-[200px] self-start object-contain object-left drop-shadow-lg md:h-12" />}
             <div className="mt-9 flex items-center gap-2.5">
               {view.firstName && (
                 <span className="flex h-8 w-8 items-center justify-center rounded-full text-base font-bold text-white ring-1 ring-white/25" style={{ backgroundColor: view.brandColor }}>
@@ -258,7 +258,7 @@ function MarinaLayout({ view, design, locale }: LayoutProps) {
         <Aurora color={view.brandColor} className="z-10" />
         <div className="pointer-events-none absolute inset-0 z-10"><Grain opacity={0.08} /></div>
         <div className="relative z-20 mx-auto flex min-h-[92vh] max-w-6xl flex-col justify-center px-6 pb-16 pt-10 md:pb-24">
-          {view.logo && <img src={view.logo} alt={view.siteName} className="h-11 w-auto drop-shadow-lg md:h-12" />}
+          {view.logo && <img src={view.logo} alt={view.siteName} className="h-11 w-auto max-w-[200px] self-start object-contain object-left drop-shadow-lg md:h-12" />}
           <p className="mt-9 flex items-center gap-3 text-[11px] font-bold uppercase tracking-[0.32em] text-white/70">
             {design.kicker}
             <Motif design={design} className="h-4 w-16 opacity-80" />
@@ -399,7 +399,7 @@ function PlateLayout({ view, design, locale }: LayoutProps) {
       <section className="relative overflow-hidden" style={{ backgroundColor: design.paper }}>
         <Aurora color={`${view.brandColor}`} className="opacity-[0.18]" />
         <div className="relative mx-auto max-w-5xl px-6 pb-14 pt-14 text-center">
-          {view.logo && <img src={view.logo} alt={view.siteName} className="mx-auto h-11 w-auto md:h-12" />}
+          {view.logo && <img src={view.logo} alt={view.siteName} className="mx-auto h-11 w-auto max-w-[200px] self-center object-contain md:h-12" />}
           <Motif design={design} className="mx-auto mt-8 h-2 w-48" />
           <p className="mt-6 text-[11px] font-bold uppercase tracking-[0.34em]" style={{ color: design.wash }}>{design.kicker}</p>
           <SplitReveal
@@ -531,7 +531,7 @@ function ScrollLayout({ view, design, locale }: LayoutProps) {
         <Aurora color={view.brandColor} className="z-10" />
         <div className="pointer-events-none absolute inset-0 z-10"><Grain opacity={0.07} /></div>
         <div className="relative z-20 mx-auto flex min-h-[92vh] max-w-6xl flex-col justify-center px-6 pb-16 pt-10 md:pb-20">
-          {view.logo && <img src={view.logo} alt={view.siteName} className="h-11 w-auto drop-shadow-lg md:h-12" />}
+          {view.logo && <img src={view.logo} alt={view.siteName} className="h-11 w-auto max-w-[200px] self-start object-contain object-left drop-shadow-lg md:h-12" />}
           <div className="mt-10 max-w-2xl border-l pl-7" style={{ borderColor: `${view.brandColor}cc` }}>
             <p className="text-[11px] font-bold uppercase tracking-[0.34em] text-white/70">{design.kicker}</p>
             <SplitReveal
@@ -657,7 +657,7 @@ function LagoonLayout({ view, design, locale }: LayoutProps) {
         <Aurora color={view.brandColor} className="opacity-40" />
         <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-6 pb-16 pt-12 lg:grid-cols-[1.1fr_1fr]">
           <div>
-            {view.logo && <img src={view.logo} alt={view.siteName} className="h-11 w-auto md:h-12" />}
+            {view.logo && <img src={view.logo} alt={view.siteName} className="h-11 w-auto max-w-[200px] self-start object-contain object-left md:h-12" />}
             <p className="mt-8 text-[11px] font-bold uppercase tracking-[0.28em]" style={{ color: design.wash }}>{design.kicker}</p>
             <SplitReveal
               lines={view.firstName ? [`${view.firstName}, ${view.label} off`, 'the whole lagoon.'] : [`${view.label} off`, 'the whole lagoon.']}

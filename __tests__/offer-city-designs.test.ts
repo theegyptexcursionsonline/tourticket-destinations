@@ -66,3 +66,30 @@ describe('per-city offer designs', () => {
     expect(layouts).not.toMatch(/\d+[KM]\+\s*(travellers|travelers|customers)/i);
   });
 });
+
+/**
+ * A flex column stretches its children. Without an explicit self-* and
+ * object-contain the tenant logo is pulled to the full container width while
+ * its height stays fixed, and the brand mark renders as a smeared banner
+ * (reported live on Hurghada, 13 Aug).
+ */
+describe('tenant logo rendering', () => {
+  const layouts = readFileSync(
+    path.join(process.cwd(), 'app/[locale]/offer/[token]/layouts.tsx'),
+    'utf8',
+  );
+  const logoTags = layouts.match(/<img src=\{view\.logo\}[^/]*\/>/g) ?? [];
+
+  it('renders the logo in every layout', () => {
+    expect(logoTags.length).toBe(5);
+  });
+
+  it('never lets a flex parent stretch the logo out of aspect', () => {
+    for (const tag of logoTags) {
+      expect(tag).toMatch(/self-(start|center)/);
+      expect(tag).toContain('object-contain');
+      expect(tag).toContain('w-auto');
+      expect(tag).toMatch(/max-w-\[\d+px\]/);
+    }
+  });
+});
