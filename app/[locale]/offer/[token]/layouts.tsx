@@ -412,7 +412,7 @@ function LagoonLayout({ view, design, locale }: LayoutProps) {
             {view.logo && <img src={view.logo} alt={view.siteName} className="h-11 w-auto max-w-[200px] self-start object-contain object-left md:h-12" />}
             <p className="mt-8 text-[11px] font-bold uppercase tracking-[0.28em]" style={{ color: design.wash }}>{design.kicker}</p>
             <SplitReveal
-              lines={view.firstName ? [`${view.firstName}, ${view.label} off`, 'the whole lagoon.'] : [`${view.label} off`, 'the whole lagoon.']}
+              lines={view.firstName ? [`${view.firstName}, ${view.label} off`, design.heroLine] : [`${view.label} off`, design.heroLine]}
               className="mt-5 text-[2.2rem] font-extrabold leading-[1.04] text-gray-900 sm:text-[2.8rem] md:text-[4.1rem] md:leading-[0.98]"
               style={{ fontFamily: design.display, letterSpacing: design.displayTracking }}
             />

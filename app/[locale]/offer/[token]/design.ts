@@ -29,6 +29,9 @@ export type CityDesign = {
   kicker: string;
   /** Section titles, so no two cities read identically. */
   sections: { value: string; picks: string; words: string };
+  /** Closes the hero headline ("15% off <heroLine>") — must stay true to the
+   *  city: El Gouna has a lagoon, Luxor has two banks of the Nile. */
+  heroLine: string;
   /** Short line under the hero headline; {label} is the discount, {site} the brand. */
   motif: 'wave' | 'sun' | 'rule' | 'column' | 'ripple';
 };
@@ -42,6 +45,7 @@ const REEF: CityDesign = {
   display: 'var(--offer-reef), "Helvetica Neue", system-ui, sans-serif',
   displayTracking: '-0.035em',
   kicker: 'A private offer from your personal planner',
+  heroLine: 'every experience.',
   sections: {
     value: 'Book bundles & save more',
     picks: 'Top tours recommended by your personal planner',
@@ -62,6 +66,7 @@ export const CITY_DESIGNS: Record<string, CityDesign> = {
     display: 'var(--offer-marina), "Helvetica Neue", system-ui, sans-serif',
     displayTracking: '-0.03em',
     kicker: 'Your planner’s boarding pass',
+    heroLine: 'every crossing.',
     sections: {
       value: 'Two boats, one price break',
       picks: 'What your planner would book first',
@@ -79,6 +84,7 @@ export const CITY_DESIGNS: Record<string, CityDesign> = {
     display: 'var(--offer-plate), Georgia, "Times New Roman", serif',
     displayTracking: '-0.01em',
     kicker: 'Prepared for you · Cairo & Giza',
+    heroLine: 'every experience.',
     sections: {
       value: 'The value plates',
       picks: 'Your planner’s catalogue',
@@ -96,6 +102,7 @@ export const CITY_DESIGNS: Record<string, CityDesign> = {
     display: 'var(--offer-scroll), Georgia, "Iowan Old Style", serif',
     displayTracking: '-0.005em',
     kicker: 'Written for you · East & West Bank',
+    heroLine: 'both banks of the Nile.',
     sections: {
       value: 'Best value on the river',
       picks: 'Chosen by your planner',
@@ -113,6 +120,7 @@ export const CITY_DESIGNS: Record<string, CityDesign> = {
     display: 'var(--offer-lagoon), Inter, system-ui, sans-serif',
     displayTracking: '-0.04em',
     kicker: 'A private offer · lagoon side',
+    heroLine: 'the whole lagoon.',
     sections: {
       value: 'Lagoon value picks',
       picks: 'Your planner’s shortlist',
