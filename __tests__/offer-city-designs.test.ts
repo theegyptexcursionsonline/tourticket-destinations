@@ -146,3 +146,46 @@ describe('mobile action bar', () => {
     expect(bar).not.toMatch(/Ends in \$\{pad\(hours\)\}:\$\{pad\(minutes\)\}:\$\{pad\(seconds\)\}`/);
   });
 });
+
+/**
+ * Conversion mechanics added on request (13 Aug): an ambient shimmer on the
+ * primary CTAs and an exit-intent rescue. Both must stay honest and polite:
+ * shimmer dies under prefers-reduced-motion, the rescue fires once per
+ * session, desktop pointers only, and is a real accessible dialog.
+ */
+describe('shimmer + exit intent', () => {
+  const luxe = readFileSync(
+    path.join(process.cwd(), 'app/[locale]/offer/[token]/luxe.tsx'),
+    'utf8',
+  );
+  const css = readFileSync(path.join(process.cwd(), 'app/globals.css'), 'utf8');
+  const dispatcher = readFileSync(
+    path.join(process.cwd(), 'app/[locale]/offer/[token]/OfferPageClient.tsx'),
+    'utf8',
+  );
+
+  it('gives the primary CTA an ambient sheen that respects reduced motion', () => {
+    expect(luxe).toContain('offer-sheen offer-sheen-auto');
+    expect(css).toContain('@keyframes offer-sheen-loop');
+    const reducedBlock = css.slice(css.lastIndexOf('prefers-reduced-motion'));
+    expect(reducedBlock).toContain('.offer-sheen-auto { animation: none; }');
+  });
+
+  it('fires the exit rescue once per session, desktop pointers only', () => {
+    expect(luxe).toContain("sessionStorage.getItem(key)");
+    expect(luxe).toContain("matchMedia('(pointer: fine)')");
+    expect(luxe).toContain('event.clientY > 0 || event.relatedTarget');
+  });
+
+  it('renders the rescue as an accessible dialog with honest content only', () => {
+    const rescue = luxe.slice(luxe.indexOf('export function ExitRescue'));
+    expect(rescue).toContain('role="dialog"');
+    expect(rescue).toContain('aria-modal="true"');
+    expect(rescue).toContain("event.key === 'Escape'");
+    expect(rescue).not.toMatch(/\d+% claimed|only \d+ left|people are looking/i);
+  });
+
+  it('is mounted once for every archetype from the dispatcher', () => {
+    expect(dispatcher).toContain('<ExitRescue');
+  });
+});

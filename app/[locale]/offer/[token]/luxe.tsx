@@ -246,7 +246,7 @@ export function SheenCta({
   const content = (
     <>
       <span className="relative z-10 flex items-center justify-center gap-2">{children}</span>
-      <span aria-hidden className="offer-sheen pointer-events-none absolute inset-0 z-0" />
+      <span aria-hidden className="offer-sheen offer-sheen-auto pointer-events-none absolute inset-0 z-0" />
     </>
   );
   const base = `group relative isolate overflow-hidden text-center font-extrabold text-white shadow-[0_10px_30px_-12px_rgba(0,0,0,0.6)] transition-transform duration-200 hover:-translate-y-0.5 active:translate-y-0 ${className}`;
@@ -288,6 +288,141 @@ export function Rise({
     >
       {children}
     </div>
+  );
+}
+
+/**
+ * Exit-intent rescue. When the cursor leaves through the top of the viewport —
+ * the close-tab gesture — offer the code one last time. Once per session per
+ * code, desktop pointers only, honest content only (the real code, the real
+ * countdown, the real planner contact). Escape or the backdrop dismisses it.
+ */
+export function ExitRescue({
+  code,
+  label,
+  color,
+  expiresAt,
+  firstName,
+  whatsappHref,
+  onCopy,
+  copied,
+}: {
+  code: string;
+  label: string;
+  color: string;
+  expiresAt: string | null;
+  firstName: string | null;
+  whatsappHref: string | null;
+  onCopy: () => void;
+  copied: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    const key = `offer-exit-shown:${code}`;
+    if (window.sessionStorage.getItem(key)) return;
+    if (!window.matchMedia('(pointer: fine)').matches) return;
+    const onOut = (event: MouseEvent) => {
+      if (event.clientY > 0 || event.relatedTarget) return;
+      window.sessionStorage.setItem(key, '1');
+      setOpen(true);
+      window.removeEventListener('mouseout', onOut);
+    };
+    window.addEventListener('mouseout', onOut);
+    return () => window.removeEventListener('mouseout', onOut);
+  }, [code]);
+  useEffect(() => {
+    if (!open) return;
+    closeRef.current?.focus();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open]);
+  if (!open) return null;
+  return (
+    <div
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-6 backdrop-blur-sm"
+      onClick={() => setOpen(false)}
+      role="presentation"
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Your discount is still available"
+        className="relative w-full max-w-md rounded-[1.75rem] bg-white p-8 text-center shadow-2xl"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <button
+          ref={closeRef}
+          type="button"
+          aria-label="Close"
+          onClick={() => setOpen(false)}
+          className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full text-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
+        >
+          ×
+        </button>
+        <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-gray-500">Before you go</p>
+        <p className="mt-3 text-2xl font-extrabold leading-snug text-gray-900">
+          {firstName ? `${firstName}, your ${label} is still yours.` : `Your ${label} is still yours.`}
+        </p>
+        {expiresAt && (
+          <p className="mt-2 text-sm text-gray-600">
+            It ends in <ExitCountdown expiresAt={expiresAt} /> — after that the code stops working.
+          </p>
+        )}
+        <button
+          type="button"
+          onClick={onCopy}
+          aria-label={`Copy discount code ${code}`}
+          className="mt-6 flex w-full items-center justify-between gap-3 rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 px-5 py-4 text-left transition hover:border-gray-400"
+        >
+          <span className="text-xl font-extrabold tracking-[0.16em] text-gray-900">{code}</span>
+          <span className="shrink-0 rounded-full px-4 py-2 text-xs font-bold text-white" style={{ backgroundColor: copied ? '#15803d' : color }}>
+            {copied ? 'Copied ✓' : 'Copy code'}
+          </span>
+        </button>
+        <a
+          href="#tours"
+          onClick={() => setOpen(false)}
+          className="offer-sheen-host group relative mt-4 block w-full overflow-hidden rounded-2xl py-3.5 text-center text-[15px] font-extrabold text-white shadow-lg transition-transform hover:-translate-y-0.5"
+          style={{ backgroundColor: color }}
+        >
+          <span className="relative z-10">Keep browsing with {label} off</span>
+          <span aria-hidden className="offer-sheen offer-sheen-auto pointer-events-none absolute inset-0 z-0" />
+        </a>
+        {whatsappHref && (
+          <a
+            href={whatsappHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 block text-sm font-semibold text-gray-600 underline-offset-4 hover:underline"
+          >
+            Not sure? Ask your planner on WhatsApp
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ExitCountdown({ expiresAt }: { expiresAt: string }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+  const remaining = Math.max(0, new Date(expiresAt).getTime() - now);
+  const days = Math.floor(remaining / 86_400_000);
+  const hours = Math.floor((remaining % 86_400_000) / 3_600_000);
+  const minutes = Math.floor((remaining % 3_600_000) / 60_000);
+  const seconds = Math.floor((remaining % 60_000) / 1000);
+  const pad2 = (v: number) => String(v).padStart(2, '0');
+  return (
+    <strong className="tabular-nums">
+      {days > 0 ? `${days}d ${pad2(hours)}:${pad2(minutes)}` : `${pad2(hours)}:${pad2(minutes)}:${pad2(seconds)}`}
+    </strong>
   );
 }
 
