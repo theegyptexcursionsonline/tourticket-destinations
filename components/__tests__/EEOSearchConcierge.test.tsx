@@ -32,7 +32,9 @@ describe('EEOSearchConcierge', () => {
       expect(script.dataset.widgetId).toBe('wgt_6JW5umlfasNQfJywtFPs6g');
       expect(script.dataset.style).toBe('searchbar');
       expect(script.dataset.color).toBe('#4385F6');
-      expect(script.src).toContain('https://search.foxestechnology.com/widget/foxes-launcher.js');
+      expect(script.src).toContain(
+        'https://search.foxestechnology.com/widget/foxes-launcher.js?v=20260814-load-recovery-v1',
+      );
     });
   });
 
