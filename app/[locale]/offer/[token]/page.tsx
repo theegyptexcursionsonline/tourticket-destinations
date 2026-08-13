@@ -318,6 +318,7 @@ export default async function PlannerOfferPage({
   const whatsappDigits = digits(tenant?.contact?.whatsapp) || null;
 
   const view: OfferView = {
+    tenantId,
     firstName: offer.firstName || null,
     code: discount.code,
     label: discount.discountType === 'percentage' ? `${discount.value}%` : `${currencySymbol}${discount.value}`,

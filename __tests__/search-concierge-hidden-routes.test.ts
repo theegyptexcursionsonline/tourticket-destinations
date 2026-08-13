@@ -32,24 +32,25 @@ describe('search concierge hidden routes', () => {
 });
 
 /**
- * The hero photograph must never be layered with a negative z-index: inside the
+ * The hero photograph must never be layered with a negative z-index: inside a
  * section's stacking context it renders behind the section's own background at
  * desktop widths and the hero appears as a solid black box.
  */
 describe('offer hero layering', () => {
-  const hero = readFileSync(
-    path.join(process.cwd(), 'app/[locale]/offer/[token]/OfferPageClient.tsx'),
+  const layouts = readFileSync(
+    path.join(process.cwd(), 'app/[locale]/offer/[token]/layouts.tsx'),
     'utf8',
   );
-  const section = hero.slice(hero.indexOf('<section className="relative overflow-hidden bg-gray-900">'), hero.indexOf('<section className="border-b'));
 
-  it('layers the hero with positive z-index only', () => {
-    expect(section).not.toContain('-z-10');
-    expect(section).toContain('absolute inset-0 z-0');
+  it('uses no negative z-index anywhere in the city layouts', () => {
+    expect(layouts).not.toContain('-z-10');
+    expect(layouts).not.toContain('z-[-');
   });
 
-  it('keeps the scrims and copy above the photograph', () => {
-    expect(section).toContain('absolute inset-0 z-10 bg-gradient-to-b');
-    expect(section).toContain('relative z-20 mx-auto max-w-6xl');
+  it('puts every full-bleed hero photo in a z-0 wrapper under z-10 scrims and z-20 copy', () => {
+    const wrappers = layouts.match(/absolute inset-0 z-0/g) ?? [];
+    expect(wrappers.length).toBeGreaterThanOrEqual(3);
+    expect(layouts).toContain('pointer-events-none absolute inset-0 z-10');
+    expect(layouts).toContain('relative z-20');
   });
 });
