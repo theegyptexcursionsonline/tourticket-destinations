@@ -587,7 +587,11 @@ const DestinationSlider = ({ destinations }: { destinations: any[] }) => {
   );
 };
 
-export default function AISearchWidget() {
+interface AISearchWidgetProps {
+  avoidMobileBookingBar?: boolean;
+}
+
+export default function AISearchWidget({ avoidMobileBookingBar = false }: AISearchWidgetProps) {
   const { tenantId, getSiteName } = useTenant();
   const [isExpanded, setIsExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -608,7 +612,46 @@ export default function AISearchWidget() {
   const [isVisible, setIsVisible] = useState(false);
   const [chatMode, setChatMode] = useState(false);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
+  const [mobileBottomOffset, setMobileBottomOffset] = useState<number | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!avoidMobileBookingBar) {
+      setMobileBottomOffset(null);
+      return;
+    }
+
+    let observedBar: HTMLElement | null = null;
+    const resizeObserver = new ResizeObserver(() => syncOffset());
+
+    const syncOffset = () => {
+      if (window.innerWidth >= 768) {
+        setMobileBottomOffset(null);
+        return;
+      }
+
+      const bookingBar = document.querySelector<HTMLElement>('[data-mobile-booking-bar="true"]');
+      if (bookingBar !== observedBar) {
+        if (observedBar) resizeObserver.unobserve(observedBar);
+        observedBar = bookingBar;
+        if (observedBar) resizeObserver.observe(observedBar);
+      }
+
+      const height = bookingBar?.getBoundingClientRect().height ?? 0;
+      setMobileBottomOffset(height > 0 ? Math.ceil(height) + 12 : null);
+    };
+
+    const mutationObserver = new MutationObserver(syncOffset);
+    mutationObserver.observe(document.body, { childList: true, subtree: true });
+    window.addEventListener('resize', syncOffset);
+    syncOffset();
+
+    return () => {
+      mutationObserver.disconnect();
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', syncOffset);
+    };
+  }, [avoidMobileBookingBar]);
   const searchResults = useMemo(
     () =>
       getTenantSiteSearchResults({
@@ -1248,11 +1291,13 @@ export default function AISearchWidget() {
 
       {/* Main Container */}
       <motion.div
+        data-ai-search-widget="unified"
         initial={{ opacity: 0, y: 100 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 100 }}
         transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
         className="flex fixed bottom-4 md:bottom-6 start-0 end-0 z-[15] justify-center px-3 md:px-6 pointer-events-none"
+        style={mobileBottomOffset === null ? undefined : { bottom: `${mobileBottomOffset}px` }}
       >
         <div className="w-full max-w-2xl pointer-events-auto">
           <div className="ai-search-container relative">

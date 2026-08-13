@@ -423,7 +423,7 @@ html[data-storefront-theme="dark"] body.storefront-theme .es-review-background-c
   color: #94a3b8 !important;
 }
 /* dark-theme:generated:start — built by `pnpm theme:generate`; do not hand-edit */
-/* 269 light utilities darkened, 29 deliberately preserved. */
+/* 268 light utilities darkened, 27 deliberately preserved. */
 
 html[data-storefront-theme="dark"] body.storefront-theme :where([class~="from-gray-100"], [class~="from-slate-100"]):not([class~="bg-clip-text"]) {
   --tw-gradient-from: #1e293b var(--tw-gradient-from-position) !important;
@@ -1020,7 +1020,7 @@ html[data-storefront-theme="dark"] body.storefront-theme :where([class~="hover:b
   background-color: rgb(17 24 39 / 0.4) !important;
 }
 
-html[data-storefront-theme="dark"] body.storefront-theme :where([class~="hover:bg-blue-50/50"], [class~="hover:bg-emerald-50/50"], [class~="hover:bg-indigo-50/50"], [class~="hover:bg-red-50/50"], [class~="hover:bg-white/50"]):hover {
+html[data-storefront-theme="dark"] body.storefront-theme :where([class~="hover:bg-blue-50/50"], [class~="hover:bg-indigo-50/50"], [class~="hover:bg-red-50/50"], [class~="hover:bg-white/50"]):hover {
   background-color: rgb(17 24 39 / 0.5) !important;
 }
 
