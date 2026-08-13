@@ -21,7 +21,9 @@ export const STOREFRONT_ROOTS = [
 ];
 
 /** Never scanned: admin surfaces, tests, build output. */
-const EXCLUDED = /(^|\/)(admin|__tests__|__mocks__|node_modules|\.next|e2e)(\/|$)/;
+// The offer route pins its own art-directed palette (app/[locale]/offer/layout.tsx)
+// and never receives the dark remap, so its utilities stay out of the map.
+const EXCLUDED = /(^|\/)(admin|offer|__tests__|__mocks__|node_modules|\.next|e2e)(\/|$)/;
 
 export interface TokenUsage {
   /** Full token as written, e.g. `md:hover:bg-white`. */
