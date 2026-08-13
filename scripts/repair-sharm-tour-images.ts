@@ -24,6 +24,11 @@ const REPAIRS = [
     to: 'https://images.unsplash.com/photo-1547234935-80c7145ec969?w=1200&q=80&fm=jpg', // rocky Sinai-style desert
   },
   {
+    slug: 'white-island-ras-mohammed',
+    from: 'https://images.unsplash.com/photo-1559827291-72ee739d0d9a?w=1200&q=80&fm=jpg',
+    to: 'https://images.unsplash.com/photo-1505142468610-359e7d316be0?w=1200&q=80&fm=jpg', // white sandbank meeting reef water
+  },
+  {
     slug: 'sharm-desert-safari-quad',
     from: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&q=80&fm=jpg',
     to: 'https://images.unsplash.com/photo-1542401886-65d6c61db217?w=1200&q=80&fm=jpg', // open dunes

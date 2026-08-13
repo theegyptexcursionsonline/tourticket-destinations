@@ -380,8 +380,8 @@ export default function OfferPageClient({ view, locale }: { view: OfferView; loc
         )}
         {/* Scrims: dark enough for copy, light enough that the destination
             photography still sells the trip — the previous wash buried it. */}
-        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-b from-gray-950/80 via-gray-950/40 to-gray-950/85" />
-        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-r from-gray-950/75 via-gray-950/30 to-transparent" />
+        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-b from-gray-950/65 via-gray-950/20 to-gray-950/70" />
+        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-r from-gray-950/55 via-gray-950/15 to-transparent" />
         <div
           aria-hidden
           className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-1"
@@ -407,10 +407,10 @@ export default function OfferPageClient({ view, locale }: { view: OfferView; loc
                 </p>
               </div>
 
-              <h1 className="mt-6 max-w-3xl text-[2.6rem] font-extrabold leading-[1.05] tracking-tight text-white drop-shadow-sm md:text-[3.6rem]">
+              <h1 className="mt-6 max-w-3xl text-[2.6rem] font-extrabold leading-[1.05] tracking-tight text-white drop-shadow-lg md:text-[3.6rem]">
                 {view.firstName}, take {view.label} off every experience.
               </h1>
-              <p className="mt-5 max-w-xl text-lg leading-relaxed text-white/85 md:text-xl">
+              <p className="mt-5 max-w-xl text-lg leading-relaxed text-white drop-shadow-md md:text-xl">
                 Hand-picked at live {view.siteName} prices — from {money(view.currencySymbol, s.fromPrice)} with
                 your code, saving up to {money(view.currencySymbol, s.maxSaving)} on a single booking.
               </p>
