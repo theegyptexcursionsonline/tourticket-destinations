@@ -412,7 +412,7 @@ function PlateLayout({ view, design, locale }: LayoutProps) {
             className="mx-auto mt-6 max-w-3xl text-[2.2rem] font-semibold leading-[1.08] text-gray-900 sm:text-[2.9rem] md:text-[4.3rem] md:leading-[1.02]"
             style={{ fontFamily: design.display, letterSpacing: design.displayTracking }}
           />
-          <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-gray-700">
+          <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-gray-700 sm:text-lg">
             A curated selection at live {view.siteName} prices — from {money(view.currencySymbol, s.fromPrice)} with your code, saving up to {money(view.currencySymbol, s.maxSaving)} on a single booking.
           </p>
           <Motif design={design} className="mx-auto mt-8 h-2 w-64" />
@@ -544,7 +544,7 @@ function ScrollLayout({ view, design, locale }: LayoutProps) {
               className="mt-5 text-[2.05rem] font-semibold leading-[1.08] text-white drop-shadow-2xl sm:text-[2.6rem] md:text-[4rem] md:leading-[1.02]"
               style={{ fontFamily: design.display, letterSpacing: design.displayTracking }}
             />
-            <p className="mt-5 text-lg leading-relaxed text-white/90 drop-shadow-md">
+            <p className="mt-5 text-base leading-relaxed text-white/90 drop-shadow-md sm:text-lg">
               From {money(view.currencySymbol, s.fromPrice)} with your code at live {view.siteName} prices, saving up to {money(view.currencySymbol, s.maxSaving)} on a single booking.
             </p>
             <Motif design={design} className="mt-6 h-4 w-40 opacity-90" />
@@ -669,7 +669,7 @@ function LagoonLayout({ view, design, locale }: LayoutProps) {
               className="mt-5 text-[2.2rem] font-extrabold leading-[1.04] text-gray-900 sm:text-[2.8rem] md:text-[4.1rem] md:leading-[0.98]"
               style={{ fontFamily: design.display, letterSpacing: design.displayTracking }}
             />
-            <p className="mt-5 max-w-lg text-lg leading-relaxed text-gray-700">
+            <p className="mt-5 max-w-lg text-base leading-relaxed text-gray-700 sm:text-lg">
               Live {view.siteName} prices with your code already applied — from {money(view.currencySymbol, s.fromPrice)}, saving up to {money(view.currencySymbol, s.maxSaving)} on a single booking.
             </p>
             <Motif design={design} className="mt-6 h-5 w-40" />

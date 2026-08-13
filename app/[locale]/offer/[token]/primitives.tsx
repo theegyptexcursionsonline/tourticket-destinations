@@ -284,23 +284,37 @@ export function BookLink({
   );
 }
 
-/** Mobile action bar — shared mechanic, tinted per city. */
+/**
+ * Mobile action bar. It stays out of the way until the hero's own code has
+ * scrolled past — otherwise it lands on top of the offer it is advertising —
+ * and it counts in days, because a phone reading "ENDS IN 177:57:47" looks
+ * broken.
+ */
 export function StickyBar({ view, design }: { view: OfferView; design: CityDesign }) {
   const remaining = useRemaining(view.expiresAt);
   const [copied, copy] = useCopy(view.code);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setVisible(window.scrollY > 460);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
   if (remaining === 0) return null;
-  const hours = remaining === null ? 0 : Math.floor(remaining / 3_600_000);
+  const days = remaining === null ? 0 : Math.floor(remaining / 86_400_000);
+  const hours = remaining === null ? 0 : Math.floor((remaining % 86_400_000) / 3_600_000);
   const minutes = remaining === null ? 0 : Math.floor((remaining % 3_600_000) / 60_000);
   const seconds = remaining === null ? 0 : Math.floor((remaining % 60_000) / 1000);
+  const left = days > 0 ? `${days}d ${pad(hours)}:${pad(minutes)}` : `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
   return (
     <div
-      className="fixed inset-x-3 bottom-3 z-50 overflow-hidden rounded-2xl shadow-2xl ring-1 ring-white/10 backdrop-blur-md md:hidden"
+      className={`fixed inset-x-3 bottom-3 z-50 overflow-hidden rounded-2xl shadow-2xl ring-1 ring-white/10 backdrop-blur-md transition-all duration-300 md:hidden ${visible ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-6 opacity-0'}`}
       style={{ backgroundColor: `${design.ink}f2` }}
     >
       <div className="flex items-center justify-between gap-3 px-4 py-3">
         <button type="button" className="min-w-0 text-left" onClick={copy}>
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/60">
-            {copied ? 'Code copied ✓' : remaining === null ? 'Your private code · tap to copy' : `Ends in ${pad(hours)}:${pad(minutes)}:${pad(seconds)}`}
+            {copied ? 'Code copied ✓' : remaining === null ? 'Your private code · tap to copy' : `Ends in ${left}`}
           </p>
           <p className="text-base font-extrabold tracking-[0.14em] text-white">{view.code}</p>
         </button>

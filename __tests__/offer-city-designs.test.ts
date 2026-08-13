@@ -124,3 +124,25 @@ describe('mobile-first hero behaviour', () => {
     }
   });
 });
+
+/**
+ * The phone action bar must not cover the hero it advertises, and it must not
+ * print raw hours ("ENDS IN 177:57:47") once the offer runs longer than a day.
+ */
+describe('mobile action bar', () => {
+  const primitives = readFileSync(
+    path.join(process.cwd(), 'app/[locale]/offer/[token]/primitives.tsx'),
+    'utf8',
+  );
+  const bar = primitives.slice(primitives.indexOf('export function StickyBar'));
+
+  it('waits until the hero code has scrolled away', () => {
+    expect(bar).toContain('window.scrollY > 460');
+    expect(bar).toContain('pointer-events-none translate-y-6 opacity-0');
+  });
+
+  it('counts remaining time in days once past 24 hours', () => {
+    expect(bar).toMatch(/days > 0 \? `\$\{days\}d/);
+    expect(bar).not.toMatch(/Ends in \$\{pad\(hours\)\}:\$\{pad\(minutes\)\}:\$\{pad\(seconds\)\}`/);
+  });
+});
