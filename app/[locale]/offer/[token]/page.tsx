@@ -208,7 +208,7 @@ export default async function PlannerOfferPage({ params }: { params: Promise<{ t
     ]),
     ReviewModel.find({ tenantId, tour: { $in: tourIds }, rating: 5, comment: { $exists: true, $ne: '' } })
       .sort({ createdAt: -1 })
-      .limit(QUOTE_COUNT)
+      .limit(QUOTE_COUNT * 8)
       .select('userName rating comment tour')
       .lean(),
   ]);
@@ -216,14 +216,23 @@ export default async function PlannerOfferPage({ params }: { params: Promise<{ t
     reviewAgg.map((row: any) => [String(row._id), { avg: Number(row.avg), count: Number(row.count) }]),
   );
   const titleById = new Map<string, string>(tours.map((tour: any) => [String(tour._id), String(tour.title)]));
+  // One voice per tour reads far more credibly than three quotes off one trip.
+  const seenTours = new Set<string>();
   const quotes = (quoteDocs as any[])
+    .filter((review) => {
+      const key = String(review.tour);
+      if (seenTours.has(key)) return false;
+      seenTours.add(key);
+      return true;
+    })
     .map((review) => ({
       name: String(review.userName || 'Verified traveller'),
       rating: Number(review.rating),
       text: String(review.comment || '').replace(/\s+/g, ' ').trim().slice(0, 220),
       tourTitle: titleById.get(String(review.tour)) || null,
     }))
-    .filter((quote) => quote.text.length > 30);
+    .filter((quote) => quote.text.length > 30)
+    .slice(0, QUOTE_COUNT);
 
   const sellable = tours
     .map((tour) => toOfferTour(tour, discount, reviewStats))
