@@ -24,7 +24,9 @@ const copy: Record<string, { label: string; kicker: string; placeholder: string 
   es: { label: 'Buscar tours por Egipto con IA', kicker: 'Búsqueda de viajes con IA', placeholder: 'Buscar tours en Egipto...' },
 };
 
-const HIDDEN_ROUTES = ['/admin', '/checkout', '/booking', '/payment', '/login', '/signup'];
+// Conversion-critical or transactional surfaces own their own call to action;
+// a floating search launcher there competes with it or leaks the customer away.
+const HIDDEN_ROUTES = ['/admin', '/checkout', '/booking', '/payment', '/login', '/signup', '/offer'];
 
 export default function EEOSearchConcierge() {
   const pathname = usePathname() || '';
