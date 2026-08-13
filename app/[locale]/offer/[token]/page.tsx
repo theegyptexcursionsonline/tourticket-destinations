@@ -13,7 +13,7 @@ import {
   getTenantPublicConfig,
 } from '@/lib/tenant';
 import PlannerOfferModel from '@/lib/models/PlannerOffer';
-import { looksLikeOfferSlug, priceAfterDiscount, verifyOffer, type VerifiedOffer } from '@/lib/offerToken';
+import { looksLikeCampaignCode, looksLikeOfferSlug, priceAfterDiscount, verifyOffer, type VerifiedOffer } from '@/lib/offerToken';
 import OfferPageClient, { type OfferTour, type OfferView } from './OfferPageClient';
 
 // The offer is personal and time-boxed: never cached, never indexed.
@@ -148,9 +148,33 @@ export default async function PlannerOfferPage({ params }: { params: Promise<{ t
   // Tenant first: a short slug is only meaningful inside its own workspace.
   await dbConnect();
   const tenantId = await resolveTenantId();
-  const verified = looksLikeOfferSlug(raw)
-    ? await offerFromSlug(raw, tenantId)
-    : verifyOffer(raw);
+  let verified: VerifiedOffer;
+  let campaign = false;
+  if (raw.includes('.')) {
+    verified = verifyOffer(raw);
+  } else {
+    verified = looksLikeOfferSlug(raw)
+      ? await offerFromSlug(raw, tenantId)
+      : { state: 'invalid', reason: 'bad_payload' };
+    // Campaign fallback: the link IS the code (`/offer/planner15`) — one link
+    // per campaign, no per-customer minting. A minted personal slug wins.
+    if (verified.state === 'invalid' && looksLikeCampaignCode(raw)) {
+      const record = await Discount.findOne({ tenantId, code: raw.toUpperCase() })
+        .select('code expiresAt')
+        .lean() as { code: string; expiresAt?: Date } | null;
+      if (record) {
+        campaign = true;
+        verified = {
+          state: 'valid',
+          offer: {
+            firstName: '',
+            discountCode: record.code,
+            expiresAt: record.expiresAt ? new Date(record.expiresAt).toISOString() : '',
+          },
+        };
+      }
+    }
+  }
 
   if (verified.state === 'invalid') {
     return (
@@ -187,7 +211,7 @@ export default async function PlannerOfferPage({ params }: { params: Promise<{ t
     return (
       <ClosedOffer
         reason="code_inactive"
-        title={`${offer.firstName}, this code is no longer active`}
+        title={offer.firstName ? `${offer.firstName}, this code is no longer active` : 'This code is no longer active'}
         body="Your planner's discount can't be applied right now. Message them for a new one — the tours are still available at standard prices."
       />
     );
@@ -277,17 +301,18 @@ export default async function PlannerOfferPage({ params }: { params: Promise<{ t
   const fromPrice = Math.min(...sellable.map((tour) => tour.offerPrice));
   const maxSaving = Math.max(...sellable.map((tour) => tour.saving));
 
-  const ends = new Date(offer.expiresAt);
-  const expiresNice = `${ends.getUTCDate()} ${MONTHS[ends.getUTCMonth()]} ${ends.getUTCFullYear()}`;
+  const expiresAt = offer.expiresAt || null;
+  const ends = expiresAt ? new Date(expiresAt) : null;
+  const expiresNice = ends ? `${ends.getUTCDate()} ${MONTHS[ends.getUTCMonth()]} ${ends.getUTCFullYear()}` : null;
 
   const digits = (value: string | null | undefined) => (value || '').replace(/[^\d]/g, '');
   const whatsappDigits = digits(tenant?.contact?.whatsapp) || null;
 
   const view: OfferView = {
-    firstName: offer.firstName,
+    firstName: campaign ? null : offer.firstName || null,
     code: discount.code,
     label: discount.discountType === 'percentage' ? `${discount.value}%` : `${currencySymbol}${discount.value}`,
-    expiresAt: offer.expiresAt,
+    expiresAt,
     expiresNice,
     currencySymbol,
     siteName: tenant?.name || 'our tours',

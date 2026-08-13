@@ -1,4 +1,5 @@
 import {
+  looksLikeCampaignCode,
   discountAmountFor,
   priceAfterDiscount,
   signOffer,
@@ -138,5 +139,19 @@ describe('short shareable offer slugs', () => {
   it('separates slugs from signed tokens', () => {
     expect(looksLikeOfferSlug('amira-7k2m')).toBe(true);
     expect(looksLikeOfferSlug(signOffer(validOffer()))).toBe(false);
+  });
+});
+
+describe('looksLikeCampaignCode', () => {
+  it('accepts a bare discount code in either case', () => {
+    expect(looksLikeCampaignCode('PLANNER15')).toBe(true);
+    expect(looksLikeCampaignCode('planner15')).toBe(true);
+  });
+
+  it('rejects personal slugs, signed tokens and junk', () => {
+    expect(looksLikeCampaignCode('amira-7zrs')).toBe(false);
+    expect(looksLikeCampaignCode('abc.def')).toBe(false);
+    expect(looksLikeCampaignCode('ab')).toBe(false);
+    expect(looksLikeCampaignCode('a'.repeat(25))).toBe(false);
   });
 });

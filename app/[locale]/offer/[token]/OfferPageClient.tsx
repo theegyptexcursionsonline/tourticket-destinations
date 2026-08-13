@@ -26,11 +26,11 @@ export type OfferQuote = {
 };
 
 export type OfferView = {
-  firstName: string;
+  firstName: string | null; // null on campaign links — greeting goes generic
   code: string;
   label: string;            // "15%" or "$10"
-  expiresAt: string;
-  expiresNice: string;      // "19 Aug 2026" — server-formatted, deterministic
+  expiresAt: string | null; // null when the code has no expiry — timers hide
+  expiresNice: string | null;
   currencySymbol: string;
   siteName: string;
   logo: string | null;
@@ -84,12 +84,14 @@ function Countdown({ expiresAt, compact = false }: { expiresAt: string; compact?
   if (compact) {
     return (
       <span className="tabular-nums font-bold">
-        {days > 0 ? `${days}d ${pad(hours)}:${pad(minutes)}` : `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`}
+        {days > 0 ? `${days}d ${pad(hours)}:${pad(minutes)}:${pad(seconds)}` : `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`}
       </span>
     );
   }
+  // Seconds are always shown: a timer that only moves once a minute reads as
+  // frozen to the customer who just landed.
   const units = days > 0
-    ? [{ l: 'days', v: days }, { l: 'hrs', v: hours }, { l: 'min', v: minutes }]
+    ? [{ l: 'days', v: days }, { l: 'hrs', v: hours }, { l: 'min', v: minutes }, { l: 'sec', v: seconds }]
     : [{ l: 'hrs', v: hours }, { l: 'min', v: minutes }, { l: 'sec', v: seconds }];
   return (
     <div aria-live="polite" className="flex items-center gap-1.5">
@@ -174,15 +176,17 @@ function OfferPanel({ view }: { view: OfferView }) {
         </span>
       </button>
 
-      <div className="mt-5 flex items-end justify-between gap-4">
-        <div>
-          <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-white/70">Offer ends in</p>
-          <Countdown expiresAt={view.expiresAt} />
+      {view.expiresAt && (
+        <div className="mt-5 flex items-end justify-between gap-4">
+          <div>
+            <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-white/70">Offer ends in</p>
+            <Countdown expiresAt={view.expiresAt} />
+          </div>
         </div>
-      </div>
+      )}
 
       <p className="mt-5 border-t border-white/10 pt-4 text-[13px] leading-relaxed text-white/75">
-        Valid on every tour below until <span className="font-bold text-white">{view.expiresNice}</span> — on as
+        Valid on every tour below{view.expiresNice ? <> until <span className="font-bold text-white">{view.expiresNice}</span></> : null} — on as
         many bookings as you make. The code is re-checked and applied at checkout.
       </p>
 
@@ -313,9 +317,11 @@ function DeskBar({ view }: { view: OfferView }) {
           >
             {copied ? 'Copied ✓' : view.code}
           </button>
-          <span className="text-white/60">
-            ends in <Countdown expiresAt={view.expiresAt} compact />
-          </span>
+          {view.expiresAt && (
+            <span className="text-white/60">
+              ends in <Countdown expiresAt={view.expiresAt} compact />
+            </span>
+          )}
         </p>
         <a
           href="#tours"
@@ -329,7 +335,7 @@ function DeskBar({ view }: { view: OfferView }) {
 }
 
 function StickyBar({ view }: { view: OfferView }) {
-  const remaining = useRemaining(view.expiresAt);
+  const remaining = useRemaining(view.expiresAt ?? '9999-12-31T00:00:00Z');
   const [copied, copy] = useCopy(view.code);
   if (remaining === 0) return null;
   const hours = Math.floor(remaining / 3_600_000);
@@ -340,7 +346,7 @@ function StickyBar({ view }: { view: OfferView }) {
       <div className="flex items-center justify-between gap-3 px-4 py-3">
         <button type="button" className="min-w-0 text-left" onClick={copy}>
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/60">
-            {copied ? 'Code copied ✓' : `Ends in ${pad(hours)}:${pad(minutes)}:${pad(seconds)}`}
+            {copied ? 'Code copied ✓' : view.expiresAt ? `Ends in ${pad(hours)}:${pad(minutes)}:${pad(seconds)}` : 'Your private code · tap to copy'}
           </p>
           <p className="text-base font-extrabold tracking-[0.14em] text-white">{view.code}</p>
         </button>
@@ -396,19 +402,21 @@ export default function OfferPageClient({ view, locale }: { view: OfferView; loc
           <div className="mt-8 grid items-end gap-10 lg:grid-cols-[1fr_auto]">
             <div>
               <div className="flex items-center gap-2.5">
-                <span
-                  className="flex h-8 w-8 items-center justify-center rounded-full text-base font-bold text-white ring-1 ring-white/25"
-                  style={{ backgroundColor: view.brandColor }}
-                >
-                  {view.firstName.charAt(0).toUpperCase()}
-                </span>
+                {view.firstName && (
+                  <span
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-base font-bold text-white ring-1 ring-white/25"
+                    style={{ backgroundColor: view.brandColor }}
+                  >
+                    {view.firstName.charAt(0).toUpperCase()}
+                  </span>
+                )}
                 <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-white/80">
                   A private offer from your personal planner
                 </p>
               </div>
 
               <h1 className="mt-6 max-w-3xl text-[2.6rem] font-extrabold leading-[1.05] tracking-tight text-white drop-shadow-lg md:text-[3.6rem]">
-                {view.firstName}, take {view.label} off every experience.
+                {view.firstName ? `${view.firstName}, take ${view.label} off every experience.` : `Take ${view.label} off every experience.`}
               </h1>
               <p className="mt-5 max-w-xl text-lg leading-relaxed text-white drop-shadow-md md:text-xl">
                 Hand-picked at live {view.siteName} prices — from {money(view.currencySymbol, s.fromPrice)} with
@@ -494,7 +502,7 @@ export default function OfferPageClient({ view, locale }: { view: OfferView; loc
             index="02"
             kicker="Hand-picked"
             title="Top tours recommended by your personal planner"
-            body={<>Chosen for {view.firstName} from {view.totalCount} live experiences.</>}
+            body={<>Chosen for {view.firstName ?? 'you'} from {view.totalCount} live experiences.</>}
           />
         </Reveal>
         <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -544,12 +552,12 @@ export default function OfferPageClient({ view, locale }: { view: OfferView; loc
               style={{ background: `radial-gradient(55% 70% at 50% 120%, ${view.brandColor}55, transparent 70%)` }}
             />
             <p className="relative text-3xl font-extrabold leading-snug text-white md:text-4xl">
-              Ready when you are, {view.firstName}.
+              Ready when you are{view.firstName ? `, ${view.firstName}` : ''}.
             </p>
             <p className="relative mx-auto mt-4 max-w-xl text-white/75">
               Use code{' '}
               <span className="rounded-md bg-white/15 px-2 py-0.5 font-extrabold tracking-[0.14em] text-white">{view.code}</span>{' '}
-              at checkout before {view.expiresNice}. Questions? Your planner answers fast.
+              at checkout{view.expiresNice ? ` before ${view.expiresNice}` : ''}. Questions? Your planner answers fast.
             </p>
             <div className="relative mt-7 flex flex-wrap items-center justify-center gap-3">
               <a

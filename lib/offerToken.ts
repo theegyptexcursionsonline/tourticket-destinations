@@ -144,3 +144,12 @@ export function offerSlugFor(firstName: string, random: () => number = Math.rand
 export function looksLikeOfferSlug(value: string): boolean {
   return /^[a-z]{0,14}-?[a-z0-9-]{1,20}$/.test(value) && !value.includes('.');
 }
+
+/**
+ * A campaign link is just the discount code itself (`/offer/planner15`): one
+ * link per campaign instead of one per customer. Tried only after the personal
+ * slug lookup misses, so a minted slug always wins over a same-shaped code.
+ */
+export function looksLikeCampaignCode(value: string): boolean {
+  return /^[A-Za-z0-9]{3,24}$/.test(value);
+}
