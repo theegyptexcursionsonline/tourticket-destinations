@@ -262,8 +262,14 @@ describe('offer route theme pin', () => {
   const scanner = readFileSync(path.join(process.cwd(), 'scripts/theme/scanStorefront.ts'), 'utf8');
 
   it('pins the designed palette before first paint on hard loads', () => {
-    expect(layout).toContain("dataset.storefrontTheme='light'");
+    expect(layout).toContain("storefrontThemePin='light'");
     expect(layout).toContain('offer-theme-pin');
+  });
+
+  it('is honoured by the theme provider, whose parent effect runs last', () => {
+    const provider = readFileSync(path.join(process.cwd(), 'contexts/StorefrontThemeContext.tsx'), 'utf8');
+    expect(provider).toContain('dataset.storefrontThemePin');
+    expect(pin).toContain('delete root.dataset.storefrontThemePin');
   });
 
   it('restores the visitor saved/system theme when leaving the route', () => {

@@ -20,8 +20,15 @@ const FALLBACK_THEME_CONTEXT: StorefrontThemeContextValue = {
 const StorefrontThemeContext = createContext<StorefrontThemeContextValue>(FALLBACK_THEME_CONTEXT);
 
 function applyTheme(theme: StorefrontTheme): void {
-  document.documentElement.dataset.storefrontTheme = theme;
-  document.documentElement.style.colorScheme = theme;
+  const root = document.documentElement;
+  // An art-directed route (the planner offer pages) may pin its designed
+  // palette via data-storefront-theme-pin; the pin wins over saved/system
+  // preference until that route unmounts. resolvedTheme state still tracks
+  // the visitor's real preference so the rest of the app is unaffected.
+  const pinned = root.dataset.storefrontThemePin;
+  const next = isStorefrontTheme(pinned) ? pinned : theme;
+  root.dataset.storefrontTheme = next;
+  root.style.colorScheme = next;
 }
 
 export function StorefrontThemeProvider({ children }: { children: React.ReactNode }) {

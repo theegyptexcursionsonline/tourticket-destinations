@@ -5,7 +5,7 @@ import OfferThemePin from './theme';
 // palette wins before first paint; OfferThemePin covers client-side
 // navigation and restores the visitor's theme on exit.
 const PIN_LIGHT =
-  "(function(){try{document.documentElement.dataset.storefrontTheme='light';document.documentElement.style.colorScheme='light';}catch(e){}})();";
+  "(function(){try{var r=document.documentElement;r.dataset.storefrontThemePin='light';r.dataset.storefrontTheme='light';r.style.colorScheme='light';}catch(e){}})();";
 
 export default function OfferLayout({ children }: { children: ReactNode }) {
   return (
