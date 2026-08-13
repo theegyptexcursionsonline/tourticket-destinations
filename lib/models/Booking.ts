@@ -10,7 +10,7 @@ export interface IBooking extends Document {
   tour: mongoose.Schema.Types.ObjectId;
   user: mongoose.Schema.Types.ObjectId;
   // Booking source tracking
-  source?: 'online' | 'manual';
+  source?: 'online' | 'manual' | 'app';
   createdBy?: mongoose.Schema.Types.ObjectId; // Admin user who created manual booking
 
   // Customer contact (snapshot at booking time; user profile may change)
@@ -135,7 +135,7 @@ const BookingSchema: Schema<IBooking> = new Schema({
 
   source: {
     type: String,
-    enum: ['online', 'manual'],
+    enum: ['online', 'manual', 'app'],
     default: 'online',
     index: true,
   },

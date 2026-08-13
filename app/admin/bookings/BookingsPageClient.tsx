@@ -35,7 +35,7 @@ interface Booking {
   _id: string;
   tenantId?: string;
   bookingReference?: string;
-  source?: 'online' | 'manual';
+  source?: 'online' | 'manual' | 'app';
   paymentStatus?: 'paid' | 'pending' | 'pay_on_arrival';
   tour: BookingTour | null;
   user: BookingUser | null;
@@ -753,6 +753,11 @@ const BookingsPage = () => {
                             {booking.source === 'manual' && (
                               <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-100 text-emerald-700 rounded-full">
                                 Manual
+                              </span>
+                            )}
+                            {booking.source === 'app' && (
+                              <span className="px-2 py-0.5 text-[10px] font-bold bg-indigo-100 text-indigo-700 rounded-full">
+                                App booking
                               </span>
                             )}
                           </div>
