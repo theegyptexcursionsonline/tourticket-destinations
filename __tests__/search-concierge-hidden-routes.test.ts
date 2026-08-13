@@ -30,3 +30,26 @@ describe('search concierge hidden routes', () => {
     expect(source).toContain("pathname.replace(/^\\/(en|ar|de|fr|es)(?=\\/|$)/, '')");
   });
 });
+
+/**
+ * The hero photograph must never be layered with a negative z-index: inside the
+ * section's stacking context it renders behind the section's own background at
+ * desktop widths and the hero appears as a solid black box.
+ */
+describe('offer hero layering', () => {
+  const hero = readFileSync(
+    path.join(process.cwd(), 'app/[locale]/offer/[token]/OfferPageClient.tsx'),
+    'utf8',
+  );
+  const section = hero.slice(hero.indexOf('<section className="relative overflow-hidden bg-gray-900">'), hero.indexOf('<section className="border-b'));
+
+  it('layers the hero with positive z-index only', () => {
+    expect(section).not.toContain('-z-10');
+    expect(section).toContain('absolute inset-0 z-0');
+  });
+
+  it('keeps the scrims and copy above the photograph', () => {
+    expect(section).toContain('absolute inset-0 z-10 bg-gradient-to-b');
+    expect(section).toContain('relative z-20 mx-auto max-w-6xl');
+  });
+});

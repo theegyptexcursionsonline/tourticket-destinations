@@ -373,28 +373,33 @@ export default function OfferPageClient({ view, locale }: { view: OfferView; loc
     <main className="min-h-screen bg-gray-50 pb-28 md:pb-0">
       <DeskBar view={view} />
 
-      <section className="relative isolate overflow-hidden bg-gray-900">
+      <section className="relative overflow-hidden bg-gray-900">
+        {/* Explicit positive layers only. A negative z-index inside this section
+            put the photograph behind the section's own background at desktop
+            widths, so the hero rendered as a black box. */}
         {view.heroImage && (
-          <Image
-            src={view.heroImage}
-            alt={view.heroAlt}
-            fill
-            priority
-            sizes="100vw"
-            className="-z-10 object-cover"
-          />
+          <div aria-hidden className="absolute inset-0 z-0">
+            <Image
+              src={view.heroImage}
+              alt={view.heroAlt}
+              fill
+              priority
+              sizes="100vw"
+              className="object-cover"
+            />
+          </div>
         )}
         {/* Scrims: dark enough for copy, light enough that the destination
             photography still sells the trip — the previous wash buried it. */}
-        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-b from-gray-950/65 via-gray-950/20 to-gray-950/70" />
-        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-r from-gray-950/55 via-gray-950/15 to-transparent" />
+        <div aria-hidden className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-b from-gray-950/65 via-gray-950/20 to-gray-950/70" />
+        <div aria-hidden className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-r from-gray-950/55 via-gray-950/15 to-transparent" />
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-1"
+          className="pointer-events-none absolute inset-x-0 top-0 z-20 h-1"
           style={{ background: `linear-gradient(90deg, transparent, ${view.brandColor}, transparent)` }}
         />
 
-        <div className="relative mx-auto max-w-6xl px-6 pb-14 pt-8 md:pb-20 md:pt-10">
+        <div className="relative z-20 mx-auto max-w-6xl px-6 pb-14 pt-8 md:pb-20 md:pt-10">
           {view.logo && (
             <img src={view.logo} alt={view.siteName} className="h-11 w-auto drop-shadow-lg md:h-12" />
           )}
