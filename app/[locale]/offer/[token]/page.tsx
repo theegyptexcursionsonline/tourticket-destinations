@@ -3,6 +3,7 @@ import { getLocale } from 'next-intl/server';
 import dbConnect from '@/lib/dbConnect';
 import Discount from '@/lib/models/Discount';
 import TourModel from '@/lib/models/Tour';
+import ReviewModel from '@/lib/models/Review';
 import {
   buildStrictTenantQuery,
   getTenantByDomain,
@@ -27,6 +28,7 @@ export const metadata: Metadata = {
 const MIN_CREDIBLE_PRICE = 5;
 const BUNDLE_COUNT = 6;
 const PICK_COUNT = 8;
+const QUOTE_COUNT = 3;
 
 type ActiveDiscount = { code: string; discountType: 'percentage' | 'fixed'; value: number };
 
@@ -82,7 +84,11 @@ async function activeDiscountFor(code: string, tenantId: string): Promise<Active
   return { code: record.code, discountType: record.discountType, value: Number(record.value) };
 }
 
-function toOfferTour(tour: any, discount: ActiveDiscount): OfferTour | null {
+function toOfferTour(
+  tour: any,
+  discount: ActiveDiscount,
+  reviewStats: Map<string, { avg: number; count: number }>,
+): OfferTour | null {
   const listPrice = Number(tour.discountPrice ?? tour.price ?? 0);
   if (!Number.isFinite(listPrice) || listPrice < MIN_CREDIBLE_PRICE) return null;
   if (!tour.slug || !tour.title) return null;
@@ -93,8 +99,9 @@ function toOfferTour(tour: any, discount: ActiveDiscount): OfferTour | null {
     .replace(/&amp;/g, '&')
     .replace(/\s+/g, ' ')
     .trim();
-  const reviewCount = Number(tour.reviewCount ?? tour.reviews?.length ?? 0);
-  const rating = reviewCount > 0 && Number.isFinite(Number(tour.rating)) ? Number(tour.rating) : null;
+  // Ratings are earned from real review documents, never from an admin-set
+  // Tour.rating with nothing behind it.
+  const stats = reviewStats.get(String(tour._id));
   return {
     id: String(tour._id),
     title: String(tour.title),
@@ -105,8 +112,8 @@ function toOfferTour(tour: any, discount: ActiveDiscount): OfferTour | null {
     listPrice,
     offerPrice,
     saving: Number((listPrice - offerPrice).toFixed(2)),
-    rating,
-    reviewCount,
+    rating: stats && stats.count > 0 ? Number(stats.avg.toFixed(1)) : null,
+    reviewCount: stats?.count ?? 0,
   };
 }
 
@@ -130,6 +137,8 @@ async function offerFromSlug(slug: string, tenantId: string): Promise<VerifiedOf
   if (new Date(record.expiresAt).getTime() <= Date.now()) return { state: 'expired', offer };
   return { state: 'valid', offer };
 }
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 export default async function PlannerOfferPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
@@ -185,12 +194,39 @@ export default async function PlannerOfferPage({ params }: { params: Promise<{ t
   }
 
   const tours = await TourModel.find(buildStrictTenantQuery({ isPublished: true }, tenantId))
-    .select('title slug description shortDescription price discountPrice duration image isFeatured rating reviewCount')
+    .select('title slug description shortDescription price discountPrice duration image isFeatured')
     .limit(200)
     .lean();
 
+  // Real social proof only: every rating and quote below is backed by a review
+  // document for this tenant's tours — nothing is hardcoded or invented.
+  const tourIds = tours.map((tour: any) => tour._id);
+  const [reviewAgg, quoteDocs] = await Promise.all([
+    ReviewModel.aggregate([
+      { $match: { tenantId, tour: { $in: tourIds } } },
+      { $group: { _id: '$tour', avg: { $avg: '$rating' }, count: { $sum: 1 } } },
+    ]),
+    ReviewModel.find({ tenantId, tour: { $in: tourIds }, rating: 5, comment: { $exists: true, $ne: '' } })
+      .sort({ createdAt: -1 })
+      .limit(QUOTE_COUNT)
+      .select('userName rating comment tour')
+      .lean(),
+  ]);
+  const reviewStats = new Map<string, { avg: number; count: number }>(
+    reviewAgg.map((row: any) => [String(row._id), { avg: Number(row.avg), count: Number(row.count) }]),
+  );
+  const titleById = new Map<string, string>(tours.map((tour: any) => [String(tour._id), String(tour.title)]));
+  const quotes = (quoteDocs as any[])
+    .map((review) => ({
+      name: String(review.userName || 'Verified traveller'),
+      rating: Number(review.rating),
+      text: String(review.comment || '').replace(/\s+/g, ' ').trim().slice(0, 220),
+      tourTitle: titleById.get(String(review.tour)) || null,
+    }))
+    .filter((quote) => quote.text.length > 30);
+
   const sellable = tours
-    .map((tour) => toOfferTour(tour, discount))
+    .map((tour) => toOfferTour(tour, discount, reviewStats))
     .filter((tour): tour is OfferTour => tour !== null);
 
   if (sellable.length === 0) {
@@ -225,11 +261,25 @@ export default async function PlannerOfferPage({ params }: { params: Promise<{ t
   const currencySymbol = tenant?.payments?.currencySymbol || '$';
   const heroImage = tenantRecord?.homepage?.heroImages?.[0] || tenant?.seo?.ogImage || null;
 
+  // Aggregate truth for the hero strip — every number derives from live records.
+  const reviewTotal = reviewAgg.reduce((sum: number, row: any) => sum + Number(row.count), 0);
+  const ratingSum = reviewAgg.reduce((sum: number, row: any) => sum + Number(row.avg) * Number(row.count), 0);
+  const avgRating = reviewTotal > 0 ? Number((ratingSum / reviewTotal).toFixed(1)) : null;
+  const fromPrice = Math.min(...sellable.map((tour) => tour.offerPrice));
+  const maxSaving = Math.max(...sellable.map((tour) => tour.saving));
+
+  const ends = new Date(offer.expiresAt);
+  const expiresNice = `${ends.getUTCDate()} ${MONTHS[ends.getUTCMonth()]} ${ends.getUTCFullYear()}`;
+
+  const digits = (value: string | null | undefined) => (value || '').replace(/[^\d]/g, '');
+  const whatsappDigits = digits(tenant?.contact?.whatsapp) || null;
+
   const view: OfferView = {
     firstName: offer.firstName,
     code: discount.code,
     label: discount.discountType === 'percentage' ? `${discount.value}%` : `${currencySymbol}${discount.value}`,
     expiresAt: offer.expiresAt,
+    expiresNice,
     currencySymbol,
     siteName: tenant?.name || 'our tours',
     logo: tenant?.branding?.logo || null,
@@ -239,6 +289,13 @@ export default async function PlannerOfferPage({ params }: { params: Promise<{ t
     bundles,
     picks,
     totalCount: sellable.length,
+    stats: { fromPrice, maxSaving, avgRating, reviewTotal },
+    quotes,
+    contact: {
+      whatsapp: whatsappDigits,
+      phone: tenant?.contact?.phone || null,
+      email: tenant?.contact?.email || null,
+    },
   };
 
   return <OfferPageClient view={view} locale={locale} />;
