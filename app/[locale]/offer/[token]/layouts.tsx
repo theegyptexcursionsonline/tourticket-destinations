@@ -104,14 +104,16 @@ function ReefLayout({ view, design, locale }: LayoutProps) {
   const s = view.stats;
   return (
     <>
-      <section className="relative min-h-[92vh] overflow-hidden" style={{ backgroundColor: design.ink }}>
+      <section className="relative overflow-hidden lg:min-h-[92vh]" style={{ backgroundColor: design.ink }}>
         {view.heroImage && <KenBurns src={view.heroImage} alt={view.heroAlt} />}
         <div aria-hidden className="pointer-events-none absolute inset-0 z-10" style={{ background: `linear-gradient(to bottom, ${design.ink}c4, ${design.ink}2e 42%, ${design.ink}f2)` }} />
         <div aria-hidden className="pointer-events-none absolute inset-0 z-10" style={{ background: `linear-gradient(to right, ${design.ink}b8, transparent 68%)` }} />
         <Aurora color={view.brandColor} className="z-10" />
         <div className="pointer-events-none absolute inset-0 z-10"><Grain /></div>
-        <div className="relative z-20 mx-auto grid min-h-[92vh] max-w-6xl items-center gap-12 px-6 pb-16 pt-10 md:pb-24 lg:grid-cols-[1fr_auto]">
-          <div>
+        {/* On a phone the code panel comes straight after the headline: the offer
+            has to be on the first screen, not below the proof list. */}
+        <div className="relative z-20 mx-auto grid max-w-6xl gap-8 px-6 pb-14 pt-8 md:pb-24 md:pt-10 lg:min-h-[92vh] lg:grid-cols-[1fr_auto] lg:items-center lg:gap-12">
+          <div className="order-1 lg:col-start-1 lg:row-start-1">
             {view.logo && <img src={view.logo} alt={view.siteName} className="h-11 w-auto max-w-[200px] self-start object-contain object-left drop-shadow-lg md:h-12" />}
             <div className="mt-9 flex items-center gap-2.5">
               {view.firstName && (
@@ -123,18 +125,21 @@ function ReefLayout({ view, design, locale }: LayoutProps) {
             </div>
             <SplitReveal
               lines={view.firstName ? [`${view.firstName}, take ${view.label} off`, 'every experience.'] : [`Take ${view.label} off`, 'every experience.']}
-              className="mt-7 max-w-3xl text-[2.8rem] font-extrabold leading-[0.98] text-white drop-shadow-2xl md:text-[4.2rem]"
+              className="mt-7 max-w-3xl text-[2.15rem] font-extrabold leading-[1.02] text-white drop-shadow-2xl sm:text-[2.8rem] md:text-[4.2rem] md:leading-[0.98]"
               style={{ fontFamily: design.display, letterSpacing: design.displayTracking }}
             />
-            <p className="mt-5 max-w-xl text-lg leading-relaxed text-white drop-shadow-md md:text-xl">
+            <p className="mt-5 max-w-xl text-base leading-relaxed text-white drop-shadow-md md:text-xl">
               Hand-picked at live {view.siteName} prices — from {money(view.currencySymbol, s.fromPrice)} with your code, saving up to {money(view.currencySymbol, s.maxSaving)} on a single booking.
             </p>
+          </div>
+
+          <div className="order-3 lg:col-start-1 lg:row-start-2">
             {s.avgRating !== null && s.reviewTotal > 0 && (
-              <p className="mt-5 flex items-center gap-2 text-sm font-semibold text-white/90">
+              <p className="flex items-center gap-2 text-sm font-semibold text-white/90">
                 <Stars rating={s.avgRating} />{s.avgRating.toFixed(1)} from {s.reviewTotal} traveller reviews
               </p>
             )}
-            <ul className="mt-7 grid max-w-2xl grid-cols-1 gap-x-8 gap-y-2.5 text-[0.92rem] text-white/85 sm:grid-cols-2">
+            <ul className="mt-5 grid max-w-2xl grid-cols-1 gap-x-8 gap-y-2.5 text-[0.92rem] text-white/85 sm:grid-cols-2">
               {TRUST_LINES.map((line) => (
                 <li key={line} className="flex items-center gap-2.5">
                   <span aria-hidden className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold text-white" style={{ backgroundColor: view.brandColor }}>✓</span>
@@ -144,7 +149,7 @@ function ReefLayout({ view, design, locale }: LayoutProps) {
             </ul>
           </div>
 
-          <div className="w-full max-w-md rounded-[1.75rem] border border-white/20 bg-white/[0.08] p-6 shadow-[0_40px_80px_-30px_rgba(0,0,0,0.85)] backdrop-blur-xl md:p-7">
+          <div className="order-2 w-full max-w-md rounded-[1.75rem] border border-white/20 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-center bg-white/[0.08] p-6 shadow-[0_40px_80px_-30px_rgba(0,0,0,0.85)] backdrop-blur-xl md:p-7">
             <div className="flex items-center justify-between gap-3">
               <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/70">Your private code</p>
               <span className="rounded-full px-3 py-1 text-[11px] font-extrabold text-white" style={{ backgroundColor: view.brandColor }}>−{view.label} OFF</span>
@@ -252,12 +257,12 @@ function MarinaLayout({ view, design, locale }: LayoutProps) {
   const s = view.stats;
   return (
     <>
-      <section className="relative min-h-[92vh] overflow-hidden" style={{ backgroundColor: design.ink }}>
+      <section className="relative overflow-hidden lg:min-h-[92vh]" style={{ backgroundColor: design.ink }}>
         {view.heroImage && <KenBurns src={view.heroImage} alt={view.heroAlt} />}
         <div aria-hidden className="pointer-events-none absolute inset-0 z-10" style={{ background: `linear-gradient(120deg, ${design.ink}f7 0%, ${design.ink}c4 44%, ${design.ink}1f 100%)` }} />
         <Aurora color={view.brandColor} className="z-10" />
         <div className="pointer-events-none absolute inset-0 z-10"><Grain opacity={0.08} /></div>
-        <div className="relative z-20 mx-auto flex min-h-[92vh] max-w-6xl flex-col justify-center px-6 pb-16 pt-10 md:pb-24">
+        <div className="relative z-20 mx-auto flex max-w-6xl flex-col justify-center px-6 pb-14 pt-8 md:pb-24 md:pt-10 lg:min-h-[92vh]">
           {view.logo && <img src={view.logo} alt={view.siteName} className="h-11 w-auto max-w-[200px] self-start object-contain object-left drop-shadow-lg md:h-12" />}
           <p className="mt-9 flex items-center gap-3 text-[11px] font-bold uppercase tracking-[0.32em] text-white/70">
             {design.kicker}
@@ -265,7 +270,7 @@ function MarinaLayout({ view, design, locale }: LayoutProps) {
           </p>
           <SplitReveal
             lines={view.firstName ? [`${view.firstName},`, `your ${view.label} is aboard.`] : [`Your ${view.label}`, 'is aboard.']}
-            className="mt-5 max-w-4xl text-[2.7rem] font-extrabold uppercase leading-[0.92] text-white drop-shadow-2xl md:text-[4.6rem]"
+            className="mt-5 max-w-4xl text-[2.1rem] font-extrabold uppercase leading-[0.98] text-white drop-shadow-2xl sm:text-[2.7rem] md:text-[4.6rem] md:leading-[0.92]"
             style={{ fontFamily: design.display, letterSpacing: design.displayTracking }}
           />
 
@@ -404,7 +409,7 @@ function PlateLayout({ view, design, locale }: LayoutProps) {
           <p className="mt-6 text-[11px] font-bold uppercase tracking-[0.34em]" style={{ color: design.wash }}>{design.kicker}</p>
           <SplitReveal
             lines={view.firstName ? [`${view.firstName}, your ${view.label}`, 'is reserved.'] : [`Your ${view.label}`, 'is reserved.']}
-            className="mx-auto mt-6 max-w-3xl text-[2.9rem] font-semibold leading-[1.02] text-gray-900 md:text-[4.3rem]"
+            className="mx-auto mt-6 max-w-3xl text-[2.2rem] font-semibold leading-[1.08] text-gray-900 sm:text-[2.9rem] md:text-[4.3rem] md:leading-[1.02]"
             style={{ fontFamily: design.display, letterSpacing: design.displayTracking }}
           />
           <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-gray-700">
@@ -525,18 +530,18 @@ function ScrollLayout({ view, design, locale }: LayoutProps) {
   const s = view.stats;
   return (
     <>
-      <section className="relative min-h-[92vh] overflow-hidden" style={{ backgroundColor: design.ink }}>
+      <section className="relative overflow-hidden lg:min-h-[92vh]" style={{ backgroundColor: design.ink }}>
         {view.heroImage && <KenBurns src={view.heroImage} alt={view.heroAlt} />}
         <div aria-hidden className="pointer-events-none absolute inset-0 z-10" style={{ background: `linear-gradient(to right, ${design.ink}f7 0%, ${design.ink}d9 40%, ${design.ink}2e 100%)` }} />
         <Aurora color={view.brandColor} className="z-10" />
         <div className="pointer-events-none absolute inset-0 z-10"><Grain opacity={0.07} /></div>
-        <div className="relative z-20 mx-auto flex min-h-[92vh] max-w-6xl flex-col justify-center px-6 pb-16 pt-10 md:pb-20">
+        <div className="relative z-20 mx-auto flex max-w-6xl flex-col justify-center px-6 pb-14 pt-8 md:pb-20 md:pt-10 lg:min-h-[92vh]">
           {view.logo && <img src={view.logo} alt={view.siteName} className="h-11 w-auto max-w-[200px] self-start object-contain object-left drop-shadow-lg md:h-12" />}
           <div className="mt-10 max-w-2xl border-l pl-7" style={{ borderColor: `${view.brandColor}cc` }}>
             <p className="text-[11px] font-bold uppercase tracking-[0.34em] text-white/70">{design.kicker}</p>
             <SplitReveal
               lines={view.firstName ? [`${view.firstName}, your ${view.label}`, 'is written in.'] : [`Your ${view.label}`, 'is written in.']}
-              className="mt-5 text-[2.6rem] font-semibold leading-[1.02] text-white drop-shadow-2xl md:text-[4rem]"
+              className="mt-5 text-[2.05rem] font-semibold leading-[1.08] text-white drop-shadow-2xl sm:text-[2.6rem] md:text-[4rem] md:leading-[1.02]"
               style={{ fontFamily: design.display, letterSpacing: design.displayTracking }}
             />
             <p className="mt-5 text-lg leading-relaxed text-white/90 drop-shadow-md">
@@ -661,7 +666,7 @@ function LagoonLayout({ view, design, locale }: LayoutProps) {
             <p className="mt-8 text-[11px] font-bold uppercase tracking-[0.28em]" style={{ color: design.wash }}>{design.kicker}</p>
             <SplitReveal
               lines={view.firstName ? [`${view.firstName}, ${view.label} off`, 'the whole lagoon.'] : [`${view.label} off`, 'the whole lagoon.']}
-              className="mt-5 text-[2.8rem] font-extrabold leading-[0.98] text-gray-900 md:text-[4.1rem]"
+              className="mt-5 text-[2.2rem] font-extrabold leading-[1.04] text-gray-900 sm:text-[2.8rem] md:text-[4.1rem] md:leading-[0.98]"
               style={{ fontFamily: design.display, letterSpacing: design.displayTracking }}
             />
             <p className="mt-5 max-w-lg text-lg leading-relaxed text-gray-700">

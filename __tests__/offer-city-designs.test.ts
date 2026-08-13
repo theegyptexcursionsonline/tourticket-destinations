@@ -93,3 +93,34 @@ describe('tenant logo rendering', () => {
     }
   });
 });
+
+/**
+ * Mobile is where these links are opened — from WhatsApp. The code panel must
+ * sit directly under the headline on a phone, not below the proof list, and no
+ * hero may be locked to full viewport height on a small screen.
+ */
+describe('mobile-first hero behaviour', () => {
+  const layouts = readFileSync(
+    path.join(process.cwd(), 'app/[locale]/offer/[token]/layouts.tsx'),
+    'utf8',
+  );
+
+  it('promotes the code panel above the proof list on small screens', () => {
+    expect(layouts).toContain('order-2 w-full max-w-md');
+    expect(layouts).toContain('order-3 lg:col-start-1 lg:row-start-2');
+  });
+
+  it('reserves full-viewport heroes for large screens', () => {
+    expect(layouts).not.toMatch(/className="relative min-h-\[92vh\]/);
+    expect(layouts).toContain('lg:min-h-[92vh]');
+  });
+
+  it('steps every hero headline down on phones', () => {
+    const headlines = layouts.match(/className="[^"]*text-\[\d\.\d+rem\][^"]*"/g) ?? [];
+    const heroHeadlines = headlines.filter((h) => h.includes('md:text-['));
+    expect(heroHeadlines.length).toBeGreaterThanOrEqual(5);
+    for (const h of heroHeadlines) {
+      expect(h).toMatch(/sm:text-\[|md:text-\[/);
+    }
+  });
+});
