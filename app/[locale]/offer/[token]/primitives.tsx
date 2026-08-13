@@ -17,6 +17,8 @@ export type OfferTour = {
   saving: number;
   rating: number | null;
   reviewCount: number;
+  /** Real tour highlights ("No swimming required", …) — shown on bundle cards. */
+  highlights: string[];
 };
 
 export type OfferQuote = {
@@ -50,6 +52,25 @@ export type OfferView = {
 export type LayoutProps = { view: OfferView; design: CityDesign; locale: string };
 
 export const pad = (value: number) => String(Math.max(0, value)).padStart(2, '0');
+
+/**
+ * Benefit bullets on bundle cards (client ask 14/08: "under each bundle …
+ * the benefit of this bundle, before the price"). Only real Tour.highlights
+ * render — no highlights, no block.
+ */
+export function BundleBenefits({ tour, design }: { tour: OfferTour; design: CityDesign }) {
+  if (tour.highlights.length === 0) return null;
+  return (
+    <ul className="mt-3 grid grid-cols-1 gap-1.5 text-[13px] leading-snug text-gray-700">
+      {tour.highlights.map((line) => (
+        <li key={line} className="flex items-start gap-2">
+          <span aria-hidden className="mt-0.5 shrink-0 text-[11px]" style={{ color: design.wash }}>★</span>
+          {line}
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 export function money(symbol: string, value: number): string {
   return `${symbol}${value % 1 === 0 ? value.toFixed(0) : value.toFixed(2)}`;

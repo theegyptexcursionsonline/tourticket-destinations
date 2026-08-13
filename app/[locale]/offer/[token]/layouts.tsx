@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import {
   BookLink,
+  BundleBenefits,
   ClosingCta,
   Countdown,
   Motif,
@@ -54,7 +55,7 @@ function FlipClock({ expiresAt, tone = 'light' }: { expiresAt: string | null; to
  * REEF — Sharm. Full-bleed dive photography, glass instrument panel.
  * ------------------------------------------------------------------ */
 
-function ReefCard({ view, design, locale, tour }: LayoutProps & { tour: OfferTour }) {
+function ReefCard({ view, design, locale, tour, benefits = false }: LayoutProps & { tour: OfferTour; benefits?: boolean }) {
   const percent = Math.round((tour.saving / tour.listPrice) * 100);
   return (
     <BookLink
@@ -82,6 +83,7 @@ function ReefCard({ view, design, locale, tour }: LayoutProps & { tour: OfferTou
       <div className="flex flex-1 flex-col p-5">
         <h3 className="text-[1.05rem] font-bold leading-snug text-gray-900">{tour.title}</h3>
         <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-gray-600">{tour.summary}</p>
+        {benefits && <BundleBenefits tour={tour} design={design} />}
         <div className="mt-auto flex items-end justify-between gap-3 border-t border-gray-100 pt-4">
           <div>
             <p className="text-[11px] font-medium text-gray-500">
@@ -185,7 +187,7 @@ function ReefLayout({ view, design, locale }: LayoutProps) {
           </Rise>
           <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {view.bundles.map((tour, index) => (
-              <Rise key={tour.id} delay={Math.min(index, 2) * 90}><ReefCard view={view} design={design} locale={locale} tour={tour} /></Rise>
+              <Rise key={tour.id} delay={Math.min(index, 2) * 90}><ReefCard view={view} design={design} locale={locale} tour={tour} benefits /></Rise>
             ))}
           </div>
         </section>
@@ -217,7 +219,7 @@ function ReefLayout({ view, design, locale }: LayoutProps) {
  * MARINA — Hurghada. A boarding pass: perforated stub, sea-log rows.
  * ------------------------------------------------------------------ */
 
-function StubCard({ view, design, locale, tour }: LayoutProps & { tour: OfferTour }) {
+function StubCard({ view, design, locale, tour, benefits = false }: LayoutProps & { tour: OfferTour; benefits?: boolean }) {
   return (
     <BookLink
       view={view}
@@ -239,6 +241,7 @@ function StubCard({ view, design, locale, tour }: LayoutProps & { tour: OfferTou
           </div>
           <h3 className="mt-1.5 text-[1.05rem] font-bold leading-snug text-gray-900">{tour.title}</h3>
           <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-gray-600">{tour.summary}</p>
+          {benefits && <BundleBenefits tour={tour} design={design} />}
         </div>
         <div className="flex items-end justify-between gap-3">
           <div>
@@ -332,7 +335,7 @@ function MarinaLayout({ view, design, locale }: LayoutProps) {
         </Rise>
         <div className="mt-8 flex flex-col gap-4">
           {view.bundles.map((tour, index) => (
-            <Rise key={tour.id} delay={Math.min(index, 3) * 70}><StubCard view={view} design={design} locale={locale} tour={tour} /></Rise>
+            <Rise key={tour.id} delay={Math.min(index, 3) * 70}><StubCard view={view} design={design} locale={locale} tour={tour} benefits /></Rise>
           ))}
         </div>
       </section>
@@ -360,267 +363,10 @@ function MarinaLayout({ view, design, locale }: LayoutProps) {
 }
 
 /* ------------------------------------------------------------------ *
- * PLATE — Cairo. A museum catalogue: limestone paper, framed plates.
- * ------------------------------------------------------------------ */
-
-function PlateCard({ view, design, locale, tour, index }: LayoutProps & { tour: OfferTour; index: number }) {
-  return (
-    <BookLink
-      view={view}
-      locale={locale}
-      tour={tour}
-      className="group flex flex-col transition-transform duration-300 hover:-translate-y-1"
-    >
-      <div className="relative aspect-[3/4] overflow-hidden bg-gray-200 p-2" style={{ backgroundColor: design.surface, boxShadow: `inset 0 0 0 1px ${design.wash}33` }}>
-        <div className="relative h-full w-full overflow-hidden">
-          <TourImage tour={tour} sizes="(max-width: 640px) 100vw, 25vw" />
-        </div>
-        <span className="absolute right-4 top-4 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white" style={{ backgroundColor: view.brandColor }}>−{view.label}</span>
-      </div>
-      <div className="pt-4">
-        <p className="text-[10px] font-bold uppercase tracking-[0.22em]" style={{ color: design.wash }}>
-          Plate {String(index + 1).padStart(2, '0')}{tour.duration ? ` · ${tour.duration}` : ''}
-        </p>
-        <h3 className="mt-1.5 text-[1.15rem] font-bold leading-snug text-gray-900" style={{ fontFamily: design.display }}>{tour.title}</h3>
-        <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-gray-600">{tour.summary}</p>
-        <div className="mt-3 flex items-baseline gap-2 border-t pt-3" style={{ borderColor: `${design.wash}26` }}>
-          <span className="text-[1.35rem] font-extrabold tabular-nums text-gray-900" style={{ fontFamily: design.display }}>{money(view.currencySymbol, tour.offerPrice)}</span>
-          <s className="text-xs tabular-nums text-gray-500">{money(view.currencySymbol, tour.listPrice)}</s>
-          {tour.rating !== null && tour.reviewCount > 0 && (
-            <span className="ml-auto text-xs font-semibold text-gray-600">★ {tour.rating.toFixed(1)}</span>
-          )}
-        </div>
-        <span className="mt-2 inline-block text-xs font-bold uppercase tracking-[0.18em] transition-all group-hover:tracking-[0.24em]" style={{ color: view.brandColor }}>Reserve →</span>
-      </div>
-    </BookLink>
-  );
-}
-
-function PlateLayout({ view, design, locale }: LayoutProps) {
-  const [copied, copy] = useCopy(view.code);
-  const s = view.stats;
-  return (
-    <>
-      <section className="relative overflow-hidden" style={{ backgroundColor: design.paper }}>
-        <Aurora color={`${view.brandColor}`} className="opacity-[0.18]" />
-        <div className="relative mx-auto max-w-5xl px-6 pb-14 pt-14 text-center">
-          {view.logo && <img src={view.logo} alt={view.siteName} className="mx-auto h-11 w-auto max-w-[200px] self-center object-contain md:h-12" />}
-          <Motif design={design} className="mx-auto mt-8 h-2 w-48" />
-          <p className="mt-6 text-[11px] font-bold uppercase tracking-[0.34em]" style={{ color: design.wash }}>{design.kicker}</p>
-          <SplitReveal
-            lines={view.firstName ? [`${view.firstName}, your ${view.label}`, 'is reserved.'] : [`Your ${view.label}`, 'is reserved.']}
-            className="mx-auto mt-6 max-w-3xl text-[2.2rem] font-semibold leading-[1.08] text-gray-900 sm:text-[2.9rem] md:text-[4.3rem] md:leading-[1.02]"
-            style={{ fontFamily: design.display, letterSpacing: design.displayTracking }}
-          />
-          <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-gray-700 sm:text-lg">
-            A curated selection at live {view.siteName} prices — from {money(view.currencySymbol, s.fromPrice)} with your code, saving up to {money(view.currencySymbol, s.maxSaving)} on a single booking.
-          </p>
-          <Motif design={design} className="mx-auto mt-8 h-2 w-64" />
-
-          {/* Stamped label instead of a glass panel: this page is a document. */}
-          <div className="mx-auto mt-8 inline-flex flex-col items-center gap-4 border px-8 py-7" style={{ borderColor: `${design.wash}40`, backgroundColor: design.surface }}>
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em]" style={{ color: design.wash }}>Admission code</p>
-            <button type="button" onClick={copy} aria-label={`Copy discount code ${view.code}`} className="text-3xl font-bold tracking-[0.2em] text-gray-900 transition-opacity hover:opacity-70" style={{ fontFamily: design.display }}>
-              {view.code}
-            </button>
-            <span className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white" style={{ backgroundColor: copied ? '#15803d' : view.brandColor }}>
-              {copied ? 'Copied ✓' : `−${view.label} · tap to copy`}
-            </span>
-            {view.expiresAt && (
-              <div className="mt-1 flex flex-col items-center">
-                <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.24em]" style={{ color: design.wash }}>Valid for</p>
-                <FlipClock expiresAt={view.expiresAt} tone="dark" />
-              </div>
-            )}
-          </div>
-
-          <ul className="mx-auto mt-9 grid max-w-2xl grid-cols-1 gap-x-8 gap-y-2 text-sm text-gray-700 sm:grid-cols-2">
-            {TRUST_LINES.map((line) => (
-              <li key={line} className="flex items-center gap-2 sm:justify-start"><span aria-hidden style={{ color: view.brandColor }}>✓</span>{line}</li>
-            ))}
-          </ul>
-          {s.avgRating !== null && s.reviewTotal > 0 && (
-            <p className="mt-6 flex items-center justify-center gap-2 text-sm font-semibold text-gray-700"><Stars rating={s.avgRating} />{s.avgRating.toFixed(1)} from {s.reviewTotal} traveller reviews</p>
-          )}
-          <SheenCta href="#tours" background={view.brandColor} className="mt-9 inline-block px-10 py-4 text-sm uppercase tracking-[0.22em]">
-            View the catalogue ↓
-          </SheenCta>
-        </div>
-        {view.heroImage && (
-          <div className="relative mx-auto mt-4 h-64 max-w-6xl overflow-hidden md:h-96">
-            <Image src={view.heroImage} alt={view.heroAlt} fill priority sizes="100vw" className="object-cover offer-kenburns" />
-            <div aria-hidden className="absolute inset-0" style={{ background: `linear-gradient(to top, ${design.paper}, transparent 45%)` }} />
-          </div>
-        )}
-      </section>
-
-      <HowItWorks view={view} design={design} />
-
-      <section id="tours" className="mx-auto max-w-6xl scroll-mt-14 px-6 pt-16">
-        <Rise>
-          <Heading design={design} index="I" kicker="Best value" title={design.sections.value} centered>
-            Book several and your {view.label} applies to every one.
-          </Heading>
-        </Rise>
-        <div className="mt-10 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
-          {view.bundles.map((tour, index) => (
-            <Rise key={tour.id} delay={Math.min(index, 3) * 80}><PlateCard view={view} design={design} locale={locale} tour={tour} index={index} /></Rise>
-          ))}
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-6xl px-6 pt-16">
-        <Rise>
-          <Heading design={design} index="II" kicker="Curated" title={design.sections.picks} centered>
-            Chosen for {view.firstName ?? 'you'} from {view.totalCount} live experiences.
-          </Heading>
-        </Rise>
-        <div className="mt-10 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
-          {view.picks.map((tour, index) => (
-            <Rise key={tour.id} delay={Math.min(index, 3) * 80}><PlateCard view={view} design={design} locale={locale} tour={tour} index={index + view.bundles.length} /></Rise>
-          ))}
-        </div>
-      </section>
-
-      <QuoteStrip view={view} design={design} />
-      <section className="mx-auto max-w-6xl px-6 pb-20 pt-16">
-        <ClosingCta view={view} design={design} />
-        <PriceFootnote />
-      </section>
-    </>
-  );
-}
-
-/* ------------------------------------------------------------------ *
- * SCROLL — Luxor. A papyrus column: numbered rows down one rule.
- * ------------------------------------------------------------------ */
-
-function ScrollRow({ view, design, locale, tour, index }: LayoutProps & { tour: OfferTour; index: number }) {
-  return (
-    <BookLink
-      view={view}
-      locale={locale}
-      tour={tour}
-      className="group grid grid-cols-1 items-center gap-5 border-b py-6 transition-colors sm:grid-cols-[7rem_1fr_auto]"
-    >
-      <div className="relative aspect-[4/3] overflow-hidden rounded-lg bg-gray-200 sm:aspect-square">
-        <TourImage tour={tour} sizes="140px" />
-      </div>
-      <div>
-        <p className="text-[10px] font-bold uppercase tracking-[0.24em]" style={{ color: design.wash }}>
-          {String(index + 1).padStart(2, '0')}{tour.duration ? ` · ${tour.duration}` : ''}
-          {tour.rating !== null && tour.reviewCount > 0 ? ` · ★ ${tour.rating.toFixed(1)} (${tour.reviewCount})` : ''}
-        </p>
-        <h3 className="mt-1.5 text-xl font-bold leading-snug text-gray-900" style={{ fontFamily: design.display }}>{tour.title}</h3>
-        <p className="mt-1.5 line-clamp-2 max-w-xl text-sm leading-relaxed text-gray-600">{tour.summary}</p>
-      </div>
-      <div className="flex items-center gap-4 sm:flex-col sm:items-end sm:gap-1">
-        <div className="sm:text-right">
-          <s className="text-xs tabular-nums text-gray-500">{money(view.currencySymbol, tour.listPrice)}</s>
-          <p className="text-2xl font-extrabold tabular-nums text-gray-900" style={{ fontFamily: design.display }}>{money(view.currencySymbol, tour.offerPrice)}</p>
-        </div>
-        <span className="rounded-full px-4 py-2 text-xs font-bold text-white transition-all group-hover:opacity-90" style={{ backgroundColor: view.brandColor }}>Book →</span>
-      </div>
-    </BookLink>
-  );
-}
-
-function ScrollLayout({ view, design, locale }: LayoutProps) {
-  const [copied, copy] = useCopy(view.code);
-  const s = view.stats;
-  return (
-    <>
-      <section className="relative overflow-hidden lg:min-h-[92vh]" style={{ backgroundColor: design.ink }}>
-        {view.heroImage && <KenBurns src={view.heroImage} alt={view.heroAlt} />}
-        <div aria-hidden className="pointer-events-none absolute inset-0 z-10" style={{ background: `linear-gradient(to right, ${design.ink}f7 0%, ${design.ink}d9 40%, ${design.ink}2e 100%)` }} />
-        <Aurora color={view.brandColor} className="z-10" />
-        <div className="pointer-events-none absolute inset-0 z-10"><Grain opacity={0.07} /></div>
-        <div className="relative z-20 mx-auto flex max-w-6xl flex-col justify-center px-6 pb-14 pt-8 md:pb-20 md:pt-10 lg:min-h-[92vh]">
-          {view.logo && <img src={view.logo} alt={view.siteName} className="h-11 w-auto max-w-[200px] self-start object-contain object-left drop-shadow-lg md:h-12" />}
-          <div className="mt-10 max-w-2xl border-l pl-7" style={{ borderColor: `${view.brandColor}cc` }}>
-            <p className="text-[11px] font-bold uppercase tracking-[0.34em] text-white/70">{design.kicker}</p>
-            <SplitReveal
-              lines={view.firstName ? [`${view.firstName}, your ${view.label}`, 'is written in.'] : [`Your ${view.label}`, 'is written in.']}
-              className="mt-5 text-[2.05rem] font-semibold leading-[1.08] text-white drop-shadow-2xl sm:text-[2.6rem] md:text-[4rem] md:leading-[1.02]"
-              style={{ fontFamily: design.display, letterSpacing: design.displayTracking }}
-            />
-            <p className="mt-5 text-base leading-relaxed text-white/90 drop-shadow-md sm:text-lg">
-              From {money(view.currencySymbol, s.fromPrice)} with your code at live {view.siteName} prices, saving up to {money(view.currencySymbol, s.maxSaving)} on a single booking.
-            </p>
-            <Motif design={design} className="mt-6 h-4 w-40 opacity-90" />
-
-            {/* Cartouche: the code sits inside a ring, not a card. */}
-            <div className="mt-8 flex flex-wrap items-center gap-5">
-              <button type="button" onClick={copy} aria-label={`Copy discount code ${view.code}`} className="rounded-full border-2 px-7 py-3.5 text-xl font-bold tracking-[0.2em] text-white transition-colors hover:bg-white/10" style={{ borderColor: view.brandColor, fontFamily: design.display }}>
-                {view.code}
-              </button>
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-white/60">{copied ? 'Copied ✓' : `−${view.label} · tap the ring to copy`}</p>
-                {view.expiresAt && <div className="mt-2"><FlipClock expiresAt={view.expiresAt} /></div>}
-              </div>
-            </div>
-
-            <ul className="mt-8 grid grid-cols-1 gap-y-2 text-[0.92rem] text-white/85 sm:grid-cols-2 sm:gap-x-8">
-              {TRUST_LINES.map((line) => (
-                <li key={line} className="flex items-center gap-2.5"><span aria-hidden style={{ color: view.brandColor }}>✓</span>{line}</li>
-              ))}
-            </ul>
-            {s.avgRating !== null && s.reviewTotal > 0 && (
-              <p className="mt-6 flex items-center gap-2 text-sm font-semibold text-white/90"><Stars rating={s.avgRating} />{s.avgRating.toFixed(1)} from {s.reviewTotal} reviews</p>
-            )}
-            <SheenCta href="#tours" background={view.brandColor} className="mt-9 inline-block rounded-full px-8 py-3.5 text-sm">
-              Read the {view.totalCount} experiences ↓
-            </SheenCta>
-          </div>
-        </div>
-      </section>
-
-      <HowItWorks view={view} design={design} />
-
-      <section id="tours" className="mx-auto max-w-4xl scroll-mt-14 px-6 pt-16">
-        <Rise>
-          <Heading design={design} index="I" kicker="Best value" title={design.sections.value}>
-            Book several and your {view.label} applies to every one.
-          </Heading>
-        </Rise>
-        <div className="mt-6" style={{ borderColor: `${design.wash}26` }}>
-          {view.bundles.map((tour, index) => (
-            <Rise key={tour.id} delay={Math.min(index, 3) * 70}>
-              <div style={{ borderColor: `${design.wash}26` }}><ScrollRow view={view} design={design} locale={locale} tour={tour} index={index} /></div>
-            </Rise>
-          ))}
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-4xl px-6 pt-14">
-        <Rise>
-          <Heading design={design} index="II" kicker="Hand-picked" title={design.sections.picks}>
-            Chosen for {view.firstName ?? 'you'} from {view.totalCount} live experiences.
-          </Heading>
-        </Rise>
-        <div className="mt-6">
-          {view.picks.map((tour, index) => (
-            <Rise key={tour.id} delay={Math.min(index, 3) * 70}>
-              <div style={{ borderColor: `${design.wash}26` }}><ScrollRow view={view} design={design} locale={locale} tour={tour} index={index + view.bundles.length} /></div>
-            </Rise>
-          ))}
-        </div>
-      </section>
-
-      <QuoteStrip view={view} design={design} />
-      <section className="mx-auto max-w-4xl px-6 pb-20 pt-16">
-        <ClosingCta view={view} design={design} />
-        <PriceFootnote />
-      </section>
-    </>
-  );
-}
-
-/* ------------------------------------------------------------------ *
  * LAGOON — El Gouna. A bright lookbook: asymmetric grid, soft light.
  * ------------------------------------------------------------------ */
 
-function LookCard({ view, design, locale, tour, feature = false }: LayoutProps & { tour: OfferTour; feature?: boolean }) {
+function LookCard({ view, design, locale, tour, feature = false, benefits = false }: LayoutProps & { tour: OfferTour; feature?: boolean; benefits?: boolean }) {
   return (
     <BookLink
       view={view}
@@ -640,6 +386,7 @@ function LookCard({ view, design, locale, tour, feature = false }: LayoutProps &
         </p>
         <h3 className={`mt-2 font-extrabold leading-snug text-gray-900 ${feature ? 'text-2xl' : 'text-[1.05rem]'}`} style={{ letterSpacing: design.displayTracking }}>{tour.title}</h3>
         <p className={`mt-2 leading-relaxed text-gray-600 ${feature ? 'line-clamp-3 text-base' : 'line-clamp-2 text-sm'}`}>{tour.summary}</p>
+        {benefits && <BundleBenefits tour={tour} design={design} />}
         <div className="mt-auto flex items-end justify-between gap-3 pt-5">
           <div>
             <s className="text-[11px] tabular-nums text-gray-400">{money(view.currencySymbol, tour.listPrice)}</s>
@@ -713,7 +460,7 @@ function LagoonLayout({ view, design, locale }: LayoutProps) {
         </Rise>
         <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {view.bundles.map((tour, index) => (
-            <Rise key={tour.id} delay={Math.min(index, 2) * 90}><LookCard view={view} design={design} locale={locale} tour={tour} /></Rise>
+            <Rise key={tour.id} delay={Math.min(index, 2) * 90}><LookCard view={view} design={design} locale={locale} tour={tour} benefits /></Rise>
           ))}
         </div>
       </section>
@@ -828,7 +575,5 @@ function QuoteStrip({ view, design }: { view: OfferView; design: CityDesign }) {
 export const LAYOUTS = {
   reef: ReefLayout,
   marina: MarinaLayout,
-  plate: PlateLayout,
-  scroll: ScrollLayout,
   lagoon: LagoonLayout,
 } as const;

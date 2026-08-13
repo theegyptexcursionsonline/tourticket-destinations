@@ -27,7 +27,8 @@ export const metadata: Metadata = {
 
 // Catalog entries priced below this are data-entry errors, not offers.
 const MIN_CREDIBLE_PRICE = 5;
-const BUNDLE_COUNT = 6;
+// Client decision 14/08: exactly three bundle listings on every offer page.
+const BUNDLE_COUNT = 3;
 const PICK_COUNT = 8;
 const QUOTE_COUNT = 3;
 
@@ -103,6 +104,19 @@ function toOfferTour(
   // Ratings are earned from real review documents, never from an admin-set
   // Tour.rating with nothing behind it.
   const stats = reviewStats.get(String(tour._id));
+  // Benefit bullets must be real product facts: only actual Tour.highlights,
+  // cleaned of markup, capped so the card stays scannable.
+  const highlights = Array.isArray(tour.highlights)
+    ? tour.highlights
+        .map((line: unknown) =>
+          String(line ?? '')
+            .replace(/<[^>]*>/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim(),
+        )
+        .filter((line: string) => line.length >= 3 && line.length <= 90)
+        .slice(0, 4)
+    : [];
   return {
     id: String(tour._id),
     title: String(tour.title),
@@ -115,6 +129,7 @@ function toOfferTour(
     saving: Number((listPrice - offerPrice).toFixed(2)),
     rating: stats && stats.count > 0 ? Number(stats.avg.toFixed(1)) : null,
     reviewCount: stats?.count ?? 0,
+    highlights,
   };
 }
 
@@ -228,7 +243,7 @@ export default async function PlannerOfferPage({
   }
 
   const tours = await TourModel.find(buildStrictTenantQuery({ isPublished: true }, tenantId))
-    .select('title slug description shortDescription price discountPrice duration image isFeatured')
+    .select('title slug description shortDescription price discountPrice duration image isFeatured highlights')
     .limit(200)
     .lean();
 

@@ -3,10 +3,13 @@ import path from 'node:path';
 import { CITY_DESIGNS, designFor } from '../app/[locale]/offer/[token]/design';
 
 /**
- * Fouad asked for a distinct design per city, not one template recoloured.
- * These pin the promise: every configured city resolves to its own archetype
- * and its own palette/type/section language, and every archetype has a layout.
+ * Client decision 2026-08-14: exactly THREE approved design concepts across
+ * all offer pages — reef (Sharm), marina (Hurghada), lagoon (El Gouna).
+ * Every city maps into that set while keeping its own palette/type/section
+ * language, and every approved archetype has a layout.
  */
+const APPROVED_ARCHETYPES = ['reef', 'marina', 'lagoon'] as const;
+
 describe('per-city offer designs', () => {
   const cities = Object.keys(CITY_DESIGNS);
 
@@ -20,9 +23,14 @@ describe('per-city offer designs', () => {
     ]));
   });
 
-  it('gives every city its own archetype', () => {
-    const archetypes = cities.map((city) => CITY_DESIGNS[city].archetype);
-    expect(new Set(archetypes).size).toBe(cities.length);
+  it('only uses the three client-approved design concepts', () => {
+    for (const city of cities) {
+      expect(APPROVED_ARCHETYPES).toContain(CITY_DESIGNS[city].archetype);
+    }
+    // The anchor cities keep the concept the client approved them under.
+    expect(CITY_DESIGNS['sharm-excursions-online'].archetype).toBe('reef');
+    expect(CITY_DESIGNS['hurghada-excursions-online'].archetype).toBe('marina');
+    expect(CITY_DESIGNS['el-gouna'].archetype).toBe('lagoon');
   });
 
   it('gives every city its own palette, display face and motif', () => {
@@ -81,7 +89,7 @@ describe('tenant logo rendering', () => {
   const logoTags = layouts.match(/<img src=\{view\.logo\}[^/]*\/>/g) ?? [];
 
   it('renders the logo in every layout', () => {
-    expect(logoTags.length).toBe(5);
+    expect(logoTags.length).toBe(3);
   });
 
   it('never lets a flex parent stretch the logo out of aspect', () => {
@@ -118,7 +126,7 @@ describe('mobile-first hero behaviour', () => {
   it('steps every hero headline down on phones', () => {
     const headlines = layouts.match(/className="[^"]*text-\[\d\.\d+rem\][^"]*"/g) ?? [];
     const heroHeadlines = headlines.filter((h) => h.includes('md:text-['));
-    expect(heroHeadlines.length).toBeGreaterThanOrEqual(5);
+    expect(heroHeadlines.length).toBeGreaterThanOrEqual(3);
     for (const h of heroHeadlines) {
       expect(h).toMatch(/sm:text-\[|md:text-\[/);
     }
@@ -187,5 +195,57 @@ describe('shimmer + exit intent', () => {
 
   it('is mounted once for every archetype from the dispatcher', () => {
     expect(dispatcher).toContain('<ExitRescue');
+  });
+});
+
+/**
+ * Client feedback 2026-08-14 on the bundles section: exactly three bundle
+ * listings per page, and each bundle carries real benefit bullets rendered
+ * BEFORE the price row ("Under each bundle, we need to add some details
+ * text, as the benefit of this bundle … before the price").
+ */
+describe('bundle listings contract (client 14/08)', () => {
+  const page = readFileSync(
+    path.join(process.cwd(), 'app/[locale]/offer/[token]/page.tsx'),
+    'utf8',
+  );
+  const layouts = readFileSync(
+    path.join(process.cwd(), 'app/[locale]/offer/[token]/layouts.tsx'),
+    'utf8',
+  );
+  const primitives = readFileSync(
+    path.join(process.cwd(), 'app/[locale]/offer/[token]/primitives.tsx'),
+    'utf8',
+  );
+
+  it('caps the bundles section at exactly three listings', () => {
+    expect(page).toContain('const BUNDLE_COUNT = 3;');
+  });
+
+  it('sources benefit bullets from real tour highlights only', () => {
+    expect(page).toMatch(/\.select\('[^']*highlights[^']*'\)/);
+    expect(primitives).toContain('if (tour.highlights.length === 0) return null;');
+  });
+
+  it('renders benefits before the price on every bundle card', () => {
+    // Each approved archetype card: the BundleBenefits mount must appear
+    // before that card's offerPrice line.
+    for (const card of ['function ReefCard', 'function StubCard', 'function LookCard']) {
+      const start = layouts.indexOf(card);
+      expect(start).toBeGreaterThan(-1);
+      const next = layouts.indexOf('function ', start + card.length);
+      const body = layouts.slice(start, next === -1 ? undefined : next);
+      const benefitsAt = body.indexOf('<BundleBenefits');
+      const priceAt = body.indexOf('tour.offerPrice');
+      expect(benefitsAt).toBeGreaterThan(-1);
+      expect(priceAt).toBeGreaterThan(-1);
+      expect(benefitsAt).toBeLessThan(priceAt);
+    }
+  });
+
+  it('passes benefits into the bundles section of every layout, not the picks', () => {
+    const bundleMaps = layouts.match(/view\.bundles\.map[\s\S]{0,220}?benefits\s*\/>/g) || [];
+    expect(bundleMaps.length).toBe(3);
+    expect(layouts).not.toMatch(/view\.picks\.map[\s\S]{0,220}?benefits\s*\/>/);
   });
 });

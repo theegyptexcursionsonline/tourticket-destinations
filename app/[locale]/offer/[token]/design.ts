@@ -1,15 +1,15 @@
 /**
  * Per-city design profiles for planner offer pages.
  *
- * Each destination gets its own architecture — not one template in a different
- * colour. The archetype decides the hero composition, the card construction,
- * the type pairing and the section rhythm; the palette and motif carry the
- * city's own material world (reef water, marina light, limestone, papyrus,
- * lagoon). A tenant with no profile falls back to `reef`, which is the most
- * neutral of the five.
+ * Client decision 2026-08-14: exactly THREE design concepts are approved
+ * across every EEO/MT offer page — reef (Sharm), marina (Hurghada) and
+ * lagoon (El Gouna). Every city maps onto one of those archetypes; the
+ * palette, kicker, motif and section language stay city-specific so each
+ * brand keeps its own voice. A tenant with no profile falls back to `reef`,
+ * the most neutral of the three.
  */
 
-export type OfferArchetype = 'reef' | 'marina' | 'plate' | 'scroll' | 'lagoon';
+export type OfferArchetype = 'reef' | 'marina' | 'lagoon';
 
 export type CityDesign = {
   archetype: OfferArchetype;
@@ -71,7 +71,7 @@ export const CITY_DESIGNS: Record<string, CityDesign> = {
   },
 
   'cairo-excursions-online': {
-    archetype: 'plate',
+    archetype: 'reef',
     ink: '#0f1013',
     paper: '#f6f3ec',
     surface: '#fffdf8',
@@ -88,7 +88,7 @@ export const CITY_DESIGNS: Record<string, CityDesign> = {
   },
 
   'luxor-excursions': {
-    archetype: 'scroll',
+    archetype: 'lagoon',
     ink: '#17110a',
     paper: '#f7f1e4',
     surface: '#fffaf1',
