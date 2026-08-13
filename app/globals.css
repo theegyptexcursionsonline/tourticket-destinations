@@ -1127,3 +1127,31 @@ html[data-storefront-theme="dark"] body.storefront-theme :where([class~="placeho
 }
 
 /* dark-theme:generated:end */
+
+/* Planner offer pages: cinematic hero + premium CTA sheen. Scoped to the
+   route's own classes so nothing else on the storefront is affected. */
+@keyframes offer-kenburns {
+  from { transform: scale(1.06) translate3d(0, 0, 0); }
+  to   { transform: scale(1.16) translate3d(0, -1.5%, 0); }
+}
+.offer-kenburns {
+  animation: offer-kenburns 26s ease-out forwards;
+}
+@keyframes offer-sheen {
+  0%   { transform: translateX(-120%) skewX(-18deg); opacity: 0; }
+  18%  { opacity: 0.55; }
+  60%  { transform: translateX(220%) skewX(-18deg); opacity: 0; }
+  100% { transform: translateX(220%) skewX(-18deg); opacity: 0; }
+}
+.offer-sheen {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.42), transparent);
+  transform: translateX(-120%) skewX(-18deg);
+}
+.group:hover .offer-sheen,
+.group:focus-visible .offer-sheen {
+  animation: offer-sheen 1100ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .offer-kenburns { animation: none; }
+  .group:hover .offer-sheen { animation: none; }
+}

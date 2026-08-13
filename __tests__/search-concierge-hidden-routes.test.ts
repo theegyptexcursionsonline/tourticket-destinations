@@ -47,9 +47,17 @@ describe('offer hero layering', () => {
     expect(layouts).not.toContain('z-[-');
   });
 
-  it('puts every full-bleed hero photo in a z-0 wrapper under z-10 scrims and z-20 copy', () => {
-    const wrappers = layouts.match(/absolute inset-0 z-0/g) ?? [];
-    expect(wrappers.length).toBeGreaterThanOrEqual(3);
+  it('puts every full-bleed hero photo behind scrims and copy, never on a negative layer', () => {
+    // The z-0 photo wrapper lives inside <KenBurns>; the layouts place the
+    // scrims at z-10 and the selling copy at z-20 above it.
+    const luxe = readFileSync(
+      path.join(process.cwd(), 'app/[locale]/offer/[token]/luxe.tsx'),
+      'utf8',
+    );
+    expect(luxe).toContain('absolute inset-0 z-0');
+    expect(luxe).not.toContain('-z-10');
+    const heroes = layouts.match(/<KenBurns/g) ?? [];
+    expect(heroes.length).toBeGreaterThanOrEqual(3);
     expect(layouts).toContain('pointer-events-none absolute inset-0 z-10');
     expect(layouts).toContain('relative z-20');
   });

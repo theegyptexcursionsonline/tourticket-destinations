@@ -13,11 +13,42 @@ import {
   TRUST_LINES,
   money,
   useCopy,
+  useRemainingMs,
   type LayoutProps,
   type OfferTour,
   type OfferView,
 } from './primitives';
 import type { CityDesign } from './design';
+import { Aurora, CodeRail, CountUp, FlipDigit, Grain, KenBurns, Rise, SheenCta, SplitReveal } from './luxe';
+
+/** Countdown rendered as flip cards — the timer is the page's heartbeat. */
+function FlipClock({ expiresAt, tone = 'light' }: { expiresAt: string | null; tone?: 'light' | 'dark' }) {
+  const remaining = useRemainingMs(expiresAt);
+  if (remaining === null || remaining === 0) return null;
+  const days = Math.floor(remaining / 86_400_000);
+  const hours = Math.floor((remaining % 86_400_000) / 3_600_000);
+  const minutes = Math.floor((remaining % 3_600_000) / 60_000);
+  const seconds = Math.floor((remaining % 60_000) / 1000);
+  const units = days > 0
+    ? [{ l: 'days', v: days }, { l: 'hrs', v: hours }, { l: 'min', v: minutes }, { l: 'sec', v: seconds }]
+    : [{ l: 'hrs', v: hours }, { l: 'min', v: minutes }, { l: 'sec', v: seconds }];
+  const shell = tone === 'light'
+    ? 'border-white/15 bg-white/[0.06] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.14)]'
+    : 'border-black/10 bg-white text-gray-900 shadow-[0_6px_20px_-14px_rgba(0,0,0,0.5)]';
+  const caption = tone === 'light' ? 'text-white/55' : 'text-gray-500';
+  return (
+    <div aria-live="polite" className="flex items-center gap-2">
+      {units.map((unit) => (
+        <span key={unit.l} className={`flex w-[3.4rem] flex-col items-center rounded-2xl border py-2.5 backdrop-blur-sm ${shell}`}>
+          <span className="text-[1.45rem] font-extrabold leading-none [perspective:400px]">
+            <FlipDigit value={String(Math.max(0, unit.v)).padStart(2, '0')} />
+          </span>
+          <span className={`mt-1.5 text-[9px] font-bold uppercase tracking-[0.2em] ${caption}`}>{unit.l}</span>
+        </span>
+      ))}
+    </div>
+  );
+}
 
 /* ------------------------------------------------------------------ *
  * REEF — Sharm. Full-bleed dive photography, glass instrument panel.
@@ -73,28 +104,28 @@ function ReefLayout({ view, design, locale }: LayoutProps) {
   const s = view.stats;
   return (
     <>
-      <section className="relative overflow-hidden" style={{ backgroundColor: design.ink }}>
-        {view.heroImage && (
-          <div aria-hidden className="absolute inset-0 z-0">
-            <Image src={view.heroImage} alt={view.heroAlt} fill priority sizes="100vw" className="object-cover" />
-          </div>
-        )}
-        <div aria-hidden className="pointer-events-none absolute inset-0 z-10" style={{ background: `linear-gradient(to bottom, ${design.ink}b3, ${design.ink}33 45%, ${design.ink}cc)` }} />
-        <div aria-hidden className="pointer-events-none absolute inset-0 z-10" style={{ background: `linear-gradient(to right, ${design.ink}a6, transparent 65%)` }} />
-        <div className="relative z-20 mx-auto grid max-w-6xl items-end gap-10 px-6 pb-14 pt-8 md:pb-20 md:pt-10 lg:grid-cols-[1fr_auto]">
+      <section className="relative min-h-[92vh] overflow-hidden" style={{ backgroundColor: design.ink }}>
+        {view.heroImage && <KenBurns src={view.heroImage} alt={view.heroAlt} />}
+        <div aria-hidden className="pointer-events-none absolute inset-0 z-10" style={{ background: `linear-gradient(to bottom, ${design.ink}c4, ${design.ink}2e 42%, ${design.ink}f2)` }} />
+        <div aria-hidden className="pointer-events-none absolute inset-0 z-10" style={{ background: `linear-gradient(to right, ${design.ink}b8, transparent 68%)` }} />
+        <Aurora color={view.brandColor} className="z-10" />
+        <div className="pointer-events-none absolute inset-0 z-10"><Grain /></div>
+        <div className="relative z-20 mx-auto grid min-h-[92vh] max-w-6xl items-center gap-12 px-6 pb-16 pt-10 md:pb-24 lg:grid-cols-[1fr_auto]">
           <div>
             {view.logo && <img src={view.logo} alt={view.siteName} className="h-11 w-auto drop-shadow-lg md:h-12" />}
-            <div className="mt-8 flex items-center gap-2.5">
+            <div className="mt-9 flex items-center gap-2.5">
               {view.firstName && (
                 <span className="flex h-8 w-8 items-center justify-center rounded-full text-base font-bold text-white ring-1 ring-white/25" style={{ backgroundColor: view.brandColor }}>
                   {view.firstName.charAt(0).toUpperCase()}
                 </span>
               )}
-              <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-white/80">{design.kicker}</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-white/75">{design.kicker}</p>
             </div>
-            <h1 className="mt-6 max-w-3xl text-[2.6rem] font-extrabold leading-[1.05] text-white drop-shadow-lg md:text-[3.6rem]" style={{ fontFamily: design.display, letterSpacing: design.displayTracking }}>
-              {view.firstName ? `${view.firstName}, take ${view.label} off every experience.` : `Take ${view.label} off every experience.`}
-            </h1>
+            <SplitReveal
+              lines={view.firstName ? [`${view.firstName}, take ${view.label} off`, 'every experience.'] : [`Take ${view.label} off`, 'every experience.']}
+              className="mt-7 max-w-3xl text-[2.8rem] font-extrabold leading-[0.98] text-white drop-shadow-2xl md:text-[4.2rem]"
+              style={{ fontFamily: design.display, letterSpacing: design.displayTracking }}
+            />
             <p className="mt-5 max-w-xl text-lg leading-relaxed text-white drop-shadow-md md:text-xl">
               Hand-picked at live {view.siteName} prices — from {money(view.currencySymbol, s.fromPrice)} with your code, saving up to {money(view.currencySymbol, s.maxSaving)} on a single booking.
             </p>
@@ -113,7 +144,7 @@ function ReefLayout({ view, design, locale }: LayoutProps) {
             </ul>
           </div>
 
-          <div className="w-full max-w-md rounded-3xl border border-white/15 bg-white/[0.07] p-6 shadow-2xl backdrop-blur-md md:p-7">
+          <div className="w-full max-w-md rounded-[1.75rem] border border-white/20 bg-white/[0.08] p-6 shadow-[0_40px_80px_-30px_rgba(0,0,0,0.85)] backdrop-blur-xl md:p-7">
             <div className="flex items-center justify-between gap-3">
               <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/70">Your private code</p>
               <span className="rounded-full px-3 py-1 text-[11px] font-extrabold text-white" style={{ backgroundColor: view.brandColor }}>−{view.label} OFF</span>
@@ -125,15 +156,15 @@ function ReefLayout({ view, design, locale }: LayoutProps) {
             {view.expiresAt && (
               <div className="mt-5">
                 <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-white/70">Offer ends in</p>
-                <Countdown expiresAt={view.expiresAt} />
+                <FlipClock expiresAt={view.expiresAt} />
               </div>
             )}
             <p className="mt-5 border-t border-white/10 pt-4 text-[13px] leading-relaxed text-white/75">
               Valid on every tour below{view.expiresNice ? <> until <span className="font-bold text-white">{view.expiresNice}</span></> : null} — on as many bookings as you make.
             </p>
-            <a href="#tours" className="mt-5 block w-full rounded-2xl py-3.5 text-center text-[15px] font-extrabold text-white shadow-lg transition-transform duration-200 hover:-translate-y-0.5" style={{ backgroundColor: view.brandColor }}>
+            <SheenCta href="#tours" background={view.brandColor} className="mt-5 block w-full rounded-2xl py-3.5 text-[15px]">
               Browse {view.totalCount} experiences ↓
-            </a>
+            </SheenCta>
           </div>
         </div>
       </section>
@@ -142,28 +173,28 @@ function ReefLayout({ view, design, locale }: LayoutProps) {
 
       {view.bundles.length > 0 && (
         <section id="tours" className="mx-auto max-w-6xl scroll-mt-14 px-6 pt-16">
-          <Reveal>
+          <Rise>
             <Heading design={design} index="01" kicker="Save more" title={design.sections.value}>
               Best-value picks — book several and your {view.label} applies to every one.
             </Heading>
-          </Reveal>
+          </Rise>
           <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {view.bundles.map((tour, index) => (
-              <Reveal key={tour.id} delay={Math.min(index, 2) * 80}><ReefCard view={view} design={design} locale={locale} tour={tour} /></Reveal>
+              <Rise key={tour.id} delay={Math.min(index, 2) * 90}><ReefCard view={view} design={design} locale={locale} tour={tour} /></Rise>
             ))}
           </div>
         </section>
       )}
 
       <section className="mx-auto max-w-6xl px-6 pt-16">
-        <Reveal>
+        <Rise>
           <Heading design={design} index="02" kicker="Hand-picked" title={design.sections.picks}>
             Chosen for {view.firstName ?? 'you'} from {view.totalCount} live experiences.
           </Heading>
-        </Reveal>
+        </Rise>
         <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {view.picks.map((tour, index) => (
-            <Reveal key={tour.id} delay={Math.min(index, 3) * 70}><ReefCard view={view} design={design} locale={locale} tour={tour} /></Reveal>
+            <Rise key={tour.id} delay={Math.min(index, 3) * 80}><ReefCard view={view} design={design} locale={locale} tour={tour} /></Rise>
           ))}
         </div>
       </section>
@@ -221,25 +252,25 @@ function MarinaLayout({ view, design, locale }: LayoutProps) {
   const s = view.stats;
   return (
     <>
-      <section className="relative overflow-hidden" style={{ backgroundColor: design.ink }}>
-        {view.heroImage && (
-          <div aria-hidden className="absolute inset-0 z-0">
-            <Image src={view.heroImage} alt={view.heroAlt} fill priority sizes="100vw" className="object-cover" />
-          </div>
-        )}
-        <div aria-hidden className="pointer-events-none absolute inset-0 z-10" style={{ background: `linear-gradient(120deg, ${design.ink}f2 0%, ${design.ink}b3 42%, ${design.ink}26 100%)` }} />
-        <div className="relative z-20 mx-auto max-w-6xl px-6 pb-16 pt-8 md:pb-24 md:pt-10">
+      <section className="relative min-h-[92vh] overflow-hidden" style={{ backgroundColor: design.ink }}>
+        {view.heroImage && <KenBurns src={view.heroImage} alt={view.heroAlt} />}
+        <div aria-hidden className="pointer-events-none absolute inset-0 z-10" style={{ background: `linear-gradient(120deg, ${design.ink}f7 0%, ${design.ink}c4 44%, ${design.ink}1f 100%)` }} />
+        <Aurora color={view.brandColor} className="z-10" />
+        <div className="pointer-events-none absolute inset-0 z-10"><Grain opacity={0.08} /></div>
+        <div className="relative z-20 mx-auto flex min-h-[92vh] max-w-6xl flex-col justify-center px-6 pb-16 pt-10 md:pb-24">
           {view.logo && <img src={view.logo} alt={view.siteName} className="h-11 w-auto drop-shadow-lg md:h-12" />}
-          <p className="mt-8 flex items-center gap-3 text-[11px] font-bold uppercase tracking-[0.28em] text-white/75">
+          <p className="mt-9 flex items-center gap-3 text-[11px] font-bold uppercase tracking-[0.32em] text-white/70">
             {design.kicker}
             <Motif design={design} className="h-4 w-16 opacity-80" />
           </p>
-          <h1 className="mt-5 max-w-3xl text-[2.5rem] font-extrabold uppercase leading-[0.98] text-white drop-shadow-lg md:text-[4rem]" style={{ fontFamily: design.display, letterSpacing: design.displayTracking }}>
-            {view.firstName ? <>{view.firstName},<br />your {view.label} is aboard.</> : <>Your {view.label}<br />is aboard.</>}
-          </h1>
+          <SplitReveal
+            lines={view.firstName ? [`${view.firstName},`, `your ${view.label} is aboard.`] : [`Your ${view.label}`, 'is aboard.']}
+            className="mt-5 max-w-4xl text-[2.7rem] font-extrabold uppercase leading-[0.92] text-white drop-shadow-2xl md:text-[4.6rem]"
+            style={{ fontFamily: design.display, letterSpacing: design.displayTracking }}
+          />
 
           {/* The boarding pass itself: code, window, gate. */}
-          <div className="mt-10 max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+          <div className="mt-10 max-w-3xl overflow-hidden rounded-2xl bg-white shadow-[0_50px_90px_-40px_rgba(0,0,0,0.9)] ring-1 ring-black/5">
             <div className="flex flex-col sm:flex-row">
               <div className="flex-1 p-6">
                 <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-gray-500">Pass holder</p>
@@ -251,13 +282,15 @@ function MarinaLayout({ view, design, locale }: LayoutProps) {
                   </div>
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-gray-500">Saves up to</p>
-                    <p className="text-lg font-bold tabular-nums" style={{ color: view.brandColor }}>{money(view.currencySymbol, s.maxSaving)}</p>
+                    <p className="text-lg font-bold" style={{ color: view.brandColor }}>
+                      <CountUp value={s.maxSaving} format={(v) => money(view.currencySymbol, v)} />
+                    </p>
                   </div>
                 </div>
                 {view.expiresAt && (
                   <div className="mt-5">
                     <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.22em] text-gray-500">Gate closes in</p>
-                    <Countdown expiresAt={view.expiresAt} tone="dark" />
+                    <FlipClock expiresAt={view.expiresAt} tone="dark" />
                   </div>
                 )}
               </div>
@@ -287,27 +320,27 @@ function MarinaLayout({ view, design, locale }: LayoutProps) {
       <HowItWorks view={view} design={design} />
 
       <section id="tours" className="mx-auto max-w-5xl scroll-mt-14 px-6 pt-16">
-        <Reveal>
+        <Rise>
           <Heading design={design} index="01" kicker="Manifest" title={design.sections.value}>
             Book more than one and your {view.label} applies to every line.
           </Heading>
-        </Reveal>
+        </Rise>
         <div className="mt-8 flex flex-col gap-4">
           {view.bundles.map((tour, index) => (
-            <Reveal key={tour.id} delay={Math.min(index, 3) * 60}><StubCard view={view} design={design} locale={locale} tour={tour} /></Reveal>
+            <Rise key={tour.id} delay={Math.min(index, 3) * 70}><StubCard view={view} design={design} locale={locale} tour={tour} /></Rise>
           ))}
         </div>
       </section>
 
       <section className="mx-auto max-w-5xl px-6 pt-16">
-        <Reveal>
+        <Rise>
           <Heading design={design} index="02" kicker="Skipper's choice" title={design.sections.picks}>
             Chosen for {view.firstName ?? 'you'} from {view.totalCount} live experiences.
           </Heading>
-        </Reveal>
+        </Rise>
         <div className="mt-8 flex flex-col gap-4">
           {view.picks.map((tour, index) => (
-            <Reveal key={tour.id} delay={Math.min(index, 3) * 60}><StubCard view={view} design={design} locale={locale} tour={tour} /></Reveal>
+            <Rise key={tour.id} delay={Math.min(index, 3) * 70}><StubCard view={view} design={design} locale={locale} tour={tour} /></Rise>
           ))}
         </div>
       </section>
@@ -363,14 +396,17 @@ function PlateLayout({ view, design, locale }: LayoutProps) {
   const s = view.stats;
   return (
     <>
-      <section className="relative" style={{ backgroundColor: design.paper }}>
-        <div className="mx-auto max-w-5xl px-6 pb-14 pt-10 text-center">
+      <section className="relative overflow-hidden" style={{ backgroundColor: design.paper }}>
+        <Aurora color={`${view.brandColor}`} className="opacity-[0.18]" />
+        <div className="relative mx-auto max-w-5xl px-6 pb-14 pt-14 text-center">
           {view.logo && <img src={view.logo} alt={view.siteName} className="mx-auto h-11 w-auto md:h-12" />}
           <Motif design={design} className="mx-auto mt-8 h-2 w-48" />
           <p className="mt-6 text-[11px] font-bold uppercase tracking-[0.34em]" style={{ color: design.wash }}>{design.kicker}</p>
-          <h1 className="mx-auto mt-5 max-w-3xl text-[2.5rem] font-bold leading-[1.06] text-gray-900 md:text-[3.5rem]" style={{ fontFamily: design.display, letterSpacing: design.displayTracking }}>
-            {view.firstName ? `${view.firstName}, your ${view.label} is reserved.` : `Your ${view.label} is reserved.`}
-          </h1>
+          <SplitReveal
+            lines={view.firstName ? [`${view.firstName}, your ${view.label}`, 'is reserved.'] : [`Your ${view.label}`, 'is reserved.']}
+            className="mx-auto mt-6 max-w-3xl text-[2.9rem] font-semibold leading-[1.02] text-gray-900 md:text-[4.3rem]"
+            style={{ fontFamily: design.display, letterSpacing: design.displayTracking }}
+          />
           <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-gray-700">
             A curated selection at live {view.siteName} prices — from {money(view.currencySymbol, s.fromPrice)} with your code, saving up to {money(view.currencySymbol, s.maxSaving)} on a single booking.
           </p>
@@ -388,7 +424,7 @@ function PlateLayout({ view, design, locale }: LayoutProps) {
             {view.expiresAt && (
               <div className="mt-1 flex flex-col items-center">
                 <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.24em]" style={{ color: design.wash }}>Valid for</p>
-                <Countdown expiresAt={view.expiresAt} tone="dark" />
+                <FlipClock expiresAt={view.expiresAt} tone="dark" />
               </div>
             )}
           </div>
@@ -401,13 +437,14 @@ function PlateLayout({ view, design, locale }: LayoutProps) {
           {s.avgRating !== null && s.reviewTotal > 0 && (
             <p className="mt-6 flex items-center justify-center gap-2 text-sm font-semibold text-gray-700"><Stars rating={s.avgRating} />{s.avgRating.toFixed(1)} from {s.reviewTotal} traveller reviews</p>
           )}
-          <a href="#tours" className="mt-8 inline-block px-8 py-3.5 text-sm font-bold uppercase tracking-[0.2em] text-white transition hover:opacity-90" style={{ backgroundColor: view.brandColor }}>
+          <SheenCta href="#tours" background={view.brandColor} className="mt-9 inline-block px-10 py-4 text-sm uppercase tracking-[0.22em]">
             View the catalogue ↓
-          </a>
+          </SheenCta>
         </div>
         {view.heroImage && (
-          <div className="relative mx-auto h-56 max-w-6xl overflow-hidden md:h-72">
-            <Image src={view.heroImage} alt={view.heroAlt} fill priority sizes="100vw" className="object-cover" />
+          <div className="relative mx-auto mt-4 h-64 max-w-6xl overflow-hidden md:h-96">
+            <Image src={view.heroImage} alt={view.heroAlt} fill priority sizes="100vw" className="object-cover offer-kenburns" />
+            <div aria-hidden className="absolute inset-0" style={{ background: `linear-gradient(to top, ${design.paper}, transparent 45%)` }} />
           </div>
         )}
       </section>
@@ -415,27 +452,27 @@ function PlateLayout({ view, design, locale }: LayoutProps) {
       <HowItWorks view={view} design={design} />
 
       <section id="tours" className="mx-auto max-w-6xl scroll-mt-14 px-6 pt-16">
-        <Reveal>
+        <Rise>
           <Heading design={design} index="I" kicker="Best value" title={design.sections.value} centered>
             Book several and your {view.label} applies to every one.
           </Heading>
-        </Reveal>
+        </Rise>
         <div className="mt-10 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
           {view.bundles.map((tour, index) => (
-            <Reveal key={tour.id} delay={Math.min(index, 3) * 70}><PlateCard view={view} design={design} locale={locale} tour={tour} index={index} /></Reveal>
+            <Rise key={tour.id} delay={Math.min(index, 3) * 80}><PlateCard view={view} design={design} locale={locale} tour={tour} index={index} /></Rise>
           ))}
         </div>
       </section>
 
       <section className="mx-auto max-w-6xl px-6 pt-16">
-        <Reveal>
+        <Rise>
           <Heading design={design} index="II" kicker="Curated" title={design.sections.picks} centered>
             Chosen for {view.firstName ?? 'you'} from {view.totalCount} live experiences.
           </Heading>
-        </Reveal>
+        </Rise>
         <div className="mt-10 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
           {view.picks.map((tour, index) => (
-            <Reveal key={tour.id} delay={Math.min(index, 3) * 70}><PlateCard view={view} design={design} locale={locale} tour={tour} index={index + view.bundles.length} /></Reveal>
+            <Rise key={tour.id} delay={Math.min(index, 3) * 80}><PlateCard view={view} design={design} locale={locale} tour={tour} index={index + view.bundles.length} /></Rise>
           ))}
         </div>
       </section>
@@ -488,20 +525,20 @@ function ScrollLayout({ view, design, locale }: LayoutProps) {
   const s = view.stats;
   return (
     <>
-      <section className="relative overflow-hidden" style={{ backgroundColor: design.ink }}>
-        {view.heroImage && (
-          <div aria-hidden className="absolute inset-0 z-0">
-            <Image src={view.heroImage} alt={view.heroAlt} fill priority sizes="100vw" className="object-cover" />
-          </div>
-        )}
-        <div aria-hidden className="pointer-events-none absolute inset-0 z-10" style={{ background: `linear-gradient(to right, ${design.ink}f2 0%, ${design.ink}cc 38%, ${design.ink}40 100%)` }} />
-        <div className="relative z-20 mx-auto max-w-6xl px-6 pb-16 pt-8 md:pb-20 md:pt-10">
+      <section className="relative min-h-[92vh] overflow-hidden" style={{ backgroundColor: design.ink }}>
+        {view.heroImage && <KenBurns src={view.heroImage} alt={view.heroAlt} />}
+        <div aria-hidden className="pointer-events-none absolute inset-0 z-10" style={{ background: `linear-gradient(to right, ${design.ink}f7 0%, ${design.ink}d9 40%, ${design.ink}2e 100%)` }} />
+        <Aurora color={view.brandColor} className="z-10" />
+        <div className="pointer-events-none absolute inset-0 z-10"><Grain opacity={0.07} /></div>
+        <div className="relative z-20 mx-auto flex min-h-[92vh] max-w-6xl flex-col justify-center px-6 pb-16 pt-10 md:pb-20">
           {view.logo && <img src={view.logo} alt={view.siteName} className="h-11 w-auto drop-shadow-lg md:h-12" />}
-          <div className="mt-10 max-w-2xl border-l-2 pl-6" style={{ borderColor: view.brandColor }}>
-            <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-white/75">{design.kicker}</p>
-            <h1 className="mt-4 text-[2.4rem] font-bold leading-[1.08] text-white drop-shadow-lg md:text-[3.4rem]" style={{ fontFamily: design.display, letterSpacing: design.displayTracking }}>
-              {view.firstName ? `${view.firstName}, your ${view.label} is written in.` : `Your ${view.label} is written in.`}
-            </h1>
+          <div className="mt-10 max-w-2xl border-l pl-7" style={{ borderColor: `${view.brandColor}cc` }}>
+            <p className="text-[11px] font-bold uppercase tracking-[0.34em] text-white/70">{design.kicker}</p>
+            <SplitReveal
+              lines={view.firstName ? [`${view.firstName}, your ${view.label}`, 'is written in.'] : [`Your ${view.label}`, 'is written in.']}
+              className="mt-5 text-[2.6rem] font-semibold leading-[1.02] text-white drop-shadow-2xl md:text-[4rem]"
+              style={{ fontFamily: design.display, letterSpacing: design.displayTracking }}
+            />
             <p className="mt-5 text-lg leading-relaxed text-white/90 drop-shadow-md">
               From {money(view.currencySymbol, s.fromPrice)} with your code at live {view.siteName} prices, saving up to {money(view.currencySymbol, s.maxSaving)} on a single booking.
             </p>
@@ -514,7 +551,7 @@ function ScrollLayout({ view, design, locale }: LayoutProps) {
               </button>
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-white/60">{copied ? 'Copied ✓' : `−${view.label} · tap the ring to copy`}</p>
-                {view.expiresAt && <div className="mt-2"><Countdown expiresAt={view.expiresAt} /></div>}
+                {view.expiresAt && <div className="mt-2"><FlipClock expiresAt={view.expiresAt} /></div>}
               </div>
             </div>
 
@@ -526,9 +563,9 @@ function ScrollLayout({ view, design, locale }: LayoutProps) {
             {s.avgRating !== null && s.reviewTotal > 0 && (
               <p className="mt-6 flex items-center gap-2 text-sm font-semibold text-white/90"><Stars rating={s.avgRating} />{s.avgRating.toFixed(1)} from {s.reviewTotal} reviews</p>
             )}
-            <a href="#tours" className="mt-8 inline-block rounded-full px-7 py-3 text-sm font-bold text-white transition hover:opacity-90" style={{ backgroundColor: view.brandColor }}>
+            <SheenCta href="#tours" background={view.brandColor} className="mt-9 inline-block rounded-full px-8 py-3.5 text-sm">
               Read the {view.totalCount} experiences ↓
-            </a>
+            </SheenCta>
           </div>
         </div>
       </section>
@@ -536,31 +573,31 @@ function ScrollLayout({ view, design, locale }: LayoutProps) {
       <HowItWorks view={view} design={design} />
 
       <section id="tours" className="mx-auto max-w-4xl scroll-mt-14 px-6 pt-16">
-        <Reveal>
+        <Rise>
           <Heading design={design} index="I" kicker="Best value" title={design.sections.value}>
             Book several and your {view.label} applies to every one.
           </Heading>
-        </Reveal>
+        </Rise>
         <div className="mt-6" style={{ borderColor: `${design.wash}26` }}>
           {view.bundles.map((tour, index) => (
-            <Reveal key={tour.id} delay={Math.min(index, 3) * 60}>
+            <Rise key={tour.id} delay={Math.min(index, 3) * 70}>
               <div style={{ borderColor: `${design.wash}26` }}><ScrollRow view={view} design={design} locale={locale} tour={tour} index={index} /></div>
-            </Reveal>
+            </Rise>
           ))}
         </div>
       </section>
 
       <section className="mx-auto max-w-4xl px-6 pt-14">
-        <Reveal>
+        <Rise>
           <Heading design={design} index="II" kicker="Hand-picked" title={design.sections.picks}>
             Chosen for {view.firstName ?? 'you'} from {view.totalCount} live experiences.
           </Heading>
-        </Reveal>
+        </Rise>
         <div className="mt-6">
           {view.picks.map((tour, index) => (
-            <Reveal key={tour.id} delay={Math.min(index, 3) * 60}>
+            <Rise key={tour.id} delay={Math.min(index, 3) * 70}>
               <div style={{ borderColor: `${design.wash}26` }}><ScrollRow view={view} design={design} locale={locale} tour={tour} index={index + view.bundles.length} /></div>
-            </Reveal>
+            </Rise>
           ))}
         </div>
       </section>
@@ -617,13 +654,16 @@ function LagoonLayout({ view, design, locale }: LayoutProps) {
   return (
     <>
       <section className="relative overflow-hidden" style={{ backgroundColor: design.paper }}>
-        <div className="mx-auto grid max-w-6xl items-center gap-10 px-6 pb-14 pt-10 lg:grid-cols-[1.1fr_1fr]">
+        <Aurora color={view.brandColor} className="opacity-40" />
+        <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-6 pb-16 pt-12 lg:grid-cols-[1.1fr_1fr]">
           <div>
             {view.logo && <img src={view.logo} alt={view.siteName} className="h-11 w-auto md:h-12" />}
             <p className="mt-8 text-[11px] font-bold uppercase tracking-[0.28em]" style={{ color: design.wash }}>{design.kicker}</p>
-            <h1 className="mt-4 text-[2.6rem] font-extrabold leading-[1.02] text-gray-900 md:text-[3.7rem]" style={{ fontFamily: design.display, letterSpacing: design.displayTracking }}>
-              {view.firstName ? `${view.firstName}, ${view.label} off the whole lagoon.` : `${view.label} off the whole lagoon.`}
-            </h1>
+            <SplitReveal
+              lines={view.firstName ? [`${view.firstName}, ${view.label} off`, 'the whole lagoon.'] : [`${view.label} off`, 'the whole lagoon.']}
+              className="mt-5 text-[2.8rem] font-extrabold leading-[0.98] text-gray-900 md:text-[4.1rem]"
+              style={{ fontFamily: design.display, letterSpacing: design.displayTracking }}
+            />
             <p className="mt-5 max-w-lg text-lg leading-relaxed text-gray-700">
               Live {view.siteName} prices with your code already applied — from {money(view.currencySymbol, s.fromPrice)}, saving up to {money(view.currencySymbol, s.maxSaving)} on a single booking.
             </p>
@@ -634,7 +674,7 @@ function LagoonLayout({ view, design, locale }: LayoutProps) {
                 <span className="text-xl font-extrabold tracking-[0.16em] text-gray-900">{view.code}</span>
                 <span className="rounded-full px-3 py-1.5 text-[11px] font-bold text-white" style={{ backgroundColor: copied ? '#15803d' : view.brandColor }}>{copied ? 'Copied ✓' : `−${view.label}`}</span>
               </button>
-              {view.expiresAt && <Countdown expiresAt={view.expiresAt} tone="dark" />}
+              {view.expiresAt && <FlipClock expiresAt={view.expiresAt} tone="dark" />}
             </div>
 
             <ul className="mt-8 grid max-w-lg grid-cols-1 gap-y-2 text-[0.92rem] text-gray-700 sm:grid-cols-2 sm:gap-x-6">
@@ -645,14 +685,14 @@ function LagoonLayout({ view, design, locale }: LayoutProps) {
             {s.avgRating !== null && s.reviewTotal > 0 && (
               <p className="mt-6 flex items-center gap-2 text-sm font-semibold text-gray-700"><Stars rating={s.avgRating} />{s.avgRating.toFixed(1)} from {s.reviewTotal} traveller reviews</p>
             )}
-            <a href="#tours" className="mt-7 inline-block rounded-full px-7 py-3.5 text-sm font-extrabold text-white shadow-lg transition-transform hover:-translate-y-0.5" style={{ backgroundColor: view.brandColor }}>
+            <SheenCta href="#tours" background={view.brandColor} className="mt-8 inline-block rounded-full px-8 py-4 text-sm">
               Browse {view.totalCount} experiences ↓
-            </a>
+            </SheenCta>
           </div>
 
           {view.heroImage && (
-            <div className="relative aspect-[4/5] overflow-hidden rounded-[2rem] shadow-2xl lg:aspect-[3/4]">
-              <Image src={view.heroImage} alt={view.heroAlt} fill priority sizes="(max-width: 1024px) 100vw, 45vw" className="object-cover" />
+            <div className="relative aspect-[4/5] overflow-hidden rounded-[2.25rem] shadow-[0_50px_90px_-40px_rgba(6,43,51,0.55)] ring-1 ring-black/5 lg:aspect-[3/4]">
+              <Image src={view.heroImage} alt={view.heroAlt} fill priority sizes="(max-width: 1024px) 100vw, 45vw" className="object-cover offer-kenburns" />
             </div>
           )}
         </div>
@@ -661,28 +701,28 @@ function LagoonLayout({ view, design, locale }: LayoutProps) {
       <HowItWorks view={view} design={design} />
 
       <section id="tours" className="mx-auto max-w-6xl scroll-mt-14 px-6 pt-16">
-        <Reveal>
+        <Rise>
           <Heading design={design} index="01" kicker="Save more" title={design.sections.value}>
             Book several and your {view.label} applies to every one.
           </Heading>
-        </Reveal>
+        </Rise>
         <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {view.bundles.map((tour, index) => (
-            <Reveal key={tour.id} delay={Math.min(index, 2) * 80}><LookCard view={view} design={design} locale={locale} tour={tour} /></Reveal>
+            <Rise key={tour.id} delay={Math.min(index, 2) * 90}><LookCard view={view} design={design} locale={locale} tour={tour} /></Rise>
           ))}
         </div>
       </section>
 
       <section className="mx-auto max-w-6xl px-6 pt-16">
-        <Reveal>
+        <Rise>
           <Heading design={design} index="02" kicker="Shortlist" title={design.sections.picks}>
             Chosen for {view.firstName ?? 'you'} from {view.totalCount} live experiences.
           </Heading>
-        </Reveal>
+        </Rise>
         <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-4">
-          {feature && <Reveal><LookCard view={view} design={design} locale={locale} tour={feature} feature /></Reveal>}
+          {feature && <Rise key={feature.id}><LookCard view={view} design={design} locale={locale} tour={feature} feature /></Rise>}
           {rest.map((tour, index) => (
-            <Reveal key={tour.id} delay={Math.min(index, 3) * 70}><LookCard view={view} design={design} locale={locale} tour={tour} /></Reveal>
+            <Rise key={tour.id} delay={Math.min(index, 3) * 80}><LookCard view={view} design={design} locale={locale} tour={tour} /></Rise>
           ))}
         </div>
       </section>
@@ -752,7 +792,7 @@ function QuoteStrip({ view, design }: { view: OfferView; design: CityDesign }) {
   const s = view.stats;
   return (
     <section className="mx-auto max-w-6xl px-6 pt-16">
-      <Reveal>
+      <Rise>
         <Heading
           design={design}
           index="03"
@@ -761,10 +801,10 @@ function QuoteStrip({ view, design }: { view: OfferView; design: CityDesign }) {
         >
           {s.reviewTotal} reviews across these experiences — a few recent ones.
         </Heading>
-      </Reveal>
+      </Rise>
       <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-3">
         {view.quotes.map((quote, index) => (
-          <Reveal key={`${quote.name}-${index}`} delay={index * 80}>
+          <Rise key={`${quote.name}-${index}`} delay={index * 90}>
             <figure className="flex h-full flex-col rounded-3xl p-6 ring-1 ring-black/[0.06]" style={{ backgroundColor: design.surface }}>
               <Stars rating={quote.rating} />
               <blockquote className="mt-3 flex-1 text-[0.95rem] leading-relaxed text-gray-700">“{quote.text}”</blockquote>
@@ -773,7 +813,7 @@ function QuoteStrip({ view, design }: { view: OfferView; design: CityDesign }) {
                 {quote.tourTitle && <span className="block text-xs text-gray-500">{quote.tourTitle}</span>}
               </figcaption>
             </figure>
-          </Reveal>
+          </Rise>
         ))}
       </div>
     </section>

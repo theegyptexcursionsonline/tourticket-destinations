@@ -65,6 +65,11 @@ export function tourHref(view: OfferView, locale: string, slug: string): string 
   return `/${locale}/tours/${slug}?code=${encodeURIComponent(view.code)}`;
 }
 
+/** Alias kept for layouts that want the raw millisecond value. */
+export function useRemainingMs(expiresAt: string | null): number | null {
+  return useRemaining(expiresAt);
+}
+
 export function useRemaining(expiresAt: string | null): number | null {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
