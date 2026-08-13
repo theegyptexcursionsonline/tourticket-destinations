@@ -24,6 +24,20 @@ const REPAIRS: Array<{ tenantId: string; slug: string; from: string; to: string;
   { tenantId: 'el-gouna', slug: 'private-yacht-charter-el-gouna', from: q('1544551763-77ef2d0cfc6c'), to: q('1505142468610-359e7d316be0'), why: 'underwater shoal on a yacht charter' },
   { tenantId: 'makadi-bay', slug: 'makadi-bay-snorkeling-trip', from: q('1559827291-72ee739d0d9a'), to: q('1546026423-cc4642628d2b'), why: 'green hillside road on a snorkeling trip' },
   { tenantId: 'makadi-bay', slug: 'bedouin-night-under-the-stars', from: q('1451337516015-6b6e9a44a8a3'), to: q('1547234935-80c7145ec969'), why: 'Scottish highlands on a Bedouin desert night' },
+  // Luxor and Cairo carried photographs of an entirely different world:
+  // footballs on a pitch for the Valley of the Kings, a Mumbai bridge for a
+  // Nile felucca, Dolomite hikers for a Nile trip, polaroid snapshots for two
+  // temple tours, a horse in a meadow for Islamic Cairo. Replaced with verified
+  // Egypt photography. NOTE: these are monuments in Giza/Cairo, not the exact
+  // site of every tour — the real fix is operator photography per tour.
+  { tenantId: 'luxor-excursions', slug: 'valley-of-kings-hatshepsut-temple', from: q('1551958219-acbc608c6377'), to: q('1553913861-c0fddf2619ee'), why: 'footballs on a temple tour' },
+  { tenantId: 'luxor-excursions', slug: 'luxor-museum-city-walk', from: q('1595981234058-a9302fb97229'), to: q('1572252009286-268acec5ca0a'), why: 'polaroid snapshots on a museum walk' },
+  { tenantId: 'luxor-excursions', slug: 'karnak-luxor-temple-tour', from: q('1595981234058-a9302fb97229'), to: q('1568322445389-f64ac2515020'), why: 'polaroid snapshots on a temple tour' },
+  { tenantId: 'luxor-excursions', slug: 'nile-felucca-sunset-sail', from: q('1562979314-bee7453e911c'), to: q('1473116763249-2faaef81ccda'), why: 'a Mumbai road bridge on a Nile sail' },
+  { tenantId: 'luxor-excursions', slug: 'banana-island-nile-trip', from: q('1539635278303-d4002c07eae3'), to: q('1507525428034-b723cf961d3e'), why: 'Dolomite hikers on a Nile island trip' },
+  { tenantId: 'cairo-excursions-online', slug: 'islamic-cairo-khan-khalili', from: q('1553284965-83fd3e82fa5a'), to: q('1572252009286-268acec5ca0a'), why: 'a horse in a meadow on Islamic Cairo' },
+  { tenantId: 'cairo-excursions-online', slug: 'egyptian-museum-tour', from: q('1572252009286-268acec5ca0a'), to: q('1553913861-c0fddf2619ee'), why: 'freed the Cairo skyline for Islamic Cairo' },
+  { tenantId: 'cairo-excursions-online', slug: 'nile-dinner-cruise', from: q('1539635278303-d4002c07eae3'), to: q('1473116763249-2faaef81ccda'), why: 'Dolomite hikers on a Nile dinner cruise' },
 ];
 
 async function main() {

@@ -207,10 +207,17 @@ export function Motif({ design, className = '' }: { design: CityDesign; classNam
   }
   if (design.motif === 'column') {
     return (
-      <svg aria-hidden viewBox="0 0 160 16" className={className} fill="none">
-        {[0, 1, 2, 3, 4, 5, 6, 7].map((index) => (
-          <rect key={index} x={index * 20 + 4} y="2" width="6" height="12" rx="1" stroke={stroke} strokeWidth="1.2" opacity="0.45" />
-        ))}
+      <svg aria-hidden viewBox="0 0 200 26" className={className} fill="none">
+        <line x1="0" y1="25" x2="200" y2="25" stroke={stroke} strokeWidth="1.5" opacity="0.55" />
+        {[0, 1, 2, 3, 4, 5].map((index) => {
+          const x = index * 34 + 12;
+          return (
+            <g key={index} opacity="0.55">
+              <rect x={x - 7} y="4" width="14" height="3" fill={stroke} />
+              <path d={`M${x - 4} 7 L${x - 4} 25 M${x} 7 L${x} 25 M${x + 4} 7 L${x + 4} 25`} stroke={stroke} strokeWidth="1.3" />
+            </g>
+          );
+        })}
       </svg>
     );
   }
