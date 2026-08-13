@@ -510,6 +510,7 @@ export async function POST(request: Request) {
           totalPrice: itemTotalPrice,
           status: 'Confirmed',
           paymentId: paymentResult.paymentId,
+          paymentItemIndex: i,
           checkoutItemKey: `${tenantId}:${paymentResult.paymentId}:${i}`,
           paymentMethod,
           specialRequests: customer.specialRequests,

@@ -31,11 +31,18 @@ describe('per-tenant checkout presentation contract', () => {
     const preparation = source('lib/checkout/prepareStripeCheckout.ts');
     const sessionStatus = source('app/api/checkout/session-status/route.ts');
     const webhook = source('app/api/webhooks/stripe/route.ts');
+    const checkout = source('app/api/checkout/route.ts');
+    const model = source('lib/models/Booking.ts');
 
     expect(preparation).toContain("'PAYMENT_EXPERIENCE_MISMATCH'");
     expect(preparation).toContain("endpoint === 'hosted'");
     expect(sessionStatus).toContain('findOne({ tenantId, checkoutSessionId: sessionId })');
     expect(webhook).toContain('checkoutItemKey: `${bookingTenantId}:${paymentId}:${cartIndex}`');
+    expect(webhook).toContain('paymentItemIndex: cartIndex');
+    expect(checkout).toContain('paymentItemIndex: i');
+    expect(model).toContain('paymentItemIndex: {');
+    expect(model).toContain('checkoutItemKey: {');
+    expect(model).toContain('immutable: true');
     expect(webhook).toContain('await bookingSession.commitTransaction()');
     expect(webhook).toContain("await refundHostedPayment('hosted_booking_creation_failed')");
   });

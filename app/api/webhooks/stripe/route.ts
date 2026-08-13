@@ -551,6 +551,7 @@ async function processSuccessfulPayment(paymentIntent: Stripe.PaymentIntent) {
         currency: (hostedQuote?.pricing?.currency || metadata.pricing_currency || paymentIntent.currency || 'USD').toUpperCase(),
         status: 'Confirmed',
         paymentId,
+        paymentItemIndex: cartIndex,
         checkoutItemKey: `${bookingTenantId}:${paymentId}:${cartIndex}`,
         paymentMethod: 'card',
         adultGuests: item.a || 1,
