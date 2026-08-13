@@ -2557,7 +2557,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
               <div
                 ref={scrollableContentRef}
                 data-testid="booking-drawer-scroll-region"
-                className="h-full overflow-y-auto overscroll-contain scroll-pt-4 scroll-pb-4 [scrollbar-gutter:stable]"
+                className="h-full touch-pan-y overflow-y-auto overscroll-contain scroll-pt-4 scroll-pb-4 [-webkit-overflow-scrolling:touch] [scrollbar-gutter:stable]"
               >
                 <AnimatePresence mode="wait">
                   {renderStepContent()}

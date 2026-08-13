@@ -48,6 +48,35 @@ describe('EEOSearchConcierge', () => {
     await waitFor(() => expect(document.getElementById('eeo-search-concierge-script')).toBeNull());
   });
 
+  it('destroys the hosted overlay before unmounting its host', async () => {
+    const destroyListener = jest.fn();
+    window.addEventListener('foxes:search:destroy', destroyListener);
+    const view = render(<EEOSearchConcierge />);
+    await waitFor(() => expect(document.getElementById('eeo-search-concierge-script')).toBeInTheDocument());
+    destroyListener.mockClear();
+    view.unmount();
+    expect(destroyListener).toHaveBeenCalledTimes(1);
+    window.removeEventListener('foxes:search:destroy', destroyListener);
+  });
+
+  it('closes the hosted overlay before hiding it for a first-party modal', async () => {
+    const closeListener = jest.fn();
+    window.addEventListener('foxes:search:close', closeListener);
+    render(<EEOSearchConcierge />);
+    const host = document.createElement('div');
+    host.id = 'foxes-launcher-host';
+    document.body.appendChild(host);
+    const dialog = document.createElement('div');
+    dialog.setAttribute('role', 'dialog');
+    dialog.setAttribute('aria-modal', 'true');
+    dialog.getClientRects = () => [{ width: 320, height: 200 }] as unknown as DOMRectList;
+    document.body.appendChild(dialog);
+    await waitFor(() => expect(host.hidden).toBe(true));
+    expect(closeListener).toHaveBeenCalled();
+    dialog.remove();
+    window.removeEventListener('foxes:search:close', closeListener);
+  });
+
   it('uses the RTL-safe position and Arabic copy', async () => {
     pathname = '/ar/tours';
     locale = 'ar';

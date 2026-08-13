@@ -9,10 +9,12 @@ const SEARCH_ORIGIN = process.env.NEXT_PUBLIC_FOXES_SEARCH_ORIGIN || 'https://se
 const WIDGET_ID = process.env.NEXT_PUBLIC_FOXES_SEARCH_WIDGET_ID || 'wgt_6JW5umlfasNQfJywtFPs6g';
 const SCRIPT_ID = 'eeo-search-concierge-script';
 const HOST_ID = 'foxes-launcher-host';
+const CLOSE_EVENT = 'foxes:search:close';
+const DESTROY_EVENT = 'foxes:search:destroy';
 const EEO_BRAND_BLUE = '#4385F6';
 const MOBILE_BOOKING_BAR_SELECTOR = '[data-mobile-booking-bar="true"]';
 const MOBILE_ACTION_GAP_PX = 12;
-const LAUNCHER_RELEASE = '20260813-eeo-network-v1';
+const LAUNCHER_RELEASE = '20260813-ios-scroll-lifecycle-v1';
 
 const copy: Record<string, { label: string; kicker: string; placeholder: string }> = {
   en: { label: 'Search Egypt tours with AI', kicker: 'AI trip search', placeholder: 'Search Egypt tours...' },
@@ -42,6 +44,7 @@ export default function EEOSearchConcierge() {
       const launcher = host.shadowRoot?.querySelector<HTMLElement>('.launcher');
       const modalOpen = Array.from(document.querySelectorAll<HTMLElement>('[role="dialog"][aria-modal="true"]'))
         .some((dialog) => !dialog.closest('.gm-style') && dialog.getClientRects().length > 0);
+      if (modalOpen) window.dispatchEvent(new CustomEvent(CLOSE_EVENT));
       host.hidden = modalOpen;
       if (!launcher) return;
       const bookingBar = document.querySelector<HTMLElement>(MOBILE_BOOKING_BAR_SELECTOR);
@@ -65,6 +68,7 @@ export default function EEOSearchConcierge() {
       observer?.disconnect();
       if (syncFrame !== null) window.cancelAnimationFrame(syncFrame);
       syncFrame = null;
+      window.dispatchEvent(new CustomEvent(DESTROY_EVENT));
       document.getElementById(SCRIPT_ID)?.remove();
       document.getElementById(HOST_ID)?.remove();
     };
