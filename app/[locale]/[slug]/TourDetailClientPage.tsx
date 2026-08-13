@@ -18,7 +18,6 @@ import {
 // Components
 import BookingSidebar from '@/components/BookingSidebar';
 import StickyBookButton from '@/components/StickyBookButton';
-import AISearchWidget from '@/components/AISearchWidget';
 import ReviewList from '@/components/reviews/ReviewList';
 import ReviewForm from '@/components/reviews/ReviewForm';
 import ReviewsStructuredData from '@/components/ReviewsStructuredData';
@@ -1681,9 +1680,6 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
         currency={'$'}
         onClick={openBookingSidebar}
       />
-
-      {/* Use the same tenant-scoped AI search experience as the rest of the storefront. */}
-      <AISearchWidget avoidMobileBookingBar />
 
       <div className="sr-only" aria-live="polite">
         {liveMessage}

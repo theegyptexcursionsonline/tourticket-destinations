@@ -5,7 +5,6 @@ import Destination from '@/lib/models/Destination';
 import Tour from '@/lib/models/Tour';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import AISearchWidget from '@/components/AISearchWidget';
 import DestinationsClientPage from './DestinationsClientPage';
 import { IDestination } from '@/lib/models/Destination';
 import { getTenantFromRequest, getTenantConfig, buildStrictTenantQuery } from '@/lib/tenant';
@@ -82,7 +81,6 @@ export default async function DestinationsIndexPage() {
         <DestinationsClientPage destinations={destinations as any} />
       </main>
       <Footer />
-      <AISearchWidget />
     </>
   );
 }

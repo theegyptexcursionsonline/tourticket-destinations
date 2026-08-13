@@ -15,7 +15,6 @@ import IcebarPromo from '@/components/IcebarPromo';
 import AboutUs from '@/components/AboutUs';
 import Reviews from '@/components/Reviews';
 import FAQ from '@/components/FAQ';
-import AISearchWidget from '@/components/AISearchWidget';
 import ReviewsStructuredData from '@/components/ReviewsStructuredData';
 import OrganizationSchema from '@/components/schema/OrganizationSchema';
 import WebSiteSchema from '@/components/schema/WebSiteSchema';
@@ -705,10 +704,6 @@ export default async function HomePageServer() {
       
       <Footer />
       
-      {/* Show AISearchWidget only if enabled for this tenant */}
-      {(!tenantConfig || tenantConfig.features?.enableAISearch !== false) && (
-        <AISearchWidget />
-      )}
     </main>
   );
 }

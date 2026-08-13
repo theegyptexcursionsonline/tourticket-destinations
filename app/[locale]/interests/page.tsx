@@ -5,7 +5,6 @@ import Category from '@/lib/models/Category';
 import Tour from '@/lib/models/Tour';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import AISearchWidget from '@/components/AISearchWidget';
 import InterestsClientPage from './InterestsClientPage';
 import { ICategory } from '@/lib/models/Category';
 import { buildStrictTenantQuery, getTenantFromRequest, getTenantPublicConfig } from '@/lib/tenant';
@@ -92,8 +91,6 @@ export default async function InterestsIndexPage() {
         <InterestsClientPage categories={categories} />
       </main>
       <Footer />
-      {/* AI Search Widget */}
-      <AISearchWidget />
     </>
   );
 }

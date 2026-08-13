@@ -5,7 +5,6 @@ import dbConnect from '@/lib/dbConnect';
 import Tour from '@/lib/models/Tour';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import AISearchWidget from '@/components/AISearchWidget';
 import ToursClientPage from './ToursClientPage';
 import { ITour } from '@/lib/models/Tour';
 import { getTenantFromRequest, getTenantConfig, buildStrictTenantQuery } from '@/lib/tenant';
@@ -79,7 +78,6 @@ export default async function ToursIndexPage() {
         <ToursClientPage tours={localizedTours as any} />
       </main>
       <Footer />
-      <AISearchWidget />
     </>
   );
 }

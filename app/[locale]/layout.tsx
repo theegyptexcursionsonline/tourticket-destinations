@@ -13,7 +13,7 @@ import { WishlistProvider } from "@/contexts/WishlistContext";
 import CartSidebar from "@/components/CartSidebar";
 import WishlistSidebar from "@/components/WishlistSidebar";
 import AppToaster from '@/components/ui/AppToaster';
-import ConditionalAIWidgets from "@/components/ConditionalAIWidgets";
+import EEOSearchConcierge from "@/components/EEOSearchConcierge";
 import ClientErrorReporter from "@/components/ClientErrorReporter";
 import { getTenantFromRequest, getTenantPublicConfig, TenantPublicConfig } from "@/lib/tenant";
 import ComingSoonPage from "@/components/ComingSoonPage";
@@ -287,7 +287,7 @@ export default async function LocaleLayout({
                     {children}
                     <CartSidebar />
                     <WishlistSidebar />
-                    <ConditionalAIWidgets />
+                    <EEOSearchConcierge />
                     <ClientErrorReporter />
                     <AppToaster direction={dir} />
                   </WishlistProvider>

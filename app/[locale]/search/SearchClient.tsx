@@ -8,7 +8,6 @@ import { useRouter, usePathname } from '@/i18n/navigation';
 import { useSearchParams } from 'next/navigation';
 import Header from '@/components/Headersearch';
 import Footer from '@/components/Footer';
-import AISearchWidget from '@/components/AISearchWidget';
 
 interface SearchClientProps {
   initialTours: TourType[];
@@ -294,8 +293,6 @@ const SearchClient: React.FC<SearchClientProps> = ({ initialTours = [], categori
 
       <Footer />
 
-      {/* AI Search Widget */}
-      <AISearchWidget />
     </>
   );
   
