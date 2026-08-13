@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Booking from '@/lib/models/Booking';
+import { bookingPaymentFields, isDuplicateKeyError } from '@/lib/security/paymentEvidence';
 import Tour from '@/lib/models/Tour';
 import { authoritativeBasePrice } from '@/lib/pricing/authoritativePrice';
 import User from '@/lib/models/user';
@@ -498,6 +499,9 @@ export async function POST(request: Request) {
         // Generate unique booking reference with tenant-specific prefix
         const bookingReference = await generateUniqueBookingReference(tenantId, tenantConfig);
 
+        // Status and paid-ness follow the provider, never optimism: an
+        // unsettled payment leaves the booking Pending with no evidence.
+        const evidence = bookingPaymentFields(paymentResult, itemTotalPrice, { method: paymentMethod });
         const [booking] = await Booking.create([{
           tenantId, // Use the resolved tenant (from request domain, not tour)
           bookingReference, // Provide the reference explicitly
@@ -508,7 +512,11 @@ export async function POST(request: Request) {
           time: bookingTime,
           guests: totalGuests,
           totalPrice: itemTotalPrice,
-          status: 'Confirmed',
+          status: evidence.status,
+          paymentStatus: evidence.paymentStatus,
+          amountPaid: evidence.amountPaid,
+          paymentConfirmedAt: evidence.paymentConfirmedAt,
+          paymentConfirmedBy: evidence.paymentConfirmedBy,
           paymentId: paymentResult.paymentId,
           paymentItemIndex: i,
           checkoutItemKey: `${tenantId}:${paymentResult.paymentId}:${i}`,
@@ -533,6 +541,20 @@ export async function POST(request: Request) {
         }
         
       } catch (bookingError: any) {
+        // Another writer (the Stripe webhook, or a retried request) already
+        // created this exact payment item. The unique index is the authority;
+        // converge on the existing row instead of failing the customer.
+        if (isDuplicateKeyError(bookingError)) {
+          const existing = await Booking.findOne({
+            tenantId,
+            paymentId: paymentResult.paymentId,
+            paymentItemIndex: i,
+          }).session(bookingSession);
+          if (existing) {
+            createdBookings.push(existing);
+            continue;
+          }
+        }
         console.error('Error creating booking:', bookingError);
         throw new Error(`Failed to create booking for ${cartItem.title}: ${bookingError.message}`);
       }

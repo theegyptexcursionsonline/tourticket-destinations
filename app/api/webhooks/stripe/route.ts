@@ -6,6 +6,7 @@ import mongoose from 'mongoose';
 import { headers } from 'next/headers';
 import dbConnect from '@/lib/dbConnect';
 import Booking from '@/lib/models/Booking';
+import { bookingPaymentFields, isDuplicateKeyError } from '@/lib/security/paymentEvidence';
 import Tour from '@/lib/models/Tour';
 import User from '@/lib/models/user';
 import { EmailService } from '@/lib/email/emailService';
@@ -538,7 +539,9 @@ async function processSuccessfulPayment(paymentIntent: Stripe.PaymentIntent) {
         };
       }
 
-      const [booking] = await Booking.create([{
+      let booking: any;
+      try {
+      [booking] = await Booking.create([{
         tenantId: bookingTenantId,
         bookingReference,
         tour: tour._id,
@@ -549,7 +552,9 @@ async function processSuccessfulPayment(paymentIntent: Stripe.PaymentIntent) {
         guests: totalGuests,
         totalPrice: itemTotalWithDiscount,
         currency: (hostedQuote?.pricing?.currency || metadata.pricing_currency || paymentIntent.currency || 'USD').toUpperCase(),
-        status: 'Confirmed',
+        // The webhook only runs for a settled intent, but the evidence is
+        // recorded explicitly so "paid" is always provable from the record.
+        ...bookingPaymentFields({ paymentId, status: paymentIntent.status }, itemTotalWithDiscount),
         paymentId,
         paymentItemIndex: cartIndex,
         checkoutItemKey: `${bookingTenantId}:${paymentId}:${cartIndex}`,
@@ -566,6 +571,17 @@ async function processSuccessfulPayment(paymentIntent: Stripe.PaymentIntent) {
         hotelPickupLocation: hotelPickupLocation || undefined,
         specialRequests: specialRequests || undefined,
       }], { session: bookingSession });
+      } catch (createError: any) {
+        // The checkout request already wrote this payment item; the webhook is
+        // a fallback, not a second source of truth.
+        if (!isDuplicateKeyError(createError)) throw createError;
+        booking = await Booking.findOne({
+          tenantId: bookingTenantId,
+          paymentId,
+          paymentItemIndex: cartIndex,
+        }).session(bookingSession);
+        if (!booking) throw createError;
+      }
       createdBookings.push({ booking, tour });
     }
     await bookingSession.commitTransaction();
