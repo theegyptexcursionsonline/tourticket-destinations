@@ -7,6 +7,7 @@ import { useTenant } from '@/contexts/TenantContext';
 import { Link } from '@/i18n/navigation';
 import Image from 'next/image';
 import { useLocale, useTranslations } from 'next-intl';
+import { contentPath } from '@/lib/content/contentUrl';
 import {
   ArrowRight,
   Package,
@@ -376,7 +377,7 @@ function DestinationHits({ onHitClick, limit = 3 }: { onHitClick?: () => void; l
       {limitedHits.map((hit: any, _index) => (
         <a
           key={hit.objectID}
-          href={`/destinations/${hit.slug || hit.objectID}`}
+          href={contentPath('destination', hit.slug || hit.objectID, hit.urlType, null, hit.parentPage?.slug)}
           onClick={onHitClick}
           className="block px-3 md:px-6 py-3 md:py-4 hover:bg-gradient-to-r hover:from-emerald-500/5 hover:via-teal-500/5 hover:to-transparent transition-all duration-300 border-b border-white/5 last:border-0 group relative overflow-hidden"
         >
@@ -431,7 +432,7 @@ function CategoryHits({ onHitClick, limit = 3 }: { onHitClick?: () => void; limi
       {limitedHits.map((hit: any, _index) => (
         <a
           key={hit.objectID}
-          href={`/categories/${hit.slug || hit.objectID}`}
+          href={contentPath('category', hit.slug || hit.objectID, hit.urlType, null, hit.parentPage?.slug)}
           onClick={onHitClick}
           className="block px-3 md:px-6 py-3 md:py-4 hover:bg-gradient-to-r hover:from-purple-500/5 hover:via-fuchsia-500/5 hover:to-transparent transition-all duration-300 border-b border-white/5 last:border-0 group relative overflow-hidden"
         >

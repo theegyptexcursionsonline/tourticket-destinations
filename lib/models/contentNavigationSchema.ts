@@ -24,7 +24,7 @@ export const ParentPageSchema = new Schema(
     kind: {
       type: String,
       required: true,
-      enum: ["destination", "attraction", "category", "category-2"],
+      enum: ["destination", "attraction", "category", "category-2", "landing"],
     },
   },
   { _id: false },

@@ -24,7 +24,7 @@ export function buildContentBreadcrumbs({
       label: parentPage.label,
       href: parentPage.href || `/${parentPage.slug}`,
     });
-  } else if (rootLabel && rootHref) {
+  } else if (parentPage === undefined && rootLabel && rootHref) {
     items.push({ label: rootLabel, href: rootHref });
   }
   items.push({ label: breadcrumbLabel?.trim() || currentTitle });

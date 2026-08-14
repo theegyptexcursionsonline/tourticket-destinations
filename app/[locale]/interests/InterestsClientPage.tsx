@@ -6,6 +6,7 @@ import { Tag, Search, Star } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { ICategory } from '@/lib/models/Category';
 import SafeImage from '@/components/shared/SafeImage';
+import { contentPath } from '@/lib/content/contentUrl';
 
 interface CategoryWithCount extends ICategory {
   tourCount: number;
@@ -51,7 +52,7 @@ const CategoryCard = ({ category }: { category: CategoryWithCount }) => {
   const image = getCategoryImage(category);
 
   return (
-    <Link href={`/interests/${category.slug}`} className="group block bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 overflow-hidden">
+    <Link href={contentPath('category', category.slug, category.urlType, null, category.parentPage?.slug)} className="group block bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 overflow-hidden">
       <div className="relative h-48">
         <SafeImage
           src={image}

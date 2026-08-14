@@ -3,6 +3,7 @@ import type {
   ParentContentKind,
   ParentPageValue,
 } from "@/lib/content/contentNavigation";
+import { systemParentPage } from "@/lib/content/contentNavigation";
 import { attractionPagePath, contentPath } from "@/lib/content/contentUrl";
 
 export class ParentPageValidationError extends Error {
@@ -21,6 +22,7 @@ interface ParentRecord {
   urlType?: string;
   archivedAt?: Date | null;
   parentPage?: ParentPageValue | null;
+  href?: string;
 }
 
 async function findParent(
@@ -28,6 +30,10 @@ async function findParent(
   id: string,
   tenantFilter: FilterQuery<unknown>,
 ): Promise<ParentRecord | null> {
+  if (kind === "landing") {
+    const landing = systemParentPage(id);
+    return landing ? { _id: landing.id, slug: landing.slug, name: landing.label, href: landing.href, parentPage: null } : null;
+  }
   if (kind === "destination") {
     const { default: Destination } = await import("@/lib/models/Destination");
     return Destination.findOne({ $and: [tenantFilter, { _id: id }] })
@@ -54,6 +60,7 @@ async function findParent(
 }
 
 function parentHref(kind: ParentContentKind, document: ParentRecord): string {
+  if (kind === "landing") return document.href || `/${document.slug || ""}`;
   if (kind === "destination") {
     return contentPath(
       "destination",

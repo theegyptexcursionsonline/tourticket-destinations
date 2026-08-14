@@ -36,6 +36,7 @@ import { imageMetadataFor } from '@/lib/content/imageMetadata';
 import { curateDestinationTours } from '@/lib/content/destinationTourCuration';
 import { buildContentBreadcrumbs } from '@/lib/content/breadcrumbs';
 import ContentBreadcrumbs from '@/components/navigation/ContentBreadcrumbs';
+import { contentPath } from '@/lib/content/contentUrl';
 
 const DESTINATION_HERO_FALLBACK_IMAGE = '/hero2.jpg';
 
@@ -604,7 +605,7 @@ const DestinationSlider = ({ destinations }: { destinations: any[] }) => {
         {destinations.map((destination, idx) => (
           <a
             key={idx}
-            href={`/destinations/${destination.slug}`}
+            href={contentPath('destination', destination.slug, destination.urlType, null, destination.parentPage?.slug)}
             target="_blank"
             rel="noopener noreferrer"
             className="group block flex-shrink-0 w-[260px] bg-white rounded-xl overflow-hidden border shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
@@ -696,6 +697,8 @@ function DestinationSearchResults({
     name: string;
     country?: string;
     tourCount?: number;
+    urlType?: string;
+    parentPage?: Destination['parentPage'];
   }>;
   onHitClick?: () => void;
 }) {
@@ -720,7 +723,7 @@ function DestinationSearchResults({
       {destinations.map((item) => (
         <Link
           key={item.slug || item._id}
-          href={`/destinations/${item.slug}`}
+          href={contentPath('destination', item.slug, item.urlType, null, item.parentPage?.slug)}
           onClick={onHitClick}
           className="block px-4 md:px-6 py-3 md:py-4 hover:bg-gradient-to-r hover:from-emerald-500/5 hover:via-teal-500/5 hover:to-transparent transition-all duration-300 border-b border-white/5 last:border-0 group relative overflow-hidden"
         >
@@ -781,7 +784,7 @@ function CategorySearchResults({
       {categories.map((item) => (
         <Link
           key={item.slug || item._id}
-          href={`/categories/${item.slug}`}
+          href={contentPath('category', item.slug, item.urlType, null, item.parentPage?.slug)}
           onClick={onHitClick}
           className="block px-4 md:px-6 py-3 md:py-4 hover:bg-gradient-to-r hover:from-purple-500/5 hover:via-fuchsia-500/5 hover:to-transparent transition-all duration-300 border-b border-white/5 last:border-0 group relative overflow-hidden"
         >
@@ -1901,7 +1904,7 @@ const Top10Card = ({ tour, index, onAddToCartClick }: { tour: Tour, index: numbe
 const InterestCard = ({ category, tourCount }: { category: Category, tourCount: number }) => {
   const { copy } = useDestinationPageLocale();
   return (
-    <Link href={`/categories/${category.slug}`} className="flex flex-col items-center p-4 sm:p-6 bg-white shadow-sm border border-slate-200 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 rounded-lg">
+    <Link href={contentPath('category', category.slug, category.urlType, null, category.parentPage?.slug)} className="flex flex-col items-center p-4 sm:p-6 bg-white shadow-sm border border-slate-200 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 rounded-lg">
       <div className="text-3xl sm:text-4xl mb-3 sm:mb-4">{category.icon}</div>
       <h3 className="text-sm sm:text-base font-bold text-slate-900 uppercase text-center">{category.name}</h3>
       <p className="text-xs sm:text-sm text-slate-500">{copy.toursCount(tourCount)}</p>
@@ -2292,7 +2295,7 @@ const RelatedDestinationsSection = ({ destinations }: { destinations: Destinatio
           {destinations.slice(0, 4).map((dest) => (
             <a 
               key={dest._id} 
-              href={`/destinations/${dest.slug}`}
+              href={contentPath('destination', dest.slug, dest.urlType, null, dest.parentPage?.slug)}
               className="group block bg-white rounded-xl shadow-md overflow-hidden hover:shadow-2xl transition-all duration-300 hover:-translate-y-2"
             >
               <div className="relative h-40 sm:h-48">

@@ -56,6 +56,7 @@ import { ensureImageMetadata, type ImageMetadata } from '@/lib/content/imageMeta
 import { applyDiscountPercent } from '@/lib/pricing/effectivePrice';
 import ContentNavigationFields from '@/components/admin/ContentNavigationFields';
 import type { ParentPageValue } from '@/lib/content/contentNavigation';
+import { bookingOptionUnitLabel } from '@/lib/bookings/bookingOptionLabels';
 
 // --- Interface Definitions ---
 interface Category {
@@ -125,11 +126,15 @@ interface FAQ {
 }
 
 interface AddOn {
+    _id?: string;
     name: string;
-    description: string;
+    description?: string;
     price: number;
     category?: string;
     pricingMethod?: 'per_unit' | 'per_person';
+    groupKey?: string;
+    groupTitle?: string;
+    bookingOptionKeys?: string[];
 }
 
 interface TourFormData {
@@ -639,6 +644,7 @@ export default function TourForm({ tourToEdit, onSave, fullPage = false }: { tou
                 addOns: (tourToEdit.addOns?.length ?? 0) > 0
                     ? tourToEdit.addOns!.map((addon) => ({
                         ...addon,
+                        bookingOptionKeys: Array.isArray(addon.bookingOptionKeys) ? addon.bookingOptionKeys : [],
                         pricingMethod: addon.pricingMethod || (addon.category === 'Food' ? 'per_person' : 'per_unit'),
                     }))
                     : [],
@@ -1036,7 +1042,7 @@ const addItineraryItem = () => {
         }
     };
 
-    const handleAddOnChange = (index: number, field: string, value: string | number) => {
+    const handleAddOnChange = (index: number, field: string, value: string | number | string[]) => {
         const updatedAddOns = [...formData.addOns];
         updatedAddOns[index] = { ...updatedAddOns[index], [field]: value };
         setFormData((p) => ({ ...p, addOns: updatedAddOns }));
@@ -1045,12 +1051,11 @@ const addItineraryItem = () => {
     const addAddOn = () => {
         setFormData((p) => ({ 
             ...p, 
-            addOns: [...p.addOns, { name: '', description: '', price: 0, pricingMethod: 'per_unit' as const }]
+            addOns: [...p.addOns, { name: '', description: '', price: 0, pricingMethod: 'per_unit' as const, bookingOptionKeys: [] }]
         }));
     };
 
     const removeAddOn = (index: number) => {
-        if (formData.addOns.length <= 1) return;
         const updatedAddOns = formData.addOns.filter((_, i: number) => i !== index);
         setFormData((p) => ({ ...p, addOns: updatedAddOns }));
     };
@@ -1362,7 +1367,8 @@ const addItineraryItem = () => {
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
-                            onClick={() => setIsPanelOpen(false)}
+                            data-testid="tour-editor-backdrop"
+                            aria-hidden="true"
                         />
                     )}
                 </AnimatePresence>
@@ -1380,6 +1386,9 @@ const addItineraryItem = () => {
                             ? 'bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col'
                             : 'fixed top-0 end-0 h-full w-full max-w-5xl bg-white z-50 shadow-2xl flex flex-col'
                         }
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="tour-editor-title"
                     >
                         {/* Panel Header - hidden in full-page mode (page has its own header) */}
                         {!fullPage && (
@@ -1389,7 +1398,7 @@ const addItineraryItem = () => {
                                         {tourToEdit ? <Edit className="h-5 w-5 text-white" /> : <PlusCircle className="h-5 w-5 text-white" />}
                                     </div>
                                     <div>
-                                        <h2 className="text-xl font-bold text-slate-800">
+                                        <h2 id="tour-editor-title" className="text-xl font-bold text-slate-800">
                                             {tourToEdit ? 'Edit Tour' : 'Create New Tour'}
                                         </h2>
                                         <p className="text-sm text-slate-500">
@@ -1397,8 +1406,10 @@ const addItineraryItem = () => {
                                         </p>
                                     </div>
                                 </div>
-                                <button 
+                                <button
+                                    type="button"
                                     onClick={() => setIsPanelOpen(false)} 
+                                    aria-label="Close tour editor"
                                     className="flex items-center justify-center w-10 h-10 rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-all duration-200"
                                 >
                                     <X size={20} />
@@ -2199,7 +2210,7 @@ const addItineraryItem = () => {
                                 {/* Itinerary Tab */}
                                 {activeTab === 'itinerary' && (
                                     <div className="space-y-6">
-                                        <FormLabel icon={Map}>Day-by-day Itinerary</FormLabel>
+                                        <FormLabel icon={Map}>Itinerary</FormLabel>
                                         {formData.itinerary.map((day: ItineraryItem, i: number) => (
                                             <div 
                                                 key={i} 
@@ -2216,19 +2227,19 @@ const addItineraryItem = () => {
                                                         <div className="flex items-center justify-center w-8 h-8 bg-indigo-100 text-indigo-600 rounded-lg font-bold text-sm">
                                                             {i + 1}
                                                         </div>
-                                                        <h4 className="font-semibold text-slate-900">{day.title?.trim() || `Stop ${i + 1}`}</h4>
+                                                        <h4 className="font-semibold text-slate-900">{day.title?.trim() || `Step ${i + 1}`}</h4>
                                                     </div>
                                                     <ChevronDown className={`h-5 w-5 text-slate-500 transform transition-transform duration-200 ${expandedItineraryIndex === i ? 'rotate-180' : ''}`} />
                                                 </button>
                                                 <div className={`overflow-hidden transition-all duration-300 ${expandedItineraryIndex === i ? 'max-h-[1000px] opacity-100 p-6' : 'max-h-0 opacity-0 p-0'}`}>
                                                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
   <div className="space-y-2">
-    <label className="text-xs font-medium text-slate-500">Day Title</label>
+    <label className="text-xs font-medium text-slate-500">Title</label>
     <input 
       value={day.title} 
       onChange={(e) => handleItineraryChange(i, 'title', e.target.value)}
       className={inputBase} 
-      placeholder="Day title" 
+      placeholder="Itinerary title"
     />
   </div>
   <div className="space-y-2">
@@ -2253,7 +2264,7 @@ const addItineraryItem = () => {
       onChange={(e) => handleItineraryChange(i, 'description', e.target.value)}
       className={`${textareaBase} resize-none`}
       rows={2}
-      placeholder="Day description"
+      placeholder="Itinerary description"
     />
   </div>
   <div className="space-y-2">
@@ -2302,7 +2313,7 @@ const addItineraryItem = () => {
                                                             className="inline-flex items-center gap-2 text-red-600 font-medium px-4 py-2 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                                                         >
                                                             <XCircle className="w-5 h-5" />
-                                                            <span>Remove Day</span>
+                                                            <span>Remove Step</span>
                                                         </button>
                                                     </div>
                                                 </div>
@@ -2313,7 +2324,7 @@ const addItineraryItem = () => {
                                             onClick={addItineraryItem} 
                                             className="w-full flex items-center justify-center gap-2 px-4 py-4 text-sm font-semibold text-indigo-600 bg-gradient-to-r from-indigo-50 to-purple-50 border-2 border-dashed border-indigo-300 rounded-xl hover:from-indigo-100 hover:to-purple-100 hover:border-indigo-400 transition-all duration-200"
                                         >
-                                            <Plus className="w-4 h-4" /> Add Day
+                                            <Plus className="w-4 h-4" /> Add Step
                                         </button>
                                     </div>
                                 )}
@@ -2348,7 +2359,7 @@ const addItineraryItem = () => {
                                                                         {selectedCurrency.symbol}{option.price?.toFixed(2) || '0.00'}
                                                                     </div>
                                                                     <div className="text-xs text-slate-500">
-                                                                        {option.type === 'Per Person' ? 'per person' : 'per group'}
+                                                                        {bookingOptionUnitLabel(option.type)}
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -2695,15 +2706,45 @@ const addItineraryItem = () => {
                                                             </select>
                                                         </div>
                                                     </div>
+                                                    <fieldset className="mt-6 space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                                                        <legend className="px-1 text-sm font-semibold text-slate-700">Available with booking options</legend>
+                                                        <label className="flex cursor-pointer items-center gap-3 text-sm text-slate-700">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={(addon.bookingOptionKeys || []).length === 0}
+                                                                onChange={(event) => handleAddOnChange(index, 'bookingOptionKeys', event.target.checked ? [] : [formData.bookingOptions[0]?.id || ''].filter(Boolean))}
+                                                            />
+                                                            All booking options
+                                                        </label>
+                                                        {(addon.bookingOptionKeys || []).length > 0 && (
+                                                            <div className="grid gap-2 sm:grid-cols-2">
+                                                                {formData.bookingOptions.map((option, optionIndex) => {
+                                                                    const key = option.id || '';
+                                                                    const selected = Boolean(key && addon.bookingOptionKeys?.includes(key));
+                                                                    return (
+                                                                        <label key={key || optionIndex} className="flex cursor-pointer items-center gap-2 rounded-lg bg-white px-3 py-2 text-sm text-slate-700">
+                                                                            <input
+                                                                                type="checkbox"
+                                                                                checked={selected}
+                                                                                onChange={(event) => handleAddOnChange(index, 'bookingOptionKeys', event.target.checked
+                                                                                    ? [...(addon.bookingOptionKeys || []), key]
+                                                                                    : (addon.bookingOptionKeys || []).filter((value) => value !== key))}
+                                                                            />
+                                                                            {option.label.trim() || `Booking option ${optionIndex + 1}`}
+                                                                        </label>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        )}
+                                                    </fieldset>
                                                     <div className="mt-6 space-y-2">
-                                                        <label className="block text-sm font-medium text-slate-700">Description *</label>
+                                                        <label className="block text-sm font-medium text-slate-700">Description <span className="font-normal text-slate-400">(optional)</span></label>
                                                         <textarea 
                                                             value={addon.description || ''} 
                                                             onChange={(e) => handleAddOnChange(index, 'description', e.target.value)}
                                                             className={textareaBase} 
                                                             rows={3}
                                                             placeholder="Describe what this add-on includes and why customers would want it..."
-                                                            required
                                                         />
                                                     </div>
                                                 </div>

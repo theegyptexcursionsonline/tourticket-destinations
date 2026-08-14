@@ -6,6 +6,7 @@ import { Link } from '@/i18n/navigation';
 import Image from 'next/image';
 import { Destination } from '@/types';
 import { useTenant } from '@/contexts/TenantContext';
+import { contentPath } from '@/lib/content/contentUrl';
 
 interface DestinationWithTourCount extends Destination {
   tourCount: number;
@@ -42,55 +43,7 @@ export default function Destinations() {
         console.error('Failed to fetch destinations:', error);
         setError(error instanceof Error ? error.message : 'Unknown error');
         
-        // Fallback: show mock destinations
-        const mockDestinations: DestinationWithTourCount[] = [
-              {
-                _id: 'mock-1',
-                name: 'Cairo',
-                slug: 'cairo',
-                country: 'Egypt',
-                image: 'https://images.unsplash.com/photo-1539768942893-daf53e448371?w=400&h=400&fit=crop',
-                description: 'Ancient capital with pyramids and rich history',
-                tourCount: 15,
-              },
-              {
-                _id: 'mock-2',
-                name: 'Luxor',
-                slug: 'luxor',
-                country: 'Egypt',
-                image: 'https://images.unsplash.com/photo-1572252009286-268acec5ca0a?w=400&h=400&fit=crop',
-                description: 'Valley of the Kings and ancient temples',
-                tourCount: 12,
-              },
-              {
-                _id: 'mock-3',
-                name: 'Alexandria',
-                slug: 'alexandria',
-                country: 'Egypt',
-                image: 'https://images.unsplash.com/photo-1568322445389-f64ac2515020?w=400&h=400&fit=crop',
-                description: 'Mediterranean coastal city with ancient library',
-                tourCount: 8,
-              },
-              {
-                _id: 'mock-4',
-                name: 'Aswan',
-                slug: 'aswan',
-                country: 'Egypt',
-                image: 'https://images.unsplash.com/photo-1553913861-c0fddf2619ee?w=400&h=400&fit=crop',
-                description: 'Nile river city with beautiful temples',
-                tourCount: 10,
-              },
-              {
-                _id: 'mock-5',
-                name: 'Hurghada',
-                slug: 'hurghada',
-                country: 'Egypt',
-                image: 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=400&h=400&fit=crop',
-                description: 'Red Sea resort with amazing diving',
-                tourCount: 7,
-              },
-            ];
-        setDestinations(mockDestinations);
+        setDestinations([]);
       } finally {
         setIsLoading(false);
       }
@@ -143,7 +96,7 @@ export default function Destinations() {
           {destinations.map((destination) => (
             <Link
               key={destination._id}
-              href={`/destinations/${destination.slug}`}
+              href={contentPath('destination', destination.slug, destination.urlType, null, destination.parentPage?.slug)}
               className="text-center group flex-shrink-0"
             >
               <div className="relative w-28 h-28 sm:w-32 sm:h-32 md:w-36 md:h-36 rounded-full overflow-hidden shadow-lg transform transition-all duration-300 group-hover:scale-110 group-hover:shadow-xl bg-slate-200 mx-auto">

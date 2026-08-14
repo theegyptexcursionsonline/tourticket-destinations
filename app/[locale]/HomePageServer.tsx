@@ -62,14 +62,14 @@ async function getHomePageDataInternal(tenantId: string) {
       dayTrips
     ] = await Promise.all([
       // Destinations with tour count (filtered by tenant)
-      Destination.find(tenantQuery({ isPublished: true }))
-        .select('name slug image description country tenantId')
+      Destination.find(tenantQuery({ isPublished: true, archivedAt: null }))
+        .select('name slug image description country tenantId urlType parentPage archivedAt')
         .limit(8)
         .lean()
         .catch(() => []),
 
       // Featured tours (filtered by tenant)
-      Tour.find(tenantQuery({ isPublished: true, isFeatured: true }))
+      Tour.find(tenantQuery({ isPublished: true, isFeatured: true, archivedAt: null }))
         .populate('destination', 'name')
         .select('title slug image discountPrice originalPrice discountPercent bookingOptions.price bookingOptions.applyTourDiscount bookingOptions.timeSlots.price duration rating reviewCount bookings tenantId translations')
         .limit(8)
@@ -77,36 +77,36 @@ async function getHomePageDataInternal(tenantId: string) {
         .catch(() => []),
 
       // Categories for InterestGrid (filtered by tenant)
-      Category.find(tenantQuery({ isPublished: true }))
-        .select('name slug icon description tenantId')
+      Category.find(tenantQuery({ isPublished: true, archivedAt: null }))
+        .select('name slug icon heroImage description tenantId urlType parentPage archivedAt')
         .limit(12)
         .lean()
         .catch(() => []),
 
       // All categories for PopularInterest (filtered by tenant)
-      Category.find(tenantQuery({ isPublished: true })).lean()
+      Category.find(tenantQuery({ isPublished: true, archivedAt: null })).lean()
         .catch(() => []),
 
       // Attraction pages for PopularInterest (filtered by tenant)
-      AttractionPage.find(tenantQuery({ isPublished: true, pageType: 'attraction' })).lean()
+      AttractionPage.find(tenantQuery({ isPublished: true, pageType: 'attraction', archivedAt: null })).lean()
         .catch(() => []),
 
       // Category pages for PopularInterest (filtered by tenant)
-      AttractionPage.find(tenantQuery({ isPublished: true, pageType: 'category' }))
+      AttractionPage.find(tenantQuery({ isPublished: true, pageType: 'category', archivedAt: null }))
         .populate('categoryId', 'name slug')
         .sort({ featured: -1, createdAt: -1 })
         .lean()
         .catch(() => []),
 
       // Header destinations (filtered by tenant)
-      Destination.find(tenantQuery({ isPublished: true }))
-        .select('name slug image description country tenantId')
+      Destination.find(tenantQuery({ isPublished: true, archivedAt: null }))
+        .select('name slug image description country tenantId urlType parentPage archivedAt')
         .lean()
         .catch(() => []),
 
       // Header categories (filtered by tenant)
-      Category.find(tenantQuery({ isPublished: true }))
-        .select('name slug icon description tenantId')
+      Category.find(tenantQuery({ isPublished: true, archivedAt: null }))
+        .select('name slug icon heroImage description tenantId urlType parentPage archivedAt')
         .lean()
         .catch(() => []),
 
@@ -129,7 +129,7 @@ async function getHomePageDataInternal(tenantId: string) {
         ),
 
       // Day trips (all published tours, filtered by tenant, limited to 12)
-      Tour.find(tenantQuery({ isPublished: true }))
+      Tour.find(tenantQuery({ isPublished: true, archivedAt: null }))
         .select('title slug image discountPrice originalPrice duration rating reviewCount bookings tags tenantId translations')
         .limit(12)
         .lean()
@@ -147,6 +147,7 @@ async function getHomePageDataInternal(tenantId: string) {
           $match: { 
             ...tenantQuery({
               isPublished: true,
+              archivedAt: null,
               destination: { $in: destinationIds },
             }),
           } 
@@ -158,7 +159,7 @@ async function getHomePageDataInternal(tenantId: string) {
       Tour.aggregate([
         { 
           $match: { 
-            ...tenantQuery({ isPublished: true }),
+            ...tenantQuery({ isPublished: true, archivedAt: null }),
           } 
         },
         { $unwind: { path: '$category', preserveNullAndEmptyArrays: false } },
@@ -174,13 +175,13 @@ async function getHomePageDataInternal(tenantId: string) {
     const destinationsWithCounts = destinations.map((dest: any) => ({
       ...JSON.parse(JSON.stringify(dest)),
       tourCount: destCountMap.get(dest._id?.toString()) || 0
-    }));
+    })).filter((destination: any) => destination.tourCount > 0);
 
     // Calculate tour counts for InterestGrid categories (using pre-fetched counts)
     const interestGridCategories = categories.map((category: any) => ({
       ...JSON.parse(JSON.stringify(category)),
       tourCount: catCountMap.get(category._id?.toString()) || 0
-    }));
+    })).filter((category: any) => category.tourCount > 0);
 
     // Build interests (categories + attractions with tour counts) for PopularInterest
     const categoriesWithCounts = allCategories.map((category: any) => ({
@@ -190,8 +191,10 @@ async function getHomePageDataInternal(tenantId: string) {
       products: catCountMap.get(category._id?.toString()) || 0,
       _id: JSON.parse(JSON.stringify(category._id)),
       image: category.heroImage,
-      featured: category.featured
-    }));
+      featured: category.featured,
+      urlType: category.urlType,
+      parentPage: category.parentPage,
+    })).filter((category: any) => category.products > 0);
 
     // Attraction counts come from the stored value rather than a per-page regex
     // query, which is deliberate — those queries are expensive here.
@@ -220,8 +223,8 @@ async function getHomePageDataInternal(tenantId: string) {
       categories: interestGridCategories,
       featuredInterests,
       categoryPages: JSON.parse(JSON.stringify(categoryPages)),
-      headerDestinations: JSON.parse(JSON.stringify(headerDestinations)),
-      headerCategories: JSON.parse(JSON.stringify(headerCategories)),
+      headerDestinations: JSON.parse(JSON.stringify(headerDestinations.map((destination: any) => ({ ...destination, tourCount: destCountMap.get(destination._id?.toString()) || 0 })).filter((destination: any) => destination.tourCount > 0))),
+      headerCategories: JSON.parse(JSON.stringify(headerCategories.map((category: any) => ({ ...category, tourCount: catCountMap.get(category._id?.toString()) || 0 })).filter((category: any) => category.tourCount > 0))),
       heroSettings: heroSettings ? JSON.parse(JSON.stringify(heroSettings)) : null,
       dayTrips: JSON.parse(JSON.stringify(dayTrips)),
       tenantId
@@ -259,7 +262,7 @@ const getHomePageData = (tenantId: string) =>
   )();
 
 // Tenant-specific destination defaults (for tenants without specific destinations in DB)
-const tenantDestinationDefaults: Record<string, { name: string; slug: string; image: string; description: string; tourCount: number }[]> = {
+const _tenantDestinationDefaults: Record<string, { name: string; slug: string; image: string; description: string; tourCount: number }[]> = {
   'hurghada-speedboat': [
     {
       name: 'Giftun Island',
@@ -467,19 +470,7 @@ export default async function HomePageServer() {
   );
   
   // Check if destinations are tenant-specific or from 'default' fallback
-  const hasTenantSpecificDestinations = destinations.some(
-    (dest: any) => dest.tenantId === tenantId
-  );
-  
-  // Use tenant-specific default destinations if no tenant-specific ones in DB
-  const tenantDestDefaults = tenantDestinationDefaults[tenantId];
-  const effectiveDestinations = (hasTenantSpecificDestinations || !tenantDestDefaults)
-    ? localizedDestinations
-    : tenantDestDefaults.map((dest, index) => ({
-        ...dest,
-        _id: `tenant-dest-${index}`,
-        country: 'Egypt',
-      }));
+  const effectiveDestinations = localizedDestinations;
 
   // Check if heroSettings is for THIS tenant or a fallback from another tenant
   // If it's from another tenant (e.g., 'default'), we should use tenant-specific defaults instead

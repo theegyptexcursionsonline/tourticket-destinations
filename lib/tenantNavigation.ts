@@ -26,6 +26,8 @@ type TenantNavigationLinkItem = {
   _id?: unknown;
   name?: unknown;
   slug?: unknown;
+  urlType?: unknown;
+  parentPage?: { slug?: unknown } | null;
 };
 
 const generatedTenantNavigationPrefixes = ['tenant-dest-', 'tenant-cat-', 'tenant-footer-'];
@@ -44,7 +46,9 @@ export function getTenantDestinationHref(destination: TenantNavigationLinkItem):
     return getSearchHref(destination.name || destination.slug);
   }
 
-  return `/destinations/${destination.slug}`;
+  const urlType = String(destination.urlType || 'default');
+  const parentSlug = destination.parentPage?.slug ? String(destination.parentPage.slug) : '';
+  return parentSlug ? `/${parentSlug}/${destination.slug}` : urlType === 'direct' ? `/${destination.slug}` : `/destinations/${destination.slug}`;
 }
 
 export function getTenantCategoryHref(category: TenantNavigationLinkItem): string {
@@ -52,7 +56,9 @@ export function getTenantCategoryHref(category: TenantNavigationLinkItem): strin
     return getSearchHref(category.name || category.slug);
   }
 
-  return `/categories/${category.slug}`;
+  const urlType = String(category.urlType || 'default');
+  const parentSlug = category.parentPage?.slug ? String(category.parentPage.slug) : '';
+  return parentSlug ? `/${parentSlug}/${category.slug}` : urlType === 'direct' ? `/${category.slug}` : `/categories/${category.slug}`;
 }
 
 const tenantDestinationPresets: Record<string, TenantMenuDestination[]> = {

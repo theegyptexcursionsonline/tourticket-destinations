@@ -9,9 +9,11 @@ import { Tour, Category } from '@/types';
 import dbConnect from '@/lib/dbConnect';
 import TourModel from '@/lib/models/Tour';
 import CategoryModel from '@/lib/models/Category';
+import AttractionPageModel from '@/lib/models/AttractionPage';
 import EgyptHeroClient from './EgyptHeroClient';
 import EgyptToursClient from './EgyptToursClient';
 import { buildTenantQuery, getTenantFromRequest } from '@/lib/tenant';
+import { attractionPagePath, contentPath } from '@/lib/content/contentUrl';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,7 +45,7 @@ async function fetchTours(tenantId: string): Promise<Tour[]> {
   try {
     await dbConnect(tenantId);
 
-    const tours = await TourModel.find(buildTenantQuery({ isPublished: true }, tenantId))
+    const tours = await TourModel.find(buildTenantQuery({ isPublished: true, archivedAt: null }, tenantId))
       .sort({ createdAt: -1 })
       .limit(12)
       .lean()
@@ -61,8 +63,8 @@ async function fetchCategories(tenantId: string): Promise<Category[]> {
   try {
     await dbConnect(tenantId);
 
-    const categoryQuery = buildTenantQuery({ isPublished: true }, tenantId);
-    const tourQuery = buildTenantQuery({ isPublished: true }, tenantId);
+    const categoryQuery = buildTenantQuery({ isPublished: true, archivedAt: null, heroImage: { $exists: true, $ne: '' } }, tenantId);
+    const tourQuery = buildTenantQuery({ isPublished: true, archivedAt: null }, tenantId);
 
     const [categories, categoryCounts] = await Promise.all([
       CategoryModel.find(categoryQuery)
@@ -101,14 +103,31 @@ async function fetchCategories(tenantId: string): Promise<Category[]> {
   }
 }
 
+async function fetchAttractions(tenantId: string) {
+  try {
+    await dbConnect(tenantId);
+    const attractions = await AttractionPageModel.find(buildTenantQuery({
+      pageType: 'attraction',
+      isPublished: true,
+      archivedAt: null,
+      heroImage: { $exists: true, $ne: '' },
+    }, tenantId)).sort({ featured: -1, createdAt: -1 }).limit(8).lean().exec();
+    return JSON.parse(JSON.stringify(attractions));
+  } catch (error) {
+    console.error('Failed to fetch attractions:', error);
+    return [];
+  }
+}
+
 /* ---------- Server Component (Main Page) ---------- */
 export default async function AboutEgyptLanding() {
   const tenantId = await getTenantFromRequest();
 
   // Fetch data in parallel on the server
-  const [tours, categories] = await Promise.all([
+  const [tours, categories, attractions] = await Promise.all([
     fetchTours(tenantId),
-    fetchCategories(tenantId)
+    fetchCategories(tenantId),
+    fetchAttractions(tenantId),
   ]);
 
   return (
@@ -203,13 +222,13 @@ export default async function AboutEgyptLanding() {
                 {categories.map((category) => (
                   <Link
                     key={category._id}
-                    href={`/categories/${category.slug}`}
-                    className="group bg-white rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border border-gray-100"
+                    href={contentPath('category', category.slug, (category as any).urlType, null, (category as any).parentPage?.slug)}
+                    className="group overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-lg transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
                   >
-                    <div className="text-center">
-                      <div className="w-12 h-12 mx-auto mb-4 flex items-center justify-center rounded-full bg-amber-100 text-amber-600 text-2xl group-hover:bg-amber-400 group-hover:text-white transition-colors duration-300">
-                        {category.icon || '🎯'}
-                      </div>
+                    <div className="relative h-36 w-full bg-gray-100">
+                      <Image src={(category as any).heroImage} alt={category.name} fill sizes="(max-width: 640px) 50vw, 25vw" className="object-cover transition-transform duration-300 group-hover:scale-105" />
+                    </div>
+                    <div className="p-5 text-center">
                       <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-amber-600 transition-colors duration-300">
                         {category.name}
                       </h3>
@@ -228,8 +247,27 @@ export default async function AboutEgyptLanding() {
           </div>
         </section>
 
+        {attractions.length > 0 && (
+          <section className="py-20 bg-gray-50">
+            <div className="max-w-7xl mx-auto px-6 lg:px-8">
+              <div className="text-center mb-12">
+                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Discover Top Attractions</h2>
+                <p className="text-gray-600 text-lg">Explore published highlights selected for this destination.</p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                {attractions.map((attraction: any) => (
+                  <Link key={attraction._id} href={attractionPagePath(attraction.slug, attraction.pageType, attraction.urlType, null, attraction.parentPage?.slug)} className="group overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-md transition hover:-translate-y-1 hover:shadow-xl">
+                    <div className="relative h-44"><Image src={attraction.heroImage} alt={attraction.title} fill sizes="(max-width: 640px) 100vw, 25vw" className="object-cover transition-transform duration-300 group-hover:scale-105" /></div>
+                    <div className="p-5"><h3 className="font-bold text-gray-900 group-hover:text-amber-600">{attraction.title}</h3></div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* Tour Listings Section */}
-        <section className="py-20 bg-white">
+        <section id="tours" className="py-20 bg-white">
           <div className="max-w-7xl mx-auto px-6 lg:px-8">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Featured Tours & Experiences</h2>

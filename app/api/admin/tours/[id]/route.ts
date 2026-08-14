@@ -10,6 +10,7 @@ import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from "@/li
 import { auditStamp } from '@/lib/admin/auditStamp';
 import { translateTourInBackground } from '@/lib/translation/translateService';
 import { revalidateTourStorefront } from '@/lib/storefront/revalidateTourStorefront';
+import { finalizeAddOnAssignments, stripBookingOptionClientKeys } from '@/lib/admin/addOnAssignments';
 
 function generateOptionId() {
     return globalThis.crypto?.randomUUID?.() || `opt-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -229,7 +230,9 @@ async function PUTHandler(
 
         // Clean booking options to remove invalid enum values
         if (body.bookingOptions && Array.isArray(body.bookingOptions)) {
-            body.bookingOptions = cleanBookingOptions(body.bookingOptions);
+            const cleanedOptions = cleanBookingOptions(body.bookingOptions);
+            body.addOns = finalizeAddOnAssignments(body.addOns, cleanedOptions);
+            body.bookingOptions = stripBookingOptionClientKeys(cleanedOptions);
         }
 
         // Handle category, attractions and interests arrays

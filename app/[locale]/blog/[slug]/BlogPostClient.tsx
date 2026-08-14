@@ -23,6 +23,7 @@ import {
 import toast from 'react-hot-toast';
 import { sanitizeRichHtml } from '@/lib/security/sanitizeRichHtml';
 import { imageMetadataFor } from '@/lib/content/imageMetadata';
+import { contentPath } from '@/lib/content/contentUrl';
 
 type IBlog = any;
 type ITour = any;
@@ -249,7 +250,7 @@ function Sidebar({ blog }: { blog: IBlog }) {
           <h4 className="font-semibold mb-3">Popular Destinations</h4>
           <div className="grid grid-cols-2 gap-3">
             {popularDestinations.length ? popularDestinations.map((d: any) => (
-              <Link key={d._id || d.slug} href={`/destinations/${d.slug}`} className="flex flex-col items-center gap-2 p-2 rounded hover:bg-slate-50 transition">
+              <Link key={d._id || d.slug} href={contentPath('destination', d.slug, d.urlType, null, d.parentPage?.slug)} className="flex flex-col items-center gap-2 p-2 rounded hover:bg-slate-50 transition">
                 <div className="w-full h-20 rounded-lg overflow-hidden bg-slate-100">
                   {d.image ? <Image src={d.image} alt={d.name} width={300} height={200} className="object-cover" /> : <div className="w-full h-full bg-slate-100" />}
                 </div>

@@ -30,6 +30,7 @@ import { useWishlist } from '@/contexts/WishlistContext';
 import { liteClient as algoliasearch } from 'algoliasearch/lite';
 import { InstantSearch, Index, useSearchBox, useHits, Configure } from 'react-instantsearch';
 import 'instantsearch.css/themes/satellite.css';
+import { contentPath } from '@/lib/content/contentUrl';
 
 // =================================================================
 // --- ALGOLIA CONFIGURATION ---
@@ -606,7 +607,7 @@ const MegaMenu: FC<{ isOpen: boolean; onClose: () => void; destinations: Destina
                 <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500 mb-4">Top Destinations</h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   {destinations.slice(0, 6).map((dest) => (
-                    <a key={dest._id} href={`/destinations/${dest.slug}`} className="group block">
+                    <a key={dest._id} href={contentPath('destination', dest.slug, dest.urlType, null, dest.parentPage?.slug)} className="group block">
                       <div className="aspect-square w-full rounded-lg overflow-hidden relative bg-slate-200">
                         <Image src={dest.image} alt={dest.name} fill sizes="(max-width: 768px) 50vw, 33vw" className="object-cover transition-transform duration-300 group-hover:scale-110" />
                         <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors" />
@@ -625,7 +626,7 @@ const MegaMenu: FC<{ isOpen: boolean; onClose: () => void; destinations: Destina
                     const Icon = activityIcons[activity.slug] || Ticket;
                     return (
                       <li key={activity._id}>
-                        <a href={`/categories/${activity.slug}`} className="flex items-center gap-3 text-gray-700 hover:text-red-500 group">
+                        <a href={contentPath('category', activity.slug, activity.urlType, null, activity.parentPage?.slug)} className="flex items-center gap-3 text-gray-700 hover:text-red-500 group">
                           <Icon size={20} className="text-gray-400 group-hover:text-red-500" />
                           <span className="font-semibold">{activity.name}</span>
                         </a>
@@ -795,7 +796,7 @@ const MobileMenu: FC<{
                   <h3 className="font-bold text-lg text-slate-800 mb-4">Destinations</h3>
                   <div className="space-y-2">
                     {destinations.map((dest) => (
-                      <a key={dest._id} href={`/destinations/${dest.slug}`} className="block py-2 text-slate-700 hover:text-red-500" onClick={onClose}>
+                      <a key={dest._id} href={contentPath('destination', dest.slug, dest.urlType, null, dest.parentPage?.slug)} className="block py-2 text-slate-700 hover:text-red-500" onClick={onClose}>
                         {dest.name}
                       </a>
                     ))}
@@ -808,7 +809,7 @@ const MobileMenu: FC<{
                     {categories.map((activity) => {
                       const Icon = activityIcons[activity.slug] || Ticket;
                       return (
-                        <a key={activity._id} href={`/categories/${activity.slug}`} className="flex items-center gap-3 py-2 text-slate-700 hover:text-red-500" onClick={onClose}>
+                        <a key={activity._id} href={contentPath('category', activity.slug, activity.urlType, null, activity.parentPage?.slug)} className="flex items-center gap-3 py-2 text-slate-700 hover:text-red-500" onClick={onClose}>
                           <Icon size={16} />
                           <span>{activity.name}</span>
                         </a>

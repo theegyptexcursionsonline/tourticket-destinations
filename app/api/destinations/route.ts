@@ -54,14 +54,14 @@ export async function GET(request: NextRequest) {
 
     await dbConnect(tenantId);
 
-    const destinationQuery = buildStrictTenantQuery({ isPublished: true }, tenantId);
-    const tourQuery = buildStrictTenantQuery({ isPublished: true }, tenantId);
+    const destinationQuery = buildStrictTenantQuery({ isPublished: true, archivedAt: null }, tenantId);
+    const tourQuery = buildStrictTenantQuery({ isPublished: true, archivedAt: null }, tenantId);
 
     const destinations = await Destination.find({
       ...destinationQuery,
       ...(featuredOnly ? { featured: true } : {}),
     })
-      .select('_id name slug country image description featured tourCount tenantId tenantIds')
+      .select('_id name slug country image description featured tourCount tenantId tenantIds urlType parentPage archivedAt')
       .sort({ featured: -1, tourCount: -1, name: 1 })
       .lean();
 
@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
     );
 
     const destinationsWithCounts = filterVisibleTaxonomyEntries(destinationsWithCountsData)
-      .filter(dest => (dest.tourCount || 0) > 0 || (dest as any).featured)
+      .filter(dest => (dest.tourCount || 0) > 0)
       .sort((a, b) => {
         // Featured first
         if ((a as any).featured && !(b as any).featured) return -1;

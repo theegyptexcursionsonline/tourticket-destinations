@@ -63,10 +63,13 @@ export interface IBookingOption {
 
 export interface IAddOn {
   name: string;
-  description: string;
+  description?: string;
   price: number;
   category?: string;
   pricingMethod?: 'per_unit' | 'per_person';
+  groupKey?: string;
+  groupTitle?: string;
+  bookingOptionKeys?: string[];
 }
 
 // Complete Tour Interface
@@ -87,7 +90,7 @@ export interface ITour extends Document {
   slug: string;
   urlType?: UrlType;
   breadcrumbLabel?: string;
-  parentPage?: { id?: string; slug: string; label: string; kind: 'destination' | 'attraction' | 'category' | 'category-2'; href?: string } | null;
+  parentPage?: { id?: string; slug: string; label: string; kind: 'destination' | 'attraction' | 'category' | 'category-2' | 'landing'; href?: string } | null;
   destination: mongoose.Schema.Types.ObjectId;
   category: mongoose.Schema.Types.ObjectId | mongoose.Schema.Types.ObjectId[];
   description: string;
@@ -301,9 +304,9 @@ const AvailabilitySchema = new Schema<IAvailability>({
     default: [{ time: '10:00', capacity: 10 }],
     validate: {
       validator: function(slots: IAvailabilitySlot[]) {
-        return slots.length > 0 && slots.length <= 20;
+        return slots.length > 0;
       },
-      message: 'Must have between 1 and 20 time slots'
+      message: 'At least one time slot is required'
     }
   },
   blockedDates: [{
@@ -420,9 +423,7 @@ const AddOnSchema = new Schema<IAddOn>({
   },
   description: { 
     type: String, 
-    required: true, 
     trim: true,
-    minlength: [10, 'Add-on description must be at least 10 characters'],
     maxlength: [500, 'Add-on description cannot exceed 500 characters']
   },
   price: { 
@@ -438,8 +439,11 @@ const AddOnSchema = new Schema<IAddOn>({
   pricingMethod: {
     type: String,
     enum: ['per_unit', 'per_person']
-  }
-}, { _id: false });
+  },
+  groupKey: { type: String, trim: true, maxlength: 80 },
+  groupTitle: { type: String, trim: true, maxlength: 120 },
+  bookingOptionKeys: [{ type: String, trim: true, maxlength: 80 }],
+});
 
 // COMPLETE Tour Schema with all fields and validation
 const TourSchema: Schema<ITour> = new Schema({
@@ -620,40 +624,16 @@ const TourSchema: Schema<ITour> = new Schema({
   // Enhanced content
   itinerary: {
     type: [ItineraryItemSchema],
-    validate: {
-      validator: function(arr: IItineraryItem[]) {
-        return arr.length <= 30;
-      },
-      message: 'Cannot have more than 30 itinerary items'
-    }
   },
   faq: { 
     type: [FAQSchema], 
     default: [],
-    validate: {
-      validator: function(arr: IFAQ[]) {
-        return arr.length <= 20;
-      },
-      message: 'Cannot have more than 20 FAQ items'
-    }
   },
   bookingOptions: {
     type: [BookingOptionSchema],
-    validate: {
-      validator: function(arr: IBookingOption[]) {
-        return arr.length <= 10;
-      },
-      message: 'Cannot have more than 10 booking options'
-    }
   },
   addOns: {
     type: [AddOnSchema],
-    validate: {
-      validator: function(arr: IAddOn[]) {
-        return arr.length <= 20;
-      },
-      message: 'Cannot have more than 20 add-ons'
-    }
   },
 
   // Practical information

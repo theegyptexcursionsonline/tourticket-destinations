@@ -6,6 +6,7 @@ import StopSale from '@/lib/models/StopSale';
 import { createHash, createHmac } from 'crypto';
 import { isPerPersonAddOn } from '@/lib/checkout/addOnPricing';
 import { authoritativeBasePrice } from '@/lib/pricing/authoritativePrice';
+import { isAddOnAvailableForOption } from '@/lib/bookings/addOnAvailability';
 
 type CartItem = Record<string, any>;
 
@@ -130,6 +131,8 @@ export async function calculateCheckoutPricing(
       const stored = index >= 0 ? tour.addOns[index] : null;
       const fallback = FALLBACK_ADD_ONS[addOnId];
       if (!stored && !fallback) throw new Error('Invalid add-on');
+      const selectedOptionKey = selectedOption?.pricingKey || selectedOption?.id || null;
+      if (stored && !isAddOnAvailableForOption(stored, selectedOptionKey)) throw new Error('Invalid add-on');
       const price = Number(stored?.price ?? fallback.price);
       const perGuest = stored ? isPerPersonAddOn(stored) : fallback.perGuest;
       const title = stored?.name ?? fallback.title;

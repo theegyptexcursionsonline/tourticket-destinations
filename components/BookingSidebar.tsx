@@ -21,6 +21,7 @@ import { useSettings } from '@/hooks/useSettings';
 import { toDateOnlyString } from '@/utils/date';
 import { loadCurrentBookingOptions } from '@/lib/bookings/liveBookingOptions';
 import { isPerPersonAddOn } from '@/lib/checkout/addOnPricing';
+import { isAddOnAvailableForOption, normalizedBookingOptionKeys } from '@/lib/bookings/addOnAvailability';
 import {
   bindTimeSlotsToOption,
   findSelectedBookingOption,
@@ -134,6 +135,7 @@ interface AddOnTour {
   savings?: number;
   perGuest?: boolean;
   pricingMethod?: 'per_unit' | 'per_person';
+  bookingOptionKeys?: string[];
 }
 
 interface AvailabilityData {
@@ -151,6 +153,7 @@ interface AvailabilityData {
 
 interface TourOption {
   id: string;
+  type?: string;
   title: string;
   price: number;
   originalPrice?: number;
@@ -1498,6 +1501,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
             : generateTimeSlotsFromAvailability(optionPrice, index, option);
           return {
             id: optionId,
+            type: option.type,
             title: option.label || option.title || 'Tour Option',
             price: optionPrice,
             originalPrice: pricing.discountApplied
@@ -1590,6 +1594,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
           icon: getAddOnIcon(addon.category || 'Experience'),
           savings: addon.savings || (addon.price ? Math.round(addon.price * 0.3) : 5),
           perGuest: isPerPersonAddOn(addon),
+          bookingOptionKeys: normalizedBookingOptionKeys(addon),
         }));
       } else {
         // Fallback to default add-ons
@@ -1674,6 +1679,25 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
       totalSavings: totalSavingsCalc,
     };
   }, [bookingData, availability, tourBasePricing, tourDisplayData]);
+
+  const selectedBookingOption = useMemo(() => findSelectedBookingOption(
+    availability?.tourOptions,
+    bookingData.selectedTimeSlot,
+  ), [availability?.tourOptions, bookingData.selectedTimeSlot]);
+
+  const availableAddOns = useMemo(() => (
+    availability?.addOns || []
+  ).filter((addOn) => isAddOnAvailableForOption(addOn, selectedBookingOption?.id || null)), [availability?.addOns, selectedBookingOption]);
+
+  useEffect(() => {
+    const availableIds = new Set(availableAddOns.map((addOn) => addOn.id));
+    setBookingData((previous) => {
+      const selectedAddOns = Object.fromEntries(Object.entries(previous.selectedAddOns).filter(([id]) => availableIds.has(id)));
+      return Object.keys(selectedAddOns).length === Object.keys(previous.selectedAddOns).length
+        ? previous
+        : { ...previous, selectedAddOns };
+    });
+  }, [availableAddOns]);
 
   // Reset when sidebar opens
   useEffect(() => {
@@ -2355,7 +2379,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
             <h2 ref={stepHeadingRef} tabIndex={-1} className="text-xl sm:text-2xl font-bold text-gray-800 mb-2 focus:outline-none">{t('booking.enhance')}</h2>
             <p className="text-gray-600 mb-6">{t('booking.enhanceDescription')}</p>
             <div className="space-y-4 sm:space-y-6">
-              {availability?.addOns.map(addOn => (
+              {availableAddOns.map(addOn => (
                 <AddOnCard
                   key={addOn.id}
                   addOn={addOn}
@@ -2364,6 +2388,11 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
                   guestCount={bookingData.adults + bookingData.children}
                 />
               ))}
+              {availableAddOns.length === 0 && (
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-600">
+                  No add-ons are available for this booking option.
+                </div>
+              )}
             </div>
           </motion.div>
         );

@@ -38,7 +38,7 @@ export async function generateMetadata(): Promise<Metadata> {
 async function getAllTours(tenantId: string): Promise<ITour[]> {
   await dbConnect();
 
-  const tours = await Tour.find(buildStrictTenantQuery({ isPublished: true }, tenantId))
+  const tours = await Tour.find(buildStrictTenantQuery({ isPublished: true, archivedAt: null }, tenantId))
     .populate('destination', 'name')
     .populate('category', 'name')
     .sort({ isFeatured: -1, createdAt: -1 }) // Featured first, then most recent

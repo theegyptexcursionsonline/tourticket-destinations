@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { Destination } from '@/types';
 import { useTenant } from '@/contexts/TenantContext';
 import { useTranslations } from 'next-intl';
+import { contentPath } from '@/lib/content/contentUrl';
 
 interface DestinationWithTourCount extends Destination {
   tourCount: number;
@@ -49,7 +50,7 @@ export default function DestinationsServer({ destinations }: DestinationsServerP
           style={{ maxWidth: `${destinations.length * 200}px`, margin: '0 auto' }}
         >
           {destinations.map((destination) => (
-            <Link key={destination._id} href={`/destinations/${destination.slug}`} className="text-center group w-[calc(50%-8px)] sm:w-auto">
+            <Link key={destination._id} href={contentPath('destination', destination.slug, destination.urlType, null, destination.parentPage?.slug)} className="text-center group w-[calc(50%-8px)] sm:w-auto">
               <div className="mx-auto rounded-full">
                 <div className="relative w-32 h-32 sm:w-36 sm:h-36 md:w-40 md:h-40 rounded-full overflow-hidden transform transition-all duration-300 group-hover:scale-[1.06] shadow-lg group-hover:shadow-xl bg-slate-200">
                   {destination.image && destination.image !== 'UPLOAD_IMAGE_URL_HERE' && (

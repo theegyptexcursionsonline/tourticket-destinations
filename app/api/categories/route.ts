@@ -31,6 +31,7 @@ export async function GET(request: NextRequest) {
       ...buildStrictTenantQuery({}, tenantId),
       ...(featuredOnly ? { featured: true } : {}),
       isPublished: true,
+      archivedAt: null,
     })
       .sort({ order: 1, name: 1 })
       .lean();
@@ -44,6 +45,7 @@ export async function GET(request: NextRequest) {
         $match: { 
           ...buildStrictTenantQuery({
             isPublished: true,
+            archivedAt: null,
             category: { $in: categoryIds },
           }, tenantId),
         } 

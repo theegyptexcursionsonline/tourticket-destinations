@@ -17,6 +17,7 @@ import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import { isRTL } from '@/i18n/config';
 import { filterSearchHitsByTenant } from '@/lib/tenantSearchHitFilter';
+import { contentPath } from '@/lib/content/contentUrl';
 import 'instantsearch.css/themes/satellite.css';
 
 // --- Types and Constants ---
@@ -334,7 +335,7 @@ function DestinationHits({
   const t = useTranslations();
   const { hits } = useHits();
   const scopedHits = filterSearchHitsByTenant(hits as any[], tenantId)
-    .filter((hit: any) => (Number(hit.tourCount) || 0) > 0);
+    .filter((hit: any) => hit.isPublished !== false && !hit.archivedAt && (Number(hit.tourCount) || 0) > 0);
   const limitedHits = scopedHits.slice(0, limit);
 
   if (limitedHits.length === 0) return null;
@@ -366,7 +367,7 @@ function DestinationHits({
       {limitedHits.map((hit: any, index) => (
         <motion.a
           key={hit.objectID}
-          href={`/destinations/${hit.slug || hit.objectID}`}
+          href={contentPath('destination', hit.slug || hit.objectID, hit.urlType, null, hit.parentPage?.slug)}
           onClick={onHitClick}
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -419,7 +420,7 @@ function CategoryHits({
   const t = useTranslations();
   const { hits } = useHits();
   const scopedHits = filterSearchHitsByTenant(hits as any[], tenantId)
-    .filter((hit: any) => (Number(hit.tourCount) || 0) > 0);
+    .filter((hit: any) => hit.isPublished !== false && !hit.archivedAt && (Number(hit.tourCount) || 0) > 0);
   const limitedHits = scopedHits.slice(0, limit);
 
   if (limitedHits.length === 0) return null;
@@ -451,7 +452,7 @@ function CategoryHits({
       {limitedHits.map((hit: any, index) => (
         <motion.a
           key={hit.objectID}
-          href={`/categories/${hit.slug || hit.objectID}`}
+          href={contentPath('category', hit.slug || hit.objectID, hit.urlType, null, hit.parentPage?.slug)}
           onClick={onHitClick}
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -773,7 +774,7 @@ const DestinationSlider = ({ destinations }: { destinations: any[] }) => {
         {destinations.map((destination, idx) => (
           <a
             key={idx}
-            href={`/destinations/${destination.slug}`}
+            href={contentPath('destination', destination.slug, destination.urlType, null, destination.parentPage?.slug)}
             target="_blank"
             rel="noopener noreferrer"
             className="group block flex-shrink-0 w-[280px] bg-white rounded-2xl overflow-hidden border-2 border-gray-100 shadow-md hover:shadow-2xl hover:-translate-y-2 transition-all duration-300"

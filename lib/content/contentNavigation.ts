@@ -3,6 +3,7 @@ export const PARENT_CONTENT_KINDS = [
   "attraction",
   "category",
   "category-2",
+  "landing",
 ] as const;
 
 export type ParentContentKind = (typeof PARENT_CONTENT_KINDS)[number];
@@ -18,6 +19,14 @@ export interface ParentPageValue {
 export interface ContentNavigationValue {
   breadcrumbLabel?: string;
   parentPage?: ParentPageValue | null;
+}
+
+export const SYSTEM_PARENT_PAGES: readonly ParentPageValue[] = [
+  { id: "landing:egypt", slug: "egypt", label: "Egypt", kind: "landing", href: "/egypt" },
+] as const;
+
+export function systemParentPage(id: string): ParentPageValue | null {
+  return SYSTEM_PARENT_PAGES.find((parent) => parent.id === id) || null;
 }
 
 const SAFE_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;

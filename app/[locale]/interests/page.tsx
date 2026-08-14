@@ -49,8 +49,8 @@ interface CategoryWithCount extends ICategory {
 async function getCategoriesWithTourCounts(tenantId: string): Promise<CategoryWithCount[]> {
   await dbConnect(tenantId);
 
-  const categoryQuery = buildStrictTenantQuery({ isPublished: true }, tenantId);
-  const tourQuery = buildStrictTenantQuery({ isPublished: true }, tenantId);
+  const categoryQuery = buildStrictTenantQuery({ isPublished: true, archivedAt: null }, tenantId);
+  const tourQuery = buildStrictTenantQuery({ isPublished: true, archivedAt: null }, tenantId);
 
   const [categories, categoryCounts] = await Promise.all([
     Category.find(categoryQuery)
@@ -76,7 +76,7 @@ async function getCategoriesWithTourCounts(tenantId: string): Promise<CategoryWi
   }));
 
   // Serialize the data to pass to the client component
-  return JSON.parse(JSON.stringify(categoriesWithCounts));
+  return JSON.parse(JSON.stringify(categoriesWithCounts.filter((category) => category.tourCount > 0)));
 }
 
 // The main server component for the /interests route

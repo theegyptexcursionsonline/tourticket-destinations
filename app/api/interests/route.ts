@@ -62,12 +62,12 @@ export async function GET(request: NextRequest) {
 
     await dbConnect(tenantId);
 
-    const categoryQuery = buildStrictTenantQuery({ isPublished: true }, tenantId);
-    const tourQuery = buildStrictTenantQuery({ isPublished: true }, tenantId);
+    const categoryQuery = buildStrictTenantQuery({ isPublished: true, archivedAt: null }, tenantId);
+    const tourQuery = buildStrictTenantQuery({ isPublished: true, archivedAt: null }, tenantId);
 
     const [categories, categoryCounts, attractionPages] = await Promise.all([
       Category.find(categoryQuery)
-        .select('_id name slug heroImage featured order')
+        .select('_id name slug heroImage featured order urlType parentPage archivedAt')
         .sort({ featured: -1, order: 1, name: 1 })
         .limit(30)
         .lean(),
@@ -77,9 +77,9 @@ export async function GET(request: NextRequest) {
         { $group: { _id: '$category', count: { $sum: 1 } } },
       ]),
       AttractionPage.find(
-        buildStrictTenantQuery({ isPublished: true, pageType: 'attraction' }, tenantId)
+        buildStrictTenantQuery({ isPublished: true, pageType: 'attraction', archivedAt: null }, tenantId)
       )
-        .select('_id title slug heroImage featured categoryId')
+        .select('_id title slug heroImage featured categoryId urlType parentPage archivedAt')
         .sort({ featured: -1, createdAt: -1 })
         .limit(12)
         .lean(),
@@ -97,7 +97,9 @@ export async function GET(request: NextRequest) {
       _id: category._id,
       image: getSafeInterestImage(category),
       featured: category.featured,
-    }));
+      urlType: category.urlType,
+      parentPage: category.parentPage,
+    })).filter((category) => category.products > 0);
 
     const attractionsWithCounts = attractionPages
       .map((page: any) => ({
@@ -108,6 +110,8 @@ export async function GET(request: NextRequest) {
         _id: page._id,
         featured: page.featured,
         image: getSafeInterestImage(page),
+        urlType: page.urlType,
+        parentPage: page.parentPage,
       }))
       .filter((page) => page.products > 0);
 

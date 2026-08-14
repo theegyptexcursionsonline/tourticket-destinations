@@ -51,7 +51,7 @@ export interface IAttractionPage extends Document {
   categoryId?: mongoose.Schema.Types.ObjectId;
   urlType?: UrlType;
   breadcrumbLabel?: string;
-  parentPage?: { id?: string; slug: string; label: string; kind: 'destination' | 'attraction' | 'category' | 'category-2'; href?: string } | null;
+  parentPage?: { id?: string; slug: string; label: string; kind: 'destination' | 'attraction' | 'category' | 'category-2' | 'landing'; href?: string } | null;
   cityDestination?: mongoose.Types.ObjectId;
   
   // Content

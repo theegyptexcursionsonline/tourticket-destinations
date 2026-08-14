@@ -3,6 +3,7 @@ import dbConnect from '@/lib/dbConnect';
 import Tour from '@/lib/models/Tour';
 import { buildStrictTenantQuery, getTenantFromRequest } from '@/lib/tenant';
 import { isPerPersonAddOn, resolveAddOnPricingMethod } from '@/lib/checkout/addOnPricing';
+import { normalizedBookingOptionKeys } from '@/lib/bookings/addOnAvailability';
 
 export async function GET(
   request: Request,
@@ -39,6 +40,9 @@ export async function GET(
           savings: addon.price ? Math.round(addon.price * 0.3) : 5,
           perGuest: isPerPersonAddOn(addon),
           pricingMethod: resolveAddOnPricingMethod(addon),
+          groupKey: addon.groupKey || '',
+          groupTitle: addon.groupTitle || '',
+          bookingOptionKeys: normalizedBookingOptionKeys(addon),
           maxQuantity: 1,
           required: false,
         }))

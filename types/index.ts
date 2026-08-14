@@ -168,10 +168,13 @@ export interface BookingOption {
 
 export interface AddOn {
   name: string;
-  description: string;
+  description?: string;
   price: number;
   category?: string;
   pricingMethod?: 'per_unit' | 'per_person';
+  groupKey?: string;
+  groupTitle?: string;
+  bookingOptionKeys?: string[];
 }
 
 // =================================================================

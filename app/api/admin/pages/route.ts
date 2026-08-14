@@ -210,9 +210,9 @@ export async function GET(request: NextRequest) {
       : null;
 
     const [attraction, categoryLanding, category] = await Promise.all([
-      AttractionPage.countDocuments({ ...scope, pageType: 'attraction' }),
-      AttractionPage.countDocuments({ ...scope, pageType: 'category' }),
-      Category.countDocuments(scope),
+      AttractionPage.countDocuments({ ...scope, pageType: 'attraction', archivedAt: null }),
+      AttractionPage.countDocuments({ ...scope, pageType: 'category', archivedAt: null }),
+      Category.countDocuments({ ...scope, archivedAt: null }),
     ]);
 
     return NextResponse.json({

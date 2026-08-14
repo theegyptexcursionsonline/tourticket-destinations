@@ -13,6 +13,7 @@ import {
 } from '@/lib/auth/adminAuth';
 import { findMatchingTourOptionIds } from '@/lib/admin/tourOptionIdentifiers';
 import { localizeAndDedupeTours } from '@/lib/translation/localizeTourCollection';
+import { SYSTEM_PARENT_PAGES } from '@/lib/content/contentNavigation';
 
 const LIMIT = 20;
 const VALID_KINDS = ['tours', 'pages', 'categories', 'parents'] as const;
@@ -121,25 +122,36 @@ export async function GET(request: NextRequest) {
     }
 
     if (kind === 'parents') {
-      const parentFilter: Record<string, unknown> = { ...scope, isPublished: { $ne: false } };
+      const parentFilter: Record<string, unknown> = { ...scope, isPublished: { $ne: false }, archivedAt: null };
       const pageParentFilter: Record<string, unknown> = { ...parentFilter };
+      const categoryParentFilter: Record<string, unknown> = { ...parentFilter };
       if (excludeId && Types.ObjectId.isValid(excludeId)) pageParentFilter._id = { $ne: excludeId };
+      if (excludeId && Types.ObjectId.isValid(excludeId)) categoryParentFilter._id = { $ne: excludeId };
       if (search) {
         parentFilter.$or = [{ name: search }, { slug: search }];
         pageParentFilter.$or = [{ title: search }, { slug: search }];
+        categoryParentFilter.$or = [{ name: search }, { slug: search }];
       }
-      const [destinations, pages] = await Promise.all([
+      const [destinations, pages, categories] = await Promise.all([
         Destination.find(parentFilter).select('tenantId name slug image isPublished').sort({ name: 1 }).limit(LIMIT).lean(),
         AttractionPage.find(pageParentFilter).select('tenantId title slug heroImage pageType isPublished').sort({ title: 1 }).limit(LIMIT).lean(),
+        Category.find(categoryParentFilter).select('tenantId name slug heroImage isPublished').sort({ name: 1 }).limit(LIMIT).lean(),
       ]);
       return NextResponse.json({
         success: true,
         data: [
+          ...SYSTEM_PARENT_PAGES.filter((parent) => {
+            if (excludeId && parent.id === excludeId) return false;
+            return !search || search.test(parent.label) || search.test(parent.slug);
+          }).map((parent) => ({ ...parent, title: parent.label, isPublished: true })),
           ...(destinations as Array<Record<string, unknown>>).map((destination) => ({
             id: String(destination._id), tenantId: String(destination.tenantId || ''), label: String(destination.name || ''), title: String(destination.name || ''), slug: String(destination.slug || ''), image: destination.image ? String(destination.image) : undefined, kind: 'destination', isPublished: destination.isPublished !== false,
           })),
           ...(pages as Array<Record<string, unknown>>).map((page) => ({
             id: String(page._id), tenantId: String(page.tenantId || ''), label: String(page.title || ''), title: String(page.title || ''), slug: String(page.slug || ''), image: page.heroImage ? String(page.heroImage) : undefined, kind: page.pageType === 'category' ? 'category-2' : 'attraction', isPublished: page.isPublished !== false,
+          })),
+          ...(categories as Array<Record<string, unknown>>).map((category) => ({
+            id: String(category._id), tenantId: String(category.tenantId || ''), label: String(category.name || ''), title: String(category.name || ''), slug: String(category.slug || ''), image: category.heroImage ? String(category.heroImage) : undefined, kind: 'category', isPublished: category.isPublished !== false,
           })),
         ],
       });

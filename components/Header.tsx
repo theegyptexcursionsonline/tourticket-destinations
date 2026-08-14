@@ -61,6 +61,7 @@ import {
   filterTourSearchHitsByTenant,
 } from '@/lib/tenantSearchHitFilter';
 import 'instantsearch.css/themes/satellite.css';
+import { contentPath } from '@/lib/content/contentUrl';
 import ThemeToggle from '@/components/ThemeToggle';
 import { isRTL } from '@/i18n/config';
 import { tourSearchHref } from '@/lib/search/tourSearchHref';
@@ -344,7 +345,7 @@ function DestinationHits({
       {limitedHits.map((hit: any, index) => (
         <Link
           key={hit.objectID}
-          href={`/destinations/${hit.slug || hit.objectID}`}
+          href={contentPath('destination', hit.slug || hit.objectID, hit.urlType, null, hit.parentPage?.slug)}
           onClick={onHitClick}
           className="block"
         >
@@ -415,7 +416,7 @@ function CategoryHits({
       {limitedHits.map((hit: any, index) => (
         <motion.a
           key={hit.objectID}
-          href={`/categories/${hit.slug || hit.objectID}`}
+          href={contentPath('category', hit.slug || hit.objectID, hit.urlType, null, hit.parentPage?.slug)}
           onClick={onHitClick}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
