@@ -376,10 +376,10 @@ export function ExitRescue({
           type="button"
           onClick={onCopy}
           aria-label={`Copy discount code ${code}`}
-          className="mt-6 flex w-full items-center justify-between gap-3 rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 px-5 py-4 text-left transition hover:border-gray-400"
+          className="mt-6 flex w-full flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 px-4 py-4 text-left transition hover:border-gray-400 sm:px-5"
         >
-          <span className="text-xl font-extrabold tracking-[0.16em] text-gray-900">{code}</span>
-          <span className="shrink-0 rounded-full px-4 py-2 text-xs font-bold text-white" style={{ backgroundColor: copied ? '#15803d' : color }}>
+          <span className="min-w-0 break-all text-lg font-extrabold tracking-[0.12em] text-gray-900 sm:text-xl sm:tracking-[0.16em]">{code}</span>
+          <span className="ml-auto shrink-0 rounded-full px-4 py-2 text-xs font-bold text-white" style={{ backgroundColor: copied ? '#15803d' : color }}>
             {copied ? 'Copied ✓' : 'Copy code'}
           </span>
         </button>

@@ -57,7 +57,7 @@ describe('offer hero layering', () => {
     expect(luxe).toContain('absolute inset-0 z-0');
     expect(luxe).not.toContain('-z-10');
     const heroes = layouts.match(/<KenBurns/g) ?? [];
-    expect(heroes.length).toBeGreaterThanOrEqual(2);
+    expect(heroes.length).toBeGreaterThanOrEqual(1);
     expect(layouts).toContain('pointer-events-none absolute inset-0 z-10');
     expect(layouts).toContain('relative z-20');
   });

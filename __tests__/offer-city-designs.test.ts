@@ -3,12 +3,14 @@ import path from 'node:path';
 import { CITY_DESIGNS, designFor } from '../app/[locale]/offer/[token]/design';
 
 /**
- * Client decision 2026-08-14: exactly THREE approved design concepts across
- * all offer pages — reef (Sharm), marina (Hurghada), lagoon (El Gouna).
- * Every city maps into that set while keeping its own palette/type/section
- * language, and every approved archetype has a layout.
+ * Client decision 2026-08-14 (afternoon revision): the MT network domains
+ * carry exactly TWO designs — marina (Hurghada's boarding pass) and lagoon
+ * (El Gouna's lookbook), one per domain. The third approved design is EEO
+ * main's own offer page in the main repo, never here. Every city maps into
+ * that set while keeping its own palette/type/section language, and every
+ * approved archetype has a layout.
  */
-const APPROVED_ARCHETYPES = ['reef', 'marina', 'lagoon'] as const;
+const APPROVED_ARCHETYPES = ['marina', 'lagoon'] as const;
 
 describe('per-city offer designs', () => {
   const cities = Object.keys(CITY_DESIGNS);
@@ -23,12 +25,11 @@ describe('per-city offer designs', () => {
     ]));
   });
 
-  it('only uses the three client-approved design concepts', () => {
+  it('only uses the two client-approved MT design concepts', () => {
     for (const city of cities) {
       expect(APPROVED_ARCHETYPES).toContain(CITY_DESIGNS[city].archetype);
     }
     // The anchor cities keep the concept the client approved them under.
-    expect(CITY_DESIGNS['sharm-excursions-online'].archetype).toBe('reef');
     expect(CITY_DESIGNS['hurghada-excursions-online'].archetype).toBe('marina');
     expect(CITY_DESIGNS['el-gouna'].archetype).toBe('lagoon');
   });
@@ -50,7 +51,7 @@ describe('per-city offer designs', () => {
 
   it('falls back to a defined design for an unknown tenant', () => {
     const fallback = designFor('some-new-tenant');
-    expect(fallback.archetype).toBe('reef');
+    expect(fallback.archetype).toBe('marina');
     expect(fallback.paper).toBeTruthy();
   });
 
@@ -89,7 +90,7 @@ describe('tenant logo rendering', () => {
   const logoTags = layouts.match(/<img src=\{view\.logo\}[^/]*\/>/g) ?? [];
 
   it('renders the logo in every layout', () => {
-    expect(logoTags.length).toBe(3);
+    expect(logoTags.length).toBe(2);
   });
 
   it('never lets a flex parent stretch the logo out of aspect', () => {
@@ -113,9 +114,19 @@ describe('mobile-first hero behaviour', () => {
     'utf8',
   );
 
-  it('promotes the code panel above the proof list on small screens', () => {
-    expect(layouts).toContain('order-2 w-full max-w-md');
-    expect(layouts).toContain('order-3 lg:col-start-1 lg:row-start-2');
+  it('puts the code ahead of the proof list in every hero', () => {
+    // The offer (the copyable code) must land on the first phone screen,
+    // before the trust bullets, in both layouts.
+    for (const layout of ['function MarinaLayout', 'function LagoonLayout']) {
+      const start = layouts.indexOf(layout);
+      expect(start).toBeGreaterThan(-1);
+      const body = layouts.slice(start);
+      const codeAt = body.indexOf('onClick={copy}');
+      const proofAt = body.indexOf('TRUST_LINES.map');
+      expect(codeAt).toBeGreaterThan(-1);
+      expect(proofAt).toBeGreaterThan(-1);
+      expect(codeAt).toBeLessThan(proofAt);
+    }
   });
 
   it('reserves full-viewport heroes for large screens', () => {
@@ -126,7 +137,7 @@ describe('mobile-first hero behaviour', () => {
   it('steps every hero headline down on phones', () => {
     const headlines = layouts.match(/className="[^"]*text-\[\d\.\d+rem\][^"]*"/g) ?? [];
     const heroHeadlines = headlines.filter((h) => h.includes('md:text-['));
-    expect(heroHeadlines.length).toBeGreaterThanOrEqual(3);
+    expect(heroHeadlines.length).toBeGreaterThanOrEqual(2);
     for (const h of heroHeadlines) {
       expect(h).toMatch(/sm:text-\[|md:text-\[/);
     }
@@ -152,6 +163,33 @@ describe('mobile action bar', () => {
   it('counts remaining time in days once past 24 hours', () => {
     expect(bar).toMatch(/days > 0 \? `\$\{days\}d/);
     expect(bar).not.toMatch(/Ends in \$\{pad\(hours\)\}:\$\{pad\(minutes\)\}:\$\{pad\(seconds\)\}`/);
+  });
+});
+
+/**
+ * Client report 14/08 2:36 AM (log #463): the copy control spilled past the
+ * right screen edge on a phone narrower than 390px. Our proof floor is now
+ * 344px — the code control must be geometrically unable to overflow at any
+ * viewport, whatever length the code is.
+ */
+describe('narrow-phone code control (log #463)', () => {
+  const layouts = readFileSync(
+    path.join(process.cwd(), 'app/[locale]/offer/[token]/layouts.tsx'),
+    'utf8',
+  );
+
+  it('lets the lagoon code pill shrink and wrap instead of spilling off-screen', () => {
+    const hero = layouts.slice(layouts.indexOf('function LagoonLayout'));
+    const pill = hero.slice(hero.indexOf('onClick={copy}'), hero.indexOf('</button>'));
+    expect(pill).toContain('max-w-full');
+    expect(pill).toContain('flex-wrap');
+    expect(pill).toContain('min-w-0 break-all');
+  });
+
+  it('keeps the marina code block a full-width column on phones', () => {
+    const hero = layouts.slice(layouts.indexOf('function MarinaLayout'));
+    const block = hero.slice(hero.indexOf('onClick={copy}'), hero.indexOf('</button>'));
+    expect(block).toContain('w-full flex-col');
   });
 });
 
@@ -230,7 +268,7 @@ describe('bundle listings contract (client 14/08)', () => {
   it('renders benefits before the price on every bundle card', () => {
     // Each approved archetype card: the BundleBenefits mount must appear
     // before that card's offerPrice line.
-    for (const card of ['function ReefCard', 'function StubCard', 'function LookCard']) {
+    for (const card of ['function StubCard', 'function LookCard']) {
       const start = layouts.indexOf(card);
       expect(start).toBeGreaterThan(-1);
       const next = layouts.indexOf('function ', start + card.length);
@@ -245,7 +283,7 @@ describe('bundle listings contract (client 14/08)', () => {
 
   it('passes benefits into the bundles section of every layout, not the picks', () => {
     const bundleMaps = layouts.match(/view\.bundles\.map[\s\S]{0,220}?benefits\s*\/>/g) || [];
-    expect(bundleMaps.length).toBe(3);
+    expect(bundleMaps.length).toBe(2);
     expect(layouts).not.toMatch(/view\.picks\.map[\s\S]{0,220}?benefits\s*\/>/);
   });
 });

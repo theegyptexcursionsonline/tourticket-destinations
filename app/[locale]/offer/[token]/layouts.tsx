@@ -5,10 +5,8 @@ import {
   BookLink,
   BundleBenefits,
   ClosingCta,
-  Countdown,
   Motif,
   PriceFootnote,
-  Reveal,
   Stars,
   TourImage,
   TRUST_LINES,
@@ -20,7 +18,7 @@ import {
   type OfferView,
 } from './primitives';
 import type { CityDesign } from './design';
-import { Aurora, CodeRail, CountUp, FlipDigit, Grain, KenBurns, Rise, SheenCta, SplitReveal } from './luxe';
+import { Aurora, CountUp, FlipDigit, Grain, KenBurns, Rise, SheenCta, SplitReveal } from './luxe';
 
 /** Countdown rendered as flip cards — the timer is the page's heartbeat. */
 function FlipClock({ expiresAt, tone = 'light' }: { expiresAt: string | null; tone?: 'light' | 'dark' }) {
@@ -48,170 +46,6 @@ function FlipClock({ expiresAt, tone = 'light' }: { expiresAt: string | null; to
         </span>
       ))}
     </div>
-  );
-}
-
-/* ------------------------------------------------------------------ *
- * REEF — Sharm. Full-bleed dive photography, glass instrument panel.
- * ------------------------------------------------------------------ */
-
-function ReefCard({ view, design, locale, tour, benefits = false }: LayoutProps & { tour: OfferTour; benefits?: boolean }) {
-  const percent = Math.round((tour.saving / tour.listPrice) * 100);
-  return (
-    <BookLink
-      view={view}
-      locale={locale}
-      tour={tour}
-      className="group relative flex flex-col overflow-hidden rounded-3xl bg-white ring-1 ring-black/[0.07] transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl"
-    >
-      <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
-        <TourImage tour={tour} sizes="(max-width: 640px) 100vw, 33vw" />
-        <div aria-hidden className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/60 to-transparent" />
-        <div className="absolute bottom-3 left-3 flex items-center gap-2">
-          {tour.duration && <span className="rounded-full bg-white/95 px-3 py-1 text-[11px] font-bold text-gray-900">{tour.duration}</span>}
-          {tour.rating !== null && tour.reviewCount > 0 && (
-            <span className="flex items-center gap-1 rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-bold text-white backdrop-blur-sm">
-              <span aria-hidden className="text-amber-400">★</span>{tour.rating.toFixed(1)}
-              <span className="font-medium text-white/75">({tour.reviewCount})</span>
-            </span>
-          )}
-        </div>
-        <span className="absolute right-3 top-3 rounded-full px-2.5 py-1 text-[11px] font-extrabold text-white shadow-md" style={{ backgroundColor: view.brandColor }}>
-          −{view.label}
-        </span>
-      </div>
-      <div className="flex flex-1 flex-col p-5">
-        <h3 className="text-[1.05rem] font-bold leading-snug text-gray-900">{tour.title}</h3>
-        <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-gray-600">{tour.summary}</p>
-        {benefits && <BundleBenefits tour={tour} design={design} />}
-        <div className="mt-auto flex items-end justify-between gap-3 border-t border-gray-100 pt-4">
-          <div>
-            <p className="text-[11px] font-medium text-gray-500">
-              <s className="tabular-nums">{money(view.currencySymbol, tour.listPrice)}</s>
-              <span className="ml-1.5 rounded-md bg-green-50 px-1.5 py-0.5 font-bold text-green-700">−{percent}%</span>
-            </p>
-            <p className="text-[1.55rem] font-extrabold leading-tight tabular-nums text-gray-900">{money(view.currencySymbol, tour.offerPrice)}</p>
-          </div>
-          <span className="mb-0.5 flex shrink-0 items-center gap-1.5 rounded-full py-2.5 pl-4 pr-3 text-xs font-bold text-white transition-all group-hover:gap-2.5" style={{ backgroundColor: view.brandColor }}>
-            Book now <span aria-hidden>→</span>
-          </span>
-        </div>
-      </div>
-    </BookLink>
-  );
-}
-
-function ReefLayout({ view, design, locale }: LayoutProps) {
-  const [copied, copy] = useCopy(view.code);
-  const s = view.stats;
-  return (
-    <>
-      <section className="relative overflow-hidden lg:min-h-[92vh]" style={{ backgroundColor: design.ink }}>
-        {view.heroImage && <KenBurns src={view.heroImage} alt={view.heroAlt} />}
-        <div aria-hidden className="pointer-events-none absolute inset-0 z-10" style={{ background: `linear-gradient(to bottom, ${design.ink}c4, ${design.ink}2e 42%, ${design.ink}f2)` }} />
-        <div aria-hidden className="pointer-events-none absolute inset-0 z-10" style={{ background: `linear-gradient(to right, ${design.ink}b8, transparent 68%)` }} />
-        <Aurora color={view.brandColor} className="z-10" />
-        <div className="pointer-events-none absolute inset-0 z-10"><Grain /></div>
-        {/* On a phone the code panel comes straight after the headline: the offer
-            has to be on the first screen, not below the proof list. */}
-        <div className="relative z-20 mx-auto grid max-w-6xl gap-8 px-6 pb-14 pt-8 md:pb-24 md:pt-10 lg:min-h-[92vh] lg:grid-cols-[1fr_auto] lg:items-center lg:gap-12">
-          <div className="order-1 lg:col-start-1 lg:row-start-1">
-            {view.logo && <img src={view.logo} alt={view.siteName} className="h-11 w-auto max-w-[200px] self-start object-contain object-left drop-shadow-lg md:h-12" />}
-            <div className="mt-9 flex items-center gap-2.5">
-              {view.firstName && (
-                <span className="flex h-8 w-8 items-center justify-center rounded-full text-base font-bold text-white ring-1 ring-white/25" style={{ backgroundColor: view.brandColor }}>
-                  {view.firstName.charAt(0).toUpperCase()}
-                </span>
-              )}
-              <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-white/75">{design.kicker}</p>
-            </div>
-            <SplitReveal
-              lines={view.firstName ? [`${view.firstName}, take ${view.label} off`, 'every experience.'] : [`Take ${view.label} off`, 'every experience.']}
-              className="mt-7 max-w-3xl text-[2.15rem] font-extrabold leading-[1.02] text-white drop-shadow-2xl sm:text-[2.8rem] md:text-[4.2rem] md:leading-[0.98]"
-              style={{ fontFamily: design.display, letterSpacing: design.displayTracking }}
-            />
-            <p className="mt-5 max-w-xl text-base leading-relaxed text-white drop-shadow-md md:text-xl">
-              Hand-picked at live {view.siteName} prices — from {money(view.currencySymbol, s.fromPrice)} with your code, saving up to {money(view.currencySymbol, s.maxSaving)} on a single booking.
-            </p>
-          </div>
-
-          <div className="order-3 lg:col-start-1 lg:row-start-2">
-            {s.avgRating !== null && s.reviewTotal > 0 && (
-              <p className="flex items-center gap-2 text-sm font-semibold text-white/90">
-                <Stars rating={s.avgRating} />{s.avgRating.toFixed(1)} from {s.reviewTotal} traveller reviews
-              </p>
-            )}
-            <ul className="mt-5 grid max-w-2xl grid-cols-1 gap-x-8 gap-y-2.5 text-[0.92rem] text-white/85 sm:grid-cols-2">
-              {TRUST_LINES.map((line) => (
-                <li key={line} className="flex items-center gap-2.5">
-                  <span aria-hidden className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold text-white" style={{ backgroundColor: view.brandColor }}>✓</span>
-                  {line}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="order-2 w-full max-w-md rounded-[1.75rem] border border-white/20 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-center bg-white/[0.08] p-6 shadow-[0_40px_80px_-30px_rgba(0,0,0,0.85)] backdrop-blur-xl md:p-7">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/70">Your private code</p>
-              <span className="rounded-full px-3 py-1 text-[11px] font-extrabold text-white" style={{ backgroundColor: view.brandColor }}>−{view.label} OFF</span>
-            </div>
-            <button type="button" aria-label={`Copy discount code ${view.code}`} onClick={copy} className="group mt-3 flex w-full items-center justify-between gap-3 rounded-2xl bg-white px-5 py-4 text-left shadow-lg transition-transform duration-200 hover:-translate-y-0.5">
-              <span className="text-2xl font-extrabold tracking-[0.16em] text-gray-900">{view.code}</span>
-              <span className="shrink-0 rounded-full px-4 py-2 text-xs font-bold text-white" style={{ backgroundColor: copied ? '#15803d' : '#111827' }}>{copied ? 'Copied ✓' : 'Tap to copy'}</span>
-            </button>
-            {view.expiresAt && (
-              <div className="mt-5">
-                <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-white/70">Offer ends in</p>
-                <FlipClock expiresAt={view.expiresAt} />
-              </div>
-            )}
-            <p className="mt-5 border-t border-white/10 pt-4 text-[13px] leading-relaxed text-white/75">
-              Valid on every tour below{view.expiresNice ? <> until <span className="font-bold text-white">{view.expiresNice}</span></> : null} — on as many bookings as you make.
-            </p>
-            <SheenCta href="#tours" background={view.brandColor} className="mt-5 block w-full rounded-2xl py-3.5 text-[15px]">
-              Browse {view.totalCount} experiences ↓
-            </SheenCta>
-          </div>
-        </div>
-      </section>
-
-      <HowItWorks view={view} design={design} />
-
-      {view.bundles.length > 0 && (
-        <section id="tours" className="mx-auto max-w-6xl scroll-mt-14 px-6 pt-16">
-          <Rise>
-            <Heading design={design} index="01" kicker="Save more" title={design.sections.value}>
-              Best-value picks — book several and your {view.label} applies to every one.
-            </Heading>
-          </Rise>
-          <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {view.bundles.map((tour, index) => (
-              <Rise key={tour.id} delay={Math.min(index, 2) * 90}><ReefCard view={view} design={design} locale={locale} tour={tour} benefits /></Rise>
-            ))}
-          </div>
-        </section>
-      )}
-
-      <section className="mx-auto max-w-6xl px-6 pt-16">
-        <Rise>
-          <Heading design={design} index="02" kicker="Hand-picked" title={design.sections.picks}>
-            Chosen for {view.firstName ?? 'you'} from {view.totalCount} live experiences.
-          </Heading>
-        </Rise>
-        <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {view.picks.map((tour, index) => (
-            <Rise key={tour.id} delay={Math.min(index, 3) * 80}><ReefCard view={view} design={design} locale={locale} tour={tour} /></Rise>
-          ))}
-        </div>
-      </section>
-
-      <QuoteStrip view={view} design={design} />
-      <section className="mx-auto max-w-6xl px-6 pb-20 pt-16">
-        <ClosingCta view={view} design={design} />
-        <PriceFootnote />
-      </section>
-    </>
   );
 }
 
@@ -422,9 +256,11 @@ function LagoonLayout({ view, design, locale }: LayoutProps) {
             <Motif design={design} className="mt-6 h-5 w-40" />
 
             <div className="mt-7 flex flex-wrap items-center gap-4">
-              <button type="button" onClick={copy} aria-label={`Copy discount code ${view.code}`} className="flex items-center gap-3 rounded-full bg-white py-3 pl-6 pr-3 shadow-lg ring-1 ring-black/5 transition-transform hover:-translate-y-0.5">
-                <span className="text-xl font-extrabold tracking-[0.16em] text-gray-900">{view.code}</span>
-                <span className="rounded-full px-3 py-1.5 text-[11px] font-bold text-white" style={{ backgroundColor: copied ? '#15803d' : view.brandColor }}>{copied ? 'Copied ✓' : `−${view.label}`}</span>
+              {/* max-w-full + min-w-0 + wrap: the pill may never spill past a
+                  narrow phone edge, whatever length the code is (log #463). */}
+              <button type="button" onClick={copy} aria-label={`Copy discount code ${view.code}`} className="flex max-w-full flex-wrap items-center gap-x-3 gap-y-1.5 rounded-full bg-white py-3 pl-5 pr-3 shadow-lg ring-1 ring-black/5 transition-transform hover:-translate-y-0.5 sm:pl-6">
+                <span className="min-w-0 break-all text-lg font-extrabold tracking-[0.12em] text-gray-900 sm:text-xl sm:tracking-[0.16em]">{view.code}</span>
+                <span className="shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold text-white" style={{ backgroundColor: copied ? '#15803d' : view.brandColor }}>{copied ? 'Copied ✓' : `−${view.label}`}</span>
               </button>
               {view.expiresAt && <FlipClock expiresAt={view.expiresAt} tone="dark" />}
             </div>
@@ -573,7 +409,6 @@ function QuoteStrip({ view, design }: { view: OfferView; design: CityDesign }) {
 }
 
 export const LAYOUTS = {
-  reef: ReefLayout,
   marina: MarinaLayout,
   lagoon: LagoonLayout,
 } as const;

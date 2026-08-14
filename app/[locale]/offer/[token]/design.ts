@@ -1,15 +1,16 @@
 /**
  * Per-city design profiles for planner offer pages.
  *
- * Client decision 2026-08-14: exactly THREE design concepts are approved
- * across every EEO/MT offer page — reef (Sharm), marina (Hurghada) and
- * lagoon (El Gouna). Every city maps onto one of those archetypes; the
- * palette, kicker, motif and section language stay city-specific so each
- * brand keeps its own voice. A tenant with no profile falls back to `reef`,
- * the most neutral of the three.
+ * Client decision 2026-08-14 (afternoon revision, supersedes the morning
+ * three-design split): the MT network domains carry exactly TWO designs —
+ * marina (Hurghada's boarding pass) and lagoon (El Gouna's lookbook),
+ * "one per domain". The third approved design is EEO main's own offer page
+ * and lives in the main tourticket repo, never here. Every city maps onto
+ * marina or lagoon; the palette, kicker, motif and section language stay
+ * city-specific so each brand keeps its own voice.
  */
 
-export type OfferArchetype = 'reef' | 'marina' | 'lagoon';
+export type OfferArchetype = 'marina' | 'lagoon';
 
 export type CityDesign = {
   archetype: OfferArchetype;
@@ -36,8 +37,8 @@ export type CityDesign = {
   motif: 'wave' | 'sun' | 'rule' | 'column' | 'ripple';
 };
 
-const REEF: CityDesign = {
-  archetype: 'reef',
+const SHARM: CityDesign = {
+  archetype: 'marina',
   ink: '#04141c',
   paper: '#f2f7f8',
   surface: '#ffffff',
@@ -55,7 +56,7 @@ const REEF: CityDesign = {
 };
 
 export const CITY_DESIGNS: Record<string, CityDesign> = {
-  'sharm-excursions-online': REEF,
+  'sharm-excursions-online': SHARM,
 
   'hurghada-excursions-online': {
     archetype: 'marina',
@@ -76,7 +77,7 @@ export const CITY_DESIGNS: Record<string, CityDesign> = {
   },
 
   'cairo-excursions-online': {
-    archetype: 'reef',
+    archetype: 'lagoon',
     ink: '#0f1013',
     paper: '#f6f3ec',
     surface: '#fffdf8',
@@ -131,5 +132,5 @@ export const CITY_DESIGNS: Record<string, CityDesign> = {
 };
 
 export function designFor(tenantId: string): CityDesign {
-  return CITY_DESIGNS[tenantId] ?? REEF;
+  return CITY_DESIGNS[tenantId] ?? SHARM;
 }
