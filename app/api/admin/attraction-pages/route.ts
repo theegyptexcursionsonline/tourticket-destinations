@@ -14,6 +14,7 @@ import {
 import { sanitizeContentNavigation } from '@/lib/content/contentNavigation';
 import { ParentPageValidationError, validateParentPageSelection } from '@/lib/content/validateParentPage';
 import { escapeRegex } from '@/lib/utils/escapeRegex';
+import { auditStamp } from '@/lib/admin/auditStamp';
 import {
   contentPageDraftDefaults,
   missingContentPageFields,
@@ -160,6 +161,8 @@ async function POSTHandler(request: NextRequest) {
     await dbConnect();
 
     const body = await request.json();
+    delete body.createdBy;
+    delete body.updatedBy;
     Object.assign(body, sanitizeContentNavigation(body));
 
     // Tenant guard: if a tenantId scope is passed (from AdminTenantContext),
@@ -221,6 +224,12 @@ async function POSTHandler(request: NextRequest) {
           error: 'Category not found'
         }, { status: 400 });
       }
+    }
+
+    const author = auditStamp({ id: auth.userId, name: auth.name, email: auth.email });
+    if (author) {
+      body.createdBy = author;
+      body.updatedBy = author;
     }
 
     const linkedContent = await validateAndNormalizePageLinks(body, targetTenantId);

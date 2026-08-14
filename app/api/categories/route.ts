@@ -11,6 +11,7 @@ import { filterVisibleTaxonomyEntries } from '@/lib/utils/taxonomy';
 import { localizeEntityFields } from '@/lib/i18n/contentLocalization';
 import { categoryTranslationFields } from '@/lib/i18n/translationFields';
 import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
+import { auditStamp } from '@/lib/admin/auditStamp';
 import { sanitizeContentNavigation } from '@/lib/content/contentNavigation';
 import { ParentPageValidationError, validateParentPageSelection } from '@/lib/content/validateParentPage';
 
@@ -102,6 +103,8 @@ async function POSTHandler(request: NextRequest) {
     if (adminAuth instanceof NextResponse) return adminAuth;
 
     const body = await request.json();
+    delete body.createdBy;
+    delete body.updatedBy;
     const requestedTenantId = new URL(request.url).searchParams.get('tenantId');
     const tenantId = requestedTenantId && requestedTenantId !== 'all'
       ? requestedTenantId
@@ -137,7 +140,11 @@ async function POSTHandler(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const category = new Category(body);
+    const author = auditStamp({ id: adminAuth.userId, name: adminAuth.name, email: adminAuth.email });
+    const category = new Category({
+      ...body,
+      ...(author ? { createdBy: author, updatedBy: author } : {}),
+    });
     await category.save();
     revalidateStorefrontContent();
     registerAdminAuditDetail(contentPageAuditDetail({

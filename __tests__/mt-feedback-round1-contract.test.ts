@@ -101,6 +101,29 @@ describe('readability fixes', () => {
   });
 });
 
+describe('practical information is explicit, not invented', () => {
+  const editor = read('components/TourForm.tsx');
+
+  it('offers explicit recommended defaults without filling them automatically', () => {
+    expect(editor).toContain('practicalDefaultText');
+    expect(editor).toContain('Use recommended default');
+    expect(editor).toContain('defaultKey="whatToBring"');
+    expect(editor).toContain('defaultKey="accessibilityInfo"');
+  });
+
+  it.each([
+    'app/[locale]/[slug]/TourDetailClientPage.tsx',
+    'components/TourDetailPage.tsx',
+  ])('%s hides empty fields rather than publishing generic promises', (file) => {
+    const source = read(file);
+    expect(source).not.toContain('SMART fallbacks');
+    expect(source).not.toContain('Comfortable walking shoes');
+    expect(source).not.toContain('Please inform us of any special requirements when booking');
+    expect(source).toContain('cleanPracticalList');
+    expect(source).toContain('cleanPracticalText');
+  });
+});
+
 describe('each tenant sitemap publishes its own domain', () => {
   const sitemap = read('app/sitemap.ts');
 

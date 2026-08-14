@@ -28,7 +28,10 @@ interface UnifiedRow {
   isPublished: boolean;
   featured: boolean;
   createdAt: string;
+  updatedAt?: string;
   archivedAt?: string | null;
+  createdBy?: { id?: string; name?: string; email?: string };
+  updatedBy?: { id?: string; name?: string; email?: string };
 }
 
 interface Counts {
@@ -80,14 +83,16 @@ export default function UnifiedPagesAdmin() {
     const status = initialParams().get('status');
     return status === 'published' || status === 'draft' || status === 'archived' ? status : 'all';
   });
+  const [editorFilter, setEditorFilter] = useState(() => initialParams().get('editor') || '');
   useEffect(() => {
     const params = new URLSearchParams();
     if (searchTerm.trim()) params.set('q', searchTerm.trim());
     if (filterKind !== 'all') params.set('kind', filterKind);
     if (filterStatus !== 'all') params.set('status', filterStatus);
+    if (editorFilter.trim()) params.set('editor', editorFilter.trim());
     const query = params.toString();
     window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
-  }, [searchTerm, filterKind, filterStatus]);
+  }, [searchTerm, filterKind, filterStatus, editorFilter]);
 
   const requestSeq = useRef(0);
   const activeRequest = useRef<AbortController | null>(null);
@@ -102,9 +107,10 @@ export default function UnifiedPagesAdmin() {
     if (searchTerm.trim()) params.set('q', searchTerm.trim());
     if (filterKind !== 'all') params.set('kind', filterKind);
     if (filterStatus !== 'all') params.set('status', filterStatus);
+    if (editorFilter.trim()) params.set('editor', editorFilter.trim());
     if (cursor) params.set('cursor', cursor);
     return params.toString();
-  }, [searchTerm, filterKind, filterStatus, selectedTenantId]);
+  }, [searchTerm, filterKind, filterStatus, editorFilter, selectedTenantId]);
 
   const fetchPage = useCallback(async (cursor: string | null, append: boolean) => {
     const seq = ++requestSeq.current;
@@ -292,6 +298,18 @@ export default function UnifiedPagesAdmin() {
             />
           </div>
 
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <input
+              type="search"
+              aria-label="Filter pages by author or editor"
+              placeholder="Author or editor..."
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+              value={editorFilter}
+              onChange={(event) => setEditorFilter(event.target.value)}
+            />
+          </div>
+
           <select
             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
             value={filterKind}
@@ -340,7 +358,7 @@ export default function UnifiedPagesAdmin() {
               {rows.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
-                    {searchTerm || filterKind !== 'all' || filterStatus !== 'all'
+                    {searchTerm || editorFilter || filterKind !== 'all' || filterStatus !== 'all'
                       ? 'No pages match your filters'
                       : 'No pages found'}
                   </td>
@@ -388,7 +406,12 @@ export default function UnifiedPagesAdmin() {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {row.createdAt ? new Date(row.createdAt).toLocaleDateString() : 'N/A'}
+                      <div>{row.createdAt ? new Date(row.createdAt).toLocaleDateString() : 'N/A'}</div>
+                      {(row.updatedBy?.name || row.updatedBy?.email || row.createdBy?.name || row.createdBy?.email) && (
+                        <div className="mt-1 text-xs text-gray-400">
+                          Edited by {row.updatedBy?.name || row.updatedBy?.email || row.createdBy?.name || row.createdBy?.email}
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end gap-2">

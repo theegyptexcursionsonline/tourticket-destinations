@@ -1,3 +1,5 @@
+import type { AuditActor } from '@/lib/admin/auditStamp';
+
 type SourceRecord = Record<string, unknown>;
 
 const TOUR_COPY_FIELDS = [
@@ -119,7 +121,10 @@ export function buildTourDuplicate(source: SourceRecord, params: { id: string; t
   };
 }
 
-export function buildDestinationDuplicate(source: SourceRecord, params: { tenantId: string; attempt: number }) {
+export function buildDestinationDuplicate(
+  source: SourceRecord,
+  params: { tenantId: string; attempt: number; actor?: AuditActor },
+) {
   const identity = duplicateIdentity({
     label: source.name, slug: source.slug, attempt: params.attempt,
     labelLimit: 100, slugLimit: 100, fallback: 'Destination',
@@ -132,10 +137,14 @@ export function buildDestinationDuplicate(source: SourceRecord, params: { tenant
     featured: false,
     isPublished: false,
     tourCount: 0,
+    ...(params.actor ? { createdBy: params.actor, updatedBy: params.actor } : {}),
   };
 }
 
-export function buildPageDuplicate(source: SourceRecord, params: { id: string; tenantId: string; attempt: number }) {
+export function buildPageDuplicate(
+  source: SourceRecord,
+  params: { id: string; tenantId: string; attempt: number; actor?: AuditActor },
+) {
   const identity = duplicateIdentity({
     label: source.title, slug: source.slug, attempt: params.attempt,
     labelLimit: 200, slugLimit: 100, fallback: 'Page',
@@ -148,6 +157,7 @@ export function buildPageDuplicate(source: SourceRecord, params: { id: string; t
     slug: identity.slug,
     featured: false,
     isPublished: false,
+    ...(params.actor ? { createdBy: params.actor, updatedBy: params.actor } : {}),
   };
 }
 

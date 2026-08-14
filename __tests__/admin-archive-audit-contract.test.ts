@@ -85,6 +85,37 @@ describe('audit trail records who touched a tour', () => {
   });
 });
 
+describe('audit trail covers pages, categories, and destinations', () => {
+  it.each([
+    'app/api/admin/destinations/route.ts',
+    'app/api/admin/attraction-pages/route.ts',
+    'app/api/categories/route.ts',
+  ])('%s stamps the server-owned creator', (file) => {
+    const source = read(file);
+    expect(source).toContain('createdBy');
+    expect(source).toContain('updatedBy');
+    expect(source).toContain('auditStamp');
+  });
+
+  it.each([
+    'app/api/admin/destinations/[id]/route.ts',
+    'app/api/admin/attraction-pages/[id]/route.ts',
+    'app/api/categories/[id]/route.ts',
+  ])('%s rejects client authorship and stamps the editor', (file) => {
+    const source = read(file);
+    expect(source).toContain('delete ');
+    expect(source).toContain('.createdBy');
+    expect(source).toContain('updatedBy');
+    expect(source).toContain('auditStamp');
+  });
+
+  it('exposes author/editor filters on pages and destinations', () => {
+    expect(read('app/api/admin/pages/route.ts')).toContain("searchParams.get('editor')");
+    expect(read('app/admin/pages/page.tsx')).toContain('Filter pages by author or editor');
+    expect(read('app/admin/destinations/DestinationManager.tsx')).toContain('Filter destinations by author or editor');
+  });
+});
+
 describe('pages and destinations can be archived from the row', () => {
   const list = read('app/admin/pages/page.tsx');
 

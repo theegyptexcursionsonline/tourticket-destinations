@@ -7,6 +7,7 @@ import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/li
 import Destination from '@/lib/models/Destination';
 import Tour from '@/lib/models/Tour';
 import mongoose from 'mongoose';
+import { auditStamp } from '@/lib/admin/auditStamp';
 
 // Defensive helper: when an admin is scoped to a single tenant via the
 // AdminTenantContext, every write must include `?tenantId=xxx`. We use that
@@ -27,6 +28,8 @@ async function PUTHandler(
     await dbConnect();
     
     const data = await request.json();
+    delete data.createdBy;
+    delete data.updatedBy;
     const { id } = await params;
     
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -160,6 +163,9 @@ async function PUTHandler(
         .replace(/-+/g, '-')
         .trim();
     }
+
+    const editor = auditStamp({ id: auth.userId, name: auth.name, email: auth.email });
+    if (editor) updateData.updatedBy = editor;
     
     const destination = await Destination.findOneAndUpdate(
       findFilter,

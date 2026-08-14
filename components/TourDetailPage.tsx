@@ -70,74 +70,33 @@ interface TourPageClientProps {
   initialReviews: ReviewType[];
 }
 
-// Extract enhancement data from the actual tour object with SMART fallbacks
-const extractEnhancementData = (tour: Tour): TourEnhancement => {
-  return {
-    // Use database itinerary with proper icon handling, only fallback if completely empty
-    itinerary: tour.itinerary && tour.itinerary.length > 0 ? tour.itinerary.map(item => ({
-      ...item,
-      icon: (item as any).icon || 'location' // Ensure icon is properly set
-    })) as any[] : [],
-    
-    // Use database data first, only fallback if not available
-    whatToBring: tour.whatToBring && tour.whatToBring.length > 0 ? tour.whatToBring : [
-      "Camera for photos",
-      "Comfortable walking shoes", 
-      "Valid ID or passport",
-      "Weather-appropriate clothing",
-      "Water bottle"
-    ],
-    
-    whatToWear: tour.whatToWear && tour.whatToWear.length > 0 ? tour.whatToWear : [
-      "Comfortable walking shoes",
-      "Weather-appropriate clothing", 
-      "Modest attire for religious sites",
-      "Layers for varying temperatures"
-    ],
-    
-    physicalRequirements: tour.physicalRequirements || "Moderate walking required. Tour involves stairs and uneven surfaces. Please inform us of any mobility concerns.",
-    
-    accessibilityInfo: tour.accessibilityInfo && tour.accessibilityInfo.length > 0 ? tour.accessibilityInfo : [
-      "Limited wheelchair accessibility - please contact us in advance",
-      "Audio guides available for hearing impaired visitors", 
-      "Service animals are welcome",
-      "Please inform us of any special requirements when booking"
-    ],
-    
-    groupSize: tour.groupSize || { min: 1, max: tour.maxGroupSize || 20 },
-    transportationDetails: tour.transportationDetails || "Meeting point instructions will be provided upon booking confirmation.",
-    mealInfo: tour.mealInfo || "No meals included unless specified. Local restaurant recommendations available from your guide.",
-    weatherPolicy: tour.weatherPolicy || "Tours operate rain or shine. In case of severe weather, tours may be rescheduled or refunded.",
-    photoPolicy: tour.photoPolicy || "Photography is encouraged. Please respect photography restrictions at certain venues and other guests' privacy.",
-    tipPolicy: tour.tipPolicy || "Gratuities are not included but are appreciated for exceptional service.",
-    
-    healthSafety: tour.healthSafety && tour.healthSafety.length > 0 ? tour.healthSafety : [
-      "Enhanced safety protocols in place",
-      "Hand sanitizer available", 
-      "First aid trained guides",
-      "Emergency procedures established",
-      "Local health guidelines followed"
-    ],
-    
-    culturalInfo: tour.culturalInfo && tour.culturalInfo.length > 0 ? tour.culturalInfo : [
-      "Learn about local history and culture",
-      "Discover architectural highlights", 
-      "Understand local traditions and customs",
-      "Experience authentic local atmosphere",
-      "Professional guide commentary"
-    ],
-    
-    seasonalVariations: tour.seasonalVariations || "Tour experience may vary by season. Check specific seasonal considerations when booking.",
-    
-    localCustoms: tour.localCustoms && tour.localCustoms.length > 0 ? tour.localCustoms : [
-      "Arrive at meeting point 15 minutes early",
-      "Respect local customs and dress codes",
-      "Follow guide instructions at all times", 
-      "Be respectful of other tour participants",
-      "Ask questions - guides love sharing knowledge!"
-    ]
-  };
-};
+const cleanPracticalList = (values?: string[]) =>
+  Array.isArray(values) ? values.map((value) => value?.trim()).filter(Boolean) as string[] : [];
+
+const cleanPracticalText = (value?: string) => value?.trim() || undefined;
+
+// Only explicit tour content reaches the page. Recommended defaults are copied
+// into the tour by an editor, so an empty field always means "hide it".
+const extractEnhancementData = (tour: Tour): TourEnhancement => ({
+  itinerary: tour.itinerary && tour.itinerary.length > 0 ? tour.itinerary.map(item => ({
+    ...item,
+    icon: (item as any).icon || 'location',
+  })) as any[] : [],
+  whatToBring: cleanPracticalList(tour.whatToBring),
+  whatToWear: cleanPracticalList(tour.whatToWear),
+  physicalRequirements: cleanPracticalText(tour.physicalRequirements),
+  accessibilityInfo: cleanPracticalList(tour.accessibilityInfo),
+  groupSize: tour.groupSize || (tour.maxGroupSize ? { min: 1, max: tour.maxGroupSize } : undefined),
+  transportationDetails: cleanPracticalText(tour.transportationDetails),
+  mealInfo: cleanPracticalText(tour.mealInfo),
+  weatherPolicy: cleanPracticalText(tour.weatherPolicy),
+  photoPolicy: cleanPracticalText(tour.photoPolicy),
+  tipPolicy: cleanPracticalText(tour.tipPolicy),
+  healthSafety: cleanPracticalList(tour.healthSafety),
+  culturalInfo: cleanPracticalList(tour.culturalInfo),
+  seasonalVariations: cleanPracticalText(tour.seasonalVariations),
+  localCustoms: cleanPracticalList(tour.localCustoms),
+});
 
 const TOUR_IMAGE_FALLBACK = '/hero2.jpg';
 const BROKEN_TOUR_IMAGE_IDS = [

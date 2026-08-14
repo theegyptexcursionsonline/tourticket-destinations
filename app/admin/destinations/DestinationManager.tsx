@@ -29,6 +29,7 @@ import {
   Plus,
   Minus,
   Copy,
+  Search,
 } from 'lucide-react';
 import { IDestination } from '@/lib/models/Destination';
 import { useAdminTenant } from '@/contexts/AdminTenantContext';
@@ -106,6 +107,17 @@ export default function DestinationManager({ initialDestinations }: { initialDes
   const [editingDestination, setEditingDestination] = useState<IDestination | null>(null);
   const [duplicatingDestinationId, setDuplicatingDestinationId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('basic');
+  const [editorFilter, setEditorFilter] = useState(() =>
+    typeof window === 'undefined' ? '' : new URLSearchParams(window.location.search).get('editor') || '',
+  );
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (editorFilter.trim()) params.set('editor', editorFilter.trim());
+    else params.delete('editor');
+    const query = params.toString();
+    window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
+  }, [editorFilter]);
 
   // Re-fetch destinations when selected brand changes
   useEffect(() => {
@@ -641,6 +653,16 @@ setTimeout(() => router.refresh(), 0);
       adminOrigin: typeof window !== 'undefined' ? window.location.origin : null,
     },
   );
+  const normalizedEditorFilter = editorFilter.trim().toLowerCase();
+  const visibleDestinations = destinations.filter((destination) => {
+    if (!normalizedEditorFilter) return true;
+    const actors = [destination.updatedBy, destination.createdBy]
+      .flatMap((actor) => actor ? [actor.name, actor.email] : [])
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+    return actors.includes(normalizedEditorFilter);
+  });
 
   return (
     <div className="space-y-8">
@@ -672,17 +694,30 @@ setTimeout(() => router.refresh(), 0);
 
         {/* Stats */}
         <div className="mt-6 pt-6 border-t border-slate-200/60">
-          <div className="flex items-center gap-2 text-sm text-slate-600">
-            <MapPin className="h-4 w-4 text-indigo-500" />
-            <span className="font-medium">{destinations.length}</span>
-            <span>destination{destinations.length !== 1 ? 's' : ''} available</span>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2 text-sm text-slate-600">
+              <MapPin className="h-4 w-4 text-indigo-500" />
+              <span className="font-medium">{destinations.length}</span>
+              <span>destination{destinations.length !== 1 ? 's' : ''} available</span>
+            </div>
+            <div className="relative min-w-[240px] flex-1 sm:max-w-sm">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                type="search"
+                aria-label="Filter destinations by author or editor"
+                placeholder="Filter by author or editor..."
+                value={editorFilter}
+                onChange={(event) => setEditorFilter(event.target.value)}
+                className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-800 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+              />
+            </div>
           </div>
         </div>
       </div>
 
       {/* Destinations Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {destinations.map((dest, index) => (
+        {visibleDestinations.map((dest, index) => (
           <motion.div
             key={String(dest._id)}
             initial={{ opacity: 0, y: 20 }}
@@ -796,6 +831,11 @@ setTimeout(() => router.refresh(), 0);
                     <Users className="h-4 w-4 text-slate-400" />
                     <p className="text-slate-500 text-sm">{dest.tourCount || 0} tours</p>
                   </div>
+                  {(dest.updatedBy?.name || dest.updatedBy?.email || dest.createdBy?.name || dest.createdBy?.email) && (
+                    <p className="mt-2 truncate text-xs text-slate-400">
+                      Edited by {dest.updatedBy?.name || dest.updatedBy?.email || dest.createdBy?.name || dest.createdBy?.email}
+                    </p>
+                  )}
                 </div>
                 
                 {/* Visual Indicator */}
@@ -811,7 +851,7 @@ setTimeout(() => router.refresh(), 0);
         ))}
 
         {/* Empty State */}
-        {destinations.length === 0 && (
+        {visibleDestinations.length === 0 && (
           <div className="col-span-full">
             <div className="text-center py-16">
               <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-slate-100 to-slate-200 rounded-full flex items-center justify-center">

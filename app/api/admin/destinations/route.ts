@@ -7,6 +7,7 @@ import { revalidateStorefrontContent } from '@/lib/storefront/revalidateTourStor
 import { MongoError } from 'mongodb';
 import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 import { canViewAllBrands, listTenantClause } from '@/lib/admin/tenantListScope';
+import { auditStamp } from '@/lib/admin/auditStamp';
 
 export async function GET(request: NextRequest) {
   const auth = await requireAdminAuth(request, { permissions: ['manageContent'] });
@@ -35,6 +36,8 @@ async function POSTHandler(request: NextRequest) {
   await dbConnect();
   try {
     const body = await request.json();
+    delete body.createdBy;
+    delete body.updatedBy;
 
     // Tenant guard: if a tenantId scope is passed (from AdminTenantContext),
     // require body.tenantId to match — or set it from the scope if missing.
@@ -82,6 +85,12 @@ async function POSTHandler(request: NextRequest) {
     if (!body.bestTimeToVisit) body.bestTimeToVisit = 'Year-round';
     if (!body.coordinates) {
       body.coordinates = { lat: 0, lng: 0 }; // Default coordinates
+    }
+
+    const author = auditStamp({ id: auth.userId, name: auth.name, email: auth.email });
+    if (author) {
+      body.createdBy = author;
+      body.updatedBy = author;
     }
     
     const destination = await Destination.create(body);

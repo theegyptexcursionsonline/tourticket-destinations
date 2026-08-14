@@ -5,6 +5,8 @@ import { ImageMetadataSchema } from '@/lib/models/schemas/ImageMetadataSchema';
 import { URL_TYPES, type UrlType } from '@/lib/content/contentUrl';
 import { ParentPageSchema, breadcrumbLabelField } from '@/lib/models/contentNavigationSchema';
 import { PAGE_TEMPLATES, type PageTemplate } from '@/lib/content/pageTemplate';
+import { AuditActorSchema } from '@/lib/models/schemas/AuditActorSchema';
+import type { AuditActor } from '@/lib/admin/auditStamp';
 
 const FaqSchema = new Schema({
   question: { type: String, required: true, trim: true, maxlength: 300 },
@@ -19,6 +21,8 @@ const TravelTipSchema = new Schema({
 export interface ICategory extends Document {
   archivedAt?: Date | null;
   archivedBy?: string;
+  createdBy?: AuditActor;
+  updatedBy?: AuditActor;
   // Multi-tenant support
   tenantId: string;
   
@@ -262,6 +266,8 @@ const CategorySchema: Schema<ICategory> = new Schema({
   // existing isPublished queries keep working and nothing needs migrating.
   archivedAt: { type: Date, index: true },
   archivedBy: { type: String, trim: true },
+  createdBy: { type: AuditActorSchema, default: undefined },
+  updatedBy: { type: AuditActorSchema, default: undefined },
 }, {
   timestamps: true,
   toJSON: { virtuals: true },

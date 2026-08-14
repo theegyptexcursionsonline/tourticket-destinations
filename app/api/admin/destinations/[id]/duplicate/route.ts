@@ -14,6 +14,7 @@ import {
 } from '@/lib/admin/contentDuplication';
 import { registerAdminAuditDetail, withAdminAudit } from '@/lib/admin/adminAudit';
 import { revalidateStorefrontContent } from '@/lib/storefront/revalidateTourStorefront';
+import { auditStamp } from '@/lib/admin/auditStamp';
 
 type SourceDestination = Record<string, unknown> & {
   tenantId?: unknown;
@@ -54,9 +55,10 @@ async function POSTHandler(request: NextRequest, { params }: { params: Promise<{
       }
     }
 
+    const actor = auditStamp({ id: auth.userId, name: auth.name, email: auth.email });
     const duplicate: any = await createUniqueDuplicate({
       build: async (attempt) => {
-        const draft: Record<string, any> = buildDestinationDuplicate(source, { tenantId, attempt });
+        const draft: Record<string, any> = buildDestinationDuplicate(source, { tenantId, attempt, actor });
         Object.assign(draft, sanitizeContentNavigation(draft));
         draft.parentPage = await validateParentPageSelection({
           parentPage: draft.parentPage as any,

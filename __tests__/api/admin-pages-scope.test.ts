@@ -109,4 +109,25 @@ describe('GET /api/admin/pages tenant isolation', () => {
       $and: [{ tenantId: 'makadi-bay' }, { archivedAt: null }],
     });
   });
+
+  it('filters author and editor fields inside the selected tenant scope', async () => {
+    mockRequireAdminAuth.mockResolvedValue({ role: 'super_admin', tenantIds: [] });
+    const { GET } = await import('@/app/api/admin/pages/route');
+    await GET({
+      nextUrl: new URL('https://dashboard.example/api/admin/pages?tenantId=makadi-bay&editor=Sara'),
+    } as never);
+
+    const editorClause = expect.objectContaining({
+      $or: expect.arrayContaining([
+        { 'createdBy.name': expect.any(RegExp) },
+        { 'updatedBy.email': expect.any(RegExp) },
+      ]),
+    });
+    expect(mockPageFind).toHaveBeenCalledWith({
+      $and: [{ tenantId: 'makadi-bay' }, { archivedAt: null }, editorClause],
+    });
+    expect(mockCategoryFind).toHaveBeenCalledWith({
+      $and: [{ tenantId: 'makadi-bay' }, { archivedAt: null }, editorClause],
+    });
+  });
 });

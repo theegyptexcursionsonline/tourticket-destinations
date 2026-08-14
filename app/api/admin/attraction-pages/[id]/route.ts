@@ -16,6 +16,7 @@ import {
 } from '@/lib/attractionPages/validatePageLinks';
 import { sanitizeContentNavigation } from '@/lib/content/contentNavigation';
 import { ParentPageValidationError, validateParentPageSelection } from '@/lib/content/validateParentPage';
+import { auditStamp } from '@/lib/admin/auditStamp';
 
 // Defensive helper: when an admin is scoped to a single tenant via the
 // AdminTenantContext, every write must include `?tenantId=xxx`. We use that
@@ -111,6 +112,8 @@ async function PUTHandler(
       resourceId: id,
     }));
     delete body.tenantId;
+    delete body.createdBy;
+    delete body.updatedBy;
     if (Object.prototype.hasOwnProperty.call(body, 'parentPage')) {
       body.parentPage = await validateParentPageSelection({
         parentPage: body.parentPage,
@@ -149,6 +152,8 @@ async function PUTHandler(
     }
 
     // PROPERLY HANDLE ARRAYS - This is the fix
+    const editor = auditStamp({ id: auth.userId, name: auth.name, email: auth.email });
+    if (editor) body.updatedBy = editor;
     const linkedContent = await validateAndNormalizePageLinks(body, targetTenantId, id);
     const updateData = {
       ...body,

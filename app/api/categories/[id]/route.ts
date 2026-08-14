@@ -12,6 +12,7 @@ import Category from '@/lib/models/Category';
 import mongoose from 'mongoose';
 import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 import { buildStrictTenantQuery, getTenantFromRequest } from '@/lib/tenant';
+import { auditStamp } from '@/lib/admin/auditStamp';
 import { sanitizeContentNavigation } from '@/lib/content/contentNavigation';
 import { ParentPageValidationError, validateParentPageSelection } from '@/lib/content/validateParentPage';
 
@@ -100,6 +101,10 @@ async function PUTHandler(
       resourceId: id,
     }));
     delete body.tenantId;
+    delete body.createdBy;
+    delete body.updatedBy;
+    const editor = auditStamp({ id: adminAuth.userId, name: adminAuth.name, email: adminAuth.email });
+    if (editor) body.updatedBy = editor;
     if (Object.prototype.hasOwnProperty.call(body, 'parentPage')) {
       body.parentPage = await validateParentPageSelection({
         parentPage: body.parentPage,

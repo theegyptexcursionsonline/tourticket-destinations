@@ -49,11 +49,14 @@ const mockDestinations = [
     metaDescription: 'Cairo tours',
     tags: ['ancient'],
     tourCount: 10,
+    createdBy: { id: 'editor-1', name: 'Sara Editor', email: 'sara@example.com' },
+    updatedBy: { id: 'editor-1', name: 'Sara Editor', email: 'sara@example.com' },
   },
 ]
 
 describe('DestinationManager', () => {
   beforeEach(() => {
+    window.history.replaceState(null, '', '/')
     global.fetch = jest.fn((url: string) => {
       if (url.includes('/api/admin/destinations') || url.includes('/api/destinations')) {
         return Promise.resolve({
@@ -121,5 +124,17 @@ describe('DestinationManager', () => {
       screen.queryByText(/create your first/i) ||
       screen.queryByText(/get started/i)
     expect(emptyText).toBeTruthy()
+  })
+
+  it('filters destinations by author or editor', async () => {
+    render(<DestinationManager initialDestinations={mockDestinations as any} />)
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2))
+    const input = screen.getByRole('searchbox', { name: 'Filter destinations by author or editor' })
+    await userEvent.type(input, 'No matching editor')
+    expect(screen.queryByText('Cairo')).not.toBeInTheDocument()
+    await userEvent.clear(input)
+    await userEvent.type(input, 'Sara')
+    expect(screen.getByText('Cairo')).toBeInTheDocument()
+    expect(screen.getByText('Edited by Sara Editor')).toBeInTheDocument()
   })
 })

@@ -4,6 +4,8 @@ import type { ImageMetadata } from '@/lib/content/imageMetadata';
 import { ImageMetadataSchema } from '@/lib/models/schemas/ImageMetadataSchema';
 import { URL_TYPES, type UrlType } from '@/lib/content/contentUrl';
 import { ParentPageSchema, breadcrumbLabelField } from '@/lib/models/contentNavigationSchema';
+import { AuditActorSchema } from '@/lib/models/schemas/AuditActorSchema';
+import type { AuditActor } from '@/lib/admin/auditStamp';
 
 const FaqSchema = new Schema({
   question: { type: String, required: true, trim: true, maxlength: 300 },
@@ -72,6 +74,8 @@ export interface IDestination extends Document {
   // Status & Meta
   featured?: boolean;
   isPublished?: boolean;
+  createdBy?: AuditActor;
+  updatedBy?: AuditActor;
   tourCount?: number;
 // SEO & Meta
   metaTitle?: string;
@@ -319,6 +323,8 @@ currency: {
     default: true,
     index: true,
   },
+  createdBy: { type: AuditActorSchema, default: undefined },
+  updatedBy: { type: AuditActorSchema, default: undefined },
   tourCount: {
     type: Number,
     default: 0,

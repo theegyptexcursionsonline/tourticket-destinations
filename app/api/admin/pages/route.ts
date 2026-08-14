@@ -104,8 +104,21 @@ export async function GET(request: NextRequest) {
     if (q.length > 100) {
       return NextResponse.json({ success: false, error: 'Search is too long' }, { status: 400 });
     }
+    const editor = (searchParams.get('editor') || '').trim();
+    if (editor.length > 100) {
+      return NextResponse.json({ success: false, error: 'Editor filter is too long' }, { status: 400 });
+    }
     const limit = Math.min(MAX_LIMIT, Math.max(1, Number(searchParams.get('limit')) || 20));
     const search = q ? new RegExp(escapeRegex(q), 'i') : null;
+    const editorSearch = editor ? new RegExp(escapeRegex(editor), 'i') : null;
+    const editorFilter = editorSearch ? {
+      $or: [
+        { 'createdBy.name': editorSearch },
+        { 'createdBy.email': editorSearch },
+        { 'updatedBy.name': editorSearch },
+        { 'updatedBy.email': editorSearch },
+      ],
+    } : {};
     const pageKind = kind as (typeof VALID_KINDS)[number];
     const wantPages = pageKind !== 'category';
     const wantCategories = pageKind === 'all' || pageKind === 'category';
@@ -124,6 +137,7 @@ export async function GET(request: NextRequest) {
       cursorFilter(cursor),
       attractionTypeFilter,
       search ? { $or: [{ title: search }, { slug: search }] } : {},
+      editorFilter,
     );
 
     const categoryStatusFilter: Record<string, unknown> = {};
@@ -136,20 +150,21 @@ export async function GET(request: NextRequest) {
       cursorFilter(cursor),
       categoryStatusFilter,
       search ? { $or: [{ name: search }, { slug: search }] } : {},
+      editorFilter,
     );
 
     const fetchSize = limit + 1;
     const [pages, categories] = await Promise.all([
       wantPages
         ? AttractionPage.find(attractionFilter)
-            .select('tenantId title slug description heroImage pageType urlType parentPage isPublished featured createdAt')
+            .select('tenantId title slug description heroImage pageType urlType parentPage isPublished featured createdAt updatedAt createdBy updatedBy')
             .sort({ createdAt: -1, _id: -1 })
             .limit(fetchSize)
             .lean()
         : [],
       wantCategories
         ? Category.find(categoryFilter)
-            .select('tenantId name slug description heroImage isPublished featured createdAt')
+            .select('tenantId name slug description heroImage isPublished featured createdAt updatedAt createdBy updatedBy')
             .sort({ createdAt: -1, _id: -1 })
             .limit(fetchSize)
             .lean()
@@ -181,6 +196,9 @@ export async function GET(request: NextRequest) {
           isPublished: page.isPublished === true,
           featured: page.featured === true,
           createdAt: createdAtIso(page),
+          updatedAt: createdAtIso({ ...page, createdAt: page.updatedAt || page.createdAt }),
+          createdBy: page.createdBy,
+          updatedBy: page.updatedBy,
         };
       }),
       ...(categories as Array<Record<string, unknown>>).map((category) => ({
@@ -197,6 +215,9 @@ export async function GET(request: NextRequest) {
         isPublished: category.isPublished !== false,
         featured: category.featured === true,
         createdAt: createdAtIso(category),
+        updatedAt: createdAtIso({ ...category, createdAt: category.updatedAt || category.createdAt }),
+        createdBy: category.createdBy,
+        updatedBy: category.updatedBy,
       })),
     ].sort((a, b) => {
       if (a.createdAt !== b.createdAt) return a.createdAt < b.createdAt ? 1 : -1;
