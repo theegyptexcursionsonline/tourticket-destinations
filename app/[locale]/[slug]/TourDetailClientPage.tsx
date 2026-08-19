@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useCallback, useState, useRef, useEffect } from 'react';
 import SafeImage from '@/components/shared/SafeImage';
 import { Link } from '@/i18n/navigation';
 import { AnimatePresence, motion, useInView } from 'framer-motion';
@@ -37,7 +37,13 @@ import { formatExperienceDescription } from '@/lib/content/experienceDescription
 import { imageMetadataFor } from '@/lib/content/imageMetadata';
 import { buildContentBreadcrumbs } from '@/lib/content/breadcrumbs';
 import ContentBreadcrumbs from '@/components/navigation/ContentBreadcrumbs';
-import { itineraryEmbedMapUrl, itineraryMapStops } from '@/lib/tours/itineraryMap';
+import InteractiveItineraryMap from '@/components/tours/InteractiveItineraryMap';
+import {
+  itineraryCoordinateAnchors,
+  itineraryDirectionsUrl,
+  itineraryMapStops,
+  itineraryStoredDirectionsUrl,
+} from '@/lib/tours/itineraryMap';
 import { meetingPointEmbedUrl, meetingPointMapUrl } from '@/lib/tours/meetingPointMap';
 import { provableRating } from '@/lib/tours/ratingDisplay';
 import { effectiveTourPrice } from '@/lib/pricing/effectivePrice';
@@ -49,6 +55,7 @@ interface ItineraryItem {
   description: string;
   duration?: string;
   location?: string;
+  coordinates?: { lat?: number | null; lng?: number | null } | null;
   includes?: string[];
   icon?: string;
 }
@@ -400,8 +407,12 @@ const ItineraryIcon = ({ iconType, className = "w-5 h-5" }: { iconType?: string,
 const ItinerarySection = ({ itinerary, sectionRef }: { itinerary: ItineraryItem[], sectionRef: React.RefObject<HTMLDivElement | null> }) => {
   const t = useTranslations('tour');
   const stops = itineraryMapStops(itinerary);
-  const showMap = stops.length > 0;
-  const mapQuery = stops.join('|');
+  const showMap = itineraryCoordinateAnchors(itinerary).length > 0;
+  const openMapsUrl = itineraryStoredDirectionsUrl(itinerary) || itineraryDirectionsUrl(stops);
+  const [activeItineraryIndex, setActiveItineraryIndex] = useState(0);
+  const selectItineraryStage = useCallback((index: number) => {
+    setActiveItineraryIndex(index);
+  }, []);
 
   return (
     <div ref={sectionRef} id="itinerary" className="space-y-6 scroll-mt-24">
@@ -493,37 +504,17 @@ const ItinerarySection = ({ itinerary, sectionRef }: { itinerary: ItineraryItem[
           </div>
         </div>
 
-        {/* Right: Google Map */}
-        {showMap ? <div className="relative order-1 lg:order-2 lg:sticky lg:top-24 h-[400px] lg:h-[700px]">
-          <div className="h-full rounded-2xl overflow-hidden border-2 border-slate-200 shadow-lg">
-            <iframe
-              width="100%"
-              height="100%"
-              style={{ border: 0 }}
-              loading="lazy"
-              allowFullScreen
-              referrerPolicy="no-referrer-when-downgrade"
-              src={itineraryEmbedMapUrl(stops[0])}
-            ></iframe>
+        {/* Right: lazy, keyless open map. Customer views never geocode. */}
+        {showMap ? (
+          <div className="relative order-1 lg:order-2 lg:sticky lg:top-24 lg:self-start">
+            <InteractiveItineraryMap
+              itinerary={itinerary}
+              openMapsUrl={openMapsUrl}
+              activeIndex={activeItineraryIndex}
+              onSelect={selectItineraryStage}
+            />
           </div>
-
-          {/* Map Controls Overlay */}
-          <div className="absolute bottom-4 start-4 end-4 bg-white/95 backdrop-blur-sm rounded-lg p-3 shadow-lg">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Navigation size={16} className="text-blue-600" />
-                <span className="text-sm font-medium text-slate-800">{t('tourRoute')}</span>
-              </div>
-              <button
-                onClick={() => window.open(`https://www.google.com/maps/search/${encodeURIComponent(mapQuery)}`, '_blank')}
-                className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg font-medium transition-colors flex items-center gap-1"
-              >
-                <Navigation size={12} />
-                {t('openMaps')}
-              </button>
-            </div>
-          </div>
-        </div> : null}
+        ) : null}
       </div>
     </div>
   );

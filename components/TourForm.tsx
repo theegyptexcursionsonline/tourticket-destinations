@@ -118,6 +118,7 @@ interface ItineraryItem {
     time?: string;
     duration?: string;
     location?: string;
+    coordinates?: { lat?: number | string; lng?: number | string };
     includes?: string[];
 }
 
@@ -908,6 +909,17 @@ const handleItineraryChange = (index: number, field: string, value: string | num
   setFormData((p) => ({ ...p, itinerary: updatedItinerary }));
 };
 
+const handleItineraryCoordinateChange = (index: number, field: 'lat' | 'lng', value: string) => {
+  const updatedItinerary = [...formData.itinerary];
+  const current = updatedItinerary[index];
+  if (!current) return;
+  updatedItinerary[index] = {
+    ...current,
+    coordinates: { ...current.coordinates, [field]: value },
+  };
+  setFormData((previous) => ({ ...previous, itinerary: updatedItinerary }));
+};
+
 // Ensure icon is properly saved when adding new items
 const addItineraryItem = () => {
   const newDay = formData.itinerary.length + 1;
@@ -1155,6 +1167,23 @@ const addItineraryItem = () => {
             return;
         }
 
+        const invalidCoordinateIndex = formData.itinerary.findIndex((item) => {
+            const latText = String(item.coordinates?.lat ?? '').trim();
+            const lngText = String(item.coordinates?.lng ?? '').trim();
+            if (!latText && !lngText) return false;
+            const lat = Number(latText);
+            const lng = Number(lngText);
+            return !latText || !lngText || !Number.isFinite(lat) || !Number.isFinite(lng)
+                || lat < -90 || lat > 90 || lng < -180 || lng > 180;
+        });
+        if (invalidCoordinateIndex >= 0) {
+            toast.error(`Step ${invalidCoordinateIndex + 1} needs a valid latitude and longitude, or both fields must be empty.`);
+            setActiveTab('itinerary');
+            setExpandedItineraryIndex(invalidCoordinateIndex);
+            setIsSubmitting(false);
+            return;
+        }
+
         try {
             const cleanedData = { ...formData };
 
@@ -1230,7 +1259,21 @@ const addItineraryItem = () => {
                 localCustoms: cleanedData.localCustoms.filter((item) => item.trim()),
                 notSuitableFor: cleanedData.notSuitableFor.filter((item) => item.trim()),
                 needToKnow: cleanedData.needToKnow.filter((item) => item.trim()),
-                itinerary: Array.isArray(cleanedData.itinerary) ? cleanedData.itinerary.filter((item: ItineraryItem) => item.title?.trim() && item.description?.trim()) : [],
+                itinerary: Array.isArray(cleanedData.itinerary)
+                    ? cleanedData.itinerary
+                        .filter((item: ItineraryItem) => item.title?.trim() && item.description?.trim())
+                        .map((item: ItineraryItem) => ({
+                            ...item,
+                            title: item.title.trim(),
+                            description: item.description.trim(),
+                            coordinates: String(item.coordinates?.lat ?? '').trim()
+                                ? {
+                                    lat: Number(item.coordinates!.lat),
+                                    lng: Number(item.coordinates!.lng),
+                                }
+                                : undefined,
+                        }))
+                    : [],
                 faq: Array.isArray(cleanedData.faqs) ? cleanedData.faqs.filter((faq: FAQ) => faq.question?.trim() && faq.answer?.trim()) : [],
                 bookingOptions: Array.isArray(cleanedData.bookingOptions) ? cleanedData.bookingOptions.filter((option: BookingOption) => option.label?.trim()) : [],
                 addOns: Array.isArray(cleanedData.addOns) ? cleanedData.addOns.filter((addon: AddOn) => addon.name?.trim()) : [],
@@ -2323,6 +2366,46 @@ const addItineraryItem = () => {
       className={inputBase}
       placeholder="e.g. Egyptian Museum"
     />
+  </div>
+  <div className="space-y-2">
+    <label className="text-xs font-medium text-slate-500">Latitude <span className="font-normal">(map pin)</span></label>
+    <input
+      type="number"
+      inputMode="decimal"
+      min="-90"
+      max="90"
+      step="any"
+      value={day.coordinates?.lat ?? ''}
+      onChange={(event) => handleItineraryCoordinateChange(i, 'lat', event.target.value)}
+      className={inputBase}
+      placeholder="e.g. 30.0478"
+    />
+  </div>
+  <div className="space-y-2">
+    <label className="text-xs font-medium text-slate-500">Longitude <span className="font-normal">(map pin)</span></label>
+    <input
+      type="number"
+      inputMode="decimal"
+      min="-180"
+      max="180"
+      step="any"
+      value={day.coordinates?.lng ?? ''}
+      onChange={(event) => handleItineraryCoordinateChange(i, 'lng', event.target.value)}
+      className={inputBase}
+      placeholder="e.g. 31.2336"
+    />
+  </div>
+  <div className="rounded-lg border border-sky-100 bg-sky-50 px-3 py-2 text-xs leading-relaxed text-sky-900 lg:col-span-3">
+    Add both coordinates once to show this stage on the customer route map. Customer page views do not call a geocoder or a paid map API.
+    {' '}
+    <a
+      href={`https://www.openstreetmap.org/search?query=${encodeURIComponent(day.location || 'Egypt')}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="font-semibold underline underline-offset-2"
+    >
+      Find the place on OpenStreetMap
+    </a>
   </div>
   <div className="space-y-2 lg:col-span-3">
     <label className="text-xs font-medium text-slate-500">Includes <span className="font-normal">(one per line)</span></label>

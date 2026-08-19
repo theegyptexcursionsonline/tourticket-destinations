@@ -14,6 +14,7 @@ export interface IItineraryItem {
   description: string;
   duration?: string;
   location?: string;
+  coordinates?: { lat: number; lng: number };
   includes?: string[];
   icon?: string;
   day?: number;
@@ -215,12 +216,18 @@ export interface ITour extends Document {
   reviewDetails?: unknown[];
 }
 
+const ItineraryCoordinatesSchema = new Schema({
+  lat: { type: Number, required: true, min: -90, max: 90 },
+  lng: { type: Number, required: true, min: -180, max: 180 },
+}, { _id: false });
+
 const ItineraryItemSchema = new Schema<IItineraryItem>({
   time: { type: String },
   title: { type: String, required: true, trim: true },
   description: { type: String, required: true, trim: true },
   duration: { type: String, trim: true },
   location: { type: String, trim: true },
+  coordinates: { type: ItineraryCoordinatesSchema },
   includes: [{ type: String, trim: true }],
   icon: {
     type: String,
