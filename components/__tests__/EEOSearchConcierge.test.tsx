@@ -44,6 +44,39 @@ describe('EEOSearchConcierge', () => {
     await waitFor(() => expect(document.getElementById('eeo-search-concierge-script')).toBeNull());
   });
 
+  it('opens collapsed so it never covers the page on arrival', async () => {
+    render(<EEOSearchConcierge />);
+    await waitFor(() => {
+      const script = document.getElementById('eeo-search-concierge-script') as HTMLScriptElement;
+      expect(script.dataset.defaultCollapsed).toBe('true');
+    });
+  });
+
+  it.each(['/en/tour/pyramids-day-trip', '/de/tour/luxor'])(
+    'stays off the transactional tour route %s',
+    async (route) => {
+      pathname = route;
+      render(<EEOSearchConcierge />);
+      await waitFor(() => expect(document.getElementById('eeo-search-concierge-script')).toBeNull());
+    },
+  );
+
+  it('hides itself on a tour that renders at the site root', async () => {
+    // The slug resolves to a tour, so only the rendered page identifies it.
+    pathname = '/en/pyramids-day-trip';
+    render(<EEOSearchConcierge />);
+    const host = document.createElement('div');
+    host.id = 'foxes-launcher-host';
+    document.body.appendChild(host);
+
+    const bookingBar = document.createElement('div');
+    bookingBar.setAttribute('data-mobile-booking-bar', 'true');
+    document.body.appendChild(bookingBar);
+
+    await waitFor(() => expect(host.hidden).toBe(true));
+    bookingBar.remove();
+  });
+
   it('honors a tenant that disables AI Search', async () => {
     aiSearchEnabled = false;
     render(<EEOSearchConcierge />);

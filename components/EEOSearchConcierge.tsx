@@ -26,7 +26,15 @@ const copy: Record<string, { label: string; kicker: string; placeholder: string 
 
 // Conversion-critical or transactional surfaces own their own call to action;
 // a floating search launcher there competes with it or leaks the customer away.
-const HIDDEN_ROUTES = ['/admin', '/checkout', '/booking', '/payment', '/login', '/signup', '/offer'];
+// Tour pages are the destination this feature exists to drive traffic to, so
+// the launcher stops at their door.
+const HIDDEN_ROUTES = ['/admin', '/checkout', '/booking', '/payment', '/login', '/signup', '/offer', '/tour'];
+
+// A tour also renders at the site root when its slug resolves there, so the
+// path alone cannot identify one. The booking bar is present in the markup of
+// every tour page at every width (it is only hidden by CSS above `md`), which
+// makes it the reliable signal after the page has rendered.
+const TOUR_PAGE_SELECTOR = '[data-mobile-booking-bar="true"]';
 
 export default function EEOSearchConcierge() {
   const pathname = usePathname() || '';
@@ -46,12 +54,14 @@ export default function EEOSearchConcierge() {
       const launcher = host.shadowRoot?.querySelector<HTMLElement>('.launcher');
       const modalOpen = Array.from(document.querySelectorAll<HTMLElement>('[role="dialog"][aria-modal="true"]'))
         .some((dialog) => !dialog.closest('.gm-style') && dialog.getClientRects().length > 0);
-      if (modalOpen) window.dispatchEvent(new CustomEvent(CLOSE_EVENT));
-      host.hidden = modalOpen;
+      const onTourPage = Boolean(document.querySelector(TOUR_PAGE_SELECTOR));
+      const suppressed = modalOpen || onTourPage;
+      if (suppressed) window.dispatchEvent(new CustomEvent(CLOSE_EVENT));
+      host.hidden = suppressed;
       if (!launcher) return;
       const bookingBar = document.querySelector<HTMLElement>(MOBILE_BOOKING_BAR_SELECTOR);
       const bookingBarHeight = bookingBar?.getBoundingClientRect().height ?? 0;
-      if (!modalOpen && bookingBarHeight > 0) {
+      if (!suppressed && bookingBarHeight > 0) {
         launcher.style.setProperty('bottom', `${Math.ceil(bookingBarHeight) + MOBILE_ACTION_GAP_PX}px`, 'important');
       } else {
         launcher.style.removeProperty('bottom');
@@ -97,6 +107,9 @@ export default function EEOSearchConcierge() {
     script.dataset.dir = locale === 'ar' ? 'rtl' : 'ltr';
     script.dataset.locale = locale;
     script.dataset.rememberDismiss = 'false';
+    // The bar opens collapsed so it never covers page content on arrival; the
+    // visitor's own expand/collapse choice is remembered from then on.
+    script.dataset.defaultCollapsed = 'true';
     document.body.appendChild(script);
 
     observer = new MutationObserver(scheduleSync);
