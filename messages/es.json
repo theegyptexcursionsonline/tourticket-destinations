@@ -176,6 +176,7 @@
     "mapLoading": "Cargando el mapa de la ruta…",
     "mapUnavailable": "El mapa de la ruta no está disponible temporalmente.",
     "mapOpenRoute": "Abrir ruta",
+    "mapRetry": "Reintentar",
     "mapRouteStages": "{count} etapas de la ruta",
     "mapRoadMap": "Mapa de carreteras",
     "mapSelectStage": "Seleccionar una etapa del itinerario",

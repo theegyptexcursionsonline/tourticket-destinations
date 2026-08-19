@@ -176,6 +176,7 @@
     "mapLoading": "جارٍ تحميل خريطة المسار…",
     "mapUnavailable": "خريطة المسار غير متاحة مؤقتًا.",
     "mapOpenRoute": "فتح المسار",
+    "mapRetry": "إعادة المحاولة",
     "mapRouteStages": "{count} محطات في المسار",
     "mapRoadMap": "خريطة الطرق",
     "mapSelectStage": "اختر محطة من برنامج الرحلة",

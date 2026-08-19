@@ -176,6 +176,7 @@
     "mapLoading": "Loading route map…",
     "mapUnavailable": "The route map is temporarily unavailable.",
     "mapOpenRoute": "Open route",
+    "mapRetry": "Try again",
     "mapRouteStages": "{count} route stages",
     "mapRoadMap": "Road map",
     "mapSelectStage": "Select an itinerary stage",

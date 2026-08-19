@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useState, useRef, useEffect } from 'react';
+import React, { useCallback, useState, useRef, useEffect, useMemo } from 'react';
 import SafeImage from '@/components/shared/SafeImage';
 import { Link } from '@/i18n/navigation';
 import { AnimatePresence, motion, useInView } from 'framer-motion';
@@ -406,9 +406,13 @@ const ItineraryIcon = ({ iconType, className = "w-5 h-5" }: { iconType?: string,
 
 const ItinerarySection = ({ itinerary, sectionRef }: { itinerary: ItineraryItem[], sectionRef: React.RefObject<HTMLDivElement | null> }) => {
   const t = useTranslations('tour');
-  const stops = itineraryMapStops(itinerary);
-  const showMap = itineraryCoordinateAnchors(itinerary).length > 0;
-  const openMapsUrl = itineraryStoredDirectionsUrl(itinerary) || itineraryDirectionsUrl(stops);
+  // Recomputed only when the itinerary changes, not on every scroll tick.
+  const stops = useMemo(() => itineraryMapStops(itinerary), [itinerary]);
+  const showMap = useMemo(() => itineraryCoordinateAnchors(itinerary).length > 0, [itinerary]);
+  const openMapsUrl = useMemo(
+    () => itineraryStoredDirectionsUrl(itinerary) || itineraryDirectionsUrl(stops),
+    [itinerary, stops],
+  );
   const [activeItineraryIndex, setActiveItineraryIndex] = useState(0);
   const selectItineraryStage = useCallback((index: number) => {
     setActiveItineraryIndex(index);
@@ -1135,7 +1139,12 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
     }
   };
 
-  const enhancement = extractEnhancementData(tour);
+  // Derived once per tour. This page re-renders on every scroll (eight
+  // useInView section observers drive the sticky tab bar), and
+  // extractEnhancementData rebuilds `itinerary` with .map() on each call.
+  // An unmemoised call handed the itinerary map a new array identity on
+  // every scroll tick, which tore down and re-created the WebGL map.
+  const enhancement = useMemo(() => extractEnhancementData(tour), [tour]);
 
   const tourImages = Array.from(
     new Set([tour.image, ...(tour.images || [])].map(getSafeTourImage))

@@ -176,6 +176,7 @@
     "mapLoading": "Загрузка карты маршрута…",
     "mapUnavailable": "Карта маршрута временно недоступна.",
     "mapOpenRoute": "Открыть маршрут",
+    "mapRetry": "Повторить",
     "mapRouteStages": "Этапов маршрута: {count}",
     "mapRoadMap": "Дорожная карта",
     "mapSelectStage": "Выбрать этап маршрута",

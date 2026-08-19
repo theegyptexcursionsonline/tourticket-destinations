@@ -176,6 +176,7 @@
     "mapLoading": "Routenkarte wird geladen…",
     "mapUnavailable": "Die Routenkarte ist vorübergehend nicht verfügbar.",
     "mapOpenRoute": "Route öffnen",
+    "mapRetry": "Erneut versuchen",
     "mapRouteStages": "{count} Routenstationen",
     "mapRoadMap": "Straßenkarte",
     "mapSelectStage": "Eine Reiseplanstation auswählen",

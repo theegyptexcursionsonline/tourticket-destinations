@@ -13,6 +13,7 @@ jest.mock('next-intl', () => ({
       mapInteractiveLabel: 'Interactive tour route with {count} numbered stages',
       mapLoading: 'Loading route map…',
       mapOpenRoute: 'Open route',
+      mapRetry: 'Try again',
       mapRoadMap: 'Road map',
       mapRouteStages: '{count} route stages',
       mapSelectStage: 'Select an itinerary stage',
@@ -61,8 +62,8 @@ describe('InteractiveItineraryMap', () => {
     expect(source).toContain("map.once('style.load'");
     expect(source).toContain('className="h-full w-full"');
     expect(source).toContain('https://tiles.openfreemap.org/styles/bright');
-    expect(source).toContain('if (positions.length > 1)');
-    expect(source).toContain("id: 'eeo-itinerary-route-casing'");
+    expect(source).toContain('if (routePositions.length > 1)');
+    expect(source).toContain("const ROUTE_CASING_LAYER_ID = 'eeo-itinerary-route-casing';");
     expect(source).not.toContain('AttributionControl');
     expect(source).not.toContain('new maplibre.Popup');
     expect(source).not.toContain('maps.googleapis.com');
