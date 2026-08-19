@@ -8,6 +8,7 @@ import { ArrowRight, Star, ShoppingCart, Clock, Users, ImageIcon } from 'lucide-
 import BookingSidebar from '@/components/BookingSidebar';
 import { Tour } from '@/types';
 import { useSettings } from '@/hooks/useSettings';
+import { useTenant } from '@/contexts/TenantContext';
 
 interface EgyptToursClientProps {
   tours: Tour[];
@@ -73,17 +74,18 @@ const formatBookings = (num?: number) => {
 };
 
 const getTagColor = (tag: string) => {
-  if (tag.includes('%')) return 'bg-red-500 text-white';
-  if (tag === 'Staff favourite') return 'bg-indigo-500 text-white';
-  if (tag === 'Online only deal') return 'bg-emerald-500 text-white';
-  if (tag === 'New') return 'bg-purple-500 text-white';
-  if (tag === 'Best for Kids') return 'bg-yellow-400 text-black';
+  if (tag.includes('%')) return 'bg-[var(--primary-color)] text-white';
+  if (tag === 'Staff favourite') return 'bg-slate-950 text-white';
+  if (tag === 'Online only deal') return 'bg-[var(--primary-color)] text-white';
+  if (tag === 'New') return 'bg-[var(--primary-color)] text-white';
+  if (tag === 'Best for Kids') return 'bg-white text-slate-900';
   return 'bg-white/95 text-gray-800';
 };
 
 // Simplified Tour Card Component
 const SimpleTourCard = ({ tour, onAddToCartClick }: { tour: Tour; onAddToCartClick: (tour: Tour) => void }) => {
   const { formatPrice } = useSettings();
+  const { getSiteName } = useTenant();
 
   return (
     <Link
@@ -104,7 +106,7 @@ const SimpleTourCard = ({ tour, onAddToCartClick }: { tour: Tour; onAddToCartCli
         {/* Provider Badge */}
         <div className="absolute top-4 start-4 z-20">
           <span className="px-3 py-1.5 text-xs font-bold text-white bg-slate-900/80 backdrop-blur-sm rounded-full">
-            Egypt Excursions Online
+            {getSiteName()}
           </span>
         </div>
 
@@ -125,7 +127,7 @@ const SimpleTourCard = ({ tour, onAddToCartClick }: { tour: Tour; onAddToCartCli
         {/* Rating Badge */}
         <div className="absolute top-4 end-4 z-20">
           <div className="bg-white/95 backdrop-blur-sm px-3 py-2 rounded-full flex items-center gap-2 border border-white/20">
-            <Star size={16} className="text-yellow-500 fill-yellow-500" />
+            <Star size={16} className="fill-[var(--primary-color)] text-[var(--primary-color)]" />
             <span className="text-sm font-bold text-gray-800">
               {tour.rating ? tour.rating.toFixed(1) : '0.0'}
             </span>
@@ -134,7 +136,7 @@ const SimpleTourCard = ({ tour, onAddToCartClick }: { tour: Tour; onAddToCartCli
 
         {/* Price Badge */}
         <div className="absolute start-4 bottom-4 z-20">
-          <div className="bg-gradient-to-r from-amber-500 to-amber-400 text-black px-3 py-2 rounded-full font-black text-sm sm:text-base border-2 border-white/20">
+          <div className="rounded-full border-2 border-white/20 bg-[var(--primary-color)] px-3 py-2 text-sm font-black text-white sm:text-base">
             {formatPrice(tour.discountPrice || tour.originalPrice || 0)}
             {tour.originalPrice && tour.discountPrice && tour.originalPrice > tour.discountPrice && (
               <span className="ms-2 text-xs font-medium line-through opacity-70">
@@ -151,7 +153,7 @@ const SimpleTourCard = ({ tour, onAddToCartClick }: { tour: Tour; onAddToCartCli
             e.stopPropagation();
             onAddToCartClick(tour);
           }}
-          className="absolute bottom-4 end-4 z-30 bg-white text-amber-600 p-3 rounded-full border-2 border-amber-100 transition-all duration-300 transform hover:scale-110 hover:bg-amber-600 hover:text-white hover:border-amber-600 focus:outline-none"
+          className="absolute bottom-4 end-4 z-30 rounded-full border-2 border-slate-100 bg-white p-3 text-[var(--primary-color)] transition-all duration-300 hover:scale-110 hover:border-[var(--primary-color)] hover:bg-[var(--primary-color)] hover:text-white focus:outline-none"
           aria-label={`Add ${tour.title || 'tour'} to cart`}
           title="Add to cart"
         >
@@ -162,7 +164,7 @@ const SimpleTourCard = ({ tour, onAddToCartClick }: { tour: Tour; onAddToCartCli
       {/* Card Content */}
       <div className="p-5 bg-white">
         <div className="mb-3">
-          <h3 className="text-lg font-bold text-gray-900 leading-tight mb-2 line-clamp-2 group-hover:text-amber-600 transition-colors duration-300">
+          <h3 className="text-lg font-bold text-gray-900 leading-tight mb-2 line-clamp-2 group-hover:text-[var(--primary-color)] transition-colors duration-300">
             {tour.title || 'Untitled Tour'}
           </h3>
 
@@ -199,7 +201,7 @@ const SimpleTourCard = ({ tour, onAddToCartClick }: { tour: Tour; onAddToCartCli
 
           <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
             <span className="text-xs text-gray-500 hidden sm:inline">View</span>
-            <ArrowRight size={14} className="text-amber-600 transition-transform duration-300 group-hover:translate-x-1" />
+            <ArrowRight size={14} className="text-[var(--primary-color)] transition-transform duration-300 group-hover:translate-x-1" />
           </div>
         </div>
       </div>
@@ -238,7 +240,7 @@ export default function EgyptToursClient({ tours }: EgyptToursClientProps) {
           <div className="text-center mt-12">
             <Link
               href="/tours"
-              className="inline-flex items-center gap-3 px-10 py-4 rounded-full bg-gradient-to-r from-amber-400 to-amber-500 text-black font-semibold hover:scale-[1.02] transition-all duration-300"
+              className="inline-flex min-h-12 items-center gap-3 rounded-full bg-[var(--primary-color)] px-10 py-4 font-semibold text-white transition-opacity hover:opacity-90"
             >
               <span>View All Tours</span>
               <ArrowRight size={18} />

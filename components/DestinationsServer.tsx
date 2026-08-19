@@ -7,6 +7,7 @@ import { Destination } from '@/types';
 import { useTenant } from '@/contexts/TenantContext';
 import { useTranslations } from 'next-intl';
 import { contentPath } from '@/lib/content/contentUrl';
+import { ArrowRight } from 'lucide-react';
 
 interface DestinationWithTourCount extends Destination {
   tourCount: number;
@@ -27,22 +28,15 @@ export default function DestinationsServer({ destinations }: DestinationsServerP
   return (
     <section className="py-12 sm:py-16 bg-white">
       <div className="container mx-auto px-4 relative z-10">
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-7 sm:mb-10">
+        <div className="mb-7 text-center sm:mb-10">
           <div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-800 text-center sm:text-start">
+            <h2 className="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">
               {t('homepage.topDestinations')}
             </h2>
-            <p className="mt-2 text-sm text-slate-500 text-center sm:text-start">
+            <p className="mt-2 text-sm text-slate-500 sm:text-base">
               {t('destinations.exploreAll')}
             </p>
           </div>
-
-          <Link
-            href="/destinations"
-            className="text-sm font-semibold inline-flex items-center justify-center rounded-full px-4 py-2 border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors"
-          >
-            {t('common.viewAll')}
-          </Link>
         </div>
 
         <div
@@ -75,6 +69,15 @@ export default function DestinationsServer({ destinations }: DestinationsServerP
               </p>
             </Link>
           ))}
+        </div>
+        <div className="mt-8 flex justify-center sm:mt-10">
+          <Link
+            href="/destinations"
+            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[var(--primary-color)] px-6 py-3 text-sm font-bold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-slate-300 sm:text-base"
+          >
+            {t('common.viewAll')}
+            <ArrowRight className="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
+          </Link>
         </div>
       </div>
     </section>

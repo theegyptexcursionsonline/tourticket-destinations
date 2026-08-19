@@ -172,7 +172,7 @@ export default async function AboutEgyptLanding() {
                   className="flex items-start gap-4 bg-white p-6 rounded-xl shadow-md"
                 >
                   <div className="flex-shrink-0 mt-1">
-                    <CheckCircle className="h-7 w-7 text-amber-500" />
+                    <CheckCircle className="h-7 w-7 text-[var(--primary-color)]" />
                   </div>
                   <div>
                     <p className="text-lg font-medium text-gray-800">{f}</p>
@@ -229,7 +229,7 @@ export default async function AboutEgyptLanding() {
                       <Image src={(category as any).heroImage} alt={category.name} fill sizes="(max-width: 640px) 50vw, 25vw" className="object-cover transition-transform duration-300 group-hover:scale-105" />
                     </div>
                     <div className="p-5 text-center">
-                      <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-amber-600 transition-colors duration-300">
+                      <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-[var(--primary-color)] transition-colors duration-300">
                         {category.name}
                       </h3>
                       <p className="text-sm text-gray-500">
@@ -258,7 +258,7 @@ export default async function AboutEgyptLanding() {
                 {attractions.map((attraction: any) => (
                   <Link key={attraction._id} href={attractionPagePath(attraction.slug, attraction.pageType, attraction.urlType, null, attraction.parentPage?.slug)} className="group overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-md transition hover:-translate-y-1 hover:shadow-xl">
                     <div className="relative h-44"><Image src={attraction.heroImage} alt={attraction.title} fill sizes="(max-width: 640px) 100vw, 25vw" className="object-cover transition-transform duration-300 group-hover:scale-105" /></div>
-                    <div className="p-5"><h3 className="font-bold text-gray-900 group-hover:text-amber-600">{attraction.title}</h3></div>
+                    <div className="p-5"><h3 className="font-bold text-gray-900 group-hover:text-[var(--primary-color)]">{attraction.title}</h3></div>
                   </Link>
                 ))}
               </div>
@@ -301,19 +301,18 @@ export default async function AboutEgyptLanding() {
         </section>
 
         {/* CTA */}
-        <section className="py-20" style={{ backgroundColor: '#2147F3' }}>
+        <section className="bg-slate-950 py-20">
           <div className="max-w-4xl mx-auto px-6 lg:px-8 text-center">
-            <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight sm:text-4xl text-amber-300 mb-4">
+            <h2 className="mb-4 text-3xl font-extrabold tracking-tight text-white sm:text-4xl md:text-4xl">
               Ready for a Timeless Adventure?
             </h2>
-            <p className="text-amber-100 mb-8">
+            <p className="mb-8 text-slate-200">
               Book now to secure your dates. Our team will tailor an experience to your wishes.
             </p>
             <div>
               <Link
-                href="/experience/egypt-booking"
-                className="inline-block font-bold py-4 px-10 rounded-full text-lg hover:opacity-95 transform hover:scale-105 transition-all duration-300 ease-in-out shadow-xl"
-                style={{ color: '#2147F3', backgroundColor: '#FFED4F' }}
+                href="/tours"
+                className="inline-block rounded-full bg-[var(--primary-color)] px-10 py-4 text-lg font-bold text-white shadow-xl transition-opacity hover:opacity-90"
               >
                 Book Your Experience
               </Link>

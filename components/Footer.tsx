@@ -598,7 +598,7 @@ export default function Footer() {
                     className="hover:text-[var(--primary-color)] transition-colors inline-flex items-center gap-2"
                     href={getTenantDestinationHref(destination)}
                   >
-                    <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-[var(--primary-color)]" />
                     {destination.name}
                   </Link>
                 </li>
@@ -672,7 +672,7 @@ export default function Footer() {
                   </div>
                 </li>
                 <li className="flex gap-3">
-                  <span className="h-10 w-10 rounded-full flex items-center justify-center bg-blue-50 text-blue-600">
+                  <span className="h-10 w-10 rounded-full flex items-center justify-center bg-[var(--primary-light)] text-[var(--primary-color)]">
                     <Mail size={18} />
                   </span>
                   <div>
@@ -686,7 +686,7 @@ export default function Footer() {
                   </div>
                 </li>
                 <li className="flex gap-3">
-                  <span className="h-10 w-10 rounded-full flex items-center justify-center bg-emerald-50 text-emerald-600">
+                  <span className="h-10 w-10 rounded-full flex items-center justify-center bg-[var(--primary-light)] text-[var(--primary-color)]">
                     <MessageSquare size={18} />
                   </span>
                   <button
@@ -723,7 +723,7 @@ export default function Footer() {
                     <button 
                       type="submit" 
                       className="h-11 w-full sm:w-auto px-4 sm:px-6 rounded-xl text-sm font-semibold flex items-center justify-center disabled:bg-slate-500 transition-colors text-white"
-                      style={{ background: 'var(--gradient-primary)' }}
+                      style={{ backgroundColor: 'var(--primary-color)' }}
                       disabled={isLoading}
                     >
                       {isLoading ? <Loader2 className="animate-spin" /> : t('footer.subscribe')}
@@ -749,7 +749,7 @@ export default function Footer() {
                     href={href} 
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-10 h-10 rounded-full bg-slate-900 text-white hover:bg-[var(--primary-color)] border-slate-200 flex items-center justify-center transition-colors border" 
+                    className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-[var(--primary-light)] text-[var(--primary-color)] transition-colors hover:bg-[var(--primary-color)] hover:text-white"
                     aria-label={`Follow us on social media`}
                   >
                     <Icon size={18} />

@@ -80,20 +80,20 @@ export default function EgyptHeroClient() {
             transition={{ duration: 0.8 }}
           >
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight">
-              <span className="block text-amber-300/95">Discover Egypt</span>
+              <span className="block text-white">Discover Egypt</span>
               <span className="block text-white text-2xl sm:text-3xl font-medium mt-2">
                 Nile journeys, ancient wonders & timeless stories
               </span>
             </h1>
 
-            <p className="mt-6 text-lg sm:text-xl text-amber-100/95 max-w-3xl mx-auto leading-relaxed">
+            <p className="mt-6 text-lg sm:text-xl text-white/85 max-w-3xl mx-auto leading-relaxed">
               Sail the Nile at sunset, walk among the pyramids at dawn — curated luxury experiences that blend history, culture, and comfort.
             </p>
 
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
-                href="/egypt"
-                className="inline-flex items-center gap-3 px-12 py-4 rounded-full bg-gradient-to-r from-amber-400 to-amber-500 text-black font-semibold shadow-2xl hover:scale-[1.02] transition"
+                href="/tours"
+                className="inline-flex min-h-12 items-center gap-3 rounded-full bg-[var(--primary-color)] px-12 py-4 font-semibold text-white shadow-2xl transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/40"
               >
                 <span>Explore Egypt</span>
                 <ArrowRight size={18} />

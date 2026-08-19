@@ -46,21 +46,21 @@ const TourCard = ({ tour }: { tour: TourWithDetails }) => {
           {/* Destination Badge */}
           {tour.destination?.name && (
             <div className="absolute top-3 start-3 bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg">
-              <MapPin className="w-3.5 h-3.5 text-blue-600" />
+              <MapPin className="w-3.5 h-3.5 text-[var(--primary-color)]" />
               <span className="text-xs font-semibold text-slate-700">{tour.destination.name}</span>
             </div>
           )}
 
           {/* Discount Badge */}
           {discountPercent > 0 && (
-            <div className="absolute top-3 end-3 bg-gradient-to-r from-red-500 to-red-600 text-white px-3 py-1.5 rounded-full shadow-lg">
+            <div className="absolute top-3 end-3 rounded-full bg-[var(--primary-color)] px-3 py-1.5 text-white shadow-lg">
               <span className="text-xs font-bold">-{discountPercent}% OFF</span>
             </div>
           )}
 
           {/* Featured Badge */}
           {tour.isFeatured && (
-            <div className="absolute bottom-3 start-3 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-1.5 rounded-full flex items-center gap-1 shadow-lg">
+            <div className="absolute bottom-3 start-3 flex items-center gap-1 rounded-full bg-slate-950/90 px-3 py-1.5 text-white shadow-lg backdrop-blur-sm">
               <Star className="w-3 h-3 fill-current" />
               <span className="text-xs font-bold">Featured</span>
             </div>
@@ -68,7 +68,7 @@ const TourCard = ({ tour }: { tour: TourWithDetails }) => {
         </div>
 
         <div className="p-5">
-          <h3 className="text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors mb-3 line-clamp-2 leading-snug min-h-[3.5rem]">
+          <h3 className="text-lg font-bold text-slate-900 group-hover:text-[var(--primary-color)] transition-colors mb-3 line-clamp-2 leading-snug min-h-[3.5rem]">
             {tour.title}
           </h3>
 
@@ -76,12 +76,12 @@ const TourCard = ({ tour }: { tour: TourWithDetails }) => {
             {/* Duration and Rating */}
             <div className="flex items-center justify-between text-sm">
               <div className="flex items-center gap-1.5 text-slate-600">
-                <Clock className="w-4 h-4 text-blue-500" />
+                <Clock className="w-4 h-4 text-[var(--primary-color)]" />
                 <span className="font-medium">{tour.duration}</span>
               </div>
               {tour.rating && (
                 <div className="flex items-center gap-1">
-                  <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                  <Star className="w-4 h-4 text-[var(--primary-color)] fill-current" />
                   <span className="font-semibold text-slate-700">{tour.rating}</span>
                   {tour.reviewCount && (
                     <span className="text-xs text-slate-500">({tour.reviewCount})</span>
@@ -94,7 +94,7 @@ const TourCard = ({ tour }: { tour: TourWithDetails }) => {
             {tour.categories && tour.categories.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
                 {tour.categories.slice(0, 2).map((cat, idx) => (
-                  <span key={idx} className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 px-2 py-1 rounded-md text-xs font-medium">
+                  <span key={idx} className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">
                     <Tag className="w-3 h-3" />
                     {cat.name}
                   </span>
@@ -112,15 +112,15 @@ const TourCard = ({ tour }: { tour: TourWithDetails }) => {
                 </div>
               )}
               <div className="flex items-baseline gap-1">
-                <span className="text-2xl font-bold text-blue-600">
+                <span className="text-2xl font-bold text-[var(--primary-color)]">
                   {formatPrice(fromPrice.price)}
                 </span>
                 <span className="text-xs text-slate-500">per person</span>
               </div>
             </div>
-            <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors shadow-sm hover:shadow-md">
+            <span className="rounded-lg bg-[var(--primary-color)] px-4 py-2 text-sm font-semibold text-white transition-opacity group-hover:opacity-90">
               View Details
-            </button>
+            </span>
           </div>
         </div>
       </Link>
@@ -191,9 +191,9 @@ export default function ToursClientPage({ tours }: ToursClientPageProps) {
     (selectedCategory !== 'all' ? 1 : 0);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+    <div className="min-h-screen bg-slate-50">
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white py-16 px-4">
+      <div className="bg-slate-950 px-4 py-16 text-white">
         <div className="container mx-auto max-w-7xl">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -204,7 +204,7 @@ export default function ToursClientPage({ tours }: ToursClientPageProps) {
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold mb-4">
               Explore All Tours
             </h1>
-            <p className="text-lg sm:text-xl text-blue-100 max-w-3xl mx-auto mb-8">
+            <p className="text-lg sm:text-xl text-slate-200 max-w-3xl mx-auto mb-8">
               Discover {tours.length} handpicked experiences across {destinations.length} destinations. Your next adventure starts here!
             </p>
 
@@ -241,12 +241,12 @@ export default function ToursClientPage({ tours }: ToursClientPageProps) {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className="flex items-center gap-2 bg-white px-4 py-2.5 rounded-xl shadow-sm border border-slate-200 hover:border-blue-300 hover:shadow-md transition-all font-medium text-slate-700"
+                className="flex items-center gap-2 bg-white px-4 py-2.5 rounded-xl shadow-sm border border-slate-200 hover:border-slate-400 hover:shadow-md transition-all font-medium text-slate-700"
               >
                 <SlidersHorizontal className="w-4 h-4" />
                 <span>Filters</span>
                 {activeFiltersCount > 0 && (
-                  <span className="bg-blue-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                  <span className="bg-[var(--primary-color)] text-white text-xs font-bold px-2 py-0.5 rounded-full">
                     {activeFiltersCount}
                   </span>
                 )}
@@ -258,7 +258,7 @@ export default function ToursClientPage({ tours }: ToursClientPageProps) {
                     setSelectedDestination('all');
                     setSelectedCategory('all');
                   }}
-                  className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  className="text-sm text-[var(--primary-color)] hover:opacity-80 font-medium"
                 >
                   Clear all
                 </button>
@@ -270,7 +270,7 @@ export default function ToursClientPage({ tours }: ToursClientPageProps) {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="flex-1 sm:flex-none bg-white px-4 py-2.5 rounded-xl shadow-sm border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium text-slate-700"
+                className="flex-1 sm:flex-none bg-white px-4 py-2.5 rounded-xl shadow-sm border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] text-sm font-medium text-slate-700"
               >
                 <option value="newest">Newest First</option>
                 <option value="price-low">Price: Low to High</option>
@@ -294,7 +294,7 @@ export default function ToursClientPage({ tours }: ToursClientPageProps) {
                   {/* Destination Filter */}
                   <div>
                     <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-3">
-                      <MapPin className="w-4 h-4 text-blue-600" />
+                      <MapPin className="w-4 h-4 text-[var(--primary-color)]" />
                       Destination
                     </label>
                     <div className="flex flex-wrap gap-2">
@@ -302,7 +302,7 @@ export default function ToursClientPage({ tours }: ToursClientPageProps) {
                         onClick={() => setSelectedDestination('all')}
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                           selectedDestination === 'all'
-                            ? 'bg-blue-600 text-white shadow-md'
+                            ? 'bg-[var(--primary-color)] text-white shadow-md'
                             : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                         }`}
                       >
@@ -314,7 +314,7 @@ export default function ToursClientPage({ tours }: ToursClientPageProps) {
                           onClick={() => setSelectedDestination(dest)}
                           className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                             selectedDestination === dest
-                              ? 'bg-blue-600 text-white shadow-md'
+                              ? 'bg-[var(--primary-color)] text-white shadow-md'
                               : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                           }`}
                         >
@@ -327,7 +327,7 @@ export default function ToursClientPage({ tours }: ToursClientPageProps) {
                   {/* Category Filter */}
                   <div>
                     <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-3">
-                      <Tag className="w-4 h-4 text-purple-600" />
+                      <Tag className="w-4 h-4 text-[var(--primary-color)]" />
                       Category
                     </label>
                     <div className="flex flex-wrap gap-2">
@@ -335,7 +335,7 @@ export default function ToursClientPage({ tours }: ToursClientPageProps) {
                         onClick={() => setSelectedCategory('all')}
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                           selectedCategory === 'all'
-                            ? 'bg-purple-600 text-white shadow-md'
+                            ? 'bg-[var(--primary-color)] text-white shadow-md'
                             : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                         }`}
                       >
@@ -347,7 +347,7 @@ export default function ToursClientPage({ tours }: ToursClientPageProps) {
                           onClick={() => setSelectedCategory(cat)}
                           className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                             selectedCategory === cat
-                              ? 'bg-purple-600 text-white shadow-md'
+                              ? 'bg-[var(--primary-color)] text-white shadow-md'
                               : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                           }`}
                         >
@@ -365,7 +365,7 @@ export default function ToursClientPage({ tours }: ToursClientPageProps) {
         {/* Results Count */}
         <div className="mb-6">
           <p className="text-slate-600 font-medium">
-            Showing <span className="text-blue-600 font-bold">{filteredTours.length}</span> of <span className="font-bold">{tours.length}</span> tours
+            Showing <span className="text-[var(--primary-color)] font-bold">{filteredTours.length}</span> of <span className="font-bold">{tours.length}</span> tours
           </p>
         </div>
 
@@ -393,7 +393,7 @@ export default function ToursClientPage({ tours }: ToursClientPageProps) {
                 setSelectedDestination('all');
                 setSelectedCategory('all');
               }}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+              className="bg-[var(--primary-color)] text-white px-6 py-3 rounded-lg font-semibold transition-opacity hover:opacity-90"
             >
               Clear All Filters
             </button>

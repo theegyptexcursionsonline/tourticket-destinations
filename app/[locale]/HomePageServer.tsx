@@ -11,7 +11,6 @@ import { cacheIfAvailable } from '@/lib/cache';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import HeroSection from '@/components/HeroSection';
-import IcebarPromo from '@/components/IcebarPromo';
 import AboutUs from '@/components/AboutUs';
 import Reviews from '@/components/Reviews';
 import FAQ from '@/components/FAQ';
@@ -24,7 +23,6 @@ import ToursListSchema from '@/components/schema/ToursListSchema';
 // Import client-side versions that accept props
 import DestinationsServer from '@/components/DestinationsServer';
 import FeaturedToursServer from '@/components/FeaturedToursServer';
-import InterestGridServer from '@/components/InterestGridServer';
 import PopularInterestServer from '@/components/PopularInterestServer';
 import DayTripsServer from '@/components/DayTripsServer';
 
@@ -438,7 +436,6 @@ export default async function HomePageServer() {
   const {
     destinations,
     tours,
-    categories,
     featuredInterests,
     categoryPages,
     headerDestinations,
@@ -456,11 +453,6 @@ export default async function HomePageServer() {
   const catFields = categoryTranslationFields.map(f => f.key);
   const localizedDestinations = dedupeTaxonomyEntries(
     destinations.map((d: any) => localizeEntityFields(d, locale, destFields))
-  );
-  const localizedCategories = dedupeTaxonomyEntries(
-    categories
-      .filter((category: any) => (Number(category.tourCount) || 0) > 0)
-      .map((c: any) => localizeEntityFields(c, locale, catFields))
   );
   const localizedHeaderDests = dedupeTaxonomyEntries(
     headerDestinations.map((d: any) => localizeEntityFields(d, locale, destFields))
@@ -668,14 +660,8 @@ export default async function HomePageServer() {
       {/* Pass pre-fetched data as props */}
       <DestinationsServer destinations={effectiveDestinations} />
       
-      {/* Show IcebarPromo only if enabled for this tenant or if no tenant config */}
-      {(!tenantConfig || tenantConfig.homepage?.showPromoSection) && (
-        <IcebarPromo content={tenantConfig?.homepage?.promoContent || null} />
-      )}
-
       <FeaturedToursServer tours={localizedTours} />
       <PopularInterestServer interests={featuredInterests} categoryPages={categoryPages} />
-      <InterestGridServer categories={localizedCategories} />
       <DayTripsServer tours={localizedDayTrips} />
 
       {/* Show AboutUs only if enabled for this tenant */}

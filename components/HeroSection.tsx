@@ -1315,8 +1315,8 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
             <div
               className={`relative bg-white backdrop-blur-2xl rounded-full transition-all duration-500 ease-out ${
                 isExpanded || isFocused
-                  ? 'shadow-[0_20px_60px_-15px_rgba(59,130,246,0.5)] border-2 border-blue-400 ring-4 ring-blue-100/50'
-                  : 'shadow-[0_10px_40px_-10px_rgba(0,0,0,0.3)] border-2 border-white/40 hover:border-blue-300 hover:shadow-[0_20px_50px_-15px_rgba(59,130,246,0.4)]'
+                  ? 'border-2 border-[var(--primary-color)] shadow-2xl ring-4 ring-white/30'
+                  : 'border-2 border-white/60 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.35)] hover:border-white'
               }`}
             >
               <div className="relative">
@@ -1354,8 +1354,8 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
                 >
                   <div className={`w-9 h-9 md:w-10 md:h-10 rounded-2xl flex items-center justify-center transition-all duration-500 ${
                     isExpanded || isFocused
-                      ? 'bg-gradient-to-br from-blue-600 via-blue-500 to-purple-600 shadow-xl shadow-blue-500/40 scale-110'
-                      : 'bg-gradient-to-br from-blue-500 via-blue-400 to-purple-500 shadow-lg shadow-blue-400/30'
+                      ? 'bg-[var(--primary-color)] shadow-xl scale-110'
+                      : 'bg-[var(--primary-color)] shadow-lg'
                   }`}>
                     <Search className={`w-4 h-4 md:w-5 md:h-5 transition-all duration-300 text-white ${isExpanded ? 'scale-110' : ''}`} strokeWidth={2.5} />
                   </div>
@@ -1398,7 +1398,7 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
                     animate={{ rotate: 0, opacity: 1, scale: 1 }}
                     transition={{ duration: 0.5, type: "spring", stiffness: 200 }}
                   >
-                    <div className="w-8 h-8 md:w-9 md:h-9 rounded-xl bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 flex items-center justify-center shadow-xl shadow-blue-500/40">
+                    <div className="w-8 h-8 md:w-9 md:h-9 rounded-xl bg-[var(--primary-color)] flex items-center justify-center shadow-xl">
                       <ChevronUp className="w-4 h-4 md:w-5 md:h-5 text-white" strokeWidth={2.5} />
                     </div>
                   </motion.div>
@@ -1420,7 +1420,7 @@ const HeroSearchBar = ({ suggestion }: { suggestion: string }) => {
                     }}
                     whileHover={{ scale: 1.2, rotate: 15 }}
                     whileTap={{ scale: 0.9 }}
-                    className="w-8 h-8 md:w-9 md:h-9 rounded-xl bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 flex items-center justify-center shadow-lg shadow-purple-400/40 cursor-pointer hover:shadow-2xl hover:from-purple-600 hover:via-pink-600 hover:to-orange-600 transition-all duration-300"
+                    className="w-8 h-8 md:w-9 md:h-9 rounded-xl bg-slate-950 flex items-center justify-center shadow-lg cursor-pointer hover:bg-slate-800 hover:shadow-2xl transition-all duration-300"
                     aria-label={t('search.openAiAssistant')}
                   >
                     <Sparkles className="w-4 h-4 md:w-5 md:h-5 text-white" strokeWidth={2.5} />
@@ -1959,22 +1959,19 @@ export default function HeroSection({ initialSettings }: HeroSectionProps = {}) 
             background: settings.overlaySettings.gradientType === 'custom'
               ? settings.overlaySettings.customGradient
               : settings.overlaySettings.gradientType === 'dark'
-                ? `linear-gradient(to br, rgba(0,0,0,${settings.overlaySettings.opacity}), rgba(0,0,0,${settings.overlaySettings.opacity * 0.7}))`
-                : `linear-gradient(to br, rgba(255,255,255,${settings.overlaySettings.opacity}), rgba(255,255,255,${settings.overlaySettings.opacity * 0.7}))`
+                ? `linear-gradient(to bottom right, rgba(0,0,0,${settings.overlaySettings.opacity}), rgba(0,0,0,${settings.overlaySettings.opacity * 0.7}))`
+                : `linear-gradient(to bottom right, rgba(255,255,255,${settings.overlaySettings.opacity}), rgba(255,255,255,${settings.overlaySettings.opacity * 0.7}))`
           }}
         />
 
         <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center h-full text-center md:items-start md:text-start" style={{ overflow: 'visible' }}>
           <div className="max-w-xl" style={{ overflow: 'visible', position: 'relative' }}>
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold uppercase leading-tight tracking-wide text-shadow-lg">
-              {settings.title.main}
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold uppercase leading-[0.98] tracking-tight text-shadow-lg">
+              <span className="block text-white">{settings.title.main}</span>
               {settings.title.highlight && (
-                <>
-                  <br />
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">
+                  <span className="mt-2 block text-3xl font-bold tracking-wide text-white/90 sm:text-4xl md:text-5xl lg:text-6xl">
                     {settings.title.highlight}
                   </span>
-                </>
               )}
             </h1>
             <p className="mt-4 text-base sm:text-lg md:text-xl text-shadow font-light max-w-md mx-auto md:mx-0">
@@ -1987,9 +1984,9 @@ export default function HeroSection({ initialSettings }: HeroSectionProps = {}) 
 
             {/* Trust Indicators */}
             {settings.trustIndicators.isVisible && (
-              <div className="mt-6 flex items-center justify-center md:justify-start gap-6 text-white/80 text-sm">
+              <div className="mt-6 inline-flex flex-wrap items-center justify-center gap-x-4 gap-y-2 rounded-2xl border border-white/25 bg-slate-950/55 px-5 py-3 text-sm font-semibold text-white shadow-lg backdrop-blur-md md:justify-start sm:text-base">
                 <span>{settings.trustIndicators.travelers}</span>
-                <span>{settings.trustIndicators.ratingText}</span>
+                <span className="text-[var(--primary-color)]" aria-hidden="true">{settings.trustIndicators.ratingText}</span>
                 <span>{settings.trustIndicators.rating}</span>
               </div>
             )}

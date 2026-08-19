@@ -82,11 +82,11 @@ const formatBookings = (num?: number) => {
 };
 
 const getTagColor = (tag: string) => {
-  if (tag.includes('%')) return 'bg-red-500 text-white';
-  if (tag === 'Staff favourite') return 'bg-indigo-500 text-white';
-  if (tag === 'Online only deal') return 'bg-emerald-500 text-white';
-  if (tag === 'New') return 'bg-purple-500 text-white';
-  if (tag === 'Best for Kids') return 'bg-yellow-400 text-black';
+  if (tag.includes('%')) return 'bg-[var(--primary-color)] text-white';
+  if (tag === 'Staff favourite') return 'bg-slate-950 text-white';
+  if (tag === 'Online only deal') return 'bg-[var(--primary-color)] text-white';
+  if (tag === 'New') return 'bg-[var(--primary-color)] text-white';
+  if (tag === 'Best for Kids') return 'bg-white text-slate-900';
   return 'bg-white/95 text-gray-800';
 };
 
@@ -142,7 +142,7 @@ const TourCard = ({ tour, onAddToCartClick }: { tour: Tour; onAddToCartClick: (t
         {/* Rating Badge */}
         <div className="absolute top-4 end-4 z-20">
           <div className="bg-white/95 backdrop-blur-sm px-3 py-2 rounded-full flex items-center gap-2 border border-white/20" style={{ boxShadow: 'none' }}>
-            <Star size={16} className="text-yellow-500 fill-yellow-500" />
+            <Star size={16} className="fill-[var(--primary-color)] text-[var(--primary-color)]" />
             <span className="text-sm font-bold text-gray-800">
               {tour.rating ? tour.rating.toFixed(1) : '0.0'}
             </span>
@@ -151,7 +151,7 @@ const TourCard = ({ tour, onAddToCartClick }: { tour: Tour; onAddToCartClick: (t
 
         {/* Price Badge */}
         <div className="absolute start-4 bottom-4 z-20">
-          <div className="bg-gradient-to-r from-red-600 to-red-500 text-white px-3 py-2 rounded-full font-black text-sm sm:text-base border-2 border-white/20" style={{ boxShadow: 'none' }}>
+          <div className="rounded-full border-2 border-white/20 bg-[var(--primary-color)] px-3 py-2 text-sm font-black text-white sm:text-base" style={{ boxShadow: 'none' }}>
             {formatPrice(tour.discountPrice || tour.originalPrice || 0)}
             {tour.originalPrice && tour.discountPrice && tour.originalPrice > tour.discountPrice && (
               <span className="ms-2 text-xs font-medium line-through text-red-100">
@@ -267,7 +267,7 @@ export default function FeaturedToursServer({ tours }: FeaturedToursServerProps)
 
   return (
     <>
-      <section className="featured-tours-section bg-gradient-to-b from-white to-gray-50 py-8 sm:py-12 md:py-16 lg:py-20">
+      <section className="featured-tours-section bg-slate-50 py-8 sm:py-12 md:py-16 lg:py-20">
         {/* Header with container */}
         <div className="container mx-auto px-4 md:px-8 mb-8 sm:mb-10 md:mb-12">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sm:gap-6">
@@ -283,7 +283,7 @@ export default function FeaturedToursServer({ tours }: FeaturedToursServerProps)
             <div className="flex items-center gap-4 w-full md:w-auto">
               <Link
                 href="/tours"
-                className="inline-flex items-center justify-center gap-2 px-5 sm:px-6 md:px-8 py-2.5 sm:py-3 md:py-4 rounded-full bg-gradient-to-r from-red-600 to-red-500 text-white text-sm sm:text-base font-bold hover:scale-105 transform transition-all duration-300 border-2 border-transparent hover:border-white/20 w-full md:w-auto"
+                className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[var(--primary-color)] px-5 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-slate-300 sm:px-6 sm:py-3 sm:text-base md:w-auto md:px-8 md:py-4"
                 style={{ boxShadow: 'none' }}
                 aria-label="See all tours"
               >
