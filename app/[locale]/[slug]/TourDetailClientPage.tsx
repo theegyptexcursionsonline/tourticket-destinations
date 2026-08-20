@@ -41,6 +41,7 @@ import InteractiveItineraryMap from '@/components/tours/InteractiveItineraryMap'
 import {
   itineraryCoordinateAnchors,
   itineraryDirectionsUrl,
+  itineraryAutomaticRouteBase,
   itineraryMapStops,
   itineraryStoredDirectionsUrl,
 } from '@/lib/tours/itineraryMap';
@@ -404,14 +405,18 @@ const ItineraryIcon = ({ iconType, className = "w-5 h-5" }: { iconType?: string,
   return icons[iconType || 'location'] || icons.location;
 };
 
-const ItinerarySection = ({ itinerary, sectionRef }: { itinerary: ItineraryItem[], sectionRef: React.RefObject<HTMLDivElement | null> }) => {
+const ItinerarySection = ({ itinerary, tourLocation, tourTitle, sectionRef }: { itinerary: ItineraryItem[], tourLocation?: string, tourTitle?: string, sectionRef: React.RefObject<HTMLDivElement | null> }) => {
   const t = useTranslations('tour');
   // Recomputed only when the itinerary changes, not on every scroll tick.
   const stops = useMemo(() => itineraryMapStops(itinerary), [itinerary]);
-  const showMap = useMemo(() => itineraryCoordinateAnchors(itinerary).length > 0, [itinerary]);
+  const showMap = useMemo(
+    () => itineraryCoordinateAnchors(itinerary).length > 0
+      || Boolean(itineraryAutomaticRouteBase(itinerary, tourLocation, tourTitle)),
+    [itinerary, tourLocation, tourTitle],
+  );
   const openMapsUrl = useMemo(
-    () => itineraryStoredDirectionsUrl(itinerary) || itineraryDirectionsUrl(stops),
-    [itinerary, stops],
+    () => itineraryStoredDirectionsUrl(itinerary) || itineraryDirectionsUrl(stops, tourLocation),
+    [itinerary, stops, tourLocation],
   );
   const [activeItineraryIndex, setActiveItineraryIndex] = useState(0);
   const selectItineraryStage = useCallback((index: number) => {
@@ -513,6 +518,8 @@ const ItinerarySection = ({ itinerary, sectionRef }: { itinerary: ItineraryItem[
           <div className="relative order-1 lg:order-2 lg:sticky lg:top-24 lg:self-start">
             <InteractiveItineraryMap
               itinerary={itinerary}
+              tourLocation={tourLocation}
+              tourTitle={tourTitle}
               openMapsUrl={openMapsUrl}
               activeIndex={activeItineraryIndex}
               onSelect={selectItineraryStage}
@@ -1356,7 +1363,12 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
               <OverviewSection tour={tour} sectionRef={overviewRef} />
               
               {enhancement.itinerary && enhancement.itinerary.length > 0 && (
-                <ItinerarySection itinerary={enhancement.itinerary} sectionRef={itineraryRef} />
+                <ItinerarySection
+                  itinerary={enhancement.itinerary}
+                  tourLocation={tour.location || (typeof tour.destination === 'string' ? tour.destination : tour.destination?.name)}
+                  tourTitle={tour.title}
+                  sectionRef={itineraryRef}
+                />
               )}
               
               <PracticalInfoSection enhancement={enhancement} sectionRef={practicalRef} />

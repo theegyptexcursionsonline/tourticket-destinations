@@ -1,5 +1,6 @@
 import {
   completeItineraryRoute,
+  itineraryAutomaticRouteBase,
   itineraryCoordinateAnchors,
   itineraryDirectionsUrl,
   itineraryMapStops,
@@ -7,6 +8,42 @@ import {
   itineraryRouteContextQuery,
   itineraryStoredDirectionsUrl,
 } from '@/lib/tours/itineraryMap';
+
+describe('itineraryAutomaticRouteBase', () => {
+  it('auto-centres a generic local itinerary on the tour destination', () => {
+    expect(itineraryAutomaticRouteBase([
+      { title: 'Hotel Pickup', location: 'Your Hotel' },
+      { title: 'Arrive at Marina', location: 'Marina' },
+      { title: 'Parasailing', location: 'Red Sea' },
+    ], 'El Gouna, Red Sea, Egypt')).toEqual({
+      place: 'El Gouna',
+      lat: 27.3942,
+      lng: 33.6783,
+    });
+  });
+
+  it('uses the visited itinerary city instead of the pickup resort', () => {
+    expect(itineraryAutomaticRouteBase([
+      { title: 'Hotel Pickup', location: 'Hurghada Hotels' },
+      { title: 'Karnak Temple', location: 'Luxor' },
+    ], 'Luxor, Egypt (Tour from Hurghada)')?.place).toBe('Luxor');
+    expect(itineraryAutomaticRouteBase([], 'Cairo from Sharm El Sheikh')?.place).toBe('Cairo and Giza');
+  });
+
+  it('uses the tour title when legacy records have only a broad location', () => {
+    expect(itineraryAutomaticRouteBase(
+      [{ title: 'Hotel Pickup' }, { title: 'Nile Cruise' }],
+      'Nile & West Bank',
+      'Nile Motorboat & Nubian Village',
+    )?.place).toBe('Aswan');
+  });
+
+  it('fails closed when neither the itinerary nor destination identifies a reviewed area', () => {
+    expect(itineraryAutomaticRouteBase([
+      { title: 'Pickup', location: 'Your Hotel' },
+    ], 'Unknown destination')).toBeNull();
+  });
+});
 
 describe('itineraryCoordinateAnchors', () => {
   it('uses only finite stored coordinates in geographic range', () => {

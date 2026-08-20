@@ -215,6 +215,7 @@ export interface Tour {
   difficulty?: string;
   maxGroupSize?: number;
   meetingPoint?: string;
+  location?: string;
   languages?: string[];
   ageRestriction?: string;
   cancellationPolicy?: string;

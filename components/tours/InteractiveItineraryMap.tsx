@@ -7,6 +7,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import {
   completeItineraryRoute,
   isItineraryMappableLocation,
+  itineraryAutomaticRouteBase,
   itineraryCoordinateAnchors,
   type ItineraryRoutePosition,
 } from '@/lib/tours/itineraryMap';
@@ -28,6 +29,8 @@ export interface InteractiveItineraryItem {
 
 interface InteractiveItineraryMapProps {
   itinerary: InteractiveItineraryItem[];
+  tourLocation?: string | null;
+  tourTitle?: string | null;
   openMapsUrl: string;
   activeIndex: number;
   onSelect: (index: number) => void;
@@ -66,6 +69,8 @@ function routeFeature(positions: ItineraryRoutePosition[]): RouteLineFeature {
 
 function InteractiveItineraryMap({
   itinerary,
+  tourLocation,
+  tourTitle,
   openMapsUrl,
   activeIndex,
   onSelect,
@@ -88,7 +93,11 @@ function InteractiveItineraryMap({
   const [retryToken, setRetryToken] = useState(0);
 
   const anchors = useMemo(() => itineraryCoordinateAnchors(itinerary), [itinerary]);
-  const roundTripBase = anchors.find((anchor) => anchor.index === 0)?.position || null;
+  const automaticRouteBase = useMemo(
+    () => anchors.length === 0 ? itineraryAutomaticRouteBase(itinerary, tourLocation, tourTitle) : null,
+    [anchors.length, itinerary, tourLocation, tourTitle],
+  );
+  const roundTripBase = anchors.find((anchor) => anchor.index === 0)?.position || automaticRouteBase;
   const positions = useMemo(
     () => completeItineraryRoute(itinerary.length, anchors, roundTripBase),
     [anchors, itinerary.length, roundTripBase],

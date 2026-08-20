@@ -1,6 +1,7 @@
 // Itinerary map rules (client sheet 02.08, N4):
-// - The customer map renders only from coordinate pairs saved by an editor.
-//   With none, it fails closed — never guess from a title or call a geocoder.
+// - Editor-saved coordinate pairs remain exact. With none, the customer map
+//   uses a reviewed destination/landmark centre and labels every stage
+//   approximate; customer page views never call a geocoder.
 // - Every lifecycle stage remains selectable in itinerary order. Authored
 //   coordinates stay exact; intervening travel stages are disclosed as
 //   approximate positions along the route.
@@ -8,6 +9,7 @@
 //   approximate markers are separated enough to remain independently usable.
 
 export interface ItineraryStepLike {
+  title?: string | null;
   location?: string | null;
   coordinates?: {
     lat?: number | null;
@@ -217,6 +219,75 @@ export function itineraryPickupBaseQuery(tourLocation?: string | null): string |
 export interface ItineraryRouteCoordinate {
   lat: number;
   lng: number;
+}
+
+interface AutomaticRouteBase extends ItineraryRouteCoordinate {
+  place: string;
+}
+
+// Reviewed centres for the destinations and route landmarks currently sold by
+// the Egypt storefronts. They are deliberately local data: customer page views
+// must not depend on a paid geocoder or on a best-effort public geocoding API.
+// More-specific places come first so "El Gouna, Red Sea" does not collapse to
+// the broad Red Sea fallback and "Cairo from Sharm" stays in the visited city.
+const AUTOMATIC_ROUTE_BASES: Array<{ pattern: RegExp; base: AutomaticRouteBase }> = [
+  // Visited inland cities and landmarks outrank pickup resorts in text such as
+  // "Cairo from Sharm" and "Luxor tour from Hurghada".
+  { pattern: /\b(?:abu\s+simbel)\b/iu, base: { place: 'Abu Simbel', lat: 22.336, lng: 31.6258 } },
+  { pattern: /\b(?:philae|elephantine|kom\s+ombo|nubian|aswan|assuan)\b/iu, base: { place: 'Aswan', lat: 24.0889, lng: 32.8998 } },
+  { pattern: /\b(?:dendera|abydos|valley\s+of\s+the\s+kings|karnak|luxor)\b/iu, base: { place: 'Luxor', lat: 25.6872, lng: 32.6396 } },
+  { pattern: /\b(?:alexandria)\b/iu, base: { place: 'Alexandria', lat: 31.2001, lng: 29.9187 } },
+  { pattern: /\b(?:fayou?m)\b/iu, base: { place: 'Fayoum', lat: 29.3084, lng: 30.8428 } },
+  { pattern: /\b(?:saq{1,2}ara|memphis|tahrir|nile\s+corniche|egyptian\s+museum|islamic\s+cairo|coptic\s+cairo|cairo\s+tower|cairo|kairo|giza|pyramid|sphinx)\b/iu, base: { place: 'Cairo and Giza', lat: 30.0131, lng: 31.2089 } },
+  { pattern: /\b(?:el\s*gouna|abu\s+nuhas)\b/iu, base: { place: 'El Gouna', lat: 27.3942, lng: 33.6783 } },
+  { pattern: /\b(?:orange\s+(?:bay|island|beach)|giftun)\b/iu, base: { place: 'Giftun Island', lat: 27.1927, lng: 33.9647 } },
+  { pattern: /\b(?:sahl\s+hasheesh)\b/iu, base: { place: 'Sahl Hasheesh', lat: 27.0469, lng: 33.8904 } },
+  { pattern: /\b(?:makadi(?:\s+bay)?|makadi\s+water\s+world)\b/iu, base: { place: 'Makadi Bay', lat: 26.991, lng: 33.899 } },
+  { pattern: /\b(?:soma\s+bay)\b/iu, base: { place: 'Soma Bay', lat: 26.843, lng: 33.991 } },
+  { pattern: /\b(?:marsa\s+alam|marsa\s+mubarak|abu\s+dabbab|port\s+ghalib|wadi\s+el\s+gemal|sataya|elphinstone)\b/iu, base: { place: 'Marsa Alam', lat: 25.0676, lng: 34.879 } },
+  { pattern: /\b(?:ras\s+mohammed|tiran|sharm(?:\s+el[ -]?sheikh)?|sinai)\b/iu, base: { place: 'Sharm el-Sheikh', lat: 27.9158, lng: 34.33 } },
+  { pattern: /\b(?:blue\s+hole|ras\s+abu\s+galum|three\s+pools|dahab)\b/iu, base: { place: 'Dahab', lat: 28.509, lng: 34.513 } },
+  { pattern: /\b(?:hurghada)\b/iu, base: { place: 'Hurghada', lat: 27.2579, lng: 33.8116 } },
+  { pattern: /\b(?:safaga)\b/iu, base: { place: 'Safaga', lat: 26.7506, lng: 33.936 } },
+  { pattern: /\b(?:taba)\b/iu, base: { place: 'Taba', lat: 29.4925, lng: 34.8969 } },
+  { pattern: /(?:القاهرة|الجيزة|الأهرام)/u, base: { place: 'Cairo and Giza', lat: 30.0131, lng: 31.2089 } },
+  { pattern: /(?:الغردقة)/u, base: { place: 'Hurghada', lat: 27.2579, lng: 33.8116 } },
+  { pattern: /(?:الأقصر)/u, base: { place: 'Luxor', lat: 25.6872, lng: 32.6396 } },
+  { pattern: /(?:أسوان)/u, base: { place: 'Aswan', lat: 24.0889, lng: 32.8998 } },
+  { pattern: /(?:شرم\s+الشيخ)/u, base: { place: 'Sharm el-Sheikh', lat: 27.9158, lng: 34.33 } },
+  { pattern: /(?:مرسى\s+علم)/u, base: { place: 'Marsa Alam', lat: 25.0676, lng: 34.879 } },
+];
+
+/**
+ * Selects a reviewed route centre when a tour has an itinerary but no authored
+ * pins. Itinerary text is considered before catalogue location so a day trip
+ * from Hurghada to Luxor is centred on Luxor, while generic local stages fall
+ * back to the tour location. Every position derived from this base remains
+ * explicitly approximate in the customer UI.
+ */
+export function itineraryAutomaticRouteBase(
+  itinerary: ItineraryStepLike[],
+  tourLocation?: string | null,
+  tourTitle?: string | null,
+): AutomaticRouteBase | null {
+  const itineraryText = (itinerary || [])
+    .flatMap((step) => [step?.location, step?.title])
+    .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+    .join(' · ');
+  const sources = [
+    itineraryText,
+    String(tourLocation || '').trim(),
+    String(tourTitle || '').trim(),
+  ].filter(Boolean);
+
+  for (const source of sources) {
+    const match = AUTOMATIC_ROUTE_BASES.find(({ pattern }) => pattern.test(source));
+    if (match) return { ...match.base };
+  }
+  if (sources.some((source) => /\b(?:eastern\s+desert|red\s+sea)\b/iu.test(source))) {
+    return { place: 'Red Sea coast', lat: 27.2579, lng: 33.8116 };
+  }
+  return null;
 }
 
 export interface ItineraryRouteAnchor {

@@ -2396,7 +2396,7 @@ const addItineraryItem = () => {
     />
   </div>
   <div className="rounded-lg border border-sky-100 bg-sky-50 px-3 py-2 text-xs leading-relaxed text-sky-900 lg:col-span-3">
-    Add both coordinates once to show this stage on the customer route map. Customer page views do not call a geocoder or a paid map API.
+    The customer route map is generated automatically. Add both coordinates only when this stage must mark an exact place; otherwise it is shown as approximate. Customer page views do not call a geocoder or a paid map API.
     {' '}
     <a
       href={`https://www.openstreetmap.org/search?query=${encodeURIComponent(day.location || 'Egypt')}`}

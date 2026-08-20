@@ -122,4 +122,22 @@ describe('InteractiveItineraryMap', () => {
     expect(await screen.findByText('The route map is temporarily unavailable.')).toBeInTheDocument();
     expect(screen.queryByRole('img', { name: 'Tour route map' })).not.toBeInTheDocument();
   });
+
+  it('starts an approximate map when coordinates are absent but the tour destination is known', () => {
+    render(
+      <InteractiveItineraryMap
+        itinerary={[
+          { title: 'Hotel Pickup', description: 'Meet your driver.', location: 'Your Hotel' },
+          { title: 'Marina', description: 'Board the boat.', location: 'Marina' },
+        ]}
+        tourLocation="El Gouna, Red Sea, Egypt"
+        openMapsUrl="https://maps.example.test/route"
+        activeIndex={0}
+        onSelect={() => undefined}
+      />,
+    );
+    expect(screen.getByText('Loading route map…')).toBeInTheDocument();
+    expect(screen.getByTestId('itinerary-map-stage-card')).toHaveTextContent('Approximate stage');
+    expect(screen.queryByText('The route map is temporarily unavailable.')).not.toBeInTheDocument();
+  });
 });
