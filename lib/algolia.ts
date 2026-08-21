@@ -33,6 +33,16 @@ export const ALGOLIA_INDEX_BLOGS = 'blogs';
 // Legacy export for backward compatibility
 export const ALGOLIA_INDEX_NAME = ALGOLIA_INDEX_TOURS;
 
+export const ALGOLIA_TENANT_FILTER_ATTRIBUTES = [
+  'filterOnly(tenantId)',
+  'filterOnly(tenantIds)',
+] as const;
+
+export const ALGOLIA_TENANT_RETRIEVE_ATTRIBUTES = [
+  'tenantId',
+  'tenantIds',
+] as const;
+
 // Helper function to format tour data for Algolia
 export const formatTourForAlgolia = (tour: any) => {
   return {
@@ -186,7 +196,8 @@ export const configureAlgoliaIndex = async () => {
           'filterOnly(rating)',
           'filterOnly(duration)',
           'filterOnly(isPublished)',
-          'filterOnly(isFeatured)'
+          'filterOnly(isFeatured)',
+          ...ALGOLIA_TENANT_FILTER_ATTRIBUTES
         ],
         customRanking: [
           'desc(isFeatured)',
@@ -224,7 +235,8 @@ export const configureAlgoliaIndex = async () => {
           'isFeatured',
           'highlights',
           'included',
-          'excluded'
+          'excluded',
+          ...ALGOLIA_TENANT_RETRIEVE_ATTRIBUTES
         ],
         attributesToHighlight: [
           'title',

@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import { algoliaClient, ALGOLIA_INDEX_NAME } from '@/lib/algolia';
 import { getTenantFromRequest } from '@/lib/tenant';
+import { buildAlgoliaTenantFilter } from '@/lib/algoliaTenant';
 
 export async function GET(request: Request) {
   try {
@@ -27,10 +28,9 @@ export async function GET(request: Request) {
 
     // Build filters
     const tenantId = await getTenantFromRequest();
-    const safeTenantId = tenantId.replace(/[^a-zA-Z0-9_-]/g, '');
     const filters: string[] = [
       'isPublished:true',
-      `(tenantId:${safeTenantId} OR tenantIds:${safeTenantId})`,
+      buildAlgoliaTenantFilter(tenantId),
     ];
 
     // Categories filter
