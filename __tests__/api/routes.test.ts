@@ -257,7 +257,9 @@ describe('API Route Handlers', () => {
         createRequest('PUT', '/api/tours/not-an-id/booking-options', {}),
         { params: Promise.resolve({ tourId: 'not-an-id' }) },
       )).status).toBe(401);
-      expect((await algolia.POST(createRequest('POST', '/api/algolia/sync'))).status).toBe(401);
+      // Retired 2026-08-21: the sync endpoint answers 410 for EVERY caller —
+      // authenticated or not — which is a strictly tighter gate than the old 401.
+      expect((await algolia.POST(createRequest('POST', '/api/algolia/sync'))).status).toBe(410);
     });
 
     it('returns only the public booking verification allowlist', async () => {
