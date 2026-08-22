@@ -6,6 +6,7 @@ import StopSale from '@/lib/models/StopSale';
 import { createHash, createHmac } from 'crypto';
 import { isPerPersonAddOn } from '@/lib/checkout/addOnPricing';
 import { authoritativeBasePrice } from '@/lib/pricing/authoritativePrice';
+import { optionSubtotal } from '@/lib/bookings/optionSubtotal';
 import { isAddOnAvailableForOption } from '@/lib/bookings/addOnAvailability';
 
 type CartItem = Record<string, any>;
@@ -143,7 +144,9 @@ export async function calculateCheckoutPricing(
       selectedAddOnDetails[addOnId] = { title, price, perGuest };
     }
 
-    const itemSubtotal = basePrice * adults + (basePrice / 2) * children + addOnsTotal;
+    // A unit-priced option (Per Couple / Per Family / Per Group) is charged
+    // in whole units, never per guest — the client's reported overcharge.
+    const itemSubtotal = optionSubtotal(selectedOption ?? null, basePrice, adults, children) + addOnsTotal;
     subtotal += itemSubtotal;
     cart.push({
       ...submitted,
@@ -154,7 +157,7 @@ export async function calculateCheckoutPricing(
       childQuantity: children,
       infantQuantity: infants,
       selectedBookingOption: selectedOption
-        ? { ...submitted.selectedBookingOption, id: optionId, title: selectedOption.label, price: basePrice }
+        ? { ...submitted.selectedBookingOption, id: optionId, title: selectedOption.label, type: selectedOption.type, price: basePrice }
         : undefined,
       selectedAddOns,
       selectedAddOnDetails,

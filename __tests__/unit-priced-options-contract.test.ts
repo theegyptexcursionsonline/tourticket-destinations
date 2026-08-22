@@ -49,23 +49,44 @@ describe('whole-unit option pricing', () => {
   });
 });
 
-describe('both pricing surfaces use the shared unit rule', () => {
-  it('the booking sidebar stops multiplying a unit price per participant', () => {
-    const sidebar = read('components/BookingSidebar.tsx');
-    expect(sidebar).toContain("from '@/lib/bookings/unitPricing'");
-    expect(sidebar).toContain('isUnitPricedType(option.type)');
-    expect(sidebar).toContain('units * basePrice');
-    // the old unconditional per-guest maths must no longer stand alone
-    expect(sidebar).not.toMatch(/const subtotal = \(adults \* basePrice\)/);
+describe('every pricing surface bills by the one shared subtotal rule', () => {
+  it.each([
+    ['the Stripe amount', 'lib/security/checkoutPricing.ts', 'optionSubtotal(selectedOption ?? null, basePrice, adults, children)'],
+    ['the recorded booking', 'app/api/checkout/route.ts', 'optionSubtotal('],
+    ['the cart', 'components/CartSidebar.tsx', 'optionSubtotal(item.selectedBookingOption ?? null'],
+    ['the booking sidebar', 'components/BookingSidebar.tsx', 'optionSubtotal(option, basePrice, adults, children)'],
+  ])('%s uses optionSubtotal', (_surface, file, call) => {
+    const source = read(file);
+    expect(source).toContain("from '@/lib/bookings/optionSubtotal'");
+    expect(source).toContain(call);
+    // no surface keeps its own per-guest arithmetic alongside the rule
+    expect(source).not.toMatch(/basePrice \* adults \+ \(basePrice \/ 2\)/);
+    expect(source).not.toMatch(/const adultPrice = basePrice \* \(/);
   });
 
-  it('the authoritative server total applies the same rule from the STORED option', () => {
+  it('the server surfaces read the option type from the stored tour, never the cart', () => {
     const checkout = read('app/api/checkout/route.ts');
-    expect(checkout).toContain("from '@/lib/bookings/unitPricing'");
-    expect(checkout).toContain('isUnitPricedType(storedOption.type');
-    expect(checkout).toContain('units * basePrice');
-    // the option type is read from the tour, never from the submitted cart
     expect(checkout).toContain('storedOptions');
-    expect(checkout).not.toMatch(/isUnitPricedType\(cartItem/);
+    expect(checkout).not.toMatch(/optionSubtotal\(cartItem\.selectedBookingOption/);
+    const stripe = read('lib/security/checkoutPricing.ts');
+    expect(stripe).toMatch(/selectedOption = \(tour\.bookingOptions \|\| \[\]\)\.find/);
+  });
+});
+
+describe('the option type reaches every surface that totals a line', () => {
+  it('the sidebar writes the pricing type into the cart line', () => {
+    const sidebar = read('components/BookingSidebar.tsx');
+    expect(sidebar).toMatch(/selectedBookingOptionDetails = selectedOption \? \{[\s\S]{0,300}type: selectedOption\.type/);
+  });
+
+  it('the validated cart carries the STORED type, so emails and the booking record total correctly', () => {
+    const stripe = read('lib/security/checkoutPricing.ts');
+    expect(stripe).toContain('type: selectedOption.type, price: basePrice');
+  });
+
+  it('no copy of the per-guest arithmetic survives in the checkout route', () => {
+    const checkout = read('app/api/checkout/route.ts');
+    expect(checkout).not.toMatch(/const adultPrice = basePrice \* \(/);
+    expect((checkout.match(/optionSubtotal\(/g) || []).length).toBeGreaterThanOrEqual(3);
   });
 });

@@ -435,6 +435,8 @@ export interface CartItem extends Tour {
   selectedBookingOption?: {
     id: string;
     title: string;
+    /** Pricing type ("Per Person", "Per Group", ...) — decides per-guest vs whole-unit totals. */
+    type?: string;
     price: number;
     originalPrice?: number;
     duration?: string;

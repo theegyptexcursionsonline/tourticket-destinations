@@ -28,7 +28,7 @@ import {
   isSelectedTimeSlot,
   nextAddOnSelectionQuantity,
 } from '@/lib/bookings/bookingSelection';
-import { effectiveUnitSize, isUnitPricedType, unitCount, unitCountLabel, type UnitCapacityOption } from '@/lib/bookings/unitPricing';
+import { optionSubtotal } from '@/lib/bookings/optionSubtotal';
 
 // Enhanced Types with database compatibility
 interface Tour {
@@ -590,16 +590,9 @@ const TourOptionCard: React.FC<{
   // Per Couple / Per Family / Per Group price a WHOLE unit, never one guest.
   // Multiplying them per participant is what overcharged a Per Group option
   // by the head count (client report, EEO sheet 2026-08-20).
-  const unitSize = effectiveUnitSize(option as UnitCapacityOption);
-  const totalParticipants = adults + children;
-  const units = isUnitPricedType(option.type) ? unitCount(totalParticipants, unitSize) : 0;
-  const subtotal = isUnitPricedType(option.type)
-    ? units * basePrice
-    : (adults * basePrice) + (children * basePrice * 0.5);
+  const subtotal = optionSubtotal(option, basePrice, adults, children);
   const originalSubtotal = option.originalPrice
-    ? (isUnitPricedType(option.type)
-        ? units * option.originalPrice
-        : (adults * option.originalPrice) + (children * option.originalPrice * 0.5))
+    ? optionSubtotal(option, option.originalPrice, adults, children)
     : subtotal;
   const savings = originalSubtotal - subtotal;
 
@@ -1977,6 +1970,9 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
       const selectedBookingOptionDetails = selectedOption ? {
         id: selectedOption.id,
         title: selectedOption.title,
+        // The pricing type rides along so the cart can total a whole-unit
+        // option the way the server will charge it.
+        type: selectedOption.type,
         price: selectedOption.price,
         originalPrice: selectedOption.originalPrice,
         duration: selectedOption.duration,

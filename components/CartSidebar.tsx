@@ -12,6 +12,7 @@ import SafeImage from '@/components/shared/SafeImage';
 import { parseLocalDate } from '@/utils/date';
 import { useLocale } from 'next-intl';
 import { isRTL } from '@/i18n/config';
+import { optionSubtotal } from '@/lib/bookings/optionSubtotal';
 
 const CartSidebar: FC = () => {
     const t = useTranslations();
@@ -26,9 +27,9 @@ const CartSidebar: FC = () => {
         // Use selected booking option price if available, otherwise fall back to item price
         const basePrice = item.selectedBookingOption?.price || item.discountPrice || 0;
         
-        const adultPrice = basePrice * (item.quantity || 1);
-        const childPrice = (basePrice / 2) * (item.childQuantity || 0);
-        let tourTotal = adultPrice + childPrice;
+        // Whole-unit options (couple/family/group) are charged per unit, not
+        // per guest — the same rule the server bills by.
+        let tourTotal = optionSubtotal(item.selectedBookingOption ?? null, basePrice, item.quantity || 1, item.childQuantity || 0);
 
         let addOnsTotal = 0;
         if (item.selectedAddOns && item.selectedAddOnDetails) {

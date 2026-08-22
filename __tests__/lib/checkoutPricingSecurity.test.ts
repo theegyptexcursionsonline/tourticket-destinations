@@ -67,6 +67,69 @@ describe('checkout pricing security', () => {
     });
   });
 
+  it('charges a Per Group option once for the whole booking, never per guest', async () => {
+    // The client's reported overcharge: a $323.18 group option billed $1,131.13
+    // for 3.5 participants. The Stripe amount is built here, so this is the
+    // number that reaches the card.
+    tourLean.mockResolvedValue({
+      _id: '507f1f77bcf86cd799439011',
+      tenantId: 'brand-a',
+      title: 'Desert safari',
+      discountPrice: 100,
+      bookingOptions: [{ id: 'group', type: 'Per Group', label: 'Private group', price: 323.18 }],
+      addOns: [],
+    });
+
+    const result = await calculateCheckoutPricing([{
+      id: '507f1f77bcf86cd799439011',
+      quantity: 3,
+      childQuantity: 1,
+      selectedDate: '2099-01-01',
+      selectedBookingOption: { id: 'group' },
+    }], 'brand-a');
+
+    expect(result.pricing.subtotal).toBeCloseTo(323.18, 2);
+  });
+
+  it('steps a Per Couple option up in whole couples', async () => {
+    tourLean.mockResolvedValue({
+      _id: '507f1f77bcf86cd799439011',
+      tenantId: 'brand-a',
+      title: 'Sunset cruise',
+      discountPrice: 100,
+      bookingOptions: [{ id: 'couple', type: 'Per Couple', label: 'Couple package', price: 80 }],
+      addOns: [],
+    });
+
+    const three = await calculateCheckoutPricing([{
+      id: '507f1f77bcf86cd799439011', quantity: 3, childQuantity: 0, selectedDate: '2099-01-01',
+      selectedBookingOption: { id: 'couple' },
+    }], 'brand-a');
+    expect(three.pricing.subtotal).toBe(160); // 3 people → 2 couples
+
+    const two = await calculateCheckoutPricing([{
+      id: '507f1f77bcf86cd799439011', quantity: 2, childQuantity: 0, selectedDate: '2099-01-01',
+      selectedBookingOption: { id: 'couple' },
+    }], 'brand-a');
+    expect(two.pricing.subtotal).toBe(80);
+  });
+
+  it('keeps Per Person options on the per-guest rule with children at half', async () => {
+    tourLean.mockResolvedValue({
+      _id: '507f1f77bcf86cd799439011',
+      tenantId: 'brand-a',
+      title: 'City tour',
+      discountPrice: 100,
+      bookingOptions: [{ id: 'std', type: 'Per Person', label: 'Standard', price: 50 }],
+      addOns: [],
+    });
+    const result = await calculateCheckoutPricing([{
+      id: '507f1f77bcf86cd799439011', quantity: 2, childQuantity: 1, selectedDate: '2099-01-01',
+      selectedBookingOption: { id: 'std' },
+    }], 'brand-a');
+    expect(result.pricing.subtotal).toBe(125);
+  });
+
   it('rejects unknown booking options and add-ons', async () => {
     await expect(calculateCheckoutPricing([{
       id: '507f1f77bcf86cd799439011',

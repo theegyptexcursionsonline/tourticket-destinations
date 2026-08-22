@@ -5,7 +5,8 @@ import Booking from '@/lib/models/Booking';
 import { bookingPaymentFields, isDuplicateKeyError } from '@/lib/security/paymentEvidence';
 import Tour from '@/lib/models/Tour';
 import { authoritativeBasePrice } from '@/lib/pricing/authoritativePrice';
-import { effectiveUnitSize, isUnitPricedType, unitCount, type UnitCapacityOption } from '@/lib/bookings/unitPricing';
+import { type UnitCapacityOption } from '@/lib/bookings/unitPricing';
+import { optionSubtotal } from '@/lib/bookings/optionSubtotal';
 import User from '@/lib/models/user';
 import Discount from '@/lib/models/Discount';
 import { EmailService } from '@/lib/email/emailService';
@@ -477,18 +478,17 @@ export async function POST(request: Request) {
           // head count. The option type is read from the STORED tour, never
           // from the submitted cart.
           const storedOptions = ((tour as unknown as { bookingOptions?: Array<Record<string, unknown>> })?.bookingOptions) ?? [];
-          const storedOption = (Array.isArray(storedOptions) ? storedOptions : []).find((candidate) =>
-            String(candidate.id ?? candidate._id ?? '') === String(cartItem.selectedBookingOption?.id ?? ''));
-          let tourTotal: number;
-          if (storedOption && isUnitPricedType(storedOption.type as string | undefined)) {
-            const participants = (cartItem.quantity || 1) + (cartItem.childQuantity || 0);
-            const units = unitCount(participants, effectiveUnitSize(storedOption as UnitCapacityOption));
-            tourTotal = units * basePrice;
-          } else {
-            const adultPrice = basePrice * (cartItem.quantity || 1);
-            const childPrice = (basePrice / 2) * (cartItem.childQuantity || 0);
-            tourTotal = adultPrice + childPrice;
-          }
+          const requestedOptionId = cartItem.selectedBookingOption?.id;
+          const storedOption = requestedOptionId
+            ? (Array.isArray(storedOptions) ? storedOptions : []).find((candidate, index) =>
+                String(candidate.id || `option-${index}`) === String(requestedOptionId))
+            : undefined;
+          let tourTotal = optionSubtotal(
+            (storedOption as UnitCapacityOption | undefined) ?? null,
+            basePrice,
+            cartItem.quantity || 1,
+            cartItem.childQuantity || 0,
+          );
 
           let addOnsTotal = 0;
           if (cartItem.selectedAddOns && cartItem.selectedAddOnDetails) {
@@ -605,9 +605,8 @@ export async function POST(request: Request) {
     const formatMoney = (value?: number) => formatCurrencyValue(value, currencySymbol);
     const orderedItemsSummary = cart.map((item: any) => {
       const basePrice = item.selectedBookingOption?.price || item.discountPrice || item.price || 0;
-      const adultPrice = basePrice * (item.quantity || 1);
-      const childPrice = (basePrice / 2) * (item.childQuantity || 0);
-      let total = adultPrice + childPrice;
+      // Same rule as the charge: whole-unit options are not multiplied per guest.
+      let total = optionSubtotal(item.selectedBookingOption ?? null, basePrice, item.quantity || 1, item.childQuantity || 0);
 
       if (item.selectedAddOns && item.selectedAddOnDetails) {
         Object.entries(item.selectedAddOns).forEach(([addOnId, quantity]) => {
@@ -745,9 +744,8 @@ export async function POST(request: Request) {
         // Calculate item price
         const getItemTotal = (item: any) => {
           const basePrice = item.selectedBookingOption?.price || item.discountPrice || item.price || 0;
-          const adultPrice = basePrice * (item.quantity || 1);
-          const childPrice = (basePrice / 2) * (item.childQuantity || 0);
-          let tourTotal = adultPrice + childPrice;
+          // Same rule as the charge: whole-unit options are not multiplied per guest.
+          let tourTotal = optionSubtotal(item.selectedBookingOption ?? null, basePrice, item.quantity || 1, item.childQuantity || 0);
 
           let addOnsTotal = 0;
           if (item.selectedAddOns && item.selectedAddOnDetails) {
