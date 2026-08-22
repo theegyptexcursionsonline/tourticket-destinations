@@ -2,8 +2,6 @@ import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { Link } from '@/i18n/navigation';
-import dbConnect from '@/lib/dbConnect';
-import Blog from '@/lib/models/Blog';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import CollectionSchema from '@/components/schema/CollectionSchema';
@@ -13,7 +11,8 @@ import {
   matchesAuthorSlug,
   resolveAuthor,
 } from '@/lib/blogAuthors';
-import { getTenantFromRequest, getTenantPublicConfig, buildTenantQuery } from '@/lib/tenant';
+import { getTenantFromRequest, getTenantPublicConfig } from '@/lib/tenant';
+import { getTenantAuthorBlogRecords } from '@/lib/content/blogReader';
 import { Calendar, Clock, Eye, Heart, Sparkles, Tag, User } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -55,15 +54,7 @@ function formatCategory(value?: string) {
 }
 
 async function getAuthorPosts(authorSlug: string, tenantId: string) {
-  await dbConnect();
-
-  const query = buildTenantQuery({ status: 'published' }, tenantId);
-  const posts = await Blog.find(query)
-    .sort({ publishedAt: -1, createdAt: -1 })
-    .select(
-      'title slug excerpt featuredImage category author authorAvatar authorBio publishedAt createdAt readTime views likes tags featured',
-    )
-    .lean();
+  const posts = await getTenantAuthorBlogRecords(tenantId) as unknown as AuthorPost[];
 
   const authorPosts = posts.filter((post: any) =>
     matchesAuthorSlug(post.author, authorSlug),

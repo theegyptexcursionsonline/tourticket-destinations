@@ -5,12 +5,13 @@ import Blog from '@/lib/models/Blog';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import BlogPostClient from './BlogPostClient';
-import type { IBlog } from '@/lib/models/Blog';
-import { getTenantFromRequest, getTenantPublicConfig } from '@/lib/tenant';
+import { buildStrictTenantQuery, getTenantFromRequest, getTenantPublicConfig } from '@/lib/tenant';
 import BlogPostSchema from '@/components/schema/BlogPostSchema';
 import FAQSchema from '@/components/schema/FAQSchema';
+import { getLocale } from 'next-intl/server';
+import { getLocalizedBlogPost, localizeBlogRecord } from '@/lib/content/blogReader';
 
-type Params = { slug: string };
+type Params = { slug: string; locale?: string };
 
 export const dynamic = 'force-dynamic';
 export const dynamicParams = true;
@@ -18,14 +19,16 @@ export const dynamicParams = true;
 export async function generateMetadata({ params }: { params: Promise<Params> }) {
   try {
     const tenantId = await getTenantFromRequest();
+    const locale = await getLocale();
     const tenant = await getTenantPublicConfig(tenantId);
     const siteName = tenant?.name || 'Blog';
     
     await dbConnect();
     const { slug } = await params;
-    const blog = await Blog.findOne({ slug, status: 'published' }).lean();
+    const rawBlog = await Blog.findOne(buildStrictTenantQuery({ slug, status: 'published' }, tenantId)).lean();
 
-    if (!blog) return { title: 'Blog Post Not Found' };
+    if (!rawBlog) return { title: 'Blog Post Not Found' };
+    const blog = localizeBlogRecord(rawBlog as Record<string, unknown>, locale) as typeof rawBlog;
 
     return {
       title: blog.metaTitle || `${blog.title} | ${siteName}`,
@@ -52,42 +55,11 @@ export async function generateMetadata({ params }: { params: Promise<Params> }) 
   }
 }
 
-async function getBlogPost(slug: string) {
-  await dbConnect();
-
-  const blog = await Blog.findOne({ slug, status: 'published' })
-    .populate('relatedDestinations', 'name slug image')
-    .populate('relatedTours', 'title slug image discountPrice')
-    .lean();
-
-  if (!blog) {
-    return { blog: null, relatedPosts: [] };
-  }
-
-  // increment views (fire-and-forget style)
-  Blog.findByIdAndUpdate(blog._id, { $inc: { views: 1 } }).catch(e => {
-    console.error('increment view error:', e);
-  });
-
-  const relatedPosts = await Blog.find({
-    status: 'published',
-    category: blog.category,
-    _id: { $ne: blog._id }
-  })
-    .limit(3)
-    .sort({ publishedAt: -1 })
-    .select('title slug excerpt featuredImage imageMetadata author publishedAt readTime')
-    .lean();
-
-  return {
-    blog: JSON.parse(JSON.stringify(blog)) as IBlog,
-    relatedPosts: JSON.parse(JSON.stringify(relatedPosts)) as IBlog[],
-  };
-}
-
 export default async function BlogPostPage({ params }: { params: Promise<Params> }) {
   const { slug } = await params;
-  const { blog, relatedPosts } = await getBlogPost(slug);
+  const tenantId = await getTenantFromRequest();
+  const locale = await getLocale();
+  const { blog, relatedPosts } = await getLocalizedBlogPost(slug, tenantId, locale);
 
   if (!blog) {
     notFound();

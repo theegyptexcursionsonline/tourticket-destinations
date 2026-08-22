@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Blog from '@/lib/models/Blog';
+import { buildStrictTenantQuery, getTenantFromRequest } from '@/lib/tenant';
 
 // Simple in-memory rate limiter to prevent like abuse
 // Key: IP address, Value: { count, resetTime }
@@ -30,23 +31,28 @@ export async function POST(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
+    const tenantId = await getTenantFromRequest();
     // Rate limit by IP
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
                request.headers.get('x-real-ip') ||
                'unknown';
 
-    if (isRateLimited(ip)) {
+    if (isRateLimited(`${tenantId}:${ip}`)) {
       return NextResponse.json({
         success: false,
         error: 'Too many requests. Please try again later.'
       }, { status: 429 });
     }
 
-    await dbConnect();
+    await dbConnect(tenantId);
     
     const { slug } = await params;
     
-    const blog = await Blog.findOne({ slug, status: 'published' });
+    const blog = await Blog.findOneAndUpdate(
+      buildStrictTenantQuery({ slug, status: 'published' }, tenantId),
+      { $inc: { likes: 1 } },
+      { new: true },
+    );
     
     if (!blog) {
       return NextResponse.json({ 
@@ -54,9 +60,6 @@ export async function POST(
         error: 'Blog post not found' 
       }, { status: 404 });
     }
-    
-    // Increment like count
-    await Blog.findByIdAndUpdate(blog._id, { $inc: { likes: 1 } });
     
     return NextResponse.json({ 
       success: true, 

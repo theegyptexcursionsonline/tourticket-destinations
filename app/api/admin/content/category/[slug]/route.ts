@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
-import Blog from '@/lib/models/Blog';
+import Category from '@/lib/models/Category';
 import { verifyContentEngine } from '@/lib/auth/verifyContentEngine';
 import {
   requireContentEngineTenantFromQuery,
@@ -13,26 +13,25 @@ export async function GET(
 ) {
   const authError = verifyContentEngine(request, { registerAuditActor: false });
   if (authError) return authError;
-
-  const { slug } = await context.params;
-  // Content Engine's adapter connection test intentionally probes this exact
-  // sentinel without a tenant. Keep it DB-free while real lookups remain strict.
-  if (slug === '__healthcheck__') {
-    return NextResponse.json({ error: 'Not found' }, { status: 404 });
-  }
-
   const tenant = requireContentEngineTenantFromQuery(request);
   if (!tenant.ok) return tenant.response;
+  const { slug } = await context.params;
   await dbConnect(tenant.tenantId);
-  const blog = await Blog.findOne(strictTenantSlugQuery(tenant.tenantId, slug)).lean();
-  if (!blog) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-
+  const doc = await Category.findOne(strictTenantSlugQuery(tenant.tenantId, slug)).lean() as {
+    _id: unknown;
+    slug: string;
+    name: string;
+    isPublished?: boolean;
+    tenantId: string;
+    updatedAt?: Date;
+  } | null;
+  if (!doc) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   return NextResponse.json({
-    id: String(blog._id),
-    slug: blog.slug,
-    title: blog.title,
-    status: blog.status,
-    tenantId: blog.tenantId,
-    updatedAt: blog.updatedAt,
+    id: String(doc._id),
+    slug: doc.slug,
+    name: doc.name,
+    isPublished: doc.isPublished,
+    tenantId: doc.tenantId,
+    updatedAt: doc.updatedAt,
   });
 }
