@@ -434,10 +434,18 @@ export function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const hostname = request.headers.get('host') || 'localhost:3000';
 
+  const cleanHost = hostname.replace(/:\d+$/, '').replace(/^www\./, '');
+  const isDashboardSubdomain =
+    cleanHost.startsWith('dashboard.') ||
+    cleanHost.startsWith('dashboard2.') ||
+    cleanHost.startsWith('admin.');
+
   // Netlify executes this proxy before Next.js config rewrites. Preserve old
-  // shared/search links while sending visitors to the canonical root URL.
+  // shared/search links while sending storefront visitors to the canonical
+  // root URL. Dashboard paths such as /tours/new are application routes, not
+  // legacy public-tour links — redirecting them broke tour creation.
   const legacyTourMatch = pathname.match(/^\/tours\/([^/]+)\/?$/);
-  if (legacyTourMatch) {
+  if (!isDashboardSubdomain && legacyTourMatch) {
     const url = request.nextUrl.clone();
     url.pathname = `/${legacyTourMatch[1]}`;
     return NextResponse.redirect(url, 308);
@@ -470,11 +478,6 @@ export function proxy(request: NextRequest) {
   // ============================================
   // ADMIN DASHBOARD SUBDOMAIN
   // ============================================
-  const cleanHost = hostname.replace(/:\d+$/, '').replace(/^www\./, '');
-  const isDashboardSubdomain =
-    cleanHost.startsWith('dashboard.') ||
-    cleanHost.startsWith('dashboard2.') ||
-    cleanHost.startsWith('admin.');
 
   if (isDashboardSubdomain) {
     // Serve the public invitation-acceptance page directly on the dashboard
