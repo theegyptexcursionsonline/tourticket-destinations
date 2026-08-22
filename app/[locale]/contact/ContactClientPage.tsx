@@ -13,6 +13,7 @@ import Footer from "@/components/Footer";
 import { useTenant } from '@/contexts/TenantContext';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
+import { OFFICIAL_SOCIAL_LINKS } from '@/lib/config/socialLinks';
 
 // Extend Window interface for reCAPTCHA
 declare global {
@@ -150,10 +151,10 @@ export default function ContactClientPage() {
 
   const tenantSocials = (tenant?.branding as any)?.socialLinks || (tenant as any)?.socialLinks;
   const socialLinks = [
-    tenantSocials?.facebook ? { icon: Facebook, href: tenantSocials.facebook } : { icon: Facebook, href: "https://web.facebook.com/EGexcursionsonline/?_rdc=1&_rdr#" },
-    tenantSocials?.instagram ? { icon: Instagram, href: tenantSocials.instagram } : { icon: Instagram, href: "https://www.instagram.com/egyptexcursionsonline/" },
-    tenantSocials?.twitter ? { icon: Twitter, href: tenantSocials.twitter } : { icon: Twitter, href: "https://x.com/excursiononline" },
-    tenantSocials?.youtube ? { icon: Youtube, href: tenantSocials.youtube } : { icon: Youtube, href: "https://www.youtube.com/@egyptexcursionsonline6859" },
+    { icon: Facebook, href: tenantSocials?.facebook || OFFICIAL_SOCIAL_LINKS.facebook },
+    { icon: Instagram, href: tenantSocials?.instagram || OFFICIAL_SOCIAL_LINKS.instagram },
+    { icon: Twitter, href: tenantSocials?.twitter || OFFICIAL_SOCIAL_LINKS.twitter },
+    { icon: Youtube, href: tenantSocials?.youtube || OFFICIAL_SOCIAL_LINKS.youtube },
   ];
 
   const openChatbot = (e: React.MouseEvent) => {

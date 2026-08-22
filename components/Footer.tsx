@@ -19,15 +19,16 @@ import {
 // Import the single, consolidated switcher component
 import CurrencyLanguageSwitcher from '@/components/shared/CurrencyLanguageSwitcher';
 import InternalLinkBlock from '@/components/navigation/InternalLinkBlock';
+import { OFFICIAL_SOCIAL_LINKS } from '@/lib/config/socialLinks';
 
 // =================================================================
 // --- FOOTER-SPECIFIC DATA ---
 // =================================================================
 const socialLinks = [
-  { icon: Facebook, href: "https://web.facebook.com/EGexcursionsonline/?_rdc=1&_rdr#" },
-  { icon: Instagram, href: "https://www.instagram.com/egyptexcursionsonline/" },
-  { icon: Twitter, href: "https://x.com/excursiononline" },
-  { icon: Youtube, href: "https://www.youtube.com/@egyptexcursionsonline6859" },
+  { icon: Facebook, href: OFFICIAL_SOCIAL_LINKS.facebook },
+  { icon: Instagram, href: OFFICIAL_SOCIAL_LINKS.instagram },
+  { icon: Twitter, href: OFFICIAL_SOCIAL_LINKS.twitter },
+  { icon: Youtube, href: OFFICIAL_SOCIAL_LINKS.youtube },
 ];
 
 const PaymentIcons = {
