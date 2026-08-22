@@ -10,6 +10,7 @@ import { revalidateTourStorefront } from '@/lib/storefront/revalidateTourStorefr
 import { collectTourOptionIds } from '@/lib/admin/tourOptionIdentifiers';
 import { auditStamp } from '@/lib/admin/auditStamp';
 import { finalizeAddOnAssignments, stripBookingOptionClientKeys } from '@/lib/admin/addOnAssignments';
+import { applyBookingOptionCapacityDefaults, bookingOptionCapacityError } from '@/lib/admin/bookingOptionCapacity';
 
 const ADMIN_TOUR_LIST_PROJECTION = [
   'title',
@@ -274,7 +275,11 @@ async function POSTHandler(request: NextRequest) {
 
     // Clean booking options to remove invalid enum values
     if (body.bookingOptions && Array.isArray(body.bookingOptions)) {
-      const cleanedOptions = cleanBookingOptions(body.bookingOptions);
+      const cleanedOptions = applyBookingOptionCapacityDefaults(cleanBookingOptions(body.bookingOptions));
+      const capacityError = bookingOptionCapacityError(cleanedOptions);
+      if (capacityError) {
+        return NextResponse.json({ error: capacityError }, { status: 400 });
+      }
       body.addOns = finalizeAddOnAssignments(body.addOns, cleanedOptions);
       body.bookingOptions = stripBookingOptionClientKeys(cleanedOptions);
     }

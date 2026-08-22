@@ -29,6 +29,7 @@ import {
   nextAddOnSelectionQuantity,
 } from '@/lib/bookings/bookingSelection';
 import { optionSubtotal } from '@/lib/bookings/optionSubtotal';
+import { capacityAvailability, isUnitPricedType, unitCount, effectiveUnitSize } from '@/lib/bookings/unitPricing';
 
 // Enhanced Types with database compatibility
 interface Tour {
@@ -155,6 +156,10 @@ interface AvailabilityData {
 interface TourOption {
   id: string;
   type?: string;
+  /** Participants one priced unit covers, and the booking minimum. */
+  minCapacity?: number;
+  /** Largest party allowed on one booking of this option. */
+  maxCapacity?: number;
   title: string;
   price: number;
   originalPrice?: number;
@@ -573,7 +578,11 @@ const TourOptionCard: React.FC<{
   adults: number;
   children: number;
   tour: Tour; // Added tour prop
-}> = ({ option, onSelect, selectedTimeSlot, adults, children, tour }) => {
+  /** Several options on screen: each card collapses to its summary. */
+  collapsible?: boolean;
+  expanded?: boolean;
+  onToggleExpanded?: () => void;
+}> = ({ option, onSelect, selectedTimeSlot, adults, children, tour, collapsible = false, expanded = true, onToggleExpanded }) => {
   const t = useTranslations();
   const { formatPrice } = useSettings();
   const [descExpanded, setDescExpanded] = useState(false);
@@ -591,6 +600,29 @@ const TourOptionCard: React.FC<{
   // Multiplying them per participant is what overcharged a Per Group option
   // by the head count (client report, EEO sheet 2026-08-20).
   const subtotal = optionSubtotal(option, basePrice, adults, children);
+  // Capacity gate: an option is offered only for a party it can actually take.
+  // Graying here is presentation; the server re-enforces the same rule.
+  const participants = adults + children;
+  const capacity = capacityAvailability(option, participants);
+  const capacityMessage = capacity.available
+    ? null
+    : capacity.reason === 'below_minimum'
+      ? `Needs at least ${capacity.limit} participant${capacity.limit === 1 ? '' : 's'} — you have ${participants}.`
+      : `Takes up to ${capacity.limit} participant${capacity.limit === 1 ? '' : 's'} — you have ${participants}.`;
+  const units = isUnitPricedType(option.type) ? unitCount(participants, effectiveUnitSize(option)) : 1;
+  // One departure stays an inline chip; several move into a dropdown so a
+  // long timetable cannot bury the other options.
+  const usesSlotDropdown = option.timeSlots.length > 1;
+  const [slotMenuOpen, setSlotMenuOpen] = useState(false);
+  const selectedSlotForOption = option.timeSlots.find((timeSlot) =>
+    isSelectedTimeSlot(selectedTimeSlot, option.id, timeSlot.id));
+  const bookableSlotCount = option.timeSlots.filter((timeSlot) => timeSlot.available > 0).length;
+  const capacityBlocked = !capacity.available || Boolean(option.isStopSale);
+  // A collapsed card shows only its summary (title, badges, specs, price);
+  // everything below opens on click.
+  const isOpen = !collapsible || expanded;
+  const headerId = `option-header-${option.id}`;
+  const bodyId = `option-body-${option.id}`;
   const originalSubtotal = option.originalPrice
     ? optionSubtotal(option, option.originalPrice, adults, children)
     : subtotal;
@@ -613,6 +645,15 @@ const TourOptionCard: React.FC<{
       } ${option.isStopSale ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'}`}
       whileHover={{ scale: option.isStopSale ? 1 : 1.01 }}
     >
+      {capacityMessage && (
+        <div className="mb-2 flex items-center gap-2 bg-slate-50 border border-slate-200 text-slate-700 px-2.5 py-1.5 rounded-xl text-xs">
+          <AlertCircle size={14} className="text-slate-500" />
+          <div className="flex-1">
+            <div className="font-semibold">Not available for this party size</div>
+            <div>{capacityMessage}</div>
+          </div>
+        </div>
+      )}
       {option.isStopSale && (
         <div className="mb-2 flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-900 px-2.5 py-1.5 rounded-xl text-xs">
           <AlertCircle size={14} className="text-amber-600" />
@@ -622,7 +663,26 @@ const TourOptionCard: React.FC<{
           </div>
         </div>
       )}
-      {/* Header with Badges */}
+      {/* Header with Badges — the whole summary is the expand/collapse control */}
+      <div
+        {...(collapsible
+          ? {
+              id: headerId,
+              role: 'button' as const,
+              tabIndex: 0,
+              'aria-expanded': isOpen,
+              'aria-controls': bodyId,
+              onClick: onToggleExpanded,
+              onKeyDown: (event: React.KeyboardEvent) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  onToggleExpanded?.();
+                }
+              },
+            }
+          : {})}
+        className={collapsible ? 'rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400' : undefined}
+      >
       <div className="flex items-start justify-between mb-2 gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
@@ -697,8 +757,16 @@ const TourOptionCard: React.FC<{
           <TrendingUp size={13} className="text-orange-500" />
           <span className="font-medium">{option.difficulty}</span>
         </div>
+        {collapsible && (
+          <div className="ms-auto flex items-center gap-1 text-[11px] font-semibold text-red-600">
+            {isOpen ? t('common.showLess') : t('booking.selectTime')}
+            <ChevronDown size={14} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+          </div>
+        )}
+      </div>
       </div>
 
+      <div id={bodyId} hidden={!isOpen}>
       {/* Description */}
       {option.description && (
         <div className="mb-2 bg-white rounded-xl border border-gray-100">
@@ -777,12 +845,103 @@ const TourOptionCard: React.FC<{
           <span className="text-[10px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{t('booking.selectOneToContinue')}</span>
         </div>
 
-        <div className="grid grid-cols-1 gap-2">
+        {/* More than one departure: a dropdown, so a long timetable does not
+            push the other options off the screen. Price and remaining spots
+            stay visible on every row, and a sold-out time is not selectable. */}
+        {usesSlotDropdown && (
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => !capacityBlocked && setSlotMenuOpen(open => !open)}
+              disabled={capacityBlocked}
+              aria-expanded={slotMenuOpen}
+              aria-haspopup="listbox"
+              className={`w-full flex items-center justify-between gap-2 rounded-xl border-2 px-3 py-2 text-start transition-all ${
+                capacityBlocked
+                  ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : selectedSlotForOption
+                  ? 'border-red-500 bg-red-50 text-gray-900'
+                  : 'border-gray-300 bg-white text-gray-800 hover:border-red-400'
+              }`}
+            >
+              <span className="min-w-0">
+                <span className="block text-sm font-bold leading-tight">
+                  {selectedSlotForOption ? selectedSlotForOption.time : t('booking.selectTime')}
+                </span>
+                <span className="block text-[10px] text-gray-500">
+                  {selectedSlotForOption
+                    ? `${selectedSlotForOption.available} spots left`
+                    : `${bookableSlotCount} of ${option.timeSlots.length} times available`}
+                </span>
+              </span>
+              <span className="flex items-center gap-2 flex-shrink-0">
+                {selectedSlotForOption && (
+                  <span className="text-xs font-semibold text-gray-700">{formatPrice(selectedSlotForOption.price)}</span>
+                )}
+                <ChevronDown size={16} className={`text-gray-400 transition-transform ${slotMenuOpen ? 'rotate-180' : ''}`} />
+              </span>
+            </button>
+
+            {slotMenuOpen && !capacityBlocked && (
+              <div
+                role="listbox"
+                className="mt-2 max-h-64 overflow-y-auto rounded-xl border-2 border-gray-200 bg-white shadow-lg divide-y divide-gray-100"
+              >
+                {option.timeSlots.map(timeSlot => {
+                  const isSelected = isSelectedTimeSlot(selectedTimeSlot, option.id, timeSlot.id);
+                  const isSoldOut = timeSlot.available === 0;
+                  const slotDiscount = percentageOff(timeSlot.originalPrice, timeSlot.price);
+                  return (
+                    <button
+                      key={timeSlot.id}
+                      type="button"
+                      role="option"
+                      aria-selected={isSelected}
+                      disabled={isSoldOut}
+                      onClick={() => {
+                        if (isSoldOut) return;
+                        onSelect(timeSlot);
+                        setSlotMenuOpen(false);
+                      }}
+                      className={`flex w-full items-center justify-between gap-3 px-3 py-2 text-start transition-colors ${
+                        isSoldOut
+                          ? 'bg-gray-50 text-gray-400 cursor-not-allowed'
+                          : isSelected
+                          ? 'bg-red-50 text-gray-900'
+                          : 'text-gray-800 hover:bg-gray-50'
+                      }`}
+                    >
+                      <span className="min-w-0">
+                        <span className="block text-sm font-bold leading-tight">{timeSlot.time}</span>
+                        <span className={`block text-[10px] ${isSoldOut ? 'text-gray-400' : 'text-gray-500'}`}>
+                          {isSoldOut ? 'Fully booked' : `${timeSlot.available} spots left`}
+                        </span>
+                      </span>
+                      <span className="flex items-center gap-2 flex-shrink-0">
+                        {slotDiscount > 0 && !isSoldOut && (
+                          <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-bold text-red-700">
+                            {slotDiscount}% off
+                          </span>
+                        )}
+                        <span className={`text-xs font-semibold ${isSoldOut ? 'text-gray-400' : 'text-gray-700'}`}>
+                          {formatPrice(timeSlot.price)}
+                        </span>
+                        {isSelected && <Check size={12} className="text-red-600" />}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className={`grid grid-cols-1 gap-2 ${usesSlotDropdown ? 'hidden' : ''}`}>
           {option.timeSlots.map(timeSlot => {
             const isSelected = isSelectedTimeSlot(selectedTimeSlot, option.id, timeSlot.id);
             const isLowAvailability = timeSlot.available <= 3;
             const isSoldOut = timeSlot.available === 0;
-            const isDisabled = isSoldOut || Boolean(option.isStopSale);
+            const isDisabled = isSoldOut || Boolean(option.isStopSale) || !capacity.available;
             const slotDiscount = percentageOff(timeSlot.originalPrice, timeSlot.price);
 
             return (
@@ -863,6 +1022,7 @@ const TourOptionCard: React.FC<{
           <Heart size={10} className="text-red-500" />
           <span>{t('booking.highlyRated')}</span>
         </div>
+      </div>
       </div>
     </motion.div>
   );
@@ -1694,6 +1854,18 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
     bookingData.selectedTimeSlot,
   ), [availability?.tourOptions, bookingData.selectedTimeSlot]);
 
+  // With several options the list is a stack of collapsed cards; one expands
+  // at a time. A single option is never collapsed — there is nothing to
+  // compare it against.
+  const [expandedOptionId, setExpandedOptionId] = useState<string | null>(null);
+  const toggleOptionExpanded = useCallback((optionId: string) => {
+    setExpandedOptionId(prev => (prev === optionId ? null : optionId));
+  }, []);
+  // The card holding the current selection stays open even after a collapse,
+  // so the chosen departure never hides behind a closed card.
+  const effectiveExpandedOptionId = expandedOptionId
+    ?? (bookingData.selectedTimeSlot?.optionId || null);
+
   const availableAddOns = useMemo(() => (
     availability?.addOns || []
   ).filter((addOn) => isAddOnAvailableForOption(addOn, selectedBookingOption?.id || null)), [availability?.addOns, selectedBookingOption]);
@@ -1890,9 +2062,19 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
         newCount = currentCount + 1;
       }
 
-      return { ...prev, [type]: newCount };
+      const next = { ...prev, [type]: newCount };
+      // A party change can invalidate the chosen option (below its minimum or
+      // past its maximum). Clear the selection in the same transition rather
+      // than carrying a selection the server would refuse.
+      if (next.selectedTimeSlot) {
+        const chosen = findSelectedBookingOption(availability?.tourOptions, next.selectedTimeSlot);
+        if (chosen && !capacityAvailability(chosen, next.adults + next.children).available) {
+          next.selectedTimeSlot = null;
+        }
+      }
+      return next;
     });
-  }, [tourDisplayData?.maxGroupSize]);
+  }, [tourDisplayData?.maxGroupSize, availability?.tourOptions]);
 
   const getParticipantsText = useCallback(() => {
     const totalGuests = bookingData.adults + bookingData.children + bookingData.infants;
@@ -2372,6 +2554,9 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
                 adults={bookingData.adults}
                 children={bookingData.children}
                 tour={tour}
+                collapsible={(availability?.tourOptions.length || 0) > 1}
+                expanded={effectiveExpandedOptionId === option.id}
+                onToggleExpanded={() => toggleOptionExpanded(option.id)}
               />
             ))}
           </motion.div>

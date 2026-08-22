@@ -47,6 +47,10 @@ export interface IBookingOption {
   label: string;
   price: number;
   originalPrice?: number;
+  /** Participants one priced unit covers (Per Couple/Family/Group) and the booking minimum. */
+  minCapacity?: number;
+  /** Optional per-booking participant cap for this option. */
+  maxCapacity?: number;
   description?: string;
   duration?: string;
   languages?: string[];
@@ -367,6 +371,30 @@ const BookingOptionSchema = new Schema<IBookingOption>({
     type: Number, 
     min: [0, 'Original price cannot be negative'],
     max: [999999, 'Original price cannot exceed 999999']
+  },
+  minCapacity: {
+    type: Number,
+    min: [1, 'Minimum capacity must be at least 1'],
+    max: [100, 'Minimum capacity cannot exceed 100'],
+    validate: {
+      validator: Number.isInteger,
+      message: 'Minimum capacity must be a whole number',
+    },
+  },
+  maxCapacity: {
+    type: Number,
+    min: [1, 'Maximum capacity must be at least 1'],
+    max: [1000, 'Maximum capacity cannot exceed 1000'],
+    validate: [
+      { validator: Number.isInteger, message: 'Maximum capacity must be a whole number' },
+      {
+        validator(this: { minCapacity?: number }, value: number) {
+          const min = Number(this?.minCapacity);
+          return !Number.isFinite(min) || value >= min;
+        },
+        message: 'Maximum capacity cannot be below the minimum capacity',
+      },
+    ],
   },
   applyTourDiscount: { type: Boolean, default: false },
   timeSlots: [{

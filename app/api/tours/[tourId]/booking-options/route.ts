@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Tour from '@/lib/models/Tour';
 import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
+import { applyBookingOptionCapacityDefaults, bookingOptionCapacityError } from '@/lib/admin/bookingOptionCapacity';
 
 function generateOptionId() {
   return globalThis.crypto?.randomUUID?.() || `opt-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -35,6 +36,11 @@ async function PUTHandler(
     }
 
     const incoming = { ...(option || {}) };
+    applyBookingOptionCapacityDefaults([incoming]);
+    const capacityError = bookingOptionCapacityError([incoming]);
+    if (capacityError) {
+      return NextResponse.json({ error: capacityError }, { status: 400 });
+    }
 
     // Preserve existing id if caller didn't send it
     if (index < tour.bookingOptions.length) {

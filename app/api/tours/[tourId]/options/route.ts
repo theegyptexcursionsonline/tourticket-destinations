@@ -67,6 +67,8 @@ export async function GET(
             pricingKey: option.pricingKey || null,
             title: option.label || `${tour.title} - ${option.type}`,
             type: option.type || 'Per Person',
+            minCapacity: option.minCapacity ?? undefined,
+            maxCapacity: option.maxCapacity ?? undefined,
             price: pricing.price,
             originalPrice: pricing.discountApplied ? pricing.originalPrice : option.originalPrice,
             duration: option.duration || tour.duration || '3 hours',

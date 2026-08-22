@@ -11,6 +11,7 @@ import { auditStamp } from '@/lib/admin/auditStamp';
 import { translateTourInBackground } from '@/lib/translation/translateService';
 import { revalidateTourStorefront } from '@/lib/storefront/revalidateTourStorefront';
 import { finalizeAddOnAssignments, stripBookingOptionClientKeys } from '@/lib/admin/addOnAssignments';
+import { applyBookingOptionCapacityDefaults, bookingOptionCapacityError } from '@/lib/admin/bookingOptionCapacity';
 
 function generateOptionId() {
     return globalThis.crypto?.randomUUID?.() || `opt-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -230,7 +231,11 @@ async function PUTHandler(
 
         // Clean booking options to remove invalid enum values
         if (body.bookingOptions && Array.isArray(body.bookingOptions)) {
-            const cleanedOptions = cleanBookingOptions(body.bookingOptions);
+            const cleanedOptions = applyBookingOptionCapacityDefaults(cleanBookingOptions(body.bookingOptions));
+            const capacityError = bookingOptionCapacityError(cleanedOptions);
+            if (capacityError) {
+                return NextResponse.json({ error: capacityError }, { status: 400 });
+            }
             body.addOns = finalizeAddOnAssignments(body.addOns, cleanedOptions);
             body.bookingOptions = stripBookingOptionClientKeys(cleanedOptions);
         }

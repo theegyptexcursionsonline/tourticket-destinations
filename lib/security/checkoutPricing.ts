@@ -7,6 +7,7 @@ import { createHash, createHmac } from 'crypto';
 import { isPerPersonAddOn } from '@/lib/checkout/addOnPricing';
 import { authoritativeBasePrice } from '@/lib/pricing/authoritativePrice';
 import { optionSubtotal } from '@/lib/bookings/optionSubtotal';
+import { capacityAvailability, type UnitCapacityOption } from '@/lib/bookings/unitPricing';
 import { isAddOnAvailableForOption } from '@/lib/bookings/addOnAvailability';
 
 type CartItem = Record<string, any>;
@@ -142,6 +143,19 @@ export async function calculateCheckoutPricing(
       addOnsTotal += price * billedQuantity;
       selectedAddOns[addOnId] = requestedQuantity;
       selectedAddOnDetails[addOnId] = { title, price, perGuest };
+    }
+
+    // Capacity is authorization, not presentation: a party that the option
+    // cannot take is refused here even if the browser offered the card.
+    if (selectedOption) {
+      const gate = capacityAvailability(selectedOption as UnitCapacityOption, adults + children);
+      if (!gate.available) {
+        throw new Error(
+          gate.reason === 'below_minimum'
+            ? `This option needs at least ${gate.limit} participants`
+            : `This option takes at most ${gate.limit} participants`,
+        );
+      }
     }
 
     // A unit-priced option (Per Couple / Per Family / Per Group) is charged

@@ -36,7 +36,10 @@ describe('checkout pricing security', () => {
       tenantId: 'brand-a',
       title: 'Canonical tour',
       discountPrice: 100,
-      bookingOptions: [{ id: 'private', label: 'Private', price: 150 }],
+      bookingOptions: [
+        { id: 'private', label: 'Private', price: 150 },
+        { id: 'couple', type: 'Per Couple', label: 'Couple escape', price: 150, minCapacity: 2, maxCapacity: 4 },
+      ],
       addOns: [{ _id: 'addon-1', name: 'Lunch', price: 20, category: 'Food' }],
     });
   });
@@ -215,6 +218,38 @@ describe('checkout pricing security', () => {
       selectedDate: '2099-01-01',
     }], 'brand-b')).rejects.toThrow('Tour not found');
   });
+  it('refuses a party below the option minimum, however the browser was told', async () => {
+    await expect(calculateCheckoutPricing([{
+      id: '507f1f77bcf86cd799439011',
+      quantity: 1,
+      childQuantity: 0,
+      selectedDate: '2099-01-01',
+      selectedBookingOption: { id: 'couple', price: 0.01 },
+    }], 'brand-a')).rejects.toThrow('This option needs at least 2 participants');
+  });
+
+  it('refuses a party past the option maximum', async () => {
+    await expect(calculateCheckoutPricing([{
+      id: '507f1f77bcf86cd799439011',
+      quantity: 4,
+      childQuantity: 1,
+      selectedDate: '2099-01-01',
+      selectedBookingOption: { id: 'couple', price: 0.01 },
+    }], 'brand-a')).rejects.toThrow('This option takes at most 4 participants');
+  });
+
+  it('bills a party inside the window in whole couples', async () => {
+    const result = await calculateCheckoutPricing([{
+      id: '507f1f77bcf86cd799439011',
+      quantity: 3,
+      childQuantity: 0,
+      selectedDate: '2099-01-01',
+      selectedBookingOption: { id: 'couple', price: 0.01 },
+    }], 'brand-a');
+
+    expect(result.pricing.subtotal).toBe(300);
+  });
+
 });
 
 describe('checkout pricing applies the tour discount exactly like the booking writer', () => {
@@ -328,4 +363,5 @@ describe('checkout pricing applies the tour discount exactly like the booking wr
     // options require the explicit opt-in checkbox.
     expect(result.pricing.subtotal).toBe(80);
   });
+
 });
