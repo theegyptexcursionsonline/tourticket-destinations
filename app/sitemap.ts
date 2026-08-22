@@ -9,6 +9,7 @@ import Category from '@/lib/models/Category';
 import Blog from '@/lib/models/Blog';
 import AttractionPage from '@/lib/models/AttractionPage';
 import { getTenantFromRequest, getTenantConfig, getTenantByDomain, getTenantDomainFromRequest } from '@/lib/tenant';
+import { PUBLIC_CONTENT_FILTER } from '@/lib/content/publicContentFilter';
 
 // The sitemap is tenant/domain-specific and therefore depends on request
 // headers. Declare that explicitly so Next.js does not attempt static output.
@@ -104,15 +105,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     
     // Fetch dynamic content
     const [tours, destinations, categories, blogs, attractionPages] = await Promise.all([
-      Tour.find({ ...tenantFilter, isPublished: true })
+      Tour.find({ ...tenantFilter, ...PUBLIC_CONTENT_FILTER })
         .select('slug updatedAt')
         .lean()
         .catch(() => []),
-      Destination.find({ ...tenantFilter, isPublished: true })
+      Destination.find({ ...tenantFilter, ...PUBLIC_CONTENT_FILTER })
         .select('slug updatedAt')
         .lean()
         .catch(() => []),
-      Category.find({ ...tenantFilter, isPublished: true })
+      Category.find({ ...tenantFilter, ...PUBLIC_CONTENT_FILTER })
         .select('slug updatedAt')
         .lean()
         .catch(() => []),
@@ -120,7 +121,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         .select('slug updatedAt')
         .lean()
         .catch(() => []),
-      AttractionPage.find({ ...tenantFilter, isPublished: true })
+      AttractionPage.find({ ...tenantFilter, ...PUBLIC_CONTENT_FILTER })
         .select('slug updatedAt pageType')
         .lean()
         .catch(() => []),

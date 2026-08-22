@@ -16,6 +16,9 @@ import {
   CITY_SEGMENT,
 } from '@/lib/content/contentUrl';
 import { defaultLocale } from '@/i18n/config';
+// A trashed record must not resolve at all: the draft fallback below would
+// otherwise render or redirect to trash (client report 2026-08-21).
+import { NOT_ARCHIVED_FILTER } from '@/lib/content/publicContentFilter';
 
 export interface ContentMatch {
   type: ContentType;
@@ -53,10 +56,10 @@ export async function resolveContentMatches(slug: string): Promise<ContentMatch[
   const scoped = (query: Record<string, unknown>) => buildStrictTenantQuery(query, tenantId);
 
   const [tour, destination, category, attractionPage] = await Promise.all([
-    Tour.findOne(scoped({ slug })).select('slug urlType isPublished destination parentPage breadcrumbLabel').populate('destination', 'slug').lean(),
-    Destination.findOne(scoped({ slug })).select('slug urlType isPublished parentPage breadcrumbLabel').lean(),
-    Category.findOne(scoped({ slug })).select('slug urlType isPublished cityDestination parentPage breadcrumbLabel').populate('cityDestination', 'slug').lean(),
-    AttractionPage.findOne(scoped({ slug })).select('slug urlType isPublished pageType cityDestination parentPage breadcrumbLabel').populate('cityDestination', 'slug').lean(),
+    Tour.findOne(scoped({ slug, ...NOT_ARCHIVED_FILTER })).select('slug urlType isPublished destination parentPage breadcrumbLabel').populate('destination', 'slug').lean(),
+    Destination.findOne(scoped({ slug, ...NOT_ARCHIVED_FILTER })).select('slug urlType isPublished parentPage breadcrumbLabel').lean(),
+    Category.findOne(scoped({ slug, ...NOT_ARCHIVED_FILTER })).select('slug urlType isPublished cityDestination parentPage breadcrumbLabel').populate('cityDestination', 'slug').lean(),
+    AttractionPage.findOne(scoped({ slug, ...NOT_ARCHIVED_FILTER })).select('slug urlType isPublished pageType cityDestination parentPage breadcrumbLabel').populate('cityDestination', 'slug').lean(),
   ]);
 
   const matches: ContentMatch[] = [];

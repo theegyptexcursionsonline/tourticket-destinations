@@ -17,6 +17,7 @@ import { localizeEntityFields, localizeStructuredEntries } from '@/lib/i18n/cont
 import { destinationTranslationFields, categoryTranslationFields, destinationStructuredFields } from '@/lib/i18n/translationFields';
 import DestinationSchema from '@/components/schema/DestinationSchema';
 import { decideForSegment } from '@/lib/content/resolveContentBySlug';
+import { PUBLIC_CONTENT_FILTER } from '@/lib/content/publicContentFilter';
 
 // Force dynamic rendering to fix 500 errors
 export const dynamic = 'force-dynamic';
@@ -106,15 +107,17 @@ async function getPageData(slug: string, tenantId: string) {
       TourModel.find({
         ...buildStrictTenantQuery({
           destination: destination._id,
-          isPublished: true,
+          ...PUBLIC_CONTENT_FILTER,
         }, tenantId),
       }).lean(),
-      
-      CategoryModel.find(buildStrictTenantQuery({}, tenantId)).limit(20).lean(),
-      
+
+      // Drafts and trash must never reach the storefront rail.
+      CategoryModel.find(buildStrictTenantQuery({ ...PUBLIC_CONTENT_FILTER }, tenantId)).limit(20).lean(),
+
+      // "Explore More Destinations": only published siblings (the reported leak).
       DestinationModel.find({
         $and: [
-          buildStrictTenantQuery({ _id: { $ne: destination._id } }, tenantId),
+          buildStrictTenantQuery({ _id: { $ne: destination._id }, ...PUBLIC_CONTENT_FILTER }, tenantId),
           { $or: [{ country: destination.country }, { featured: true }] },
         ],
       }).limit(4).lean()

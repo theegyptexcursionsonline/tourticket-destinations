@@ -28,6 +28,7 @@ import Image from 'next/image';
 import { TourActions } from './TourActions';
 import Link from 'next/link';
 import { useAdminTenant } from '@/contexts/AdminTenantContext';
+import toast from 'react-hot-toast';
 import { storefrontPreviewUrl } from '@/lib/admin/storefrontPreviewUrl';
 import { matchesTourAdminSearch } from '@/lib/admin/tourOptionIdentifiers';
 
@@ -137,7 +138,58 @@ export function ToursListClient({
   const CurrencyIcon = selectedCurrency.code === 'USD' ? DollarSign : Euro;
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { tenants } = useAdminTenant();
+  const { tenants, selectedTenantId } = useAdminTenant();
+
+  // Empty trash is irreversible, so it previews first, confirms, then reports
+  // exactly what was removed and what was kept because a booking still
+  // references it. Tours are purged within the selected site; the all-sites
+  // view is reserved for a super administrator by the API.
+  const [isEmptyingTrash, setIsEmptyingTrash] = useState(false);
+  const trashScope = selectedTenantId && selectedTenantId !== 'all' ? `&tenantId=${encodeURIComponent(selectedTenantId)}` : '';
+  const handleEmptyTrash = async () => {
+    const preview = await fetch(`/api/admin/trash?kind=tour${trashScope}`)
+      .then((res) => res.json())
+      .catch(() => null);
+    if (!preview?.success) {
+      toast.error(preview?.error || 'Could not read the trash. Try again.');
+      return;
+    }
+    const removable = preview.inspected - preview.blocked.length;
+    if (removable <= 0) {
+      toast.error(
+        preview.blocked.length > 0
+          ? `Nothing can be deleted yet — ${preview.blocked.length} tour${preview.blocked.length === 1 ? ' has' : 's have'} bookings on record.`
+          : 'The trash is already empty.',
+      );
+      return;
+    }
+    const confirmed = window.confirm(
+      `Permanently delete ${removable} tour${removable === 1 ? '' : 's'}? This cannot be undone.`
+      + (preview.blocked.length > 0 ? `\n\n${preview.blocked.length} will be kept because they have bookings.` : ''),
+    );
+    if (!confirmed) return;
+
+    setIsEmptyingTrash(true);
+    const promise = fetch(`/api/admin/trash?kind=tour${trashScope}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    }).then(async (res) => {
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) throw new Error(data.error || 'Failed to empty the trash.');
+      return data;
+    });
+    toast.promise(promise, {
+      loading: 'Deleting trashed tours...',
+      success: (data: { deleted: string[]; blocked: Array<{ title: string; blockedReason?: string }> }) => {
+        router.refresh();
+        const kept = data.blocked.length > 0 ? ` ${data.blocked.length} kept (have bookings).` : '';
+        return `Deleted ${data.deleted.length} tour${data.deleted.length === 1 ? '' : 's'}.${kept}`;
+      },
+      error: (error: Error) => error.message || 'Failed to empty the trash.',
+    });
+    promise.finally(() => setIsEmptyingTrash(false));
+  };
 
   // Get initial tab and page from URL or defaults
   const initialTab = (searchParams.get('status') as TabFilter) || 'all';
@@ -324,6 +376,23 @@ export function ToursListClient({
             );
           })}
         </div>
+        {activeTab === 'archived' && tabCounts.archived > 0 && (
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-100 bg-rose-50/70 px-4 py-3 text-sm text-rose-900">
+            <span>
+              Archived tours stay off the storefront. Empty the trash to remove them permanently — tours with bookings are always kept.
+            </span>
+            <button
+              type="button"
+              onClick={handleEmptyTrash}
+              disabled={isEmptyingTrash}
+              data-testid="empty-trash"
+              className="inline-flex items-center gap-2 rounded-lg bg-rose-600 px-3 py-2 text-xs font-semibold text-white shadow-sm hover:bg-rose-700 disabled:opacity-60"
+            >
+              <Archive className="h-4 w-4" />
+              {isEmptyingTrash ? 'Emptying…' : 'Empty trash'}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Enhanced Header Controls */}

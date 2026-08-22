@@ -23,6 +23,7 @@ import {
 import { cacheIfAvailable } from '@/lib/cache';
 import TourSchema from '@/components/schema/TourSchema';
 import { getStopSaleDatesForTour } from '@/lib/stopSaleFetcher';
+import { NOT_ARCHIVED_FILTER, PUBLIC_CONTENT_FILTER } from '@/lib/content/publicContentFilter';
 
 interface PageProps {
   params: Promise<{ slug: string; locale: string }>;
@@ -38,7 +39,7 @@ const getTourBySlug = cacheIfAvailable(
 
     console.log(`[Tour] Fetching: slug=${slug}, tenantId=${tenantId}`);
 
-    const tourCandidates = await Tour.find(buildStrictTenantQuery({ slug }, tenantId))
+    const tourCandidates = await Tour.find(buildStrictTenantQuery({ slug, ...NOT_ARCHIVED_FILTER }, tenantId))
       .populate('destination', 'name slug description')
       .populate('category', 'name slug')
       .lean();
@@ -96,7 +97,7 @@ const getRelatedTours = cacheIfAvailable(
       category: { $in: categoryIdArray },
       _id: { $ne: currentTourId },
       ...buildStrictTenantQuery({
-        isPublished: true,
+        ...PUBLIC_CONTENT_FILTER,
       }, tenantId),
     })
       .select('title slug image discountPrice originalPrice duration destination category rating reviewCount translations tags')
@@ -118,7 +119,7 @@ const getTourMetadataData = cacheIfAvailable(
   async (slug: string, tenantId: string, locale: string) => {
     await dbConnect();
 
-    const candidates = await Tour.find(buildStrictTenantQuery({ slug }, tenantId))
+    const candidates = await Tour.find(buildStrictTenantQuery({ slug, ...NOT_ARCHIVED_FILTER }, tenantId))
       .select('title description metaTitle metaDescription keywords image destination')
       .populate('destination', 'name')
       .lean();

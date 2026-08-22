@@ -9,6 +9,7 @@ import DestinationsClientPage from './DestinationsClientPage';
 import { IDestination } from '@/lib/models/Destination';
 import { getTenantFromRequest, getTenantConfig, buildStrictTenantQuery } from '@/lib/tenant';
 import CollectionSchema from '@/components/schema/CollectionSchema';
+import { PUBLIC_CONTENT_FILTER } from '@/lib/content/publicContentFilter';
 
 // ISR: revalidate every 60s — cached pages served instantly, refreshed in background
 export const dynamic = 'force-dynamic';
@@ -35,7 +36,7 @@ export async function generateMetadata(): Promise<Metadata> {
 async function getDestinationsWithTourCounts(tenantId: string): Promise<IDestination[]> {
   await dbConnect();
 
-  const destinations = await Destination.find(buildStrictTenantQuery({}, tenantId)).lean();
+  const destinations = await Destination.find(buildStrictTenantQuery({ ...PUBLIC_CONTENT_FILTER }, tenantId)).lean();
 
   // For each destination, count the number of published tours for this tenant
   const destinationsWithCounts = await Promise.all(
