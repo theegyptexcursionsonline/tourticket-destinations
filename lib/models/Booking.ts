@@ -97,6 +97,24 @@ export interface IBooking extends Document {
   updatedAt: Date;
 }
 
+// A nested field is also named `type`, so an inline `{ type: { ... } }`
+// descriptor becomes ambiguous to Mongoose and can be interpreted as schema
+// options instead of a subdocument. An explicit sub-schema preserves the
+// existing BSON shape while making the model safe to load during production
+// page-data collection.
+const SelectedBookingOptionSchema = new Schema(
+  {
+    id: String,
+    title: String,
+    type: String,
+    price: Number,
+    originalPrice: Number,
+    duration: String,
+    badge: String,
+  },
+  { _id: false },
+);
+
 const BookingSchema: Schema<IBooking> = new Schema({
   // Multi-tenant support
   tenantId: {
@@ -338,15 +356,7 @@ const BookingSchema: Schema<IBooking> = new Schema({
   },
 
   selectedBookingOption: {
-    type: {
-      id: String,
-      title: String,
-      type: String,
-      price: Number,
-      originalPrice: Number,
-      duration: String,
-      badge: String,
-    },
+    type: SelectedBookingOptionSchema,
     required: false,
   },
 

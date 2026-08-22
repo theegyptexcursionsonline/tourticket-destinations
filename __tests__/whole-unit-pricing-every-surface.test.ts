@@ -42,7 +42,8 @@ describe('whole-unit option pricing on every surface', () => {
   it('persists the option type on the booking so detail pages can apply the rule', () => {
     const model = read('lib/models/Booking.ts');
     expect(model).toMatch(/selectedBookingOption\?: \{[\s\S]*?type\?: string;/);
-    expect(model).toMatch(/selectedBookingOption: \{\s*type: \{[\s\S]*?type: String,/);
+    expect(model).toMatch(/const SelectedBookingOptionSchema = new Schema\([\s\S]*?type: String,[\s\S]*?\{ _id: false \},/);
+    expect(model).toMatch(/selectedBookingOption: \{\s*type: SelectedBookingOptionSchema,/);
     expect(read('lib/checkout/prepareStripeCheckout.ts')).toContain('boty: item.selectedBookingOption?.type');
     expect(read('app/api/webhooks/stripe/route.ts')).toContain("type: String(storedOption?.type || item.boty || '')");
     expect(read('app/api/bookings/manual/route.ts')).toContain('type: String(selectedOption.type),');
