@@ -97,6 +97,21 @@ export interface IBooking extends Document {
   updatedAt: Date;
 }
 
+const SelectedBookingOptionSchema = new Schema(
+  {
+    id: String,
+    title: String,
+    // `type: { type: String }` is the explicit form; a bare `type: String`
+    // here would be read as this schema's own SchemaType.
+    type: { type: String },
+    price: Number,
+    originalPrice: Number,
+    duration: String,
+    badge: String,
+  },
+  { _id: false },
+);
+
 const BookingSchema: Schema<IBooking> = new Schema({
   // Multi-tenant support
   tenantId: {
@@ -337,16 +352,12 @@ const BookingSchema: Schema<IBooking> = new Schema({
     default: new Map(),
   },
 
+  // Declared as its own Schema, not an inline object. A nested field literally
+  // named `type` makes Mongoose read the surrounding object as a SchemaType
+  // declaration, which collapsed this subdocument and threw "`false` is not a
+  // valid type at path `required`" when the schema compiled.
   selectedBookingOption: {
-    type: {
-      id: String,
-      title: String,
-      type: String,
-      price: Number,
-      originalPrice: Number,
-      duration: String,
-      badge: String,
-    },
+    type: SelectedBookingOptionSchema,
     required: false,
   },
 

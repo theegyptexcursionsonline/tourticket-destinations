@@ -42,7 +42,15 @@ describe('whole-unit option pricing on every surface', () => {
   it('persists the option type on the booking so detail pages can apply the rule', () => {
     const model = read('lib/models/Booking.ts');
     expect(model).toMatch(/selectedBookingOption\?: \{[\s\S]*?type\?: string;/);
-    expect(model).toMatch(/selectedBookingOption: \{\s*type: \{[\s\S]*?type: String,/);
+    // Declared as its own Schema. Inline, a field named `type` makes Mongoose
+    // read the surrounding object as a SchemaType declaration: the subdocument
+    // collapses and the schema throws "`false` is not a valid type at path
+    // `required`" the moment it compiles — invisible to typecheck, lint and
+    // every test that mocks the model, and fatal to the production build.
+    expect(model).toMatch(/const SelectedBookingOptionSchema = new Schema\(/);
+    expect(model).toMatch(/type: \{ type: String \}/);
+    expect(model).toMatch(/selectedBookingOption: \{\s*\n\s*type: SelectedBookingOptionSchema,/);
+    expect(model).not.toMatch(/selectedBookingOption: \{\s*\n\s*type: \{\s*\n\s*id: String,/);
     expect(read('lib/checkout/prepareStripeCheckout.ts')).toContain('boty: item.selectedBookingOption?.type');
     expect(read('app/api/webhooks/stripe/route.ts')).toContain("type: String(storedOption?.type || item.boty || '')");
     expect(read('app/api/bookings/manual/route.ts')).toContain('type: String(selectedOption.type),');
