@@ -3,6 +3,7 @@
 import { PDFDocument, StandardFonts, rgb, PDFPage, PDFFont } from 'pdf-lib';
 import { Buffer } from 'buffer';
 import { parseLocalDate } from '@/utils/date';
+import { optionSubtotal } from '@/lib/bookings/optionSubtotal';
 
 let QR: typeof import('qrcode') | null = null;
 try {
@@ -52,9 +53,7 @@ const wrapText = (text: string, font: PDFFont, size: number, maxWidth: number): 
 
 const calculateItemTotal = (item: ReceiptOrderedItem) => {
   const basePrice = item.selectedBookingOption?.price || item.discountPrice || item.price || 0;
-  const adultPrice = basePrice * (item.quantity || 1);
-  const childPrice = (basePrice / 2) * (item.childQuantity || 0);
-  let tourTotal = adultPrice + childPrice;
+  let tourTotal = optionSubtotal(item.selectedBookingOption ?? null, basePrice, item.quantity || 1, item.childQuantity || 0);
 
   let addOnsTotal = 0;
   if (item.selectedAddOns && item.selectedAddOnDetails) {
@@ -108,6 +107,7 @@ export interface ReceiptOrderedItem {
   finalPrice?: number;
   selectedBookingOption?: {
     title?: string;
+    type?: string;
     price?: number;
   };
   selectedAddOns?: Record<string, number>;

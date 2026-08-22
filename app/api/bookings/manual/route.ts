@@ -33,6 +33,7 @@ import {
   isOfferApplicableByTravelDate,
   type OfferData,
 } from '@/lib/utils/offerCalculations';
+import { optionSubtotal } from '@/lib/bookings/optionSubtotal';
 
 function splitName(fullName: string): { firstName: string; lastName: string } {
   const safe = String(fullName || '').trim();
@@ -104,10 +105,10 @@ function formatMoney(amount: number, symbol = '$'): string {
   return `${symbol}${safe.toFixed(2)}`;
 }
 
-function computeSubtotal(basePrice: number, adults: number, children: number): number {
-  const adultTotal = basePrice * adults;
-  const childTotal = (basePrice / 2) * children; // matches existing UI breakdown
-  return adultTotal + childTotal;
+// Whole-unit options (Per Group / Per Couple / Per Family) are charged per
+// unit; Per Person keeps the per-guest rule with children at half.
+function computeSubtotal(option: { type?: string } | null | undefined, basePrice: number, adults: number, children: number): number {
+  return optionSubtotal(option ?? null, basePrice, adults, children);
 }
 
 async function POSTHandler(request: NextRequest) {
@@ -203,7 +204,7 @@ async function POSTHandler(request: NextRequest) {
     }
 
     const basePrice = Number(selectedOption.price) || 0;
-    const subtotal = computeSubtotal(basePrice, numericAdults, numericChildren);
+    const subtotal = computeSubtotal(selectedOption, basePrice, numericAdults, numericChildren);
 
     // Apply best active offer (server-side)
     const now = new Date();
@@ -304,6 +305,7 @@ async function POSTHandler(request: NextRequest) {
       infantGuests: numericInfants,
       selectedBookingOption: {
         id: String(selectedOption.type),
+      type: String(selectedOption.type),
         title: String(selectedOption.label),
         price: basePrice,
         originalPrice: selectedOption.originalPrice ? Number(selectedOption.originalPrice) : undefined,

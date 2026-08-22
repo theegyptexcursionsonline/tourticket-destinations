@@ -37,6 +37,7 @@ import toast from 'react-hot-toast';
 import { parseLocalDate } from '@/utils/date';
 import { useTranslations } from 'next-intl';
 import type { PaymentExperience } from '@/lib/checkout/paymentExperience';
+import { optionSubtotal } from '@/lib/bookings/optionSubtotal';
 
 const FormInput = ({ label, name, type = 'text', placeholder, required = true, value, onChange, disabled = false }: any) => (
   <div>
@@ -164,9 +165,7 @@ const SummaryItem: React.FC<{ item: CartItem }> = ({ item }) => {
   // Use the same calculation logic as in BookingSidebar and CartSidebar
   const getItemTotal = (item: CartItem) => {
     const basePrice = item.selectedBookingOption?.price || item.discountPrice || item.price || 0;
-    const adultPrice = basePrice * (item.quantity || 1);
-    const childPrice = (basePrice / 2) * (item.childQuantity || 0);
-    let tourTotal = adultPrice + childPrice;
+    let tourTotal = optionSubtotal(item.selectedBookingOption ?? null, basePrice, item.quantity || 1, item.childQuantity || 0);
 
     let addOnsTotal = 0;
     if (item.selectedAddOns && item.selectedAddOnDetails) {
@@ -1005,9 +1004,7 @@ const handleDownloadReceipt = async () => {
                 {orderedItems.map((item, index) => {
                   const getItemTotal = (item: CartItem) => {
                     const basePrice = item.selectedBookingOption?.price || item.discountPrice || item.price || 0;
-                    const adultPrice = basePrice * (item.quantity || 1);
-                    const childPrice = (basePrice / 2) * (item.childQuantity || 0);
-                    let tourTotal = adultPrice + childPrice;
+                    let tourTotal = optionSubtotal(item.selectedBookingOption ?? null, basePrice, item.quantity || 1, item.childQuantity || 0);
                     let addOnsTotal = 0;
                     if (item.selectedAddOns && item.selectedAddOnDetails) {
                       Object.entries(item.selectedAddOns).forEach(([addOnId, quantity]) => {
@@ -1214,9 +1211,7 @@ export default function CheckoutPage() {
   // Use the same calculation logic as in other components
   const getItemTotal = (item: CartItem) => {
     const basePrice = item.selectedBookingOption?.price || item.discountPrice || item.price || 0;
-    const adultPrice = basePrice * (item.quantity || 1);
-    const childPrice = (basePrice / 2) * (item.childQuantity || 0);
-    let tourTotal = adultPrice + childPrice;
+    let tourTotal = optionSubtotal(item.selectedBookingOption ?? null, basePrice, item.quantity || 1, item.childQuantity || 0);
 
     let addOnsTotal = 0;
     if (item.selectedAddOns && item.selectedAddOnDetails) {

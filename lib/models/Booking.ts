@@ -77,6 +77,8 @@ export interface IBooking extends Document {
   selectedBookingOption?: {
     id: string;
     title: string;
+    /** Per Person / Per Couple / Per Family / Per Group — drives the whole-unit pricing rule. */
+    type?: string;
     price: number;
     originalPrice?: number;
     duration?: string;
@@ -339,6 +341,7 @@ const BookingSchema: Schema<IBooking> = new Schema({
     type: {
       id: String,
       title: String,
+      type: String,
       price: Number,
       originalPrice: Number,
       duration: String,

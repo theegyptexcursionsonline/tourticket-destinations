@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useAdminTenant } from '@/contexts/AdminTenantContext';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
+import { optionSubtotal } from '@/lib/bookings/optionSubtotal';
 
 type PaymentStatus = 'pending' | 'paid' | 'pay_on_arrival';
 type PaymentMethodUi = 'cash' | 'card' | 'bank' | 'other';
@@ -149,7 +150,7 @@ export default withAuth(function CreateManualBookingPage() {
   // Pricing preview
   const selectedBookingOption = useMemo(() => bookingOptions.find((o) => (o.type || '') === bookingOptionType) || null, [bookingOptions, bookingOptionType]);
   const basePrice = Number(selectedBookingOption?.price || 0);
-  const subtotal = useMemo(() => basePrice * Math.max(0, adults) + (basePrice / 2) * Math.max(0, children), [basePrice, adults, children]);
+  const subtotal = useMemo(() => optionSubtotal(selectedBookingOption, basePrice, Math.max(0, adults), Math.max(0, children)), [selectedBookingOption, basePrice, adults, children]);
   const totalGuests = useMemo(() => Math.max(0, adults) + Math.max(0, children) + Math.max(0, infants), [adults, children, infants]);
 
   const [offerPreview, setOfferPreview] = useState<BestOfferPreview>(null);

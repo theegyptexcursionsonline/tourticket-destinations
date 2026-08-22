@@ -1654,8 +1654,11 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
       originalBasePrice = tourBasePricing.originalPrice;
     }
 
-    const subtotalCalc = (bookingData.adults * basePrice) + (bookingData.children * basePrice * 0.5);
-    const originalSubtotal = (bookingData.adults * originalBasePrice) + (bookingData.children * originalBasePrice * 0.5);
+    const slotOption = bookingData.selectedTimeSlot
+      ? findSelectedBookingOption(availability?.tourOptions, bookingData.selectedTimeSlot)
+      : null;
+    const subtotalCalc = optionSubtotal(slotOption ?? null, basePrice, bookingData.adults, bookingData.children);
+    const originalSubtotal = optionSubtotal(slotOption ?? null, originalBasePrice, bookingData.adults, bookingData.children);
 
     const addOnsCalc = Object.entries(bookingData.selectedAddOns).reduce((acc, [addOnId, quantity]) => {
       const addOn = availability?.addOns.find(a => a.id === addOnId);

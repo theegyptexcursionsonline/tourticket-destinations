@@ -36,6 +36,8 @@ import toast from 'react-hot-toast';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
 import { useAdminTenant } from '@/contexts/AdminTenantContext';
 import { toSafeCsvCell } from '@/lib/admin/csv';
+import { optionSubtotal } from '@/lib/bookings/optionSubtotal';
+import { isUnitPricedType } from '@/lib/bookings/unitPricing';
 
 // Enhanced interfaces matching your booking model
 interface BookingUser {
@@ -109,6 +111,7 @@ interface BookingDetails {
   selectedBookingOption?: {
     id: string;
     title: string;
+    type?: string;
     price: number;
     originalPrice?: number;
     duration?: string;
@@ -484,9 +487,16 @@ const BookingDetailPage = () => {
     if (!booking) return null;
 
     const basePrice = booking.selectedBookingOption?.price || 0;
-    const adultPrice = basePrice * (booking.adultGuests || 1);
-    const childPrice = (basePrice / 2) * (booking.childGuests || 0);
-    const tourSubtotal = adultPrice + childPrice;
+    const tourSubtotal = optionSubtotal(
+      booking.selectedBookingOption ?? null,
+      basePrice,
+      booking.adultGuests || 1,
+      booking.childGuests || 0,
+    );
+    const unitPriced = isUnitPricedType(booking.selectedBookingOption?.type);
+    // Whole-unit options have no per-guest split: the unit total sits on the adult row.
+    const adultPrice = unitPriced ? tourSubtotal : basePrice * (booking.adultGuests || 1);
+    const childPrice = unitPriced ? 0 : (basePrice / 2) * (booking.childGuests || 0);
 
     let addOnsTotal = 0;
     if (booking.selectedAddOns && booking.selectedAddOnDetails) {
@@ -515,6 +525,7 @@ const BookingDetailPage = () => {
     const total = booking.totalPrice > subtotal ? booking.totalPrice : calculatedTotal;
 
     return {
+      unitPriced,
       adultPrice,
       childPrice,
       tourSubtotal,
@@ -971,13 +982,18 @@ const BookingDetailPage = () => {
                 Pricing Breakdown
               </h3>
               <div className="space-y-3">
-                {booking.adultGuests && booking.adultGuests > 0 && (
+                {pricing.unitPriced ? (
+                  <div className="flex justify-between text-slate-700">
+                    <span>{booking.selectedBookingOption?.title || booking.selectedBookingOption?.type} (${safeToFixed(booking.selectedBookingOption?.price)}) for {(booking.adultGuests || 0) + (booking.childGuests || 0)} guest{((booking.adultGuests || 0) + (booking.childGuests || 0)) !== 1 ? 's' : ''}</span>
+                    <span className="font-semibold">${safeToFixed(pricing.tourSubtotal)}</span>
+                  </div>
+                ) : booking.adultGuests && booking.adultGuests > 0 ? (
                   <div className="flex justify-between text-slate-700">
                     <span>{booking.adultGuests} x Adult{booking.adultGuests > 1 ? 's' : ''} (${safeToFixed(booking.selectedBookingOption?.price)})</span>
                     <span className="font-semibold">${safeToFixed(pricing.adultPrice)}</span>
                   </div>
-                )}
-                {booking.childGuests && booking.childGuests > 0 && (
+                ) : null}
+                {!pricing.unitPriced && booking.childGuests && booking.childGuests > 0 && (
                   <div className="flex justify-between text-slate-700">
                     <span>{booking.childGuests} x Child{booking.childGuests > 1 ? 'ren' : ''} (${safeToFixed((booking.selectedBookingOption?.price || 0) / 2)})</span>
                     <span className="font-semibold">${safeToFixed(pricing.childPrice)}</span>

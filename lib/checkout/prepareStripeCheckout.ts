@@ -190,6 +190,7 @@ export async function prepareStripeCheckout(
     bp: item.selectedBookingOption?.price || item.discountPrice || item.price || 0,
     bo: item.selectedBookingOption?.id || '',
     bot: item.selectedBookingOption?.title || '',
+    boty: item.selectedBookingOption?.type || '',
     ao: Object.entries(item.selectedAddOns || {}).map(([id, quantity]) => ({
       id,
       q: Number(quantity),

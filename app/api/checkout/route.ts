@@ -5,7 +5,7 @@ import Booking from '@/lib/models/Booking';
 import { bookingPaymentFields, isDuplicateKeyError } from '@/lib/security/paymentEvidence';
 import Tour from '@/lib/models/Tour';
 import { authoritativeBasePrice } from '@/lib/pricing/authoritativePrice';
-import { type UnitCapacityOption } from '@/lib/bookings/unitPricing';
+import { effectiveUnitSize, isUnitPricedType, unitCount, type UnitCapacityOption } from '@/lib/bookings/unitPricing';
 import { optionSubtotal } from '@/lib/bookings/optionSubtotal';
 import User from '@/lib/models/user';
 import Discount from '@/lib/models/Discount';
@@ -666,11 +666,16 @@ export async function POST(request: Request) {
       const infantCount = mainCartItem?.infantQuantity || 0;
 
       const participantParts = [];
-      if (adultCount > 0) {
+      const mainOption = mainCartItem?.selectedBookingOption;
+      const mainIsUnitPriced = Boolean(mainOption && isUnitPricedType(mainOption.type));
+      if (mainIsUnitPriced && mainOption) {
+        const units = unitCount(adultCount + childCount, effectiveUnitSize(mainOption as UnitCapacityOption));
+        participantParts.push(`${units} x ${mainOption.title || mainOption.type} ($${Number(mainOption.price || 0).toFixed(2)}) for ${adultCount + childCount} guest${adultCount + childCount !== 1 ? 's' : ''}`);
+      } else if (adultCount > 0) {
         const basePrice = mainCartItem?.selectedBookingOption?.price || mainCartItem?.discountPrice || mainCartItem?.price || 0;
         participantParts.push(`${adultCount} x Adult${adultCount > 1 ? 's' : ''} ($${basePrice.toFixed(2)})`);
       }
-      if (childCount > 0) {
+      if (!mainIsUnitPriced && childCount > 0) {
         const basePrice = mainCartItem?.selectedBookingOption?.price || mainCartItem?.discountPrice || mainCartItem?.price || 0;
         const childPrice = basePrice / 2;
         participantParts.push(`${childCount} x Child${childCount > 1 ? 'ren' : ''} ($${childPrice.toFixed(2)})`);

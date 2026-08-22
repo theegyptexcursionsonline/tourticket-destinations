@@ -21,6 +21,8 @@ import CheckoutPaymentQuote from '@/lib/models/CheckoutPaymentQuote';
 import Availability from '@/lib/models/Availability';
 import StopSale from '@/lib/models/StopSale';
 import { calculateCheckoutPricing } from '@/lib/security/checkoutPricing';
+import { type UnitCapacityOption } from '@/lib/bookings/unitPricing';
+import { optionSubtotal } from '@/lib/bookings/optionSubtotal';
 
 // Lazy Stripe initialization to avoid build-time errors
 let stripeInstance: Stripe | null = null;
@@ -500,9 +502,20 @@ async function processSuccessfulPayment(paymentIntent: Stripe.PaymentIntent) {
       );
 
       const basePrice = Number(item.bp || 0);
-      const adultPrice = basePrice * Number(item.a || 1);
-      const childPrice = (basePrice / 2) * Number(item.c || 0);
-      let itemSubtotal = adultPrice + childPrice;
+      // Whole-unit options are charged per unit, not per guest. The type is
+      // read from the stored tour so the recorded booking matches the charge.
+      const storedOptions = Array.isArray((tour as unknown as { bookingOptions?: Array<Record<string, unknown>> }).bookingOptions)
+        ? (tour as unknown as { bookingOptions: Array<Record<string, unknown>> }).bookingOptions
+        : [];
+      const storedOption = item.bo
+        ? storedOptions.find((candidate, index) => String(candidate.id || `option-${index}`) === String(item.bo))
+        : undefined;
+      let itemSubtotal = optionSubtotal(
+        (storedOption as UnitCapacityOption | undefined) ?? null,
+        basePrice,
+        Number(item.a || 1),
+        Number(item.c || 0),
+      );
       const addOns = Array.isArray(item.ao) ? item.ao : [];
       for (const addOn of addOns) {
         const quantity = Number(addOn?.q || 0);
@@ -564,7 +577,7 @@ async function processSuccessfulPayment(paymentIntent: Stripe.PaymentIntent) {
         infantGuests: item.n || 0,
         selectedAddOns: Object.keys(selectedAddOns).length ? selectedAddOns : undefined,
         selectedAddOnDetails: Object.keys(selectedAddOnDetails).length ? selectedAddOnDetails : undefined,
-        selectedBookingOption: item.bo ? { id: item.bo, title: item.bot || '', price: item.bp || 0 } : undefined,
+        selectedBookingOption: item.bo ? { id: item.bo, title: item.bot || '', type: String(storedOption?.type || item.boty || '') || undefined, price: item.bp || 0 } : undefined,
         discountCode,
         discountAmount: itemDiscountShare > 0 ? itemDiscountShare : undefined,
         hotelPickupDetails: hotelPickupDetails || undefined,
