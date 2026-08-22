@@ -66,7 +66,8 @@ describe('the capacity gate reaches the storefront and is re-enforced server-sid
     expect(src).toContain('const capacity = capacityAvailability(option, participants);');
     expect(src).toMatch(/isDisabled = isSoldOut \|\| Boolean\(option\.isStopSale\) \|\| !capacity\.available/);
     expect(src).toContain('Not available for this party size');
-    expect(src).toContain('Needs at least ${capacity.limit}');
+    expect(src).toContain("'booking.capacityBelowMinimum'");
+    expect(src).toContain("{ limit: capacity.limit, unit: t('booking.participants'), participants }");
   });
 
   it('a party change that invalidates the selection clears it', () => {
@@ -120,5 +121,22 @@ describe('the option list collapses and puts multiple departures in a dropdown',
 
   it('darkens the dropdown dividers in the dark storefront theme', () => {
     expect(read('app/globals.css')).toContain('[class~="divide-gray-100"]');
+  });
+  it('never renders a zero where a discount or original price is absent', () => {
+    const src = read('components/BookingSidebar.tsx');
+    // `{n && <jsx/>}` prints "0" when n is 0 — it put a stray 0 on every
+    // option card whose discount was unset.
+    expect(src).not.toMatch(/\{option\.discount && option\.discount > 0 && \(/);
+    expect(src).not.toMatch(/\{timeSlot\.originalPrice && /);
+    expect(src).not.toMatch(/\{addOn\.originalPrice && /);
+    expect(src).not.toMatch(/\{tourDisplayData\?\.originalPrice && \(/);
+  });
+
+  it('keeps the casing each translation authored for participant nouns', () => {
+    const src = read('components/BookingSidebar.tsx');
+    // German capitalises nouns; lower-casing them in code produced
+    // "4 teilnehmer (3 erwachsene, 1 kind)" on the German storefront.
+    expect(src).not.toMatch(/t\('booking\.(adults?|child(ren)?|infants?)'\)\.toLowerCase\(\)/);
+    expect(src).not.toContain('getParticipantsText().toLowerCase()');
   });
 });

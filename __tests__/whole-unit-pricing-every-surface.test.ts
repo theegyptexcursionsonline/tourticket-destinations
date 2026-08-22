@@ -55,9 +55,42 @@ describe('whole-unit option pricing on every surface', () => {
     expect(src).toMatch(/optionSubtotal\(\s*\(storedOption as UnitCapacityOption \| undefined\) \?\? null/);
   });
 
+  it('the option card labels a whole-unit rate by its unit, never "per person"', () => {
+    const src = read('components/BookingSidebar.tsx');
+    expect(src).toContain('unitNounKey');
+    expect(src).toContain('${units} ${t(unitNounKey(option.type, units))} × ${formatPrice(basePrice)}');
+    // The per-person wording survives only as the non-unit branch.
+    expect(src).not.toMatch(/<span className="text-gray-600 text-xs">\{t\('price\.perPerson'\)\}: /);
+  });
+
+  it('the capacity banner and unit nouns are translated, not hardcoded English', () => {
+    const src = read('components/BookingSidebar.tsx');
+    expect(src).toContain("'booking.capacityBelowMinimum'");
+    expect(src).toContain("'booking.capacityAboveMaximum'");
+    expect(src).not.toMatch(/`Needs at least \$\{/);
+    expect(src).not.toMatch(/`Takes up to \$\{/);
+    for (const locale of ['en', 'de', 'fr', 'es', 'ru', 'ar']) {
+      const messages = JSON.parse(read(`messages/${locale}.json`));
+      expect(messages.booking.capacityBelowMinimum).toEqual(expect.stringContaining('{limit}'));
+      expect(messages.booking.capacityAboveMaximum).toEqual(expect.stringContaining('{participants}'));
+      for (const key of ['unitCouple', 'unitCouples', 'unitFamily', 'unitFamilies', 'unitGroup', 'unitGroups', 'unitDefault', 'unitDefaults']) {
+        expect(typeof messages.price[key]).toBe('string');
+        expect(messages.price[key].length).toBeGreaterThan(0);
+      }
+    }
+  });
+
   it('confirmation email describes a whole-unit line as units, not adults × price', () => {
     const src = read('app/api/checkout/route.ts');
     expect(src).toContain('const mainIsUnitPriced = Boolean(mainOption && isUnitPricedType(mainOption.type));');
     expect(src).toContain('!mainIsUnitPriced && childCount > 0');
+  });
+  it('the running total before a departure is chosen follows the option rule, not per-guest', () => {
+    const src = read('components/BookingSidebar.tsx');
+    expect(src).toContain('const estimateOption = !slotOption');
+    expect(src).toContain('const pricedOption = slotOption ?? estimateOption?.candidate ?? null;');
+    expect(src).toContain('optionSubtotal(pricedOption, basePrice, bookingData.adults, bookingData.children)');
+    // The estimate only offers options the party can actually take.
+    expect(src).toMatch(/\.filter\(\(candidate\) => capacityAvailability\(/);
   });
 });

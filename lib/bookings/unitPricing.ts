@@ -132,6 +132,22 @@ export function capacityBlockedMessage(availability: CapacityAvailability): stri
   return `Available for up to ${availability.limit} participant${availability.limit === 1 ? '' : 's'}`;
 }
 
+/**
+ * The message key for an option's unit noun, so a storefront renders
+ * "1 Gruppe" rather than the English noun baked into `unitCountLabel`.
+ * Type normalization stays here, with the rest of the unit rules.
+ */
+const UNIT_NOUN_KEYS: Record<string, [string, string]> = {
+  'per couple': ['price.unitCouple', 'price.unitCouples'],
+  'per family': ['price.unitFamily', 'price.unitFamilies'],
+  'per group': ['price.unitGroup', 'price.unitGroups'],
+};
+
+export function unitNounKey(type: string | null | undefined, units: number): string {
+  const keys = UNIT_NOUN_KEYS[normalizedType(type)] ?? ['price.unitDefault', 'price.unitDefaults'];
+  return units === 1 ? keys[0] : keys[1];
+}
+
 /** "2 couples", "1 family", "3 groups" — for price breakdowns. */
 export function unitCountLabel(type: string | null | undefined, units: number): string {
   const nouns = UNIT_NOUNS[normalizedType(type)];

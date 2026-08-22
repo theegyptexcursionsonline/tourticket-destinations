@@ -309,7 +309,15 @@
     "pricePerPerson": "Precio por persona",
     "totalPrice": "Precio total",
     "originalPrice": "Precio original",
-    "discountedPrice": "Precio con descuento"
+    "discountedPrice": "Precio con descuento",
+    "unitCouple": "pareja",
+    "unitCouples": "parejas",
+    "unitFamily": "familia",
+    "unitFamilies": "familias",
+    "unitGroup": "grupo",
+    "unitGroups": "grupos",
+    "unitDefault": "unidad",
+    "unitDefaults": "unidades"
   },
   "booking": {
     "adults": "Adultos",
@@ -415,7 +423,9 @@
     "startYourBooking": "Inicia tu Reserva",
     "customizeYourTrip": "Personaliza tu Viaje",
     "checkingAvailability": "Verificando Disponibilidad...",
-    "selectOneToContinue": "Selecciona uno para continuar"
+    "selectOneToContinue": "Selecciona uno para continuar",
+    "capacityBelowMinimum": "Se necesitan al menos {limit} {unit} — tienes {participants}.",
+    "capacityAboveMaximum": "Admite hasta {limit} {unit} — tienes {participants}."
   },
   "offers": {
     "save": "¡Ahorra hasta un 20% en ofertas combinadas y pases de ciudad!",

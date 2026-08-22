@@ -226,7 +226,7 @@
     "needHelp": "تحتاج مساعدة؟",
     "chatWithUs": "تحدث معنا",
     "emailSupport": "دعم البريد الإلكتروني",
-    "available247Response": "متاح على مدار الساعة \u00b7 متوسط وقت الرد: 5 دقائق",
+    "available247Response": "متاح على مدار الساعة · متوسط وقت الرد: 5 دقائق",
     "home": "الرئيسية",
     "tours": "الرحلات",
     "backToAllTours": "العودة لجميع الرحلات",
@@ -309,7 +309,15 @@
     "pricePerPerson": "السعر للشخص",
     "totalPrice": "السعر الإجمالي",
     "originalPrice": "السعر الأصلي",
-    "discountedPrice": "السعر بعد الخصم"
+    "discountedPrice": "السعر بعد الخصم",
+    "unitCouple": "زوج",
+    "unitCouples": "أزواج",
+    "unitFamily": "عائلة",
+    "unitFamilies": "عائلات",
+    "unitGroup": "مجموعة",
+    "unitGroups": "مجموعات",
+    "unitDefault": "وحدة",
+    "unitDefaults": "وحدات"
   },
   "booking": {
     "adults": "بالغون",
@@ -415,7 +423,9 @@
     "startYourBooking": "ابدأ حجزك",
     "customizeYourTrip": "خصص رحلتك",
     "checkingAvailability": "جارٍ التحقق من التوفر...",
-    "selectOneToContinue": "اختر واحداً للمتابعة"
+    "selectOneToContinue": "اختر واحداً للمتابعة",
+    "capacityBelowMinimum": "يتطلب {limit} {unit} على الأقل — لديك {participants}.",
+    "capacityAboveMaximum": "يتسع لـ {limit} {unit} كحد أقصى — لديك {participants}."
   },
   "offers": {
     "save": "وفّر حتى 20% على العروض المجمّعة وبطاقات المدن!",

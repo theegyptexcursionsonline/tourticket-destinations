@@ -309,7 +309,15 @@
     "pricePerPerson": "Prix par personne",
     "totalPrice": "Prix total",
     "originalPrice": "Prix d'origine",
-    "discountedPrice": "Prix réduit"
+    "discountedPrice": "Prix réduit",
+    "unitCouple": "couple",
+    "unitCouples": "couples",
+    "unitFamily": "famille",
+    "unitFamilies": "familles",
+    "unitGroup": "groupe",
+    "unitGroups": "groupes",
+    "unitDefault": "unité",
+    "unitDefaults": "unités"
   },
   "booking": {
     "adults": "Adultes",
@@ -415,7 +423,9 @@
     "startYourBooking": "Commencer Votre Réservation",
     "customizeYourTrip": "Personnalisez Votre Voyage",
     "checkingAvailability": "Vérification de la Disponibilité...",
-    "selectOneToContinue": "Sélectionnez un pour continuer"
+    "selectOneToContinue": "Sélectionnez un pour continuer",
+    "capacityBelowMinimum": "Au moins {limit} {unit} requis – vous en avez {participants}.",
+    "capacityAboveMaximum": "Jusqu'à {limit} {unit} – vous en avez {participants}."
   },
   "offers": {
     "save": "Économisez jusqu'à 20% sur les forfaits combinés et les pass touristiques!",

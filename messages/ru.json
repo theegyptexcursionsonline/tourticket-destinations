@@ -226,7 +226,7 @@
     "needHelp": "Нужна помощь?",
     "chatWithUs": "Напишите нам",
     "emailSupport": "Поддержка по email",
-    "available247Response": "Доступно 24/7 \u00b7 Среднее время ответа: 5 минут",
+    "available247Response": "Доступно 24/7 · Среднее время ответа: 5 минут",
     "home": "Главная",
     "tours": "Туры",
     "backToAllTours": "Ко всем турам",
@@ -309,7 +309,15 @@
     "pricePerPerson": "Цена за человека",
     "totalPrice": "Итоговая цена",
     "originalPrice": "Оригинальная цена",
-    "discountedPrice": "Цена со скидкой"
+    "discountedPrice": "Цена со скидкой",
+    "unitCouple": "пара",
+    "unitCouples": "пары",
+    "unitFamily": "семья",
+    "unitFamilies": "семьи",
+    "unitGroup": "группа",
+    "unitGroups": "группы",
+    "unitDefault": "единица",
+    "unitDefaults": "единицы"
   },
   "booking": {
     "adults": "Взрослые",
@@ -415,7 +423,9 @@
     "startYourBooking": "Начните бронирование",
     "customizeYourTrip": "Настройте свою поездку",
     "checkingAvailability": "Проверка доступности...",
-    "selectOneToContinue": "Выберите один для продолжения"
+    "selectOneToContinue": "Выберите один для продолжения",
+    "capacityBelowMinimum": "Нужно минимум {limit} {unit} — у вас {participants}.",
+    "capacityAboveMaximum": "Не более {limit} {unit} — у вас {participants}."
   },
   "offers": {
     "save": "Экономьте до 20% на комби-предложениях и городских пропусках!",

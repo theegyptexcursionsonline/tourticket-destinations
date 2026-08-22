@@ -226,7 +226,7 @@
     "needHelp": "Need help?",
     "chatWithUs": "Chat with us",
     "emailSupport": "Email support",
-    "available247Response": "Available 24/7 \u00b7 Average response time: 5 minutes",
+    "available247Response": "Available 24/7 · Average response time: 5 minutes",
     "home": "Home",
     "tours": "Tours",
     "backToAllTours": "Back to all tours",
@@ -309,7 +309,15 @@
     "pricePerPerson": "Price per person",
     "totalPrice": "Total price",
     "originalPrice": "Original price",
-    "discountedPrice": "Discounted price"
+    "discountedPrice": "Discounted price",
+    "unitCouple": "couple",
+    "unitCouples": "couples",
+    "unitFamily": "family",
+    "unitFamilies": "families",
+    "unitGroup": "group",
+    "unitGroups": "groups",
+    "unitDefault": "unit",
+    "unitDefaults": "units"
   },
   "booking": {
     "adults": "Adults",
@@ -415,7 +423,9 @@
     "startYourBooking": "Start Your Booking",
     "customizeYourTrip": "Customize Your Trip",
     "checkingAvailability": "Checking Availability...",
-    "selectOneToContinue": "Select one to continue"
+    "selectOneToContinue": "Select one to continue",
+    "capacityBelowMinimum": "Needs at least {limit} {unit} — you have {participants}.",
+    "capacityAboveMaximum": "Takes up to {limit} {unit} — you have {participants}."
   },
   "offers": {
     "save": "Save up to 20% on combi deals and city passes!",
@@ -738,8 +748,7 @@
     "name": "Your Name",
     "namePlaceholder": "Enter your name",
     "email": "Email",
-    "emailPlaceholder": "Enter your email"
-    ,
+    "emailPlaceholder": "Enter your email",
     "bookNowHint": "Book now and we will invite you to review after your trip is completed.",
     "completeTourHint": "Complete this tour first and we will email your verified review link automatically."
   },

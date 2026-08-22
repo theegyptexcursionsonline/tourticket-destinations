@@ -226,7 +226,7 @@
     "needHelp": "Brauchen Sie Hilfe?",
     "chatWithUs": "Chatten Sie mit uns",
     "emailSupport": "E-Mail-Support",
-    "available247Response": "Rund um die Uhr erreichbar \u00b7 Durchschnittliche Antwortzeit: 5 Minuten",
+    "available247Response": "Rund um die Uhr erreichbar · Durchschnittliche Antwortzeit: 5 Minuten",
     "home": "Startseite",
     "tours": "Touren",
     "backToAllTours": "Zurück zu allen Touren",
@@ -309,7 +309,15 @@
     "pricePerPerson": "Preis pro Person",
     "totalPrice": "Gesamtpreis",
     "originalPrice": "Originalpreis",
-    "discountedPrice": "Rabattierter Preis"
+    "discountedPrice": "Rabattierter Preis",
+    "unitCouple": "Paar",
+    "unitCouples": "Paare",
+    "unitFamily": "Familie",
+    "unitFamilies": "Familien",
+    "unitGroup": "Gruppe",
+    "unitGroups": "Gruppen",
+    "unitDefault": "Einheit",
+    "unitDefaults": "Einheiten"
   },
   "booking": {
     "adults": "Erwachsene",
@@ -415,7 +423,9 @@
     "startYourBooking": "Buchung starten",
     "customizeYourTrip": "Reise anpassen",
     "checkingAvailability": "Verfügbarkeit prüfen...",
-    "selectOneToContinue": "Wählen Sie eine aus, um fortzufahren"
+    "selectOneToContinue": "Wählen Sie eine aus, um fortzufahren",
+    "capacityBelowMinimum": "Mindestens {limit} {unit} erforderlich – Sie haben {participants}.",
+    "capacityAboveMaximum": "Maximal {limit} {unit} möglich – Sie haben {participants}."
   },
   "offers": {
     "save": "Sparen Sie bis zu 20% bei Kombi-Deals und City-Pässen!",

@@ -29,7 +29,7 @@ import {
   nextAddOnSelectionQuantity,
 } from '@/lib/bookings/bookingSelection';
 import { optionSubtotal } from '@/lib/bookings/optionSubtotal';
-import { capacityAvailability, isUnitPricedType, unitCount, effectiveUnitSize } from '@/lib/bookings/unitPricing';
+import { capacityAvailability, isUnitPricedType, unitCount, unitNounKey, effectiveUnitSize } from '@/lib/bookings/unitPricing';
 
 // Enhanced Types with database compatibility
 interface Tour {
@@ -606,9 +606,12 @@ const TourOptionCard: React.FC<{
   const capacity = capacityAvailability(option, participants);
   const capacityMessage = capacity.available
     ? null
-    : capacity.reason === 'below_minimum'
-      ? `Needs at least ${capacity.limit} participant${capacity.limit === 1 ? '' : 's'} — you have ${participants}.`
-      : `Takes up to ${capacity.limit} participant${capacity.limit === 1 ? '' : 's'} — you have ${participants}.`;
+    : t(
+        capacity.reason === 'below_minimum'
+          ? 'booking.capacityBelowMinimum'
+          : 'booking.capacityAboveMaximum',
+        { limit: capacity.limit, unit: t('booking.participants'), participants },
+      );
   const units = isUnitPricedType(option.type) ? unitCount(participants, effectiveUnitSize(option)) : 1;
   // One departure stays an inline chip; several move into a dropdown so a
   // long timetable cannot bury the other options.
@@ -692,7 +695,7 @@ const TourOptionCard: React.FC<{
                 {option.badge || t('booking.recommended')}
               </span>
             )}
-            {option.discount && option.discount > 0 && (
+            {Boolean(option.discount && option.discount > 0) && (
               <span className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-2 py-0.5 rounded-full text-[10px] font-bold shadow-sm">
                 {t('price.save')} {option.discount}%
               </span>
@@ -833,7 +836,13 @@ const TourOptionCard: React.FC<{
           )}
         </div>
         <div className="flex justify-between items-center">
-          <span className="text-gray-600 text-xs">{t('price.perPerson')}: {formatPrice(basePrice)}</span>
+          {/* A whole-unit option is priced per unit, so labelling its rate
+              "per person" misreports what the customer is charged. */}
+          <span className="text-gray-600 text-xs">
+            {isUnitPricedType(option.type)
+              ? `${units} ${t(unitNounKey(option.type, units))} × ${formatPrice(basePrice)}`
+              : `${t('price.perPerson')}: ${formatPrice(basePrice)}`}
+          </span>
           <span className="text-sm font-bold text-gray-900">{formatPrice(subtotal)}</span>
         </div>
       </div>
@@ -973,7 +982,7 @@ const TourOptionCard: React.FC<{
                         {t('booking.popular')}
                       </div>
                     )}
-                    {timeSlot.originalPrice && timeSlot.originalPrice > timeSlot.price && (
+                    {timeSlot.originalPrice != null && timeSlot.originalPrice > timeSlot.price && (
                       <div className={`text-[10px] line-through ${isSelected ? 'text-red-100' : 'text-gray-400'}`}>
                         {formatPrice(timeSlot.originalPrice)}
                       </div>
@@ -1100,7 +1109,7 @@ const AddOnCard: React.FC<{
           {/* Price Section */}
           <div className="flex items-center justify-between">
             <div>
-              {addOn.originalPrice && addOn.originalPrice > addOn.price && (
+              {addOn.originalPrice != null && addOn.originalPrice > addOn.price && (
                 <span className="text-sm text-gray-400 line-through block">
                   {formatPrice(addOn.originalPrice)}
                 </span>
@@ -1817,8 +1826,29 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
     const slotOption = bookingData.selectedTimeSlot
       ? findSelectedBookingOption(availability?.tourOptions, bookingData.selectedTimeSlot)
       : null;
-    const subtotalCalc = optionSubtotal(slotOption ?? null, basePrice, bookingData.adults, bookingData.children);
-    const originalSubtotal = optionSubtotal(slotOption ?? null, originalBasePrice, bookingData.adults, bookingData.children);
+    // Before a departure is chosen the running total is an estimate. Basing
+    // it on the tour's per-guest price contradicts the option cards when the
+    // options are whole-unit priced — the footer read $525 beside a $150
+    // card. Estimate from the cheapest option the party can actually take.
+    const estimateOption = !slotOption
+      ? (availability?.tourOptions ?? [])
+          .filter((candidate) => capacityAvailability(
+            candidate,
+            bookingData.adults + bookingData.children,
+          ).available)
+          .map((candidate) => ({
+            candidate,
+            price: optionSubtotal(candidate, candidate.price, bookingData.adults, bookingData.children),
+          }))
+          .sort((a, b) => a.price - b.price)[0]
+      : null;
+    if (estimateOption) {
+      basePrice = estimateOption.candidate.price;
+      originalBasePrice = estimateOption.candidate.originalPrice || estimateOption.candidate.price;
+    }
+    const pricedOption = slotOption ?? estimateOption?.candidate ?? null;
+    const subtotalCalc = optionSubtotal(pricedOption, basePrice, bookingData.adults, bookingData.children);
+    const originalSubtotal = optionSubtotal(pricedOption, originalBasePrice, bookingData.adults, bookingData.children);
 
     const addOnsCalc = Object.entries(bookingData.selectedAddOns).reduce((acc, [addOnId, quantity]) => {
       const addOn = availability?.addOns.find(a => a.id === addOnId);
@@ -2081,9 +2111,9 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
     let text = `${totalGuests} ${t('booking.participants')}`;
     const details = [];
 
-    if (bookingData.adults > 0) details.push(`${bookingData.adults} ${bookingData.adults > 1 ? t('booking.adults').toLowerCase() : t('booking.adult').toLowerCase()}`);
-    if (bookingData.children > 0) details.push(`${bookingData.children} ${bookingData.children > 1 ? t('booking.children').toLowerCase() : t('booking.child').toLowerCase()}`);
-    if (bookingData.infants > 0) details.push(`${bookingData.infants} ${bookingData.infants > 1 ? t('booking.infants').toLowerCase() : t('booking.infant').toLowerCase()}`);
+    if (bookingData.adults > 0) details.push(`${bookingData.adults} ${bookingData.adults > 1 ? t('booking.adults') : t('booking.adult')}`);
+    if (bookingData.children > 0) details.push(`${bookingData.children} ${bookingData.children > 1 ? t('booking.children') : t('booking.child')}`);
+    if (bookingData.infants > 0) details.push(`${bookingData.infants} ${bookingData.infants > 1 ? t('booking.infants') : t('booking.infant')}`);
 
     return details.length > 0 ? `${text} (${details.join(', ')})` : text;
   }, [bookingData, t]);
@@ -2544,7 +2574,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
             className="space-y-6 p-4 sm:p-6"
           >
             <h2 ref={stepHeadingRef} tabIndex={-1} className="text-xl sm:text-2xl font-bold text-gray-800 mb-2 focus:outline-none">{t('booking.tourOptions')}</h2>
-            <p className="text-gray-600 mb-6">{t('booking.selectBestOption')} {getParticipantsText().toLowerCase()}.</p>
+            <p className="text-gray-600 mb-6">{t('booking.selectBestOption')} {getParticipantsText()}.</p>
             {availability?.tourOptions.map(option => (
               <TourOptionCard
                 key={option.id}
