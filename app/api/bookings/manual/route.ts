@@ -107,8 +107,8 @@ function formatMoney(amount: number, symbol = '$'): string {
 
 // Whole-unit options (Per Group / Per Couple / Per Family) are charged per
 // unit; Per Person keeps the per-guest rule with children at half.
-function computeSubtotal(option: { type?: string } | null | undefined, basePrice: number, adults: number, children: number): number {
-  return optionSubtotal(option ?? null, basePrice, adults, children);
+function computeSubtotal(option: { type?: string } | null | undefined, basePrice: number, adults: number, children: number, infants: number): number {
+  return optionSubtotal(option ?? null, basePrice, adults, children, infants);
 }
 
 async function POSTHandler(request: NextRequest) {
@@ -204,7 +204,7 @@ async function POSTHandler(request: NextRequest) {
     }
 
     const basePrice = Number(selectedOption.price) || 0;
-    const subtotal = computeSubtotal(selectedOption, basePrice, numericAdults, numericChildren);
+    const subtotal = computeSubtotal(selectedOption, basePrice, numericAdults, numericChildren, numericInfants);
 
     // Apply best active offer (server-side)
     const now = new Date();

@@ -148,7 +148,7 @@ export async function calculateCheckoutPricing(
     // Capacity is authorization, not presentation: a party that the option
     // cannot take is refused here even if the browser offered the card.
     if (selectedOption) {
-      const gate = capacityAvailability(selectedOption as UnitCapacityOption, adults + children);
+      const gate = capacityAvailability(selectedOption as UnitCapacityOption, adults + children + infants);
       if (!gate.available) {
         throw new Error(
           gate.reason === 'below_minimum'
@@ -160,7 +160,7 @@ export async function calculateCheckoutPricing(
 
     // A unit-priced option (Per Couple / Per Family / Per Group) is charged
     // in whole units, never per guest — the client's reported overcharge.
-    const itemSubtotal = optionSubtotal(selectedOption ?? null, basePrice, adults, children) + addOnsTotal;
+    const itemSubtotal = optionSubtotal(selectedOption ?? null, basePrice, adults, children, infants) + addOnsTotal;
     subtotal += itemSubtotal;
     cart.push({
       ...submitted,

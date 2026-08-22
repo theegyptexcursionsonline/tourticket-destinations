@@ -425,7 +425,9 @@
     "checkingAvailability": "Verificando Disponibilidad...",
     "selectOneToContinue": "Selecciona uno para continuar",
     "capacityBelowMinimum": "Se necesitan al menos {limit} {unit} — tienes {participants}.",
-    "capacityAboveMaximum": "Admite hasta {limit} {unit} — tienes {participants}."
+    "capacityAboveMaximum": "Admite hasta {limit} {unit} — tienes {participants}.",
+    "timesAvailable": "{available} de {total} horarios disponibles",
+    "notAvailableForPartySize": "No disponible para este tamaño de grupo"
   },
   "offers": {
     "save": "¡Ahorra hasta un 20% en ofertas combinadas y pases de ciudad!",

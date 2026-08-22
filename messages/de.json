@@ -425,7 +425,9 @@
     "checkingAvailability": "Verfügbarkeit prüfen...",
     "selectOneToContinue": "Wählen Sie eine aus, um fortzufahren",
     "capacityBelowMinimum": "Mindestens {limit} {unit} erforderlich – Sie haben {participants}.",
-    "capacityAboveMaximum": "Maximal {limit} {unit} möglich – Sie haben {participants}."
+    "capacityAboveMaximum": "Maximal {limit} {unit} möglich – Sie haben {participants}.",
+    "timesAvailable": "{available} von {total} Uhrzeiten verfügbar",
+    "notAvailableForPartySize": "Für diese Gruppengröße nicht verfügbar"
   },
   "offers": {
     "save": "Sparen Sie bis zu 20% bei Kombi-Deals und City-Pässen!",

@@ -89,8 +89,20 @@ describe('whole-unit option pricing on every surface', () => {
     const src = read('components/BookingSidebar.tsx');
     expect(src).toContain('const estimateOption = !slotOption');
     expect(src).toContain('const pricedOption = slotOption ?? estimateOption?.candidate ?? null;');
-    expect(src).toContain('optionSubtotal(pricedOption, basePrice, bookingData.adults, bookingData.children)');
+    expect(src).toContain('optionSubtotal(pricedOption, basePrice, bookingData.adults, bookingData.children, bookingData.infants)');
     // The estimate only offers options the party can actually take.
     expect(src).toMatch(/\.filter\(\(candidate\) => capacityAvailability\(/);
   });
+  it.each(SURFACES)('%s passes the infant count so an infant seat counts toward the unit', (rel) => {
+    const src = read(rel);
+    // Every optionSubtotal call carries a fifth argument (infants) — the
+    // authority gate reads it too. A call with only adults + children drifts
+    // from the client's "total participants" rule.
+    const calls = src.match(/optionSubtotal\([^;]*/g) || [];
+    expect(calls.length).toBeGreaterThan(0);
+    for (const call of calls) {
+      expect(call).toMatch(/infant|\bitem\.n\b|\binfants\b|numericInfants/);
+    }
+  });
+
 });

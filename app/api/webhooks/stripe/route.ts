@@ -515,6 +515,7 @@ async function processSuccessfulPayment(paymentIntent: Stripe.PaymentIntent) {
         basePrice,
         Number(item.a || 1),
         Number(item.c || 0),
+        Number(item.n || 0),
       );
       const addOns = Array.isArray(item.ao) ? item.ao : [];
       for (const addOn of addOns) {

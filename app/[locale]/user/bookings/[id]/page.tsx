@@ -312,6 +312,7 @@ const UserBookingDetailPage = () => {
       basePrice,
       booking.adultGuests || 1,
       booking.childGuests || 0,
+      booking.infantGuests || 0,
     );
     const unitPriced = isUnitPricedType(booking.selectedBookingOption?.type);
     // Whole-unit options have no per-guest split: the unit total sits on the adult row.

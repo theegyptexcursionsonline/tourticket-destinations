@@ -488,6 +488,7 @@ export async function POST(request: Request) {
             basePrice,
             cartItem.quantity || 1,
             cartItem.childQuantity || 0,
+            cartItem.infantQuantity || 0,
           );
 
           let addOnsTotal = 0;
@@ -606,7 +607,7 @@ export async function POST(request: Request) {
     const orderedItemsSummary = cart.map((item: any) => {
       const basePrice = item.selectedBookingOption?.price || item.discountPrice || item.price || 0;
       // Same rule as the charge: whole-unit options are not multiplied per guest.
-      let total = optionSubtotal(item.selectedBookingOption ?? null, basePrice, item.quantity || 1, item.childQuantity || 0);
+      let total = optionSubtotal(item.selectedBookingOption ?? null, basePrice, item.quantity || 1, item.childQuantity || 0, item.infantQuantity || 0);
 
       if (item.selectedAddOns && item.selectedAddOnDetails) {
         Object.entries(item.selectedAddOns).forEach(([addOnId, quantity]) => {
@@ -750,7 +751,7 @@ export async function POST(request: Request) {
         const getItemTotal = (item: any) => {
           const basePrice = item.selectedBookingOption?.price || item.discountPrice || item.price || 0;
           // Same rule as the charge: whole-unit options are not multiplied per guest.
-          let tourTotal = optionSubtotal(item.selectedBookingOption ?? null, basePrice, item.quantity || 1, item.childQuantity || 0);
+          let tourTotal = optionSubtotal(item.selectedBookingOption ?? null, basePrice, item.quantity || 1, item.childQuantity || 0, item.infantQuantity || 0);
 
           let addOnsTotal = 0;
           if (item.selectedAddOns && item.selectedAddOnDetails) {

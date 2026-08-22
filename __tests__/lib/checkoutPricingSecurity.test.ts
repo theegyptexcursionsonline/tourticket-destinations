@@ -250,6 +250,27 @@ describe('checkout pricing security', () => {
     expect(result.pricing.subtotal).toBe(300);
   });
 
+  it('counts an infant as a seat: 2 adults + 1 infant is two couples, 4 + 1 infant is refused', async () => {
+    const result = await calculateCheckoutPricing([{
+      id: '507f1f77bcf86cd799439011',
+      quantity: 2,
+      childQuantity: 0,
+      infantQuantity: 1,
+      selectedDate: '2099-01-01',
+      selectedBookingOption: { id: 'couple', price: 0.01 },
+    }], 'brand-a');
+    expect(result.pricing.subtotal).toBe(300);
+
+    await expect(calculateCheckoutPricing([{
+      id: '507f1f77bcf86cd799439011',
+      quantity: 4,
+      childQuantity: 0,
+      infantQuantity: 1,
+      selectedDate: '2099-01-01',
+      selectedBookingOption: { id: 'couple', price: 0.01 },
+    }], 'brand-a')).rejects.toThrow('This option takes at most 4 participants');
+  });
+
 });
 
 describe('checkout pricing applies the tour discount exactly like the booking writer', () => {

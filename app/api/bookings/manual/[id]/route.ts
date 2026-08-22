@@ -30,8 +30,8 @@ function ensureDateOnlyString(dateInput: string): string | null {
 
 // Whole-unit options (Per Group / Per Couple / Per Family) are charged per
 // unit; Per Person keeps the per-guest rule with children at half.
-function computeSubtotal(option: { type?: string } | null | undefined, basePrice: number, adults: number, children: number): number {
-  return optionSubtotal(option ?? null, basePrice, adults, children);
+function computeSubtotal(option: { type?: string } | null | undefined, basePrice: number, adults: number, children: number, infants: number): number {
+  return optionSubtotal(option ?? null, basePrice, adults, children, infants);
 }
 
 async function PUTHandler(
@@ -110,7 +110,7 @@ async function PUTHandler(
     }
 
     const basePrice = Number(selectedOption.price) || 0;
-    const subtotal = computeSubtotal(selectedOption, basePrice, numericAdults, numericChildren);
+    const subtotal = computeSubtotal(selectedOption, basePrice, numericAdults, numericChildren, numericInfants);
     const travelDate = new Date(`${nextDateString}T00:00:00.000Z`);
 
     // Apply offers (server-side)

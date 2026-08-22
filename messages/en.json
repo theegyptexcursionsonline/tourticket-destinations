@@ -425,7 +425,9 @@
     "checkingAvailability": "Checking Availability...",
     "selectOneToContinue": "Select one to continue",
     "capacityBelowMinimum": "Needs at least {limit} {unit} — you have {participants}.",
-    "capacityAboveMaximum": "Takes up to {limit} {unit} — you have {participants}."
+    "capacityAboveMaximum": "Takes up to {limit} {unit} — you have {participants}.",
+    "timesAvailable": "{available} of {total} times available",
+    "notAvailableForPartySize": "Not available for this party size"
   },
   "offers": {
     "save": "Save up to 20% on combi deals and city passes!",

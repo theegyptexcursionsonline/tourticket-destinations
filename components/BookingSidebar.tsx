@@ -577,12 +577,13 @@ const TourOptionCard: React.FC<{
   selectedTimeSlot: TimeSlot | null;
   adults: number;
   children: number;
+  infants: number;
   tour: Tour; // Added tour prop
   /** Several options on screen: each card collapses to its summary. */
   collapsible?: boolean;
   expanded?: boolean;
   onToggleExpanded?: () => void;
-}> = ({ option, onSelect, selectedTimeSlot, adults, children, tour, collapsible = false, expanded = true, onToggleExpanded }) => {
+}> = ({ option, onSelect, selectedTimeSlot, adults, children, infants, tour, collapsible = false, expanded = true, onToggleExpanded }) => {
   const t = useTranslations();
   const { formatPrice } = useSettings();
   const [descExpanded, setDescExpanded] = useState(false);
@@ -599,10 +600,10 @@ const TourOptionCard: React.FC<{
   // Per Couple / Per Family / Per Group price a WHOLE unit, never one guest.
   // Multiplying them per participant is what overcharged a Per Group option
   // by the head count (client report, EEO sheet 2026-08-20).
-  const subtotal = optionSubtotal(option, basePrice, adults, children);
+  const subtotal = optionSubtotal(option, basePrice, adults, children, infants);
   // Capacity gate: an option is offered only for a party it can actually take.
   // Graying here is presentation; the server re-enforces the same rule.
-  const participants = adults + children;
+  const participants = adults + children + infants;
   const capacity = capacityAvailability(option, participants);
   const capacityMessage = capacity.available
     ? null
@@ -627,7 +628,7 @@ const TourOptionCard: React.FC<{
   const headerId = `option-header-${option.id}`;
   const bodyId = `option-body-${option.id}`;
   const originalSubtotal = option.originalPrice
-    ? optionSubtotal(option, option.originalPrice, adults, children)
+    ? optionSubtotal(option, option.originalPrice, adults, children, infants)
     : subtotal;
   const savings = originalSubtotal - subtotal;
 
@@ -652,7 +653,7 @@ const TourOptionCard: React.FC<{
         <div className="mb-2 flex items-center gap-2 bg-slate-50 border border-slate-200 text-slate-700 px-2.5 py-1.5 rounded-xl text-xs">
           <AlertCircle size={14} className="text-slate-500" />
           <div className="flex-1">
-            <div className="font-semibold">Not available for this party size</div>
+            <div className="font-semibold">{t('booking.notAvailableForPartySize')}</div>
             <div>{capacityMessage}</div>
           </div>
         </div>
@@ -879,8 +880,8 @@ const TourOptionCard: React.FC<{
                 </span>
                 <span className="block text-[10px] text-gray-500">
                   {selectedSlotForOption
-                    ? `${selectedSlotForOption.available} spots left`
-                    : `${bookableSlotCount} of ${option.timeSlots.length} times available`}
+                    ? t('tour.spotsLeft', { count: selectedSlotForOption.available })
+                    : t('booking.timesAvailable', { available: bookableSlotCount, total: option.timeSlots.length })}
                 </span>
               </span>
               <span className="flex items-center gap-2 flex-shrink-0">
@@ -923,13 +924,13 @@ const TourOptionCard: React.FC<{
                       <span className="min-w-0">
                         <span className="block text-sm font-bold leading-tight">{timeSlot.time}</span>
                         <span className={`block text-[10px] ${isSoldOut ? 'text-gray-400' : 'text-gray-500'}`}>
-                          {isSoldOut ? 'Fully booked' : `${timeSlot.available} spots left`}
+                          {isSoldOut ? t('tour.fullyBooked') : t('tour.spotsLeft', { count: timeSlot.available })}
                         </span>
                       </span>
                       <span className="flex items-center gap-2 flex-shrink-0">
                         {slotDiscount > 0 && !isSoldOut && (
                           <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-bold text-red-700">
-                            {slotDiscount}% off
+                            {slotDiscount}% {t('price.off')}
                           </span>
                         )}
                         <span className={`text-xs font-semibold ${isSoldOut ? 'text-gray-400' : 'text-gray-700'}`}>
@@ -989,7 +990,7 @@ const TourOptionCard: React.FC<{
                     )}
                     {slotDiscount > 0 && (
                       <div className={`text-[10px] font-bold ${isSelected ? 'text-white' : 'text-red-600'}`}>
-                        {slotDiscount}% off
+                        {slotDiscount}% {t('price.off')}
                       </div>
                     )}
                     <div className={`text-xs font-semibold ${isSelected ? 'text-white' : 'text-gray-600'}`}>
@@ -1834,11 +1835,11 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
       ? (availability?.tourOptions ?? [])
           .filter((candidate) => capacityAvailability(
             candidate,
-            bookingData.adults + bookingData.children,
+            bookingData.adults + bookingData.children + bookingData.infants,
           ).available)
           .map((candidate) => ({
             candidate,
-            price: optionSubtotal(candidate, candidate.price, bookingData.adults, bookingData.children),
+            price: optionSubtotal(candidate, candidate.price, bookingData.adults, bookingData.children, bookingData.infants),
           }))
           .sort((a, b) => a.price - b.price)[0]
       : null;
@@ -1847,8 +1848,8 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
       originalBasePrice = estimateOption.candidate.originalPrice || estimateOption.candidate.price;
     }
     const pricedOption = slotOption ?? estimateOption?.candidate ?? null;
-    const subtotalCalc = optionSubtotal(pricedOption, basePrice, bookingData.adults, bookingData.children);
-    const originalSubtotal = optionSubtotal(pricedOption, originalBasePrice, bookingData.adults, bookingData.children);
+    const subtotalCalc = optionSubtotal(pricedOption, basePrice, bookingData.adults, bookingData.children, bookingData.infants);
+    const originalSubtotal = optionSubtotal(pricedOption, originalBasePrice, bookingData.adults, bookingData.children, bookingData.infants);
 
     const addOnsCalc = Object.entries(bookingData.selectedAddOns).reduce((acc, [addOnId, quantity]) => {
       const addOn = availability?.addOns.find(a => a.id === addOnId);
@@ -2098,7 +2099,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
       // than carrying a selection the server would refuse.
       if (next.selectedTimeSlot) {
         const chosen = findSelectedBookingOption(availability?.tourOptions, next.selectedTimeSlot);
-        if (chosen && !capacityAvailability(chosen, next.adults + next.children).available) {
+        if (chosen && !capacityAvailability(chosen, next.adults + next.children + next.infants).available) {
           next.selectedTimeSlot = null;
         }
       }
@@ -2582,6 +2583,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
                 onSelect={handleTimeSlotSelect}
                 selectedTimeSlot={bookingData.selectedTimeSlot}
                 adults={bookingData.adults}
+                infants={bookingData.infants}
                 children={bookingData.children}
                 tour={tour}
                 collapsible={(availability?.tourOptions.length || 0) > 1}

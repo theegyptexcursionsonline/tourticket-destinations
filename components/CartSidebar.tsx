@@ -29,7 +29,7 @@ const CartSidebar: FC = () => {
         
         // Whole-unit options (couple/family/group) are charged per unit, not
         // per guest — the same rule the server bills by.
-        let tourTotal = optionSubtotal(item.selectedBookingOption ?? null, basePrice, item.quantity || 1, item.childQuantity || 0);
+        let tourTotal = optionSubtotal(item.selectedBookingOption ?? null, basePrice, item.quantity || 1, item.childQuantity || 0, item.infantQuantity || 0);
 
         let addOnsTotal = 0;
         if (item.selectedAddOns && item.selectedAddOnDetails) {

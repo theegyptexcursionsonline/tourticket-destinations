@@ -425,7 +425,9 @@
     "checkingAvailability": "Vérification de la Disponibilité...",
     "selectOneToContinue": "Sélectionnez un pour continuer",
     "capacityBelowMinimum": "Au moins {limit} {unit} requis – vous en avez {participants}.",
-    "capacityAboveMaximum": "Jusqu'à {limit} {unit} – vous en avez {participants}."
+    "capacityAboveMaximum": "Jusqu'à {limit} {unit} – vous en avez {participants}.",
+    "timesAvailable": "{available} horaires sur {total} disponibles",
+    "notAvailableForPartySize": "Indisponible pour cette taille de groupe"
   },
   "offers": {
     "save": "Économisez jusqu'à 20% sur les forfaits combinés et les pass touristiques!",

@@ -425,7 +425,9 @@
     "checkingAvailability": "جارٍ التحقق من التوفر...",
     "selectOneToContinue": "اختر واحداً للمتابعة",
     "capacityBelowMinimum": "يتطلب {limit} {unit} على الأقل — لديك {participants}.",
-    "capacityAboveMaximum": "يتسع لـ {limit} {unit} كحد أقصى — لديك {participants}."
+    "capacityAboveMaximum": "يتسع لـ {limit} {unit} كحد أقصى — لديك {participants}.",
+    "timesAvailable": "{available} من {total} مواعيد متاحة",
+    "notAvailableForPartySize": "غير متاح لحجم هذه المجموعة"
   },
   "offers": {
     "save": "وفّر حتى 20% على العروض المجمّعة وبطاقات المدن!",

@@ -51,10 +51,10 @@ describe('whole-unit option pricing', () => {
 
 describe('every pricing surface bills by the one shared subtotal rule', () => {
   it.each([
-    ['the Stripe amount', 'lib/security/checkoutPricing.ts', 'optionSubtotal(selectedOption ?? null, basePrice, adults, children)'],
+    ['the Stripe amount', 'lib/security/checkoutPricing.ts', 'optionSubtotal(selectedOption ?? null, basePrice, adults, children, infants)'],
     ['the recorded booking', 'app/api/checkout/route.ts', 'optionSubtotal('],
     ['the cart', 'components/CartSidebar.tsx', 'optionSubtotal(item.selectedBookingOption ?? null'],
-    ['the booking sidebar', 'components/BookingSidebar.tsx', 'optionSubtotal(option, basePrice, adults, children)'],
+    ['the booking sidebar', 'components/BookingSidebar.tsx', 'optionSubtotal(option, basePrice, adults, children, infants)'],
   ])('%s uses optionSubtotal', (_surface, file, call) => {
     const source = read(file);
     expect(source).toContain("from '@/lib/bookings/optionSubtotal'");

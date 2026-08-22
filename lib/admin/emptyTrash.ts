@@ -18,7 +18,9 @@ import { buildStrictTenantQuery } from '@/lib/tenant';
  * - Only records already in the trash (`archivedAt` set) can be purged.
  * - A tour with ANY booking is never deleted: `Booking.tour` is a hard ref
  *   and the Stripe webhook re-reads tours by id when payment settles.
- * - A category still used by a tour is refused for the same reason.
+ * - A category still used by a tour or a page is refused for the same reason.
+ * - A page still linked from another page, or the parent of a tour or page,
+ *   is refused — the link would otherwise dangle.
  * - Every query is tenant-scoped: an admin working inside one site can only
  *   purge that site's trash; the all-sites view is reserved for a super
  *   administrator by the route.
@@ -55,10 +57,37 @@ async function inspectTour(doc: Record<string, unknown>): Promise<TrashPurgeVerd
 
 async function inspectCategory(doc: Record<string, unknown>): Promise<TrashPurgeVerdict> {
   const id = String(doc._id);
-  const tours = await Tour.countDocuments({ category: doc._id });
-  return tours > 0
-    ? { id, title: titleOf(doc), deletable: false, blockedReason: `Still used by ${tours} tour${tours === 1 ? '' : 's'}` }
-    : { id, title: titleOf(doc), deletable: true };
+  const [tours, pages] = await Promise.all([
+    Tour.countDocuments({ category: doc._id }),
+    // A category page's `categoryId` is a required hard ref; purging the
+    // category would leave that page unable to save again.
+    AttractionPage.countDocuments({ $or: [{ categoryId: doc._id }, { linkedCategoryIds: doc._id }] }),
+  ]);
+  if (tours > 0) {
+    return { id, title: titleOf(doc), deletable: false, blockedReason: `Still used by ${tours} tour${tours === 1 ? '' : 's'}` };
+  }
+  if (pages > 0) {
+    return { id, title: titleOf(doc), deletable: false, blockedReason: `Still linked from ${pages} page${pages === 1 ? '' : 's'}` };
+  }
+  return { id, title: titleOf(doc), deletable: true };
+}
+
+async function inspectPage(doc: Record<string, unknown>): Promise<TrashPurgeVerdict> {
+  const id = String(doc._id);
+  const [pages, tours] = await Promise.all([
+    AttractionPage.countDocuments({ linkedPageIds: doc._id }),
+    // Tours and pages nest under a parent page by id for breadcrumbs/URLs.
+    Tour.countDocuments({ 'parentPage.id': id }),
+  ]);
+  const parents = await AttractionPage.countDocuments({ 'parentPage.id': id });
+  const links = pages + parents;
+  if (links > 0) {
+    return { id, title: titleOf(doc), deletable: false, blockedReason: `Still linked from ${links} page${links === 1 ? '' : 's'}` };
+  }
+  if (tours > 0) {
+    return { id, title: titleOf(doc), deletable: false, blockedReason: `Still the parent of ${tours} tour${tours === 1 ? '' : 's'}` };
+  }
+  return { id, title: titleOf(doc), deletable: true };
 }
 
 const MODELS = {
@@ -70,8 +99,7 @@ const MODELS = {
 const INSPECTORS: Record<TrashKind, (doc: Record<string, unknown>) => Promise<TrashPurgeVerdict>> = {
   tour: inspectTour,
   category: inspectCategory,
-  // A content page owns no other record; being in the trash is enough.
-  page: async (doc) => ({ id: String(doc._id), title: titleOf(doc), deletable: true }),
+  page: inspectPage,
 };
 
 function trashQuery(tenantId: string | undefined, ids?: string[]): Record<string, unknown> {

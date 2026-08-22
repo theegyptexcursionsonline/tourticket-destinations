@@ -165,7 +165,7 @@ const SummaryItem: React.FC<{ item: CartItem }> = ({ item }) => {
   // Use the same calculation logic as in BookingSidebar and CartSidebar
   const getItemTotal = (item: CartItem) => {
     const basePrice = item.selectedBookingOption?.price || item.discountPrice || item.price || 0;
-    let tourTotal = optionSubtotal(item.selectedBookingOption ?? null, basePrice, item.quantity || 1, item.childQuantity || 0);
+    let tourTotal = optionSubtotal(item.selectedBookingOption ?? null, basePrice, item.quantity || 1, item.childQuantity || 0, item.infantQuantity || 0);
 
     let addOnsTotal = 0;
     if (item.selectedAddOns && item.selectedAddOnDetails) {
@@ -1004,7 +1004,7 @@ const handleDownloadReceipt = async () => {
                 {orderedItems.map((item, index) => {
                   const getItemTotal = (item: CartItem) => {
                     const basePrice = item.selectedBookingOption?.price || item.discountPrice || item.price || 0;
-                    let tourTotal = optionSubtotal(item.selectedBookingOption ?? null, basePrice, item.quantity || 1, item.childQuantity || 0);
+                    let tourTotal = optionSubtotal(item.selectedBookingOption ?? null, basePrice, item.quantity || 1, item.childQuantity || 0, item.infantQuantity || 0);
                     let addOnsTotal = 0;
                     if (item.selectedAddOns && item.selectedAddOnDetails) {
                       Object.entries(item.selectedAddOns).forEach(([addOnId, quantity]) => {
@@ -1211,7 +1211,7 @@ export default function CheckoutPage() {
   // Use the same calculation logic as in other components
   const getItemTotal = (item: CartItem) => {
     const basePrice = item.selectedBookingOption?.price || item.discountPrice || item.price || 0;
-    let tourTotal = optionSubtotal(item.selectedBookingOption ?? null, basePrice, item.quantity || 1, item.childQuantity || 0);
+    let tourTotal = optionSubtotal(item.selectedBookingOption ?? null, basePrice, item.quantity || 1, item.childQuantity || 0, item.infantQuantity || 0);
 
     let addOnsTotal = 0;
     if (item.selectedAddOns && item.selectedAddOnDetails) {

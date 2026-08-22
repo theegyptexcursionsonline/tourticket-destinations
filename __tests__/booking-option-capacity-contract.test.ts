@@ -65,19 +65,20 @@ describe('the capacity gate reaches the storefront and is re-enforced server-sid
     const src = read('components/BookingSidebar.tsx');
     expect(src).toContain('const capacity = capacityAvailability(option, participants);');
     expect(src).toMatch(/isDisabled = isSoldOut \|\| Boolean\(option\.isStopSale\) \|\| !capacity\.available/);
-    expect(src).toContain('Not available for this party size');
+    expect(src).toContain("t('booking.notAvailableForPartySize')");
+    expect(src).not.toMatch(/'Fully booked'|spots left`|times available`|% off\n/);
     expect(src).toContain("'booking.capacityBelowMinimum'");
     expect(src).toContain("{ limit: capacity.limit, unit: t('booking.participants'), participants }");
   });
 
   it('a party change that invalidates the selection clears it', () => {
     const src = read('components/BookingSidebar.tsx');
-    expect(src).toMatch(/if \(chosen && !capacityAvailability\(chosen, next\.adults \+ next\.children\)\.available\) \{\s*next\.selectedTimeSlot = null;/);
+    expect(src).toMatch(/if \(chosen && !capacityAvailability\(chosen, next\.adults \+ next\.children \+ next\.infants\)\.available\) \{\s*next\.selectedTimeSlot = null;/);
   });
 
   it('the pricing authority refuses the party the UI would have grayed out', () => {
     const src = read('lib/security/checkoutPricing.ts');
-    expect(src).toMatch(/capacityAvailability\(selectedOption as UnitCapacityOption, adults \+ children\)/);
+    expect(src).toMatch(/capacityAvailability\(selectedOption as UnitCapacityOption, adults \+ children \+ infants\)/);
     expect(src).toContain('This option needs at least ${gate.limit} participants');
     expect(src).toContain('This option takes at most ${gate.limit} participants');
   });
@@ -108,7 +109,7 @@ describe('the option list collapses and puts multiple departures in a dropdown',
 
   it('keeps price and remaining spots visible on every dropdown row', () => {
     const menu = sidebar.slice(sidebar.indexOf('role="listbox"'), sidebar.indexOf('role="listbox"') + 2600);
-    expect(menu).toContain('spots left');
+    expect(menu).toContain("t('tour.spotsLeft', { count: timeSlot.available })");
     expect(menu).toContain('formatPrice(timeSlot.price)');
   });
 
@@ -116,7 +117,7 @@ describe('the option list collapses and puts multiple departures in a dropdown',
     const menu = sidebar.slice(sidebar.indexOf('role="listbox"'), sidebar.indexOf('role="listbox"') + 2600);
     expect(menu).toContain('disabled={isSoldOut}');
     expect(menu).toContain('if (isSoldOut) return;');
-    expect(menu).toContain('Fully booked');
+    expect(menu).toContain("t('tour.fullyBooked')");
   });
 
   it('darkens the dropdown dividers in the dark storefront theme', () => {

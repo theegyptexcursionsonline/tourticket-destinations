@@ -150,7 +150,7 @@ export default withAuth(function CreateManualBookingPage() {
   // Pricing preview
   const selectedBookingOption = useMemo(() => bookingOptions.find((o) => (o.type || '') === bookingOptionType) || null, [bookingOptions, bookingOptionType]);
   const basePrice = Number(selectedBookingOption?.price || 0);
-  const subtotal = useMemo(() => optionSubtotal(selectedBookingOption, basePrice, Math.max(0, adults), Math.max(0, children)), [selectedBookingOption, basePrice, adults, children]);
+  const subtotal = useMemo(() => optionSubtotal(selectedBookingOption, basePrice, Math.max(0, adults), Math.max(0, children), Math.max(0, infants)), [selectedBookingOption, basePrice, adults, children, infants]);
   const totalGuests = useMemo(() => Math.max(0, adults) + Math.max(0, children) + Math.max(0, infants), [adults, children, infants]);
 
   const [offerPreview, setOfferPreview] = useState<BestOfferPreview>(null);

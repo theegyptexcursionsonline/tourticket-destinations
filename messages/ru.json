@@ -425,7 +425,9 @@
     "checkingAvailability": "Проверка доступности...",
     "selectOneToContinue": "Выберите один для продолжения",
     "capacityBelowMinimum": "Нужно минимум {limit} {unit} — у вас {participants}.",
-    "capacityAboveMaximum": "Не более {limit} {unit} — у вас {participants}."
+    "capacityAboveMaximum": "Не более {limit} {unit} — у вас {participants}.",
+    "timesAvailable": "Доступно {available} из {total} времён",
+    "notAvailableForPartySize": "Недоступно для группы такого размера"
   },
   "offers": {
     "save": "Экономьте до 20% на комби-предложениях и городских пропусках!",
