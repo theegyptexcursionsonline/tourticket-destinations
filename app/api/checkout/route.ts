@@ -5,6 +5,7 @@ import Booking from '@/lib/models/Booking';
 import { bookingPaymentFields, isDuplicateKeyError } from '@/lib/security/paymentEvidence';
 import Tour from '@/lib/models/Tour';
 import { authoritativeBasePrice } from '@/lib/pricing/authoritativePrice';
+import { effectiveUnitSize, isUnitPricedType, unitCount, type UnitCapacityOption } from '@/lib/bookings/unitPricing';
 import User from '@/lib/models/user';
 import Discount from '@/lib/models/Discount';
 import { EmailService } from '@/lib/email/emailService';
@@ -471,9 +472,23 @@ export async function POST(request: Request) {
           // discount lives on the tour as a percentage and the browser has no
           // authority over what a guest is charged.
           const basePrice = authoritativeBasePrice(tour, cartItem);
-          const adultPrice = basePrice * (cartItem.quantity || 1);
-          const childPrice = (basePrice / 2) * (cartItem.childQuantity || 0);
-          let tourTotal = adultPrice + childPrice;
+          // A unit-priced option (Per Couple / Per Family / Per Group) covers a
+          // WHOLE unit. Charging it per guest multiplied a group price by the
+          // head count. The option type is read from the STORED tour, never
+          // from the submitted cart.
+          const storedOptions = ((tour as unknown as { bookingOptions?: Array<Record<string, unknown>> })?.bookingOptions) ?? [];
+          const storedOption = (Array.isArray(storedOptions) ? storedOptions : []).find((candidate) =>
+            String(candidate.id ?? candidate._id ?? '') === String(cartItem.selectedBookingOption?.id ?? ''));
+          let tourTotal: number;
+          if (storedOption && isUnitPricedType(storedOption.type as string | undefined)) {
+            const participants = (cartItem.quantity || 1) + (cartItem.childQuantity || 0);
+            const units = unitCount(participants, effectiveUnitSize(storedOption as UnitCapacityOption));
+            tourTotal = units * basePrice;
+          } else {
+            const adultPrice = basePrice * (cartItem.quantity || 1);
+            const childPrice = (basePrice / 2) * (cartItem.childQuantity || 0);
+            tourTotal = adultPrice + childPrice;
+          }
 
           let addOnsTotal = 0;
           if (cartItem.selectedAddOns && cartItem.selectedAddOnDetails) {

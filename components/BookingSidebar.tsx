@@ -28,6 +28,7 @@ import {
   isSelectedTimeSlot,
   nextAddOnSelectionQuantity,
 } from '@/lib/bookings/bookingSelection';
+import { effectiveUnitSize, isUnitPricedType, unitCount, unitCountLabel, type UnitCapacityOption } from '@/lib/bookings/unitPricing';
 
 // Enhanced Types with database compatibility
 interface Tour {
@@ -586,8 +587,20 @@ const TourOptionCard: React.FC<{
   }, [option.description]);
 
   const basePrice = option.price;
-  const subtotal = (adults * basePrice) + (children * basePrice * 0.5);
-  const originalSubtotal = option.originalPrice ? (adults * option.originalPrice) + (children * option.originalPrice * 0.5) : subtotal;
+  // Per Couple / Per Family / Per Group price a WHOLE unit, never one guest.
+  // Multiplying them per participant is what overcharged a Per Group option
+  // by the head count (client report, EEO sheet 2026-08-20).
+  const unitSize = effectiveUnitSize(option as UnitCapacityOption);
+  const totalParticipants = adults + children;
+  const units = isUnitPricedType(option.type) ? unitCount(totalParticipants, unitSize) : 0;
+  const subtotal = isUnitPricedType(option.type)
+    ? units * basePrice
+    : (adults * basePrice) + (children * basePrice * 0.5);
+  const originalSubtotal = option.originalPrice
+    ? (isUnitPricedType(option.type)
+        ? units * option.originalPrice
+        : (adults * option.originalPrice) + (children * option.originalPrice * 0.5))
+    : subtotal;
   const savings = originalSubtotal - subtotal;
 
   // Use real tour data instead of hardcoded values
