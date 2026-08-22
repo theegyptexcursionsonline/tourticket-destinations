@@ -539,7 +539,7 @@ const PracticalInfoSection = ({ enhancement, sectionRef }: { enhancement: TourEn
       <Backpack size={24} className="text-blue-600" />
       {t('practicalInfo')}
     </h3>
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:items-start">
       <div className="bg-slate-50 p-6 rounded-xl">
         <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
           <Backpack size={20} className="text-blue-600" />
@@ -582,7 +582,7 @@ const PracticalInfoSection = ({ enhancement, sectionRef }: { enhancement: TourEn
     )}
 
     {(enhancement.notSuitableFor?.length || enhancement.needToKnow?.length) ? (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:items-start">
         {enhancement.notSuitableFor && enhancement.notSuitableFor.length > 0 && (
           <div className="bg-rose-50 p-6 rounded-xl border border-rose-200">
             <h4 className="font-bold text-rose-900 mb-4">Not suitable for</h4>
@@ -646,7 +646,7 @@ const AccessibilitySection = ({ enhancement, sectionRef }: { enhancement: TourEn
       {t('accessibilitySpecialReq')}
     </h3>
 
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:items-start">
       <div className="bg-purple-50 p-6 rounded-xl">
         <h4 className="font-bold text-purple-900 mb-4">{t('accessibilityInfo')}</h4>
         <ul className="space-y-3">
@@ -693,7 +693,7 @@ const PoliciesSection = ({ enhancement, sectionRef }: { enhancement: TourEnhance
       <Shield size={24} className="text-red-600" />
       {t('policies')}
     </h3>
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:items-start">
       <div className="bg-sky-50 p-6 rounded-xl">
         <h4 className="font-bold text-sky-900 mb-3 flex items-center gap-2">
           <Umbrella size={20} className="text-sky-600" />
@@ -738,7 +738,7 @@ const CulturalSection = ({ enhancement, sectionRef }: { enhancement: TourEnhance
       <Heart size={24} className="text-teal-600" />
       {t('culturalInfo')}
     </h3>
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:items-start">
       <div className="bg-indigo-50 p-6 rounded-xl">
         <h4 className="font-bold text-indigo-900 mb-4 flex items-center gap-2">
           <Eye size={20} className="text-indigo-600" />
