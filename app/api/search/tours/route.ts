@@ -4,6 +4,7 @@ import Tour from '@/lib/models/Tour';
 import mongoose from 'mongoose';
 import Fuse from 'fuse.js';
 import { buildStrictTenantQuery, getTenantFromRequest } from '@/lib/tenant';
+import { durationValuesMatchingBuckets, parseDurationBuckets } from '@/lib/tours/durationFilter';
 
 // Fuse.js configuration for fuzzy search fallback
 const fuseOptions = {
@@ -146,20 +147,27 @@ export async function GET(request: Request) {
         }
 
         // Duration Filter
+        //
+        // `duration` is free text ("4 hours", "2 - 5 hours", "2 days"), so it
+        // cannot be range-matched in the query — and `{ duration: { $or } }`
+        // is not even valid at field level (mongoose answered every duration
+        // filter with a 500). The tenant's distinct values are read once,
+        // parsed into hours, and the ones the chosen buckets cover are
+        // matched exactly. A value carrying no figure ("Variable") matches no
+        // bucket rather than being guessed into one.
         const durations = searchParams.get('durations');
         if (durations) {
-            const durationConditions = durations.split(',').map(range => {
-                const [min, max] = range.split('-').map(Number);
-                if (!isNaN(min) && !isNaN(max)) {
-                    return { duration: { $gte: min, $lte: max } };
-                }
-                return null;
-            }).filter(Boolean);
-
-            if (durationConditions.length > 0) {
-                additionalFilters.duration = { 
-                    $or: durationConditions.map(c => c!.duration) 
-                };
+            const buckets = parseDurationBuckets(durations);
+            if (buckets.length > 0) {
+                const knownDurations = await Tour.distinct(
+                    'duration',
+                    buildStrictTenantQuery({ isPublished: true }, tenantId),
+                );
+                const matching = durationValuesMatchingBuckets(knownDurations, buckets);
+                // No stored duration fits the request — say so with an empty
+                // result rather than dropping the filter and answering a
+                // different question than the customer asked.
+                additionalFilters.duration = { $in: matching };
             }
         }
 

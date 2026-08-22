@@ -87,7 +87,27 @@ const SearchClient: React.FC<SearchClientProps> = ({ initialTours = [], categori
   const [isMobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   const isFirstMount = useRef(true);
-  
+  // A failed request is a different state from an empty catalogue; the
+  // customer gets a retry instead of a misleading "No tours found".
+  const [loadFailed, setLoadFailed] = useState(false);
+  // Bumped by the retry control so the fetch effect runs again.
+  const [retryToken, setRetryToken] = useState(0);
+
+  // The URL is read through a string, never through the object next/navigation
+  // hands back. That object is a new instance on every navigation, and this
+  // page rewrites its own URL — depending on the object made the two effects
+  // below trigger each other without end (the page loaded forever and said
+  // "No tours found").
+  const searchParamsKey = searchParams?.toString() ?? '';
+  const searchParamsKeyRef = useRef(searchParamsKey);
+  // The router is reached through a ref too. Nothing about navigation belongs
+  // in the dependency list of an effect that navigates.
+  const routerRef = useRef(router);
+  useEffect(() => {
+    searchParamsKeyRef.current = searchParamsKey;
+    routerRef.current = router;
+  }, [router, searchParamsKey]);
+
   // parse initial filters from URL on mount
   useEffect(() => {
     const q = searchParams?.get('q') ?? '';
@@ -99,20 +119,27 @@ const SearchClient: React.FC<SearchClientProps> = ({ initialTours = [], categori
     const ratings = parseNumberArray(searchParams?.get('ratings'));
     const sort = searchParams?.get('sortBy') ?? 'relevance';
 
-    setSearchQuery(q);
-    setSelectedCategories(cats);
-    setSelectedDestinations(dests);
+    // normalizeArrayParam builds a fresh array each call, so setting state
+    // unconditionally would hand the fetch effect new dependency identities for
+    // filters that never changed. Only replace a value when its content moved.
+    const sameList = (a: readonly (string | number)[], b: readonly (string | number)[]) =>
+      a.length === b.length && a.every((item, index) => item === b[index]);
+
+    setSearchQuery((previous) => (previous === q ? previous : q));
+    setSelectedCategories((previous) => (sameList(previous, cats) ? previous : cats));
+    setSelectedDestinations((previous) => (sameList(previous, dests) ? previous : dests));
     if (minPrice && maxPrice) {
       const min = Number(minPrice);
       const max = Number(maxPrice);
       if (!Number.isNaN(min) && !Number.isNaN(max)) {
-        setPriceRange([min, max]);
+        setPriceRange((previous) => (previous[0] === min && previous[1] === max ? previous : [min, max]));
       }
     }
-    setSelectedDurations(durations);
-    setSelectedRatings(ratings);
-    setSortBy(sort);
-  }, [searchParams]);
+    setSelectedDurations((previous) => (sameList(previous, durations) ? previous : durations));
+    setSelectedRatings((previous) => (sameList(previous, ratings) ? previous : ratings));
+    setSortBy((previous) => (previous === sort ? previous : sort));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed off the serialised URL on purpose
+  }, [searchParamsKey]);
 
   // Debounce input for text search
   const useDebounce = (value: string, delay: number) => {
@@ -152,24 +179,34 @@ const SearchClient: React.FC<SearchClientProps> = ({ initialTours = [], categori
     router.replace(pathname, { scroll: false });
   }, [pathname, router]);
 
+  // Serialised filter state. The fetch effect keys off these strings rather
+  // than the arrays themselves, so a re-render that rebuilds an equal array
+  // cannot start another request.
+  const categoriesKey = selectedCategories.join(',');
+  const destinationsKey = selectedDestinations.join(',');
+  const durationsKey = selectedDurations.join(',');
+  const ratingsKey = selectedRatings.join(',');
+  const priceKey = `${priceRange[0]}-${priceRange[1]}`;
+
   // Fetch tours whenever filters change
   useEffect(() => {
     const controller = new AbortController();
     
     const fetchTours = async () => {
       // On first mount with no params, fetch ALL published tours
-      if (isFirstMount.current && searchParams.toString() === '') {
+      if (isFirstMount.current && searchParamsKeyRef.current === '') {
           setIsLoading(true);
           isFirstMount.current = false;
           try {
             const res = await fetch('/api/search/tours', { signal: controller.signal });
-            if (!res.ok) throw new Error('Failed to fetch tours');
+            if (!res.ok) throw new Error(`Failed to fetch tours (${res.status})`);
             const data = await res.json();
             setTours(normalizeToursResponse(data));
-          } catch (err: any) {
-            if (err.name !== 'AbortError') {
-              console.error('Initial tours fetch error:', err);
-              setTours([]);
+            setLoadFailed(false);
+          } catch (error: unknown) {
+            if (!(error instanceof DOMException && error.name === 'AbortError')) {
+              console.error('Initial tours fetch error:', error);
+              setLoadFailed(true);
             }
           } finally {
             setIsLoading(false);
@@ -181,33 +218,42 @@ const SearchClient: React.FC<SearchClientProps> = ({ initialTours = [], categori
 
       const params = new URLSearchParams();
 
+      const [minPrice, maxPrice] = priceKey.split('-').map(Number);
       if (debouncedQuery) params.set('q', debouncedQuery);
-      if (selectedCategories.length > 0) params.set('categories', selectedCategories.join(','));
-      if (selectedDestinations.length > 0) params.set('destinations', selectedDestinations.join(','));
-      if (priceRange[0] > 0 || priceRange[1] < 500) {
-        params.set('minPrice', String(priceRange[0]));
-        params.set('maxPrice', String(priceRange[1]));
+      if (categoriesKey) params.set('categories', categoriesKey);
+      if (destinationsKey) params.set('destinations', destinationsKey);
+      if (minPrice > 0 || maxPrice < 500) {
+        params.set('minPrice', String(minPrice));
+        params.set('maxPrice', String(maxPrice));
       }
-      if (selectedDurations.length > 0) params.set('durations', selectedDurations.join(','));
-      if (selectedRatings.length > 0) params.set('ratings', selectedRatings.join(','));
+      if (durationsKey) params.set('durations', durationsKey);
+      if (ratingsKey) params.set('ratings', ratingsKey);
       params.set('sortBy', sortBy);
-      const previewTenant = searchParams?.get('tenant');
+      // The storefront preview passes the tenant it is previewing; carry it
+      // through without letting the URL object back into the dependencies.
+      const previewTenant = new URLSearchParams(searchParamsKeyRef.current).get('tenant');
       if (previewTenant) params.set('tenant', previewTenant);
 
       const newQuery = params.toString();
-      router.replace(`${pathname}?${newQuery}`, { scroll: false });
+      // Only rewrite the URL when it would actually change. Replacing it with
+      // an identical value still produces a fresh navigation, which is how this
+      // effect used to re-enter itself and abort its own request every pass.
+      if (newQuery !== searchParamsKeyRef.current) {
+        routerRef.current.replace(`${pathname}?${newQuery}`, { scroll: false });
+      }
 
       try {
         // Use MongoDB search directly for better performance and complete results
         // This shows ALL published tours (not limited by Algolia's caps)
         const res = await fetch(`/api/search/tours?${newQuery}`, { signal: controller.signal });
-        if (!res.ok) throw new Error('Failed to fetch tours');
+        if (!res.ok) throw new Error(`Failed to fetch tours (${res.status})`);
         const data = await res.json();
         setTours(normalizeToursResponse(data));
-      } catch (err: any) {
-        if (err.name !== 'AbortError') {
-          console.error('Search fetch error:', err);
-          setTours([]);
+        setLoadFailed(false);
+      } catch (error: unknown) {
+        if (!(error instanceof DOMException && error.name === 'AbortError')) {
+          console.error('Search fetch error:', error);
+          setLoadFailed(true);
         }
       } finally {
         setIsLoading(false);
@@ -219,17 +265,19 @@ const SearchClient: React.FC<SearchClientProps> = ({ initialTours = [], categori
     return () => {
       controller.abort();
     };
+    // `searchParamsKey` is deliberately absent: this effect writes the URL, so
+    // depending on it would make every write schedule another run.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     debouncedQuery,
-    selectedCategories,
-    selectedDestinations,
-    priceRange,
-    selectedDurations,
-    selectedRatings,
+    categoriesKey,
+    destinationsKey,
+    priceKey,
+    durationsKey,
+    ratingsKey,
     sortBy,
     pathname,
-    router,
-    searchParams
+    retryToken,
   ]);
 
   // --- Render ---
@@ -408,6 +456,32 @@ const SearchClient: React.FC<SearchClientProps> = ({ initialTours = [], categori
           {Array.from({ length: 12 }).map((_, index) => (
             <TourCardSkeleton key={index} />
           ))}
+        </div>
+      );
+    }
+
+    if (loadFailed) {
+      return (
+        <div className="py-24 text-center" role="alert">
+          <SearchIcon className="h-16 w-16 text-slate-300 mb-4 mx-auto" aria-hidden="true" />
+          <h3 className="text-2xl font-bold text-slate-800">We could not load tours</h3>
+          <p className="text-slate-500 mt-2 max-w-md mx-auto">Something went wrong while fetching results. Please try again.</p>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+            <button
+              type="button"
+              onClick={() => setRetryToken((token) => token + 1)}
+              className="px-5 py-2.5 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 shadow-sm"
+            >
+              Try again
+            </button>
+            <button
+              type="button"
+              onClick={clearAllFilters}
+              className="px-5 py-2.5 border border-slate-300 text-slate-800 font-semibold rounded-lg hover:bg-slate-50"
+            >
+              Clear filters
+            </button>
+          </div>
         </div>
       );
     }
