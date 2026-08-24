@@ -9,14 +9,31 @@ import { enforcePublicActionLimits } from '@/lib/security/distributedAbuseLimit'
  *
  * The counter is Mongo-backed rather than per-instance, because these run on
  * serverless functions where an in-memory count resets on every cold start.
+ *
+ * A limiter must never take checkout down. Adding this guard introduced 500s
+ * under concurrency on the deployed sites that do not reproduce locally, and a
+ * customer who cannot pay is a worse outcome than abuse that gets through: an
+ * unexpected failure inside the limiter therefore lets the request proceed and
+ * is logged for investigation. A genuine refusal — the limit actually being
+ * exceeded — still returns 429.
  */
 export async function guardPaymentEndpoint(request: Request, action: string) {
-  const verdict = await enforcePublicActionLimits({
-    request,
-    action,
-    networkLimit: 30,
-    windowMs: 10 * 60 * 1000,
-  });
+  let verdict;
+  try {
+    verdict = await enforcePublicActionLimits({
+      request,
+      action,
+      networkLimit: 30,
+      windowMs: 10 * 60 * 1000,
+    });
+  } catch (error) {
+    console.error(
+      `[abuse-limit] ${action} check failed; allowing the request:`,
+      error instanceof Error ? error.message : 'unknown error',
+    );
+    return null;
+  }
+
   if (verdict.allowed) return null;
   return NextResponse.json(
     { success: false, error: 'Too many checkout attempts. Please wait a moment and try again.' },
