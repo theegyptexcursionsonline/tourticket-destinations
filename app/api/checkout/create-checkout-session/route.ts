@@ -6,6 +6,7 @@ import {
   prepareStripeCheckout,
 } from '@/lib/checkout/prepareStripeCheckout';
 import { isAllowedStripeCheckoutUrl } from '@/lib/checkout/stripeCheckoutDestination';
+import { guardPaymentEndpoint } from '@/lib/security/guardPaymentEndpoint';
 
 let stripeInstance: Stripe | null = null;
 
@@ -21,6 +22,9 @@ function getStripe(): Stripe {
 export async function POST(request: Request) {
   let session: Stripe.Checkout.Session | undefined;
   try {
+    const limited = await guardPaymentEndpoint(request, 'checkout-session');
+    if (limited) return limited;
+
     const prepared = await prepareStripeCheckout(request, 'hosted');
     const stripe = getStripe();
     try {

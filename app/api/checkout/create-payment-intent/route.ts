@@ -5,6 +5,7 @@ import {
   prepareStripeCheckout,
 } from '@/lib/checkout/prepareStripeCheckout';
 import { resolveExecutablePaymentMethods } from '@/lib/payments/paymentProviderPolicy';
+import { guardPaymentEndpoint } from '@/lib/security/guardPaymentEndpoint';
 
 let stripeInstance: Stripe | null = null;
 
@@ -19,6 +20,9 @@ function getStripe(): Stripe {
 
 export async function POST(request: Request) {
   try {
+    const limited = await guardPaymentEndpoint(request, 'checkout-payment-intent');
+    if (limited) return limited;
+
     // Kept explicit in this endpoint as a release contract: provider policy is
     // enforced inside the shared preparation used by both Stripe surfaces.
     void resolveExecutablePaymentMethods;
