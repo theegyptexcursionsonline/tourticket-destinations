@@ -940,5 +940,14 @@
     "checkoutTitle": "Checkout | {tenantName}",
     "tourNotFound": "Tour Not Found",
     "tour": "Tour"
+  },
+  "redirectingPage": {
+    "defaultTourName": "your experience",
+    "imageAlt": "Your selected experience",
+    "badge": "Securing your booking",
+    "title": "Taking you to checkout for {tourName}",
+    "description": "Your place is held. We are opening the secure payment step now.",
+    "secureNote": "Encrypted checkout",
+    "continueManually": "Continue to checkout"
   }
 }

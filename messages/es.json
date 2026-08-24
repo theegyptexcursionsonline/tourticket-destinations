@@ -940,5 +940,14 @@
     "checkoutTitle": "Pago | {tenantName}",
     "tourNotFound": "Tour No Encontrado",
     "tour": "Tour"
+  },
+  "redirectingPage": {
+    "defaultTourName": "tu experiencia",
+    "imageAlt": "Tu experiencia seleccionada",
+    "badge": "Asegurando tu reserva",
+    "title": "Te llevamos al pago de {tourName}",
+    "description": "Tu plaza está reservada. Abrimos ahora el paso de pago seguro.",
+    "secureNote": "Pago cifrado",
+    "continueManually": "Continuar al pago"
   }
 }

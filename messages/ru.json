@@ -940,5 +940,14 @@
     "checkoutTitle": "Оформление | {tenantName}",
     "tourNotFound": "Тур не найден",
     "tour": "Тур"
+  },
+  "redirectingPage": {
+    "badge": "Бронирование защищается",
+    "title": "Переходим к оплате: {tourName}",
+    "description": "Ваше место закреплено. Открываем защищённый шаг оплаты.",
+    "secureNote": "Защищённая оплата",
+    "continueManually": "Перейти к оплате",
+    "imageAlt": "Выбранное вами впечатление",
+    "defaultTourName": "ваше впечатление"
   }
 }

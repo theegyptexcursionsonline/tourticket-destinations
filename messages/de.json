@@ -940,5 +940,14 @@
     "checkoutTitle": "Kasse | {tenantName}",
     "tourNotFound": "Tour nicht gefunden",
     "tour": "Tour"
+  },
+  "redirectingPage": {
+    "defaultTourName": "Ihr Erlebnis",
+    "imageAlt": "Ihr ausgewähltes Erlebnis",
+    "badge": "Buchung wird gesichert",
+    "title": "Weiter zur Kasse für {tourName}",
+    "description": "Ihr Platz ist reserviert. Wir öffnen jetzt den sicheren Zahlungsschritt.",
+    "secureNote": "Verschlüsselte Kasse",
+    "continueManually": "Weiter zur Kasse"
   }
 }

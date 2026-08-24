@@ -940,5 +940,14 @@
     "checkoutTitle": "الدفع | {tenantName}",
     "tourNotFound": "الرحلة غير موجودة",
     "tour": "رحلة"
+  },
+  "redirectingPage": {
+    "defaultTourName": "تجربتك",
+    "imageAlt": "تجربتك المختارة",
+    "badge": "جارٍ تأمين حجزك",
+    "title": "ننقلك إلى الدفع لـ {tourName}",
+    "description": "تم حجز مكانك. نفتح الآن خطوة الدفع الآمن.",
+    "secureNote": "دفع مشفّر",
+    "continueManually": "المتابعة إلى الدفع"
   }
 }
