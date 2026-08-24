@@ -22,27 +22,47 @@ export interface AbuseLimitResult {
   retryAfterSeconds: number;
 }
 
+const isDuplicateKeyError = (error: unknown): boolean =>
+  Boolean(error) && (error as { code?: number }).code === 11000;
+
 const mongoAbuseLimitStore: AbuseLimitStore = {
   async increment(bucket) {
-    const document = await AbuseRateLimit.findOneAndUpdate(
-      {
-        scope: bucket.scope,
-        keyHash: bucket.keyHash,
-        windowStart: bucket.windowStart,
-      },
-      {
-        $inc: { count: 1 },
-        $setOnInsert: {
-          scope: bucket.scope,
-          keyHash: bucket.keyHash,
-          windowStart: bucket.windowStart,
-          expiresAt: bucket.expiresAt,
-        },
-      },
-      { upsert: true, new: true, setDefaultsOnInsert: true },
-    );
+    // An upsert against a unique index is not safe under concurrency: when two
+    // requests open the same window at the same moment they both miss, both
+    // try to insert, and the index rejects the loser with E11000. That is
+    // exactly the burst this limiter exists to survive — unhandled, it turned
+    // a rate-limited flood into a wall of 500s instead of 429s (observed live,
+    // 33 of 50 concurrent requests). The retry finds the winner's document and
+    // increments it.
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        const document = await AbuseRateLimit.findOneAndUpdate(
+          {
+            scope: bucket.scope,
+            keyHash: bucket.keyHash,
+            windowStart: bucket.windowStart,
+          },
+          {
+            $inc: { count: 1 },
+            $setOnInsert: {
+              scope: bucket.scope,
+              keyHash: bucket.keyHash,
+              windowStart: bucket.windowStart,
+              expiresAt: bucket.expiresAt,
+            },
+          },
+          { upsert: true, new: true, setDefaultsOnInsert: true },
+        );
 
-    return Number(document.count);
+        return Number(document.count);
+      } catch (error) {
+        if (attempt === 0 && isDuplicateKeyError(error)) continue;
+        throw error;
+      }
+    }
+
+    // Unreachable: the loop either returns or rethrows.
+    throw new Error('Abuse limit counter could not be incremented.');
   },
 };
 
