@@ -257,6 +257,9 @@ describe('Content Engine receiver routes', () => {
     expect(mockBlogCreate.mock.calls.map(([input]) => (input as { tenantId: string }).tenantId)).toEqual([
       'cairo-excursions-online', 'hurghada-excursions-online',
     ]);
+    expect(mockBlogCreate.mock.calls.map(([input]) => (input as { author: string }).author)).toEqual([
+      'Editorial Team', 'Editorial Team',
+    ]);
   });
 
   it('recovers a committed publish by matching the receipt-owned document id', async () => {

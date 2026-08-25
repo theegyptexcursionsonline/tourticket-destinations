@@ -65,7 +65,7 @@ async function getBlogsWithCategoryCounts(tenantId: string, locale: string): Pro
   categoryCounts: { value: string; label: string; count: number }[];
   featuredPosts: IBlog[];
 }> {
-  await dbConnect();
+  await dbConnect(tenantId);
   
   // Get all published blogs
   const blogs = await Blog.find(buildStrictTenantQuery({ status: 'published' }, tenantId))

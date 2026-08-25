@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: { params: Promise<Params> }) 
     const tenant = await getTenantPublicConfig(tenantId);
     const siteName = tenant?.name || 'Blog';
     
-    await dbConnect();
+    await dbConnect(tenantId);
     const { slug } = await params;
     const rawBlog = await Blog.findOne(buildStrictTenantQuery({ slug, status: 'published' }, tenantId)).lean();
 

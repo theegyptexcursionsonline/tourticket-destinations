@@ -15,14 +15,18 @@ export function localizeBlogRecord<T extends Record<string, unknown>>(blog: T, l
   );
 }
 
-export async function getTenantAuthorBlogRecords(tenantId: string): Promise<Record<string, unknown>[]> {
+export async function getTenantAuthorBlogRecords(
+  tenantId: string,
+  locale: string = 'en',
+): Promise<Record<string, unknown>[]> {
   await dbConnect(tenantId);
-  return await Blog.find(buildStrictTenantQuery({ status: 'published' }, tenantId))
+  const records = await Blog.find(buildStrictTenantQuery({ status: 'published' }, tenantId))
     .sort({ publishedAt: -1, createdAt: -1 })
     .select(
-      'title slug excerpt featuredImage category author authorAvatar authorBio publishedAt createdAt readTime views likes tags featured',
+      'title slug excerpt featuredImage category author authorAvatar authorBio publishedAt createdAt readTime views likes tags featured translations',
     )
     .lean() as unknown as Record<string, unknown>[];
+  return records.map((record) => localizeBlogRecord(record, locale));
 }
 
 export async function getLocalizedBlogPost(slug: string, tenantId: string, locale: string): Promise<{

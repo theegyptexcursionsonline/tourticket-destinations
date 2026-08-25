@@ -1,3 +1,6 @@
+import fs from 'node:fs';
+import path from 'node:path';
+
 const mockDbConnect = jest.fn();
 const mockGetTenantFromRequest = jest.fn();
 const mockFindOne = jest.fn();
@@ -133,6 +136,34 @@ describe('public blog tenant isolation', () => {
         { tenantIds: 'cairo-excursions-online' },
       ],
     });
+  });
+
+  it('localizes author article collections inside the same tenant boundary', async () => {
+    const posts = chain([{
+      title: 'English title',
+      excerpt: 'English excerpt',
+      translations: { ar: { title: 'عنوان عربي', excerpt: 'ملخص عربي' } },
+    }]);
+    mockFind.mockReturnValue(posts);
+    const { getTenantAuthorBlogRecords } = await import('@/lib/content/blogReader');
+    const records = await getTenantAuthorBlogRecords('cairo-excursions-online', 'ar');
+    expect(records[0]).toMatchObject({ title: 'عنوان عربي', excerpt: 'ملخص عربي' });
+    expect(posts.select).toHaveBeenCalledWith(expect.stringContaining('translations'));
+  });
+
+  it('passes the resolved tenant into every direct blog-page database connection', () => {
+    const listingPage = fs.readFileSync(
+      path.join(process.cwd(), 'app/[locale]/blog/page.tsx'),
+      'utf8',
+    );
+    const detailPage = fs.readFileSync(
+      path.join(process.cwd(), 'app/[locale]/blog/[slug]/page.tsx'),
+      'utf8',
+    );
+    expect(listingPage).toContain('await dbConnect(tenantId)');
+    expect(detailPage).toContain('await dbConnect(tenantId)');
+    expect(listingPage).not.toContain('await dbConnect()');
+    expect(detailPage).not.toContain('await dbConnect()');
   });
 
   it('increments likes atomically with a strict tenant-and-slug selector', async () => {

@@ -166,7 +166,7 @@ async function POSTHandler(request: NextRequest) {
       category: payload.category,
       tags: stringArray(payload.tags, 10),
       faqs: faqs(payload.faqs),
-      author: payload.author?.trim() || 'EEO Editorial Team',
+      author: payload.author?.trim() || 'Editorial Team',
       featuredImage: payload.featuredImage ||
         'https://res.cloudinary.com/dm3sxllch/image/upload/v1781977478/foxes-content-engine/heroes/loxyoywr6qhln7dnpaig.jpg',
       metaTitle: payload.metaTitle,
