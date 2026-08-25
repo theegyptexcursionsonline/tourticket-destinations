@@ -2,8 +2,6 @@ import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { Link } from '@/i18n/navigation';
-import dbConnect from '@/lib/dbConnect';
-import Blog from '@/lib/models/Blog';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import CollectionSchema from '@/components/schema/CollectionSchema';
@@ -13,8 +11,10 @@ import {
   matchesAuthorSlug,
   resolveAuthor,
 } from '@/lib/blogAuthors';
-import { getTenantFromRequest, getTenantPublicConfig, buildTenantQuery } from '@/lib/tenant';
+import { getTenantFromRequest, getTenantPublicConfig } from '@/lib/tenant';
+import { getTenantAuthorBlogRecords } from '@/lib/content/blogReader';
 import { Calendar, Clock, Eye, Heart, Sparkles, Tag, User } from 'lucide-react';
+import { getLocale } from 'next-intl/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,16 +54,8 @@ function formatCategory(value?: string) {
     .join(' ');
 }
 
-async function getAuthorPosts(authorSlug: string, tenantId: string) {
-  await dbConnect();
-
-  const query = buildTenantQuery({ status: 'published' }, tenantId);
-  const posts = await Blog.find(query)
-    .sort({ publishedAt: -1, createdAt: -1 })
-    .select(
-      'title slug excerpt featuredImage category author authorAvatar authorBio publishedAt createdAt readTime views likes tags featured',
-    )
-    .lean();
+async function getAuthorPosts(authorSlug: string, tenantId: string, locale: string) {
+  const posts = await getTenantAuthorBlogRecords(tenantId, locale) as unknown as AuthorPost[];
 
   const authorPosts = posts.filter((post: any) =>
     matchesAuthorSlug(post.author, authorSlug),
@@ -129,13 +121,14 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const tenantId = await getTenantFromRequest();
+  const locale = await getLocale();
   const tenantConfig = await getTenantPublicConfig(tenantId);
-  const siteName = tenantConfig?.name || 'Egypt Excursions Online';
+  const siteName = tenantConfig?.name || 'Travel Blog';
 
   // Try the known-author map first so metadata is sensible even when zero
   // posts match (e.g., during staging before content seeding).
   const known = resolveAuthor(slug);
-  const data = await getAuthorPosts(slug, tenantId);
+  const data = await getAuthorPosts(slug, tenantId, locale);
 
   const name = data?.author.name || known?.name || slug;
   const bio =
@@ -171,7 +164,8 @@ export default async function AuthorPage({
 }) {
   const { slug } = await params;
   const tenantId = await getTenantFromRequest();
-  const data = await getAuthorPosts(slug, tenantId);
+  const locale = await getLocale();
+  const data = await getAuthorPosts(slug, tenantId, locale);
 
   if (!data) notFound();
 

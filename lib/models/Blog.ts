@@ -51,6 +51,9 @@ export interface IBlog extends Document {
   // FAQ pairs (from the content engine) → FAQPage JSON-LD.
   faqs?: { question: string; answer: string }[];
 
+  // Receiver-supplied localized reader fields, keyed by supported locale.
+  translations?: Record<string, Record<string, unknown>>;
+
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
@@ -247,6 +250,10 @@ const BlogSchema: Schema<IBlog> = new Schema({
       _id: false,
     }],
     default: [],
+  },
+  translations: {
+    type: Schema.Types.Mixed,
+    default: {},
   },
 }, {
   timestamps: true,

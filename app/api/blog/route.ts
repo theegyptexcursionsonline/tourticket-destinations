@@ -6,11 +6,7 @@ import { buildStrictTenantQuery, getTenantFromRequest } from '@/lib/tenant';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const explicitTenantId = searchParams.get('tenantId') || request.headers.get('x-tenant-id');
-    const tenantId =
-      explicitTenantId && explicitTenantId !== 'all'
-        ? explicitTenantId
-        : await getTenantFromRequest();
+    const tenantId = await getTenantFromRequest();
     const featuredOnly = searchParams.get('featured') === 'true';
     const limit = Math.min(Math.max(Number(searchParams.get('limit')) || 50, 1), 100);
 

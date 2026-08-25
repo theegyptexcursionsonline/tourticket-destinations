@@ -52,6 +52,7 @@ Copy `.env.local` and provide values for the keys used in code, including:
 - `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`
 - `MAILGUN_API_KEY`, `MAILGUN_DOMAIN`, `MAILGUN_FROM_EMAIL`, `ADMIN_NOTIFICATION_EMAIL`
 - `OPENAI_API_KEY`
+- `CONTENT_ENGINE_API_KEY` (shared bearer secret for authenticated Content Engine receiver calls)
 - Firebase: `NEXT_PUBLIC_FIREBASE_*` (client) and server-side credentials
 - `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`, `NEXT_PUBLIC_BASE_URL`, `NEXT_PUBLIC_DOMAIN`
 - Multi-tenant (optional): `TENANT_DOMAINS`, `DEFAULT_TENANT_ID`, `TENANT_WEBSITE_STATUS`, `ENABLE_TENANT_PREVIEW`, per-tenant `MONGODB_URI_*`
@@ -99,6 +100,25 @@ e2e/ __tests__/    # Playwright and Jest tests
 ```
 
 Multi-tenancy: a request's host is mapped to a tenant in `middleware.ts`, which sets a tenant header/cookie. Server code resolves the tenant via helpers in `lib/tenant.ts` and scopes queries (with an optional fallback to the `default` tenant). See `MULTI_TENANT_GUIDE.md` for details.
+
+### Content Engine receiver
+
+The authenticated receiver advertises its authoritative tenant, locale,
+idempotency, and manual-review contract at `GET /api/admin/content/capabilities`
+(`GET /api/admin/content` remains an alias). Publish calls use
+`POST /api/admin/content/{blog|destination|category|tour}`
+with `Authorization: Bearer ...` and a durable `Idempotency-Key`. Only the nine
+English network tenant IDs advertised by the capability endpoint are accepted;
+unknown or malformed tenants fail before database access. Tour publishes create
+drafts only and require manual completion and publication in the tenant admin.
+
+Before changing unique indexes for an existing database, run the read-only
+inspection command. It reports index drift and duplicate groups but cannot apply
+changes:
+
+```bash
+pnpm content-engine:indexes:inspect
+```
 
 ## Deployment
 
