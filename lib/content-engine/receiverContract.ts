@@ -14,7 +14,7 @@ const ENGLISH_TENANTS = {
   'luxor-excursions': 'luxorexcursions.com',
   'sharm-excursions-online': 'sharmexcursionsonline.com',
   'aswan-excursions': 'aswanexcursions.com',
-  'marsa-alam-excursions': 'marsaalamexcursions.com',
+  'marsa-alam-excursions': 'marsaalamexcursions.online',
   'dahab-excursions': 'dahabexcursions.com',
 } as const;
 

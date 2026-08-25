@@ -59,7 +59,10 @@ const CartSidebar: FC = () => {
             ? cart[0].title 
             : `${tourCount} Amazing Experiences`;
         const encodedTourName = encodeURIComponent(tourName);
-        router.push(`/redirecting?to=/checkout&tour=${encodedTourName}`);
+        // Show the customer what they are buying, not stock filler.
+        const heroImage = tourCount === 1 ? cart[0]?.image : undefined;
+        const imageParam = heroImage ? `&image=${encodeURIComponent(heroImage)}` : '';
+        router.push(`/redirecting?to=/checkout&tour=${encodedTourName}${imageParam}`);
     };
 
     const handleStartExploring = () => {

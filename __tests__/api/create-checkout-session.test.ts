@@ -2,6 +2,7 @@ const mockPrepare = jest.fn();
 const mockSessionCreate = jest.fn();
 const mockSessionExpire = jest.fn();
 const mockQuoteUpdate = jest.fn();
+const mockGuard = jest.fn();
 
 jest.mock('next/server', () => ({
   NextResponse: {
@@ -18,6 +19,9 @@ jest.mock('stripe', () => ({
   default: jest.fn(() => ({
     checkout: { sessions: { create: (...args: unknown[]) => mockSessionCreate(...args), expire: (...args: unknown[]) => mockSessionExpire(...args) } },
   })),
+}));
+jest.mock('@/lib/security/guardPaymentEndpoint', () => ({
+  guardPaymentEndpoint: (...args: unknown[]) => mockGuard(...args),
 }));
 jest.mock('@/lib/checkout/prepareStripeCheckout', () => ({
   prepareStripeCheckout: (...args: unknown[]) => mockPrepare(...args),
@@ -51,6 +55,8 @@ const prepared = {
 
 describe('POST /api/checkout/create-checkout-session', () => {
   beforeEach(() => {
+    mockGuard.mockReset();
+    mockGuard.mockResolvedValue(null);
     jest.clearAllMocks();
     process.env.STRIPE_SECRET_KEY = 'sk_test_unit';
     mockPrepare.mockResolvedValue(prepared);
@@ -100,5 +106,17 @@ describe('POST /api/checkout/create-checkout-session', () => {
     expect(response.status).toBe(500);
     expect(mockSessionExpire).toHaveBeenCalledWith('cs_test_hosted_1234567890');
     expect(mockQuoteUpdate).not.toHaveBeenCalled();
+  });
+
+  it('refuses without creating a Stripe Session when the abuse limiter says no', async () => {
+    // Unauthenticated payment endpoint: the limiter is the only thing standing
+    // between the public and unbounded PaymentIntent/Session creation.
+    mockGuard.mockResolvedValue({ status: 429, headers: { 'Retry-After': '600' }, json: async () => ({ success: false }) });
+
+    const response = await POST(request());
+
+    expect(response.status).toBe(429);
+    expect(mockSessionCreate).not.toHaveBeenCalled();
+    expect(mockPrepare).not.toHaveBeenCalled();
   });
 });

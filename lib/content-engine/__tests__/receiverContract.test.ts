@@ -67,6 +67,12 @@ describe('Content Engine receiver contract', () => {
     expect(contentEngineLiveUrl('hurghada-excursions-online', 'destination', 'hurghada')).toBe(
       'https://hurghadaexcursionsonline.com/hurghada',
     );
+    expect(contentEngineLiveUrl('marsa-alam-excursions', 'destination', 'marsa-alam')).toBe(
+      'https://marsaalamexcursions.online/marsa-alam',
+    );
+    expect(CONTENT_ENGINE_CAPABILITIES.tenants.find(
+      (tenant) => tenant.id === 'marsa-alam-excursions',
+    )?.domain).toBe('marsaalamexcursions.online');
     expect(localizedReceiverPath('category', 'red-sea', 'ar')).toBe('/ar/red-sea');
     expect(localizedReceiverPath('blog', 'red-sea', 'ar')).toBe('/ar/blog/red-sea');
   });

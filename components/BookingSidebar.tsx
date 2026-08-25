@@ -2229,7 +2229,9 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
         });
         // Redirect to intermediate loading page with tour name
         const tourTitle = encodeURIComponent(tourDisplayData.title || 'Your Adventure');
-        router.push(`/redirecting?to=/checkout&tour=${tourTitle}`);
+        // Show the customer what they are buying, not stock filler.
+        const imageParam = tourDisplayData?.image ? `&image=${encodeURIComponent(tourDisplayData.image)}` : '';
+        router.push(`/redirecting?to=/checkout&tour=${tourTitle}${imageParam}`);
       } else {
         toast.success(t('cart.addedToCart'), {
           duration: 6000,

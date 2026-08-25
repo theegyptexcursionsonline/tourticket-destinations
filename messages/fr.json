@@ -940,5 +940,14 @@
     "checkoutTitle": "Paiement | {tenantName}",
     "tourNotFound": "Visite Non Trouvée",
     "tour": "Visite"
+  },
+  "redirectingPage": {
+    "defaultTourName": "votre expérience",
+    "imageAlt": "Votre expérience sélectionnée",
+    "badge": "Réservation sécurisée",
+    "title": "Direction le paiement pour {tourName}",
+    "description": "Votre place est réservée. Nous ouvrons l’étape de paiement sécurisé.",
+    "secureNote": "Paiement chiffré",
+    "continueManually": "Continuer vers le paiement"
   }
 }
