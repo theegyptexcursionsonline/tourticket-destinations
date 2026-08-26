@@ -8,22 +8,42 @@ import mongoose from 'mongoose';
 
 type IndexRequirement = {
   collection: string;
-  key: Record<string, 1>;
+  key: Record<string, 1 | -1>;
   label: string;
+  unique: boolean;
   disallowedGlobalUnique?: string[];
 };
 
 const REQUIREMENTS: IndexRequirement[] = [
-  { collection: 'blogs', key: { tenantId: 1, slug: 1 }, label: 'blog tenant slug', disallowedGlobalUnique: ['slug'] },
-  { collection: 'destinations', key: { tenantId: 1, slug: 1 }, label: 'destination tenant slug', disallowedGlobalUnique: ['slug'] },
-  { collection: 'destinations', key: { tenantId: 1, name: 1 }, label: 'destination tenant name', disallowedGlobalUnique: ['name'] },
-  { collection: 'categories', key: { tenantId: 1, slug: 1 }, label: 'category tenant slug', disallowedGlobalUnique: ['slug'] },
-  { collection: 'categories', key: { tenantId: 1, name: 1 }, label: 'category tenant name', disallowedGlobalUnique: ['name'] },
-  { collection: 'tours', key: { tenantId: 1, slug: 1 }, label: 'tour tenant slug', disallowedGlobalUnique: ['slug'] },
+  { collection: 'blogs', key: { tenantId: 1, slug: 1 }, label: 'blog tenant slug', unique: true, disallowedGlobalUnique: ['slug'] },
+  {
+    collection: 'blogs',
+    key: { tenantId: 1, status: 1, createdAt: -1, _id: -1 },
+    label: 'blog tenant status cursor',
+    unique: false,
+  },
+  {
+    collection: 'blogs',
+    key: { tenantId: 1, status: 1, category: 1, createdAt: -1, _id: -1 },
+    label: 'blog tenant category cursor',
+    unique: false,
+  },
+  {
+    collection: 'blogs',
+    key: { tenantId: 1, status: 1, author: 1, createdAt: -1, _id: -1 },
+    label: 'blog tenant author cursor',
+    unique: false,
+  },
+  { collection: 'destinations', key: { tenantId: 1, slug: 1 }, label: 'destination tenant slug', unique: true, disallowedGlobalUnique: ['slug'] },
+  { collection: 'destinations', key: { tenantId: 1, name: 1 }, label: 'destination tenant name', unique: true, disallowedGlobalUnique: ['name'] },
+  { collection: 'categories', key: { tenantId: 1, slug: 1 }, label: 'category tenant slug', unique: true, disallowedGlobalUnique: ['slug'] },
+  { collection: 'categories', key: { tenantId: 1, name: 1 }, label: 'category tenant name', unique: true, disallowedGlobalUnique: ['name'] },
+  { collection: 'tours', key: { tenantId: 1, slug: 1 }, label: 'tour tenant slug', unique: true, disallowedGlobalUnique: ['slug'] },
   {
     collection: 'contentpublishreceipts',
     key: { idempotencyKey: 1, tenantId: 1, contentType: 1 },
     label: 'publish receipt key tenant type',
+    unique: true,
   },
 ];
 
@@ -61,13 +81,15 @@ async function main() {
       if (codeName !== 'NamespaceNotFound') throw error;
     }
 
-    const required = indexes.find((index) => index.unique === true && sameKey(index.key ?? {}, requirement.key));
+    const required = indexes.find((index) =>
+      sameKey(index.key ?? {}, requirement.key)
+      && (requirement.unique ? index.unique === true : index.unique !== true));
     const conflicting = indexes.filter((index) =>
       index.unique === true &&
       Object.keys(index.key ?? {}).length === 1 &&
       requirement.disallowedGlobalUnique?.includes(Object.keys(index.key ?? {})[0]));
     const idFields = Object.keys(requirement.key);
-    const duplicateGroups = indexes.length === 0
+    const duplicateGroups = indexes.length === 0 || !requirement.unique
       ? []
       : await collection.aggregate([
           { $group: { _id: Object.fromEntries(idFields.map((field) => [field, `$${field}`])), count: { $sum: 1 } } },
@@ -79,7 +101,9 @@ async function main() {
     report.push({
       collection: requirement.collection,
       requirement: requirement.label,
-      requiredUniquePresent: Boolean(required),
+      requiredIndexPresent: Boolean(required),
+      requiredUniquePresent: requirement.unique ? Boolean(required) : undefined,
+      requiredUnique: requirement.unique,
       requiredKey: requirement.key,
       conflictingGlobalUniqueIndexes: conflicting.map((index) => ({ name: index.name, key: index.key })),
       duplicateGroups,

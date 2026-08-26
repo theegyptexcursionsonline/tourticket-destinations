@@ -1,19 +1,31 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { Calendar, Clock, User, Tag, Eye, Heart, Search, Filter } from 'lucide-react';
-import { IBlog } from '@/lib/models/Blog';
 import { imageMetadataFor } from '@/lib/content/imageMetadata';
+import type { PublicBlogListItem } from '@/lib/content/publicBlogListing';
 
 interface BlogClientPageProps {
-  blogs: IBlog[];
+  blogs: PublicBlogListItem[];
   categories: { value: string; label: string; count: number }[];
-  featuredPosts: IBlog[];
+  featuredPosts: PublicBlogListItem[];
+  initialNextCursor: string | null;
+  totalPosts: number;
+  locale: string;
 }
 
-const BlogCard = ({ blog }: { blog: IBlog }) => (
+function formatCategory(value: string) {
+  return value.split('-').map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
+}
+
+function formatPublishedDate(blog: PublicBlogListItem) {
+  const value = blog.publishedAt || blog.createdAt;
+  return value ? new Date(value).toLocaleDateString() : '';
+}
+
+const BlogCard = ({ blog }: { blog: PublicBlogListItem }) => (
   <Link href={`/blog/${blog.slug}`} className="group block bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-slate-200">
     <div className="relative h-64 overflow-hidden">
       <Image
@@ -28,7 +40,7 @@ const BlogCard = ({ blog }: { blog: IBlog }) => (
       {/* Category Badge */}
       <div className="absolute top-4 start-4">
         <span className="px-3 py-1.5 bg-indigo-500/90 backdrop-blur-sm rounded-full text-white text-xs font-semibold">
-          {(blog as any).categoryDisplay}
+          {formatCategory(blog.category)}
         </span>
       </div>
       
@@ -59,18 +71,18 @@ const BlogCard = ({ blog }: { blog: IBlog }) => (
           </div>
           <div className="flex items-center gap-1">
             <Clock className="h-3 w-3" />
-            <span>{(blog as any).readTimeText}</span>
+            <span>{blog.readTime || 1} min read</span>
           </div>
         </div>
         
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1">
             <Eye className="h-3 w-3" />
-            <span>{blog.views}</span>
+            <span>{blog.views || 0}</span>
           </div>
           <div className="flex items-center gap-1">
             <Heart className="h-3 w-3" />
-            <span>{blog.likes}</span>
+            <span>{blog.likes || 0}</span>
           </div>
         </div>
       </div>
@@ -78,7 +90,7 @@ const BlogCard = ({ blog }: { blog: IBlog }) => (
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1 text-xs text-slate-500">
           <Calendar className="h-3 w-3" />
-          <span>{(blog as any).publishedDate}</span>
+          <span>{formatPublishedDate(blog)}</span>
         </div>
         
         {blog.tags && blog.tags.length > 0 && (
@@ -95,7 +107,7 @@ const BlogCard = ({ blog }: { blog: IBlog }) => (
   </Link>
 );
 
-const FeaturedBlogCard = ({ blog }: { blog: IBlog }) => (
+const FeaturedBlogCard = ({ blog }: { blog: PublicBlogListItem }) => (
   <Link href={`/blog/${blog.slug}`} className="group block relative h-96 rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300">
     <Image
       src={blog.featuredImage}
@@ -112,7 +124,7 @@ const FeaturedBlogCard = ({ blog }: { blog: IBlog }) => (
           Featured
         </span>
         <span className="px-3 py-1 bg-indigo-500/80 backdrop-blur-sm rounded-full">
-          {(blog as any).categoryDisplay}
+          {formatCategory(blog.category)}
         </span>
       </div>
       
@@ -131,40 +143,100 @@ const FeaturedBlogCard = ({ blog }: { blog: IBlog }) => (
         </div>
         <div className="flex items-center gap-1">
           <Clock className="h-4 w-4" />
-          <span>{(blog as any).readTimeText}</span>
+          <span>{blog.readTime || 1} min read</span>
         </div>
         <div className="flex items-center gap-1">
           <Calendar className="h-4 w-4" />
-          <span>{(blog as any).publishedDate}</span>
+          <span>{formatPublishedDate(blog)}</span>
         </div>
       </div>
     </div>
   </Link>
 );
 
-export default function BlogClientPage({ blogs, categories, featuredPosts }: BlogClientPageProps) {
+type BlogListResponse = {
+  success: boolean;
+  posts?: PublicBlogListItem[];
+  error?: string;
+  pagination?: { nextCursor: string | null; hasMore: boolean; total: number };
+};
+
+export default function BlogClientPage({
+  blogs,
+  categories,
+  featuredPosts,
+  initialNextCursor,
+  totalPosts,
+  locale,
+}: BlogClientPageProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [filteredBlogs, setFilteredBlogs] = useState(blogs);
+  const [nextCursor, setNextCursor] = useState(initialNextCursor);
+  const [resultTotal, setResultTotal] = useState(totalPosts);
+  const [isFiltering, setIsFiltering] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const firstCriteriaRender = useRef(true);
 
-  // Filter blogs based on search and category
-  React.useEffect(() => {
-    let filtered = blogs;
-    
-    if (searchTerm) {
-      filtered = filtered.filter(blog =>
-        blog.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        blog.excerpt.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        blog.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
+  const requestPage = useCallback(async (cursor: string | null, signal?: AbortSignal) => {
+    const params = new URLSearchParams({ limit: '24', locale });
+    if (searchTerm.trim()) params.set('search', searchTerm.trim());
+    if (selectedCategory) params.set('category', selectedCategory);
+    if (cursor) params.set('cursor', cursor);
+    const response = await fetch(`/api/blog?${params.toString()}`, { signal });
+    const data = await response.json() as BlogListResponse;
+    if (!response.ok || !data.success || !Array.isArray(data.posts) || !data.pagination) {
+      throw new Error(data.error || 'Articles could not be loaded');
     }
-    
-    if (selectedCategory) {
-      filtered = filtered.filter(blog => blog.category === selectedCategory);
+    return { posts: data.posts, pagination: data.pagination };
+  }, [locale, searchTerm, selectedCategory]);
+
+  useEffect(() => {
+    if (firstCriteriaRender.current) {
+      firstCriteriaRender.current = false;
+      return;
     }
-    
-    setFilteredBlogs(filtered);
-  }, [searchTerm, selectedCategory, blogs]);
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      setIsFiltering(true);
+      setLoadError(null);
+      void requestPage(null, controller.signal)
+        .then((page) => {
+          if (controller.signal.aborted) return;
+          setFilteredBlogs(page.posts);
+          setNextCursor(page.pagination.nextCursor);
+          setResultTotal(page.pagination.total);
+        })
+        .catch((error: unknown) => {
+          if (controller.signal.aborted) return;
+          setLoadError(error instanceof Error ? error.message : 'Articles could not be loaded');
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) setIsFiltering(false);
+        });
+    }, 300);
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [requestPage]);
+
+  const loadMore = useCallback(async () => {
+    if (!nextCursor || isLoadingMore) return;
+    setIsLoadingMore(true);
+    setLoadError(null);
+    try {
+      const page = await requestPage(nextCursor);
+      setFilteredBlogs((current) => [...current, ...page.posts]);
+      setNextCursor(page.pagination.nextCursor);
+      setResultTotal(page.pagination.total);
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : 'More articles could not be loaded');
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [isLoadingMore, nextCursor, requestPage]);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -195,13 +267,13 @@ export default function BlogClientPage({ blogs, categories, featuredPosts }: Blo
       </section>
 
       {/* Featured Posts */}
-      {featuredPosts.length > 0 && (
+      {!searchTerm && !selectedCategory && featuredPosts.length > 0 && (
         <section className="py-16 bg-white">
           <div className="container mx-auto px-4">
             <h2 className="text-3xl font-bold text-slate-900 mb-8 text-center">Featured Stories</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {featuredPosts.map((post) => (
-                <FeaturedBlogCard key={post._id as any} blog={post} />
+                <FeaturedBlogCard key={post._id} blog={post} />
               ))}
             </div>
           </div>
@@ -230,7 +302,7 @@ export default function BlogClientPage({ blogs, categories, featuredPosts }: Blo
                         : 'text-slate-600 hover:bg-slate-50'
                     }`}
                   >
-                    All Articles ({blogs.length})
+                    All Articles ({totalPosts})
                   </button>
                   {categories.map((category) => (
                     <button
@@ -281,16 +353,40 @@ export default function BlogClientPage({ blogs, categories, featuredPosts }: Blo
                   }
                 </h2>
                 <span className="text-slate-500">
-                  {filteredBlogs.length} article{filteredBlogs.length !== 1 ? 's' : ''}
+                  {resultTotal} article{resultTotal !== 1 ? 's' : ''}
                 </span>
               </div>
 
-              {filteredBlogs.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  {filteredBlogs.map((blog) => (
-                    <BlogCard key={blog._id as any} blog={blog} />
-                  ))}
+              {loadError ? (
+                <div role="alert" className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+                  {loadError}
                 </div>
+              ) : null}
+
+              {isFiltering ? (
+                <div className="py-16 text-center text-slate-600" role="status">
+                  Loading articles…
+                </div>
+              ) : filteredBlogs.length > 0 ? (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {filteredBlogs.map((blog) => (
+                      <BlogCard key={blog._id} blog={blog} />
+                    ))}
+                  </div>
+                  {nextCursor && (
+                    <div className="mt-10 flex justify-center">
+                      <button
+                        type="button"
+                        onClick={() => void loadMore()}
+                        disabled={isLoadingMore}
+                        className="min-h-11 rounded-xl bg-indigo-600 px-6 py-3 font-semibold text-white transition-colors hover:bg-indigo-700 disabled:cursor-wait disabled:opacity-60"
+                      >
+                        {isLoadingMore ? 'Loading…' : 'Load more articles'}
+                      </button>
+                    </div>
+                  )}
+                </>
               ) : (
                 <div className="text-center py-16">
                   <div className="w-24 h-24 mx-auto mb-6 bg-slate-200 rounded-full flex items-center justify-center">

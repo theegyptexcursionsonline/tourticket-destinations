@@ -163,14 +163,19 @@ function queryResult<T>(value: T) {
 
 describe('Content Engine receiver routes', () => {
   const originalKey = process.env.CONTENT_ENGINE_API_KEY;
+  const originalAllowlist = process.env.CONTENT_ENGINE_ALLOWED_TENANTS;
 
   beforeAll(() => {
     process.env.CONTENT_ENGINE_API_KEY = token;
+    process.env.CONTENT_ENGINE_ALLOWED_TENANTS =
+      'cairo-excursions-online,hurghada-excursions-online';
   });
 
   afterAll(() => {
     if (originalKey === undefined) delete process.env.CONTENT_ENGINE_API_KEY;
     else process.env.CONTENT_ENGINE_API_KEY = originalKey;
+    if (originalAllowlist === undefined) delete process.env.CONTENT_ENGINE_ALLOWED_TENANTS;
+    else process.env.CONTENT_ENGINE_ALLOWED_TENANTS = originalAllowlist;
   });
 
   beforeEach(() => {
@@ -188,16 +193,40 @@ describe('Content Engine receiver routes', () => {
     }, { token: null, idempotencyKey: 'key-1' }));
     expect(unauthenticated.status).toBe(401);
 
-    for (const tenantId of [undefined, 'default', ' cairo-excursions-online', 'not-configured']) {
+    for (const tenantId of [undefined, ' cairo-excursions-online']) {
       const response = await POST(request('/api/admin/content/blog', {
         tenantId, payload: blogPayload,
       }, { idempotencyKey: 'key-1' }));
       expect(response.status).toBe(422);
     }
+    for (const tenantId of ['default', 'not-configured', 'makadi-bay']) {
+      const response = await POST(request('/api/admin/content/blog', {
+        tenantId, payload: blogPayload,
+      }, { idempotencyKey: 'key-1' }));
+      expect(response.status).toBe(404);
+    }
     expect(mockDbConnect).not.toHaveBeenCalled();
     expect(mockBeginContentPublish).not.toHaveBeenCalled();
     expect(mockBlogFindOne).not.toHaveBeenCalled();
     expect(mockBlogCreate).not.toHaveBeenCalled();
+    expect(mockRegisterAdminAuditActor).not.toHaveBeenCalled();
+    expect(mockAuditCreate).not.toHaveBeenCalled();
+  });
+
+  it('disables every receiver write when the deployment allowlist is absent or invalid', async () => {
+    const { POST } = await import('@/app/api/admin/content/blog/route');
+    for (const configured of [undefined, '', 'cairo-excursions-online,,makadi-bay', 'outside-network']) {
+      if (configured === undefined) delete process.env.CONTENT_ENGINE_ALLOWED_TENANTS;
+      else process.env.CONTENT_ENGINE_ALLOWED_TENANTS = configured;
+      const response = await POST(request('/api/admin/content/blog', {
+        tenantId: 'cairo-excursions-online', payload: blogPayload,
+      }, { idempotencyKey: 'disabled-key' }));
+      expect(response.status).toBe(503);
+    }
+    process.env.CONTENT_ENGINE_ALLOWED_TENANTS =
+      'cairo-excursions-online,hurghada-excursions-online';
+    expect(mockDbConnect).not.toHaveBeenCalled();
+    expect(mockBeginContentPublish).not.toHaveBeenCalled();
     expect(mockRegisterAdminAuditActor).not.toHaveBeenCalled();
     expect(mockAuditCreate).not.toHaveBeenCalled();
   });
@@ -212,12 +241,12 @@ describe('Content Engine receiver routes', () => {
       request('/api/admin/content/blog/slug?tenantId=default'),
       { params: Promise.resolve({ slug: 'slug' }) },
     );
-    expect(wrongTenant.status).toBe(422);
+    expect(wrongTenant.status).toBe(404);
     expect(mockDbConnect).not.toHaveBeenCalled();
     expect(mockBlogFindOne).not.toHaveBeenCalled();
   });
 
-  it('allows the same blog slug in two tenants and returns unprefixed canonical URLs', async () => {
+  it('allows the same blog slug in two tenants but creates unfeatured review drafts only', async () => {
     const { POST } = await import('@/app/api/admin/content/blog/route');
     mockBlogFindOne.mockResolvedValue(null);
     mockBeginContentPublish.mockImplementation(({ tenantId }: { tenantId: string }) =>
@@ -242,12 +271,10 @@ describe('Content Engine receiver routes', () => {
 
     expect(cairo.status).toBe(201);
     expect(hurghada.status).toBe(201);
-    expect((await cairo.json()).liveUrl).toBe(
-      'https://cairoexcursionsonline.com/blog/shared-travel-guide',
-    );
-    expect((await hurghada.json()).liveUrl).toBe(
-      'https://hurghadaexcursionsonline.com/blog/shared-travel-guide',
-    );
+    expect(await cairo.json()).toMatchObject({ status: 'draft', requiresManualPublish: true });
+    expect(await hurghada.json()).toMatchObject({ status: 'draft', requiresManualPublish: true });
+    expect(await cairo.json()).not.toHaveProperty('liveUrl');
+    expect(await hurghada.json()).not.toHaveProperty('liveUrl');
     expect(mockBlogFindOne).toHaveBeenNthCalledWith(1, {
       tenantId: 'cairo-excursions-online', slug: 'shared-travel-guide',
     });
@@ -260,6 +287,10 @@ describe('Content Engine receiver routes', () => {
     expect(mockBlogCreate.mock.calls.map(([input]) => (input as { author: string }).author)).toEqual([
       'Editorial Team', 'Editorial Team',
     ]);
+    expect(mockBlogCreate.mock.calls).toEqual(expect.arrayContaining([
+      [expect.objectContaining({ status: 'draft', featured: false })],
+    ]));
+    expect(mockRevalidate).not.toHaveBeenCalled();
   });
 
   it('recovers a committed publish by matching the receipt-owned document id', async () => {
@@ -321,6 +352,32 @@ describe('Content Engine receiver routes', () => {
     expect(mockReleaseContentPublishClaim).not.toHaveBeenCalled();
   });
 
+  it('keeps an ambiguous insert claim pending when ownership cannot be read back', async () => {
+    const { POST } = await import('@/app/api/admin/content/blog/route');
+    const resourceId = 'abababababababababababab';
+    mockBeginContentPublish.mockResolvedValue(claim(resourceId));
+    mockBlogFindOne
+      .mockResolvedValueOnce(null)
+      .mockRejectedValueOnce(new Error('readback unavailable'));
+    mockBlogCreate.mockRejectedValue(new Error('insert acknowledgement unavailable'));
+
+    const response = await POST(request('/api/admin/content/blog', {
+      tenantId: 'cairo-excursions-online', payload: blogPayload,
+    }, { idempotencyKey: 'ambiguous-insert-key' }));
+
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({
+      error: 'Insert outcome is unknown; retry with the same Idempotency-Key',
+    });
+    expect(mockBlogFindOne).toHaveBeenNthCalledWith(2, {
+      _id: resourceId,
+      tenantId: 'cairo-excursions-online',
+      slug: blogPayload.slug,
+    });
+    expect(mockCompleteContentPublish).not.toHaveBeenCalled();
+    expect(mockReleaseContentPublishClaim).not.toHaveBeenCalled();
+  });
+
   it('preserves the tenant-scoped legacy blog PUT interface', async () => {
     const { PUT } = await import('@/app/api/admin/content/blog/route');
     const existing = {
@@ -357,6 +414,8 @@ describe('Content Engine receiver routes', () => {
       title: 'Cairo private highlights day tour',
       slug: 'cairo-private-highlights',
       location: 'Cairo, Egypt',
+      destinationSlug: 'cairo',
+      categorySlug: 'day-tours',
       duration: 'Full day (8 hours)',
       description: 'A complete private day tour through Cairo highlights.',
       longDescription: 'A'.repeat(220),
@@ -371,13 +430,18 @@ describe('Content Engine receiver routes', () => {
     expect(await response.json()).toMatchObject({
       status: 'draft',
       requiresManualPublish: true,
-      liveUrl: 'https://cairoexcursionsonline.com/cairo-private-highlights',
     });
+    expect(await response.json()).not.toHaveProperty('liveUrl');
     expect(mockDestinationFindOne).toHaveBeenCalledWith({
       tenantId: 'cairo-excursions-online',
-      name: { $regex: '^Cairo$', $options: 'i' },
+      slug: 'cairo',
+      archivedAt: null,
     });
-    expect(mockCategoryFindOne).toHaveBeenCalledWith({ tenantId: 'cairo-excursions-online' });
+    expect(mockCategoryFindOne).toHaveBeenCalledWith({
+      tenantId: 'cairo-excursions-online',
+      slug: 'day-tours',
+      archivedAt: null,
+    });
     expect(mockTourCreate).toHaveBeenCalledWith(expect.objectContaining({
       _id: resourceId,
       tenantId: 'cairo-excursions-online',
@@ -387,6 +451,86 @@ describe('Content Engine receiver routes', () => {
       image: 'https://images.example/tour.jpg',
       isPublished: false,
       isFeatured: false,
+    }));
+    expect(mockRevalidate).not.toHaveBeenCalled();
+  });
+
+  it('requires explicit tenant-owned tour mappings and persists deterministic 422 replays', async () => {
+    const { POST } = await import('@/app/api/admin/content/tour/route');
+    const payload = {
+      title: 'Cairo private highlights day tour',
+      slug: 'cairo-private-highlights',
+      duration: 'Full day',
+      description: 'A complete private day tour through Cairo highlights.',
+      destinationSlug: 'foreign-destination',
+      categorySlug: 'day-tours',
+    };
+    mockBeginContentPublish.mockResolvedValue(claim('777777777777777777777777'));
+    mockTourFindOne.mockResolvedValue(null);
+    mockDestinationFindOne.mockReturnValue(queryResult(null));
+    mockCategoryFindOne.mockReturnValue(queryResult({ _id: 'category-1' }));
+
+    const response = await POST(request('/api/admin/content/tour', {
+      tenantId: 'cairo-excursions-online', payload,
+    }, { idempotencyKey: 'missing-reference-key' }));
+    expect(response.status).toBe(422);
+    expect(await response.json()).toMatchObject({
+      code: 'CONTENT_ENGINE_REFERENCE_REJECTED',
+      missing: ['destinationSlug'],
+    });
+    expect(mockCompleteContentPublish).toHaveBeenCalledWith(
+      expect.objectContaining({ resourceId: '777777777777777777777777' }),
+      422,
+      expect.objectContaining({ code: 'CONTENT_ENGINE_REFERENCE_REJECTED' }),
+    );
+    expect(mockTourCreate).not.toHaveBeenCalled();
+    expect(mockReleaseContentPublishClaim).not.toHaveBeenCalled();
+    expect(mockDestinationFindOne.mock.results[0]?.value.sort).not.toHaveBeenCalled();
+    expect(mockCategoryFindOne.mock.results[0]?.value.sort).not.toHaveBeenCalled();
+  });
+
+  it('forces destination and category writes to draft/unfeatured regardless of requested flags', async () => {
+    const destinationRoute = await import('@/app/api/admin/content/destination/route');
+    const categoryRoute = await import('@/app/api/admin/content/category/route');
+    mockBeginContentPublish
+      .mockResolvedValueOnce(claim('888888888888888888888888'))
+      .mockResolvedValueOnce(claim('999999999999999999999999'));
+    mockDestinationFindOne.mockResolvedValue(null);
+    mockCategoryFindOne.mockResolvedValue(null);
+    mockDestinationCreate.mockImplementation(async (input: Record<string, unknown>) => ({
+      _id: input._id,
+      slug: input.slug,
+    }));
+    mockCategoryCreate.mockImplementation(async (input: Record<string, unknown>) => ({
+      _id: input._id,
+      slug: input.slug,
+    }));
+
+    const destination = await destinationRoute.POST(request('/api/admin/content/destination', {
+      tenantId: 'cairo-excursions-online',
+      payload: {
+        name: 'Cairo', slug: 'cairo', description: 'Cairo destination guide.',
+        published: true, featured: true,
+      },
+    }, { idempotencyKey: 'destination-draft-key' }));
+    const category = await categoryRoute.POST(request('/api/admin/content/category', {
+      tenantId: 'cairo-excursions-online',
+      payload: {
+        name: 'Day Tours', slug: 'day-tours', description: 'Day tour collection.',
+        published: true, featured: true,
+      },
+    }, { idempotencyKey: 'category-draft-key' }));
+
+    for (const response of [destination, category]) {
+      expect(response.status).toBe(201);
+      expect(await response.json()).toMatchObject({ status: 'draft', requiresManualPublish: true });
+      expect(await response.json()).not.toHaveProperty('liveUrl');
+    }
+    expect(mockDestinationCreate).toHaveBeenCalledWith(expect.objectContaining({
+      isPublished: false, featured: false,
+    }));
+    expect(mockCategoryCreate).toHaveBeenCalledWith(expect.objectContaining({
+      isPublished: false, featured: false,
     }));
   });
 
@@ -434,7 +578,14 @@ describe('Content Engine receiver routes', () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({
       supportedTypes: ['blog', 'destination', 'category', 'tour'],
-      manualReviewTypes: ['tour'],
+      contentCreation: {
+        defaultStatus: 'draft',
+        requiresManualPublish: true,
+        manualReviewTypes: ['blog', 'destination', 'category', 'tour'],
+        typeRequirements: { tour: ['destinationSlug', 'categorySlug'] },
+      },
+      receiverConfigurationReady: true,
+      receiverAllowlist: { configuredTenantCount: 2, maximumTenantCount: 9 },
     });
     expect(mockDbConnect).not.toHaveBeenCalled();
   });

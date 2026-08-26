@@ -1,6 +1,6 @@
 // lib/auth/verifyContentEngine.ts
 // Bearer-token auth for the foxes-content-engine adapter routes.
-// The engine pushes published drafts via POST /api/admin/content/:type
+// The engine submits review-required drafts via POST /api/admin/content/:type
 // using a Bearer API key stored in CONTENT_ENGINE_API_KEY.
 
 import { NextRequest, NextResponse } from "next/server";

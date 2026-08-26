@@ -2,6 +2,7 @@ import dbConnect from '@/lib/dbConnect';
 import Blog, { type IBlog } from '@/lib/models/Blog';
 import { buildStrictTenantQuery } from '@/lib/tenant';
 import { localizeEntityFields, localizeStructuredEntries } from '@/lib/i18n/contentLocalization';
+import { listPublicBlogPosts } from '@/lib/content/publicBlogListing';
 
 export const BLOG_TRANSLATION_FIELDS = [
   'title', 'excerpt', 'content', 'metaTitle', 'metaDescription',
@@ -18,15 +19,19 @@ export function localizeBlogRecord<T extends Record<string, unknown>>(blog: T, l
 export async function getTenantAuthorBlogRecords(
   tenantId: string,
   locale: string = 'en',
+  authorSlug?: string,
 ): Promise<Record<string, unknown>[]> {
-  await dbConnect(tenantId);
-  const records = await Blog.find(buildStrictTenantQuery({ status: 'published' }, tenantId))
-    .sort({ publishedAt: -1, createdAt: -1 })
-    .select(
-      'title slug excerpt featuredImage category author authorAvatar authorBio publishedAt createdAt readTime views likes tags featured translations',
-    )
-    .lean() as unknown as Record<string, unknown>[];
-  return records.map((record) => localizeBlogRecord(record, locale));
+  const page = await listPublicBlogPosts({ tenantId, locale, authorSlug, limit: 24 });
+  return page.posts as unknown as Record<string, unknown>[];
+}
+
+export async function getTenantAuthorBlogPage(
+  tenantId: string,
+  locale: string,
+  authorSlug: string,
+  cursor?: string | null,
+) {
+  return listPublicBlogPosts({ tenantId, locale, authorSlug, cursor, limit: 24 });
 }
 
 export async function getLocalizedBlogPost(slug: string, tenantId: string, locale: string): Promise<{

@@ -5,6 +5,7 @@ const mockDbConnect = jest.fn();
 const mockGetTenantFromRequest = jest.fn();
 const mockFindOne = jest.fn();
 const mockFind = jest.fn();
+const mockCountDocuments = jest.fn();
 const mockUpdateOne = jest.fn();
 const mockFindOneAndUpdate = jest.fn();
 
@@ -37,6 +38,7 @@ jest.mock('@/lib/models/Blog', () => ({
   default: {
     findOne: (...args: unknown[]) => mockFindOne(...args),
     find: (...args: unknown[]) => mockFind(...args),
+    countDocuments: (...args: unknown[]) => mockCountDocuments(...args),
     updateOne: (...args: unknown[]) => mockUpdateOne(...args),
     findOneAndUpdate: (...args: unknown[]) => mockFindOneAndUpdate(...args),
   },
@@ -63,6 +65,7 @@ describe('public blog tenant isolation', () => {
     mockDbConnect.mockResolvedValue(undefined);
     mockGetTenantFromRequest.mockResolvedValue('cairo-excursions-online');
     mockUpdateOne.mockResolvedValue({ modifiedCount: 1 });
+    mockCountDocuments.mockResolvedValue(0);
   });
 
   it('scopes detail reads, populated joins, view updates, and related posts to one tenant', async () => {
@@ -130,12 +133,12 @@ describe('public blog tenant isolation', () => {
     await getTenantAuthorBlogRecords('cairo-excursions-online');
     expect(mockDbConnect).toHaveBeenCalledWith('cairo-excursions-online');
     expect(mockFind).toHaveBeenCalledWith({
-      status: 'published',
-      $or: [
-        { tenantId: 'cairo-excursions-online' },
-        { tenantIds: 'cairo-excursions-online' },
-      ],
+      $and: [{
+        tenantId: 'cairo-excursions-online',
+        status: 'published',
+      }],
     });
+    expect(posts.limit).toHaveBeenCalledWith(25);
   });
 
   it('localizes author article collections inside the same tenant boundary', async () => {
@@ -148,7 +151,7 @@ describe('public blog tenant isolation', () => {
     const { getTenantAuthorBlogRecords } = await import('@/lib/content/blogReader');
     const records = await getTenantAuthorBlogRecords('cairo-excursions-online', 'ar');
     expect(records[0]).toMatchObject({ title: 'عنوان عربي', excerpt: 'ملخص عربي' });
-    expect(posts.select).toHaveBeenCalledWith(expect.stringContaining('translations'));
+    expect(posts.select).toHaveBeenCalledWith(expect.stringContaining('translations.ar.title'));
   });
 
   it('passes the resolved tenant into every direct blog-page database connection', () => {
@@ -193,17 +196,18 @@ describe('public blog tenant isolation', () => {
     const posts = chain([]);
     mockFind.mockReturnValue(posts);
     const { GET } = await import('@/app/api/blog/route');
+    const url = new URL('https://cairo.example/api/blog?tenantId=hurghada-excursions-online');
     const response = await GET({
-      url: 'https://cairo.example/api/blog?tenantId=hurghada-excursions-online',
+      url: url.toString(),
+      nextUrl: url,
       headers: new Headers(),
     } as never);
     expect(response.status).toBe(200);
     expect(mockFind).toHaveBeenCalledWith({
-      status: 'published',
-      $or: [
-        { tenantId: 'cairo-excursions-online' },
-        { tenantIds: 'cairo-excursions-online' },
-      ],
+      $and: [{
+        tenantId: 'cairo-excursions-online',
+        status: 'published',
+      }],
     });
   });
 });

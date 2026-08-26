@@ -4,14 +4,13 @@ import dbConnect from '@/lib/dbConnect';
 import Blog from '@/lib/models/Blog';
 import { verifyContentEngine } from '@/lib/auth/verifyContentEngine';
 import { revalidateStorefrontContent } from '@/lib/storefront/revalidateTourStorefront';
+import { BLOG_CATEGORY_VALUES } from '@/lib/content/publicBlogListing';
 import {
-  contentEngineLiveUrl,
   resolveContentEngineLocale,
   resolveContentEngineTenant,
   sanitizeContentEngineTranslations,
   strictTenantSlugQuery,
   withContentEngineTenantGate,
-  type ContentEngineTenantId,
 } from '@/lib/content-engine/receiverContract';
 import {
   beginContentPublish,
@@ -22,12 +21,7 @@ import {
   type PublishClaim,
 } from '@/lib/content-engine/publishIdempotency';
 
-const BLOG_CATEGORIES = new Set([
-  'travel-tips', 'destination-guides', 'food-culture', 'adventure',
-  'budget-travel', 'luxury-travel', 'solo-travel', 'family-travel',
-  'photography', 'local-insights', 'seasonal-travel', 'transportation',
-  'accommodation', 'news-updates',
-]);
+const BLOG_CATEGORIES = new Set<string>(BLOG_CATEGORY_VALUES);
 
 type IncomingPayload = {
   title?: string;
@@ -93,14 +87,14 @@ function faqs(input: unknown): Array<{ question: string; answer: string }> {
 
 function createdResponse(
   doc: { _id: unknown; slug: string },
-  tenantId: ContentEngineTenantId,
   droppedLocales: string[],
   droppedTranslationFields: Record<string, string[]>,
 ) {
   return {
     id: String(doc._id),
     slug: doc.slug,
-    liveUrl: contentEngineLiveUrl(tenantId, 'blog', doc.slug),
+    status: 'draft' as const,
+    requiresManualPublish: true,
     droppedLocales,
     droppedTranslationFields,
   };
@@ -112,7 +106,9 @@ async function POSTHandler(request: NextRequest) {
 
   const body = await request.json() as IncomingBody;
   const tenant = resolveContentEngineTenant(body.tenantId);
-  if (!tenant.ok) return NextResponse.json({ error: tenant.error }, { status: 422 });
+  if (!tenant.ok) {
+    return NextResponse.json({ error: tenant.error, code: tenant.code }, { status: tenant.status });
+  }
   const locale = resolveContentEngineLocale(body.defaultLocale);
   if (!locale.ok) return NextResponse.json({ error: locale.error }, { status: 422 });
   const validationError = validate(body.payload);
@@ -139,19 +135,20 @@ async function POSTHandler(request: NextRequest) {
   if (existing) {
     if (String(existing._id) === claim.resourceId) {
       const recovered = createdResponse(
-        existing, tenant.tenantId, translated.droppedLocales, translated.droppedFields,
+        existing, translated.droppedLocales, translated.droppedFields,
       );
       await completeContentPublish(claim, 201, recovered);
-      return NextResponse.json(recovered, { status: 201 });
+      return NextResponse.json(recovered, {
+        status: 201,
+        headers: { 'Idempotency-Recovered': 'true' },
+      });
     }
-    await releaseContentPublishClaim(claim);
-    return NextResponse.json(
-      {
-        error: `A blog post with slug "${payload.slug}" already exists for this tenant`,
-        existingId: String(existing._id),
-      },
-      { status: 409 },
-    );
+    const conflict = {
+      error: `A blog post with slug "${payload.slug}" already exists for this tenant`,
+      existingId: String(existing._id),
+    };
+    await completeContentPublish(claim, 409, conflict);
+    return NextResponse.json(conflict, { status: 409 });
   }
 
   let contentWritten = false;
@@ -172,16 +169,15 @@ async function POSTHandler(request: NextRequest) {
       metaTitle: payload.metaTitle,
       metaDescription: payload.metaDescription,
       readTime: payload.readTime,
-      status: payload.status === 'draft' ? 'draft' : 'published',
-      featured: payload.featured === true,
+      status: 'draft',
+      featured: false,
       translations: translated.translations,
     });
     contentWritten = true;
     const created = createdResponse(
-      doc, tenant.tenantId, translated.droppedLocales, translated.droppedFields,
+      doc, translated.droppedLocales, translated.droppedFields,
     );
     await completeContentPublish(claim, 201, created);
-    revalidateStorefrontContent(tenant.tenantId);
     return NextResponse.json(created, { status: 201 });
   } catch (error) {
     if (!contentWritten) {
@@ -192,16 +188,22 @@ async function POSTHandler(request: NextRequest) {
         });
         if (recovered) {
           const response = createdResponse(
-            recovered, tenant.tenantId, translated.droppedLocales, translated.droppedFields,
+            recovered, translated.droppedLocales, translated.droppedFields,
           );
           await completeContentPublish(claim, 201, response);
-          revalidateStorefrontContent(tenant.tenantId);
-          return NextResponse.json(response, { status: 201 });
+          return NextResponse.json(response, {
+            status: 201,
+            headers: { 'Idempotency-Recovered': 'true' },
+          });
         }
         await releaseContentPublishClaim(claim);
       } catch {
         // An inconclusive readback must leave the claim pending. A retry can
         // take over the stale lease and prove ownership with resourceId.
+        return NextResponse.json(
+          { error: 'Insert outcome is unknown; retry with the same Idempotency-Key' },
+          { status: 500 },
+        );
       }
     }
     const message = error instanceof Error ? error.message : 'Insert failed';
@@ -215,7 +217,9 @@ async function PUTHandler(request: NextRequest) {
 
   const body = await request.json() as IncomingBody;
   const tenant = resolveContentEngineTenant(body.tenantId);
-  if (!tenant.ok) return NextResponse.json({ error: tenant.error }, { status: 422 });
+  if (!tenant.ok) {
+    return NextResponse.json({ error: tenant.error, code: tenant.code }, { status: tenant.status });
+  }
   const locale = resolveContentEngineLocale(body.defaultLocale);
   if (!locale.ok) return NextResponse.json({ error: locale.error }, { status: 422 });
   const validationError = validate(body.payload);
@@ -229,6 +233,12 @@ async function PUTHandler(request: NextRequest) {
     return NextResponse.json(
       { error: `No blog post with slug "${payload.slug}" for this tenant` },
       { status: 404 },
+    );
+  }
+  if (existing.status && existing.status !== 'draft') {
+    return NextResponse.json(
+      { error: 'Published or scheduled blog posts cannot be changed through the draft receiver' },
+      { status: 409 },
     );
   }
 
@@ -264,7 +274,8 @@ async function PUTHandler(request: NextRequest) {
   if (payload.metaDescription) existing.metaDescription = payload.metaDescription;
   if (payload.featuredImage) existing.featuredImage = payload.featuredImage;
   if (payload.author) existing.author = payload.author;
-  if (typeof payload.featured === 'boolean') existing.featured = payload.featured;
+  existing.status = 'draft';
+  existing.featured = false;
   if (body.translations !== undefined) existing.translations = translated.translations;
 
   let contentWritten = false;
@@ -272,7 +283,7 @@ async function PUTHandler(request: NextRequest) {
     await existing.save();
     contentWritten = true;
     const updated = createdResponse(
-      existing, tenant.tenantId, translated.droppedLocales, translated.droppedFields,
+      existing, translated.droppedLocales, translated.droppedFields,
     );
     if (claim) await completeContentPublish(claim, 200, updated);
     revalidateStorefrontContent(tenant.tenantId);

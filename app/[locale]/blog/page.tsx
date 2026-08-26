@@ -5,11 +5,13 @@ import Blog from '@/lib/models/Blog';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import BlogClientPage from './BlogClientPage';
-import { IBlog } from '@/lib/models/Blog';
 import { buildStrictTenantQuery, getTenantFromRequest, getTenantPublicConfig } from '@/lib/tenant';
 import CollectionSchema from '@/components/schema/CollectionSchema';
 import { getLocale } from 'next-intl/server';
-import { localizeEntityFields } from '@/lib/i18n/contentLocalization';
+import {
+  listPublicBlogPosts,
+  type PublicBlogListItem,
+} from '@/lib/content/publicBlogListing';
 
 // ISR: revalidate every 60s — cached pages served instantly, refreshed in background
 export const dynamic = 'force-dynamic';
@@ -61,40 +63,17 @@ const categories = [
 ];
 
 async function getBlogsWithCategoryCounts(tenantId: string, locale: string): Promise<{
-  blogs: IBlog[];
+  blogs: PublicBlogListItem[];
   categoryCounts: { value: string; label: string; count: number }[];
-  featuredPosts: IBlog[];
+  featuredPosts: PublicBlogListItem[];
+  nextCursor: string | null;
+  totalPosts: number;
 }> {
   await dbConnect(tenantId);
-  
-  // Get all published blogs
-  const blogs = await Blog.find(buildStrictTenantQuery({ status: 'published' }, tenantId))
-    .sort({ publishedAt: -1 })
-    .populate({
-      path: 'relatedDestinations',
-      select: 'name slug translations',
-      match: buildStrictTenantQuery({}, tenantId),
-    })
-    .populate({
-      path: 'relatedTours',
-      select: 'title slug translations',
-      match: buildStrictTenantQuery({}, tenantId),
-    });
-
-  // Get featured posts
-  const featuredPosts = await Blog.find(buildStrictTenantQuery({ status: 'published', featured: true }, tenantId))
-    .sort({ publishedAt: -1 })
-    .limit(3)
-    .populate({
-      path: 'relatedDestinations',
-      select: 'name slug translations',
-      match: buildStrictTenantQuery({}, tenantId),
-    })
-    .populate({
-      path: 'relatedTours',
-      select: 'title slug translations',
-      match: buildStrictTenantQuery({}, tenantId),
-    });
+  const [blogPage, featuredPage] = await Promise.all([
+    listPublicBlogPosts({ tenantId, locale }),
+    listPublicBlogPosts({ tenantId, locale, featuredOnly: true, limit: 3 }),
+  ]);
 
   // Get category counts
   const categoryCounts = await Promise.all(
@@ -108,26 +87,19 @@ async function getBlogsWithCategoryCounts(tenantId: string, locale: string): Pro
   );
 
   return {
-    blogs: (JSON.parse(JSON.stringify(blogs)) as Array<Record<string, unknown>>)
-      .map((blog) => localizeEntityFields(
-        blog,
-        locale,
-        ['title', 'excerpt', 'content', 'metaTitle', 'metaDescription'],
-      )) as unknown as IBlog[],
+    blogs: blogPage.posts,
     categoryCounts: categoryCounts.filter(cat => cat.count > 0),
-    featuredPosts: (JSON.parse(JSON.stringify(featuredPosts)) as Array<Record<string, unknown>>)
-      .map((blog) => localizeEntityFields(
-        blog,
-        locale,
-        ['title', 'excerpt', 'content', 'metaTitle', 'metaDescription'],
-      )) as unknown as IBlog[],
+    featuredPosts: featuredPage.posts,
+    nextCursor: blogPage.pagination.nextCursor,
+    totalPosts: blogPage.pagination.total,
   };
 }
 
 export default async function BlogIndexPage() {
   const tenantId = await getTenantFromRequest();
   const locale = await getLocale();
-  const { blogs, categoryCounts, featuredPosts } = await getBlogsWithCategoryCounts(tenantId, locale);
+  const { blogs, categoryCounts, featuredPosts, nextCursor, totalPosts } =
+    await getBlogsWithCategoryCounts(tenantId, locale);
 
   return (
     <>
@@ -135,10 +107,10 @@ export default async function BlogIndexPage() {
         name="Travel Blog"
         description="Travel tips, guides, and inspiration for your Egypt adventure"
         url="/blog"
-        items={(blogs as any[]).map((b: any) => ({
-          name: b.title,
-          url: `/blog/${b.slug}`,
-          image: b.coverImage,
+        items={blogs.map((blog) => ({
+          name: blog.title,
+          url: `/blog/${blog.slug}`,
+          image: blog.featuredImage,
         }))}
       />
       <Header startSolid />
@@ -147,6 +119,9 @@ export default async function BlogIndexPage() {
           blogs={blogs}
           categories={categoryCounts}
           featuredPosts={featuredPosts}
+          initialNextCursor={nextCursor}
+          totalPosts={totalPosts}
+          locale={locale}
         />
       </main>
       <Footer />

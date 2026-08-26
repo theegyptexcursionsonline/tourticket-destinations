@@ -5,15 +5,12 @@ import Tour from '@/lib/models/Tour';
 import Destination from '@/lib/models/Destination';
 import Category from '@/lib/models/Category';
 import { verifyContentEngine } from '@/lib/auth/verifyContentEngine';
-import { revalidateStorefrontContent } from '@/lib/storefront/revalidateTourStorefront';
 import {
-  contentEngineLiveUrl,
   resolveContentEngineLocale,
   resolveContentEngineTenant,
   sanitizeContentEngineTranslations,
   strictTenantSlugQuery,
   withContentEngineTenantGate,
-  type ContentEngineTenantId,
 } from '@/lib/content-engine/receiverContract';
 import {
   beginContentPublish,
@@ -61,6 +58,16 @@ function validate(payload: IncomingPayload | undefined): string | null {
     return 'description must be >= 20 chars';
   }
   if (!payload.duration) return 'duration is required';
+  return null;
+}
+
+function validateReferences(payload: IncomingPayload | undefined): string | null {
+  if (!payload?.destinationSlug || !/^[a-z0-9-]+$/.test(payload.destinationSlug)) {
+    return 'destinationSlug is required and must contain only lowercase letters, numbers, and hyphens';
+  }
+  if (!payload.categorySlug || !/^[a-z0-9-]+$/.test(payload.categorySlug)) {
+    return 'categorySlug is required and must contain only lowercase letters, numbers, and hyphens';
+  }
   return null;
 }
 
@@ -113,42 +120,18 @@ function normalizeTourTranslations(
   }));
 }
 
-function escapeRegex(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
 type TenantReference = { _id: unknown };
 
-async function resolveDestinationId(
-  tenantId: ContentEngineTenantId,
-  payload: IncomingPayload,
-): Promise<TenantReference | null> {
-  if (payload.destinationSlug) {
-    return await Destination.findOne({ tenantId, slug: payload.destinationSlug })
-      .select('_id').lean() as TenantReference | null;
-  }
-  const locationName = payload.location?.split(',')[0]?.trim();
-  if (locationName) {
-    const exact = await Destination.findOne({
-      tenantId,
-      name: { $regex: `^${escapeRegex(locationName)}$`, $options: 'i' },
-    }).select('_id').lean() as TenantReference | null;
-    if (exact) return exact;
-  }
-  return await Destination.findOne({ tenantId }).sort({ createdAt: 1, _id: 1 })
-    .select('_id').lean() as TenantReference | null;
+async function findDestinationReference(tenantId: string, slug: string) {
+  return await Destination.findOne({ tenantId, slug, archivedAt: null })
+    .select('_id')
+    .lean() as TenantReference | null;
 }
 
-async function resolveCategoryId(
-  tenantId: ContentEngineTenantId,
-  payload: IncomingPayload,
-): Promise<TenantReference | null> {
-  if (payload.categorySlug) {
-    return await Category.findOne({ tenantId, slug: payload.categorySlug })
-      .select('_id').lean() as TenantReference | null;
-  }
-  return await Category.findOne({ tenantId }).sort({ createdAt: 1, _id: 1 })
-    .select('_id').lean() as TenantReference | null;
+async function findCategoryReference(tenantId: string, slug: string) {
+  return await Category.findOne({ tenantId, slug, archivedAt: null })
+    .select('_id')
+    .lean() as TenantReference | null;
 }
 
 const DRAFT_WARNING =
@@ -156,15 +139,13 @@ const DRAFT_WARNING =
 
 function createdResponse(
   doc: { _id: unknown; slug: string },
-  tenantId: ContentEngineTenantId,
   droppedLocales: string[],
   droppedTranslationFields: Record<string, string[]>,
 ) {
   return {
     id: String(doc._id),
     slug: doc.slug,
-    liveUrl: contentEngineLiveUrl(tenantId, 'tour', doc.slug),
-    status: 'draft',
+    status: 'draft' as const,
     requiresManualPublish: true,
     warning: DRAFT_WARNING,
     droppedLocales,
@@ -177,11 +158,20 @@ async function POSTHandler(request: NextRequest) {
   if (authError) return authError;
   const body = await request.json() as IncomingBody;
   const tenant = resolveContentEngineTenant(body.tenantId);
-  if (!tenant.ok) return NextResponse.json({ error: tenant.error }, { status: 422 });
+  if (!tenant.ok) {
+    return NextResponse.json({ error: tenant.error, code: tenant.code }, { status: tenant.status });
+  }
   const locale = resolveContentEngineLocale(body.defaultLocale);
   if (!locale.ok) return NextResponse.json({ error: locale.error }, { status: 422 });
   const validationError = validate(body.payload);
   if (validationError) return NextResponse.json({ error: validationError }, { status: 400 });
+  const referenceError = validateReferences(body.payload);
+  if (referenceError) {
+    return NextResponse.json(
+      { error: referenceError, code: 'CONTENT_ENGINE_REFERENCE_REJECTED' },
+      { status: 422 },
+    );
+  }
   const key = readRequiredIdempotencyKey(request.headers.get('idempotency-key'));
   if (!key.ok) return NextResponse.json({ error: key.error }, { status: 400 });
 
@@ -204,32 +194,36 @@ async function POSTHandler(request: NextRequest) {
   if (existing) {
     if (String(existing._id) === claim.resourceId) {
       const recovered = createdResponse(
-        existing, tenant.tenantId, translated.droppedLocales, translated.droppedFields,
+        existing, translated.droppedLocales, translated.droppedFields,
       );
       await completeContentPublish(claim, 201, recovered);
-      return NextResponse.json(recovered, { status: 201 });
+      return NextResponse.json(recovered, {
+        status: 201,
+        headers: { 'Idempotency-Recovered': 'true' },
+      });
     }
-    await releaseContentPublishClaim(claim);
-    return NextResponse.json(
-      { error: `A tour with slug "${payload.slug}" already exists for this tenant` },
-      { status: 409 },
-    );
+    const conflict = {
+      error: `A tour with slug "${payload.slug}" already exists for this tenant`,
+    };
+    await completeContentPublish(claim, 409, conflict);
+    return NextResponse.json(conflict, { status: 409 });
   }
 
   const [destination, category] = await Promise.all([
-    resolveDestinationId(tenant.tenantId, payload),
-    resolveCategoryId(tenant.tenantId, payload),
+    findDestinationReference(tenant.tenantId, payload.destinationSlug!),
+    findCategoryReference(tenant.tenantId, payload.categorySlug!),
   ]);
   if (!destination || !category) {
-    await releaseContentPublishClaim(claim);
-    return NextResponse.json(
-      {
-        error: !destination
-          ? 'Cannot create tour draft: this tenant has no Destination'
-          : 'Cannot create tour draft: this tenant has no Category',
-      },
-      { status: 422 },
-    );
+    const rejected = {
+      error: 'destinationSlug and categorySlug must resolve inside the target tenant',
+      code: 'CONTENT_ENGINE_REFERENCE_REJECTED',
+      missing: [
+        ...(!destination ? ['destinationSlug'] : []),
+        ...(!category ? ['categorySlug'] : []),
+      ],
+    };
+    await completeContentPublish(claim, 422, rejected);
+    return NextResponse.json(rejected, { status: 422 });
   }
 
   let contentWritten = false;
@@ -264,10 +258,9 @@ async function POSTHandler(request: NextRequest) {
     });
     contentWritten = true;
     const created = createdResponse(
-      doc, tenant.tenantId, translated.droppedLocales, translated.droppedFields,
+      doc, translated.droppedLocales, translated.droppedFields,
     );
     await completeContentPublish(claim, 201, created);
-    revalidateStorefrontContent(tenant.tenantId);
     return NextResponse.json(created, { status: 201 });
   } catch (error) {
     if (!contentWritten) {
@@ -278,15 +271,21 @@ async function POSTHandler(request: NextRequest) {
         });
         if (recovered) {
           const response = createdResponse(
-            recovered, tenant.tenantId, translated.droppedLocales, translated.droppedFields,
+            recovered, translated.droppedLocales, translated.droppedFields,
           );
           await completeContentPublish(claim, 201, response);
-          revalidateStorefrontContent(tenant.tenantId);
-          return NextResponse.json(response, { status: 201 });
+          return NextResponse.json(response, {
+            status: 201,
+            headers: { 'Idempotency-Recovered': 'true' },
+          });
         }
         await releaseContentPublishClaim(claim);
       } catch {
         // Keep an inconclusive claim pending for stale-lease recovery.
+        return NextResponse.json(
+          { error: 'Insert outcome is unknown; retry with the same Idempotency-Key' },
+          { status: 500 },
+        );
       }
     }
     const message = error instanceof Error ? error.message : 'Insert failed';

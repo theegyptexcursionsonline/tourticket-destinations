@@ -72,6 +72,19 @@ describe('Content Engine publish idempotency', () => {
     expect(contentPublishReceiptId(baseInput)).not.toBe(contentPublishResourceId(baseInput));
   });
 
+  it('scopes deterministic locks and resources by tenant, content type, and key', () => {
+    const baseReceipt = contentPublishReceiptId(baseInput);
+    const baseResource = contentPublishResourceId(baseInput);
+    for (const variant of [
+      { ...baseInput, tenantId: 'hurghada-excursions-online' },
+      { ...baseInput, contentType: 'destination' },
+      { ...baseInput, idempotencyKey: 'publish-2' },
+    ]) {
+      expect(contentPublishReceiptId(variant)).not.toBe(baseReceipt);
+      expect(contentPublishResourceId(variant)).not.toBe(baseResource);
+    }
+  });
+
   it('replays the original status and response for a completed key', async () => {
     mockCreate.mockRejectedValue(duplicateKey);
     mockFindOne.mockReturnValue(lean({

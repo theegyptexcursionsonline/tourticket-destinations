@@ -53,6 +53,7 @@ Copy `.env.local` and provide values for the keys used in code, including:
 - `MAILGUN_API_KEY`, `MAILGUN_DOMAIN`, `MAILGUN_FROM_EMAIL`, `ADMIN_NOTIFICATION_EMAIL`
 - `OPENAI_API_KEY`
 - `CONTENT_ENGINE_API_KEY` (shared bearer secret for authenticated Content Engine receiver calls)
+- `CONTENT_ENGINE_ALLOWED_TENANTS` (required comma-separated subset of the receiver's static English-tenant ceiling; missing or invalid configuration disables every receiver write)
 - Firebase: `NEXT_PUBLIC_FIREBASE_*` (client) and server-side credentials
 - `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`, `NEXT_PUBLIC_BASE_URL`, `NEXT_PUBLIC_DOMAIN`
 - Multi-tenant (optional): `TENANT_DOMAINS`, `DEFAULT_TENANT_ID`, `TENANT_WEBSITE_STATUS`, `ENABLE_TENANT_PREVIEW`, per-tenant `MONGODB_URI_*`
@@ -108,9 +109,14 @@ idempotency, and manual-review contract at `GET /api/admin/content/capabilities`
 (`GET /api/admin/content` remains an alias). Publish calls use
 `POST /api/admin/content/{blog|destination|category|tour}`
 with `Authorization: Bearer ...` and a durable `Idempotency-Key`. Only the nine
-English network tenant IDs advertised by the capability endpoint are accepted;
-unknown or malformed tenants fail before database access. Tour publishes create
-drafts only and require manual completion and publication in the tenant admin.
+English network tenant IDs in the receiver's static ceiling can ever be enabled,
+and `CONTENT_ENGINE_ALLOWED_TENANTS` must configure an exact comma-separated
+subset before the receiver advertises or accepts any tenant. Missing, malformed,
+duplicate, or out-of-ceiling configuration fails closed before database or audit
+access. Every receiver-created blog, destination, category, and tour is an
+unfeatured draft that requires manual review and publication in the tenant admin.
+Tour creation additionally requires explicit tenant-owned `destinationSlug` and
+`categorySlug` references.
 
 Before changing unique indexes for an existing database, run the read-only
 inspection command. It reports index drift and duplicate groups but cannot apply

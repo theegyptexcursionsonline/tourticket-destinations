@@ -8,11 +8,10 @@ import CollectionSchema from '@/components/schema/CollectionSchema';
 import { getSeoAlternates } from '@/lib/seo';
 import {
   buildAuthorProfile,
-  matchesAuthorSlug,
   resolveAuthor,
 } from '@/lib/blogAuthors';
 import { getTenantFromRequest, getTenantPublicConfig } from '@/lib/tenant';
-import { getTenantAuthorBlogRecords } from '@/lib/content/blogReader';
+import { getTenantAuthorBlogPage } from '@/lib/content/blogReader';
 import { Calendar, Clock, Eye, Heart, Sparkles, Tag, User } from 'lucide-react';
 import { getLocale } from 'next-intl/server';
 
@@ -54,16 +53,16 @@ function formatCategory(value?: string) {
     .join(' ');
 }
 
-async function getAuthorPosts(authorSlug: string, tenantId: string, locale: string) {
-  const posts = await getTenantAuthorBlogRecords(tenantId, locale) as unknown as AuthorPost[];
+async function getAuthorPosts(
+  authorSlug: string,
+  tenantId: string,
+  locale: string,
+  cursor?: string | null,
+) {
+  const page = await getTenantAuthorBlogPage(tenantId, locale, authorSlug, cursor);
+  if (page.posts.length === 0) return null;
 
-  const authorPosts = posts.filter((post: any) =>
-    matchesAuthorSlug(post.author, authorSlug),
-  );
-
-  if (authorPosts.length === 0) return null;
-
-  const serialized = JSON.parse(JSON.stringify(authorPosts)) as AuthorPost[];
+  const serialized = page.posts as unknown as AuthorPost[];
   const primaryPost =
     serialized.find((post) => post.authorBio || post.authorAvatar) || serialized[0];
 
@@ -72,8 +71,8 @@ async function getAuthorPosts(authorSlug: string, tenantId: string, locale: stri
     authorBio: primaryPost.authorBio,
   });
 
-  const totalViews = serialized.reduce((sum, p) => sum + Number(p.views || 0), 0);
-  const totalLikes = serialized.reduce((sum, p) => sum + Number(p.likes || 0), 0);
+  const pageViews = serialized.reduce((sum, p) => sum + Number(p.views || 0), 0);
+  const pageLikes = serialized.reduce((sum, p) => sum + Number(p.likes || 0), 0);
 
   const categoryMap = new Map<string, number>();
   const tagMap = new Map<string, number>();
@@ -103,14 +102,15 @@ async function getAuthorPosts(authorSlug: string, tenantId: string, locale: stri
   return {
     author: {
       ...profile,
-      articleCount: serialized.length,
-      totalViews,
-      totalLikes,
+      articleCount: page.pagination.total,
+      pageViews,
+      pageLikes,
       categories,
       topTags,
     },
     posts: serialized,
     featuredPosts,
+    nextCursor: page.pagination.nextCursor,
   };
 }
 
@@ -159,17 +159,20 @@ export async function generateMetadata({
 
 export default async function AuthorPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ cursor?: string }>;
 }) {
   const { slug } = await params;
+  const { cursor } = await searchParams;
   const tenantId = await getTenantFromRequest();
   const locale = await getLocale();
-  const data = await getAuthorPosts(slug, tenantId, locale);
+  const data = await getAuthorPosts(slug, tenantId, locale, cursor);
 
   if (!data) notFound();
 
-  const { author, posts, featuredPosts } = data;
+  const { author, posts, featuredPosts, nextCursor } = data;
 
   return (
     <>
@@ -247,15 +250,15 @@ export default async function AuthorPage({
                     </div>
                   </div>
                   <div className="rounded-2xl bg-white/10 p-4">
-                    <div className="text-2xl font-bold">{author.totalViews}</div>
+                    <div className="text-2xl font-bold">{author.pageViews}</div>
                     <div className="mt-1 text-xs uppercase tracking-wide text-slate-300">
-                      Views
+                      Page views
                     </div>
                   </div>
                   <div className="rounded-2xl bg-white/10 p-4">
-                    <div className="text-2xl font-bold">{author.totalLikes}</div>
+                    <div className="text-2xl font-bold">{author.pageLikes}</div>
                     <div className="mt-1 text-xs uppercase tracking-wide text-slate-300">
-                      Likes
+                      Page likes
                     </div>
                   </div>
                 </div>
@@ -438,6 +441,16 @@ export default async function AuthorPage({
               </Link>
             ))}
           </div>
+          {nextCursor && (
+            <div className="mt-10 flex justify-center">
+              <Link
+                href={`/author/${author.slug}?cursor=${encodeURIComponent(nextCursor)}`}
+                className="inline-flex min-h-11 items-center rounded-xl bg-indigo-600 px-6 py-3 font-semibold text-white transition-colors hover:bg-indigo-700"
+              >
+                Next articles
+              </Link>
+            </div>
+          )}
         </section>
       </main>
       <Footer />

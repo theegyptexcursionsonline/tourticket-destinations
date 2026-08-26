@@ -3,15 +3,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Category from '@/lib/models/Category';
 import { verifyContentEngine } from '@/lib/auth/verifyContentEngine';
-import { revalidateStorefrontContent } from '@/lib/storefront/revalidateTourStorefront';
 import {
-  contentEngineLiveUrl,
   resolveContentEngineLocale,
   resolveContentEngineTenant,
   sanitizeContentEngineTranslations,
   strictTenantSlugQuery,
   withContentEngineTenantGate,
-  type ContentEngineTenantId,
 } from '@/lib/content-engine/receiverContract';
 import {
   beginContentPublish,
@@ -68,14 +65,14 @@ function stringArray(input: unknown, max = 12): string[] {
 
 function createdResponse(
   doc: { _id: unknown; slug: string },
-  tenantId: ContentEngineTenantId,
   droppedLocales: string[],
   droppedTranslationFields: Record<string, string[]>,
 ) {
   return {
     id: String(doc._id),
     slug: doc.slug,
-    liveUrl: contentEngineLiveUrl(tenantId, 'category', doc.slug),
+    status: 'draft' as const,
+    requiresManualPublish: true,
     droppedLocales,
     droppedTranslationFields,
   };
@@ -86,7 +83,9 @@ async function POSTHandler(request: NextRequest) {
   if (authError) return authError;
   const body = await request.json() as IncomingBody;
   const tenant = resolveContentEngineTenant(body.tenantId);
-  if (!tenant.ok) return NextResponse.json({ error: tenant.error }, { status: 422 });
+  if (!tenant.ok) {
+    return NextResponse.json({ error: tenant.error, code: tenant.code }, { status: tenant.status });
+  }
   const locale = resolveContentEngineLocale(body.defaultLocale);
   if (!locale.ok) return NextResponse.json({ error: locale.error }, { status: 422 });
   const validationError = validate(body.payload);
@@ -113,24 +112,27 @@ async function POSTHandler(request: NextRequest) {
   if (existing) {
     if (String(existing._id) === claim.resourceId) {
       const recovered = createdResponse(
-        existing, tenant.tenantId, translated.droppedLocales, translated.droppedFields,
+        existing, translated.droppedLocales, translated.droppedFields,
       );
       await completeContentPublish(claim, 201, recovered);
-      return NextResponse.json(recovered, { status: 201 });
+      return NextResponse.json(recovered, {
+        status: 201,
+        headers: { 'Idempotency-Recovered': 'true' },
+      });
     }
-    await releaseContentPublishClaim(claim);
-    return NextResponse.json(
-      { error: `A category with slug "${payload.slug}" already exists for this tenant` },
-      { status: 409 },
-    );
+    const conflict = {
+      error: `A category with slug "${payload.slug}" already exists for this tenant`,
+    };
+    await completeContentPublish(claim, 409, conflict);
+    return NextResponse.json(conflict, { status: 409 });
   }
   const existingName = await Category.findOne({ tenantId: tenant.tenantId, name: payload.name });
   if (existingName) {
-    await releaseContentPublishClaim(claim);
-    return NextResponse.json(
-      { error: `A category named "${payload.name}" already exists for this tenant` },
-      { status: 409 },
-    );
+    const conflict = {
+      error: `A category named "${payload.name}" already exists for this tenant`,
+    };
+    await completeContentPublish(claim, 409, conflict);
+    return NextResponse.json(conflict, { status: 409 });
   }
 
   let contentWritten = false;
@@ -149,16 +151,15 @@ async function POSTHandler(request: NextRequest) {
       metaTitle: payload.metaTitle,
       metaDescription: payload.metaDescription,
       heroImage: payload.heroImage || payload.featuredImage,
-      featured: payload.featured === true,
-      isPublished: payload.published !== false,
+      featured: false,
+      isPublished: false,
       translations: translated.translations,
     });
     contentWritten = true;
     const created = createdResponse(
-      doc, tenant.tenantId, translated.droppedLocales, translated.droppedFields,
+      doc, translated.droppedLocales, translated.droppedFields,
     );
     await completeContentPublish(claim, 201, created);
-    revalidateStorefrontContent(tenant.tenantId);
     return NextResponse.json(created, { status: 201 });
   } catch (error) {
     if (!contentWritten) {
@@ -169,15 +170,21 @@ async function POSTHandler(request: NextRequest) {
         });
         if (recovered) {
           const response = createdResponse(
-            recovered, tenant.tenantId, translated.droppedLocales, translated.droppedFields,
+            recovered, translated.droppedLocales, translated.droppedFields,
           );
           await completeContentPublish(claim, 201, response);
-          revalidateStorefrontContent(tenant.tenantId);
-          return NextResponse.json(response, { status: 201 });
+          return NextResponse.json(response, {
+            status: 201,
+            headers: { 'Idempotency-Recovered': 'true' },
+          });
         }
         await releaseContentPublishClaim(claim);
       } catch {
         // Keep an inconclusive claim pending for stale-lease recovery.
+        return NextResponse.json(
+          { error: 'Insert outcome is unknown; retry with the same Idempotency-Key' },
+          { status: 500 },
+        );
       }
     }
     const message = error instanceof Error ? error.message : 'Insert failed';

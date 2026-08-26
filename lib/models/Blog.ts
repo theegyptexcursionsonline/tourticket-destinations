@@ -267,9 +267,12 @@ BlogSchema.index({ title: 'text', excerpt: 'text', content: 'text' });
 // Multi-tenant indexes
 BlogSchema.index({ tenantId: 1, slug: 1 }, { unique: true });
 BlogSchema.index({ tenantId: 1, status: 1, publishedAt: -1 });
+BlogSchema.index({ tenantId: 1, status: 1, createdAt: -1, _id: -1 });
+BlogSchema.index({ tenantId: 1, status: 1, category: 1, createdAt: -1, _id: -1 });
 BlogSchema.index({ tenantId: 1, category: 1, status: 1 });
 BlogSchema.index({ tenantId: 1, featured: 1, status: 1, publishedAt: -1 });
 BlogSchema.index({ tenantId: 1, author: 1, status: 1 });
+BlogSchema.index({ tenantId: 1, status: 1, author: 1, createdAt: -1, _id: -1 });
 BlogSchema.index({ tenantId: 1, tags: 1, status: 1 });
 BlogSchema.index({ tenantId: 1, views: -1 });
 
