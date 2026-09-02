@@ -49,6 +49,15 @@ function encodeCursor(cursor: PagesCursor): string {
   return Buffer.from(JSON.stringify(cursor), 'utf8').toString('base64url');
 }
 
+function parseLimit(raw: string | null): number | null {
+  if (raw === null) return 20;
+  // Accept only canonical positive base-10 integers. Number() would otherwise
+  // coerce an empty value to 0 and fractions/Infinity into surprising limits.
+  if (!/^[1-9]\d*$/.test(raw)) return null;
+  const parsed = Number(raw);
+  return Number.isSafeInteger(parsed) && parsed <= MAX_LIMIT ? parsed : null;
+}
+
 function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -99,6 +108,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: false, error: 'Invalid pagination cursor' }, { status: 400 });
   }
 
+  const limit = parseLimit(searchParams.get('limit'));
+  if (limit === null) {
+    return NextResponse.json(
+      { success: false, error: `Limit must be an integer between 1 and ${MAX_LIMIT}` },
+      { status: 400 },
+    );
+  }
+
   const scope = tenantScope(auth, searchParams.get('tenantId'));
   if (scope instanceof NextResponse) return scope;
 
@@ -113,7 +130,6 @@ export async function GET(request: NextRequest) {
     if (editor.length > 100) {
       return NextResponse.json({ success: false, error: 'Editor filter is too long' }, { status: 400 });
     }
-    const limit = Math.min(MAX_LIMIT, Math.max(1, Number(searchParams.get('limit')) || 20));
     const sortKey: PagesSortKey = resolvePagesSortKey(searchParams.get('sort'));
     const search = q ? new RegExp(escapeRegex(q), 'i') : null;
     const editorSearch = editor ? new RegExp(escapeRegex(editor), 'i') : null;

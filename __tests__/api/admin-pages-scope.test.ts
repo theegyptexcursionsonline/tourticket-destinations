@@ -226,6 +226,24 @@ describe('GET /api/admin/pages sort + cursor pipeline', () => {
     expect(mockPageAggregate).not.toHaveBeenCalled();
   });
 
+  it.each(['0', '-1', '1.5', 'NaN', '51', ''])(
+    'rejects the invalid page limit %p with a controlled 400',
+    async (rawLimit) => {
+      const response = await get(
+        `https://dashboard.example/api/admin/pages?limit=${encodeURIComponent(rawLimit)}`,
+      );
+      const body = await response.json() as { success: boolean; error: string };
+
+      expect(response.status).toBe(400);
+      expect(body).toEqual({
+        success: false,
+        error: 'Limit must be an integer between 1 and 50',
+      });
+      expect(mockPageAggregate).not.toHaveBeenCalled();
+      expect(mockCategoryAggregate).not.toHaveBeenCalled();
+    },
+  );
+
   it('merges both models on the computed value and emits a cursor from the last row', async () => {
     const page = (id: string, sortValue: string, extra: Stage = {}) => ({
       _id: id, tenantId: 'brand-a', title: `Page ${id.slice(-1)}`, slug: `page-${id.slice(-1)}`,

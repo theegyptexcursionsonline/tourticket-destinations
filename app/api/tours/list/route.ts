@@ -3,11 +3,10 @@ import dbConnect from '@/lib/dbConnect';
 import Tour from '@/lib/models/Tour';
 import { buildStrictTenantQuery } from '@/lib/tenant';
 import { getTenantFromRequest } from '@/lib/tenant';
+import { PUBLIC_CONTENT_FILTER } from '@/lib/content/publicContentFilter';
 
 export async function GET(_request: NextRequest) {
   try {
-    await dbConnect();
-
     // Per-brand isolation (Issue #8): every tenant — including `default` —
     // must be filtered strictly by its own tours OR tours that explicitly
     // ticked it in the multi-brand `tenantIds` list. The old code only
@@ -15,7 +14,8 @@ export async function GET(_request: NextRequest) {
     // (tenant=`default`) returned tours from every brand in the system and
     // mixed in German/Arabic content on the English main site.
     const tenantId = await getTenantFromRequest();
-    const query: Record<string, unknown> = buildStrictTenantQuery({ isPublished: true }, tenantId);
+    await dbConnect(tenantId);
+    const query: Record<string, unknown> = buildStrictTenantQuery({ ...PUBLIC_CONTENT_FILTER }, tenantId);
 
     // Fetch tours with populated destination and category
     const tours = await Tour.find(query)

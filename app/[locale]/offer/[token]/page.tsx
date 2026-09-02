@@ -16,6 +16,7 @@ import PlannerOfferModel from '@/lib/models/PlannerOffer';
 import { clampOfferEnd, looksLikeCampaignCode, looksLikeOfferSlug, priceAfterDiscount, sanitizeOfferName, verifyOffer, type VerifiedOffer } from '@/lib/offerToken';
 import OfferPageClient, { type OfferTour, type OfferView } from './OfferPageClient';
 import { OFFER_FONT_CLASS } from './fonts';
+import { PUBLIC_CONTENT_FILTER } from '@/lib/content/publicContentFilter';
 
 // The offer is personal and time-boxed: never cached, never indexed.
 export const dynamic = 'force-dynamic';
@@ -242,7 +243,7 @@ export default async function PlannerOfferPage({
     );
   }
 
-  const tours = await TourModel.find(buildStrictTenantQuery({ isPublished: true }, tenantId))
+  const tours = await TourModel.find(buildStrictTenantQuery({ ...PUBLIC_CONTENT_FILTER }, tenantId))
     .select('title slug description shortDescription price discountPrice duration image isFeatured highlights')
     .limit(200)
     .lean();

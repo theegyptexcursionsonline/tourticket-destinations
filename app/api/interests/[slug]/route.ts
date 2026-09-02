@@ -6,13 +6,20 @@ import Tour from '@/lib/models/Tour';
 import Destination from '@/lib/models/Destination';
 import Review from '@/lib/models/Review';
 import User from '@/lib/models/user';
+import { buildStrictTenantQuery, getTenantFromRequest } from '@/lib/tenant';
+import { PUBLIC_CONTENT_FILTER } from '@/lib/content/publicContentFilter';
+
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
-    await dbConnect();
+    const tenantId = await getTenantFromRequest();
+    await dbConnect(tenantId);
 
     const resolvedParams = await params;
     const slug = resolvedParams.slug;
@@ -25,39 +32,62 @@ export async function GET(
 
 
     // Find the category by name or slug
+    const categoryVisibility = buildStrictTenantQuery(
+      { ...PUBLIC_CONTENT_FILTER },
+      tenantId,
+    );
     const category = await Category.findOne({
-      $or: [
-        { slug: slug },
-        { name: { $regex: new RegExp(`^${interestName}$`, 'i') } }
-      ]
+      // Category slugs are only unique inside a tenant. Keep the identity
+      // alternatives separate from buildStrictTenantQuery's tenant $or so
+      // neither clause can overwrite the other.
+      $and: [
+        categoryVisibility,
+        {
+          $or: [
+            { slug },
+            { name: { $regex: new RegExp(`^${escapeRegex(interestName)}$`, 'i') } },
+          ],
+        },
+      ],
     }).lean();
 
 
     let tours: any[] = [];
     let totalTours = 0;
+    const tourVisibility = buildStrictTenantQuery(
+      { ...PUBLIC_CONTENT_FILTER },
+      tenantId,
+    );
+    const destinationVisibility = buildStrictTenantQuery({ isPublished: true }, tenantId);
 
     if (category) {
       // Find tours in this category
       tours = await Tour.find({
-        category: { $in: [(category as any)._id] },
-        isPublished: true
+        $and: [
+          tourVisibility,
+          { category: { $in: [(category as any)._id] } },
+        ],
       })
       .populate({
         path: 'destination',
         model: Destination,
-        select: 'name slug country image description'
+        select: 'name slug country image description',
+        match: destinationVisibility,
       })
       .populate({
         path: 'category',
         model: Category,
-        select: 'name slug'
+        select: 'name slug',
+        match: categoryVisibility,
       })
       .sort({ isFeatured: -1, rating: -1, bookings: -1 })
       .lean();
 
       totalTours = await Tour.countDocuments({
-        category: { $in: [(category as any)._id] },
-        isPublished: true
+        $and: [
+          tourVisibility,
+          { category: { $in: [(category as any)._id] } },
+        ],
       });
     } else {
       // If no exact category match, search by keywords in tours
@@ -69,30 +99,34 @@ export async function GET(
         // Search in title
         searchTerms.forEach(term => {
           searchQueries.push({ 
-            title: { $regex: term, $options: 'i' } 
+            title: { $regex: escapeRegex(term), $options: 'i' }
           });
         });
         
         // Search in tags
         searchQueries.push({ 
           tags: { 
-            $in: searchTerms.map(term => new RegExp(term, 'i')) 
+            $in: searchTerms.map(term => new RegExp(escapeRegex(term), 'i'))
           } 
         });
 
         tours = await Tour.find({
-          isPublished: true,
-          $or: searchQueries
+          $and: [
+            tourVisibility,
+            { $or: searchQueries },
+          ],
         })
         .populate({
           path: 'destination',
           model: Destination,
-          select: 'name slug country image description'
+          select: 'name slug country image description',
+          match: destinationVisibility,
         })
         .populate({
           path: 'category',
           model: Category,
-          select: 'name slug'
+          select: 'name slug',
+          match: categoryVisibility,
         })
         .sort({ isFeatured: -1, rating: -1, bookings: -1 })
         .limit(50)
@@ -112,7 +146,8 @@ export async function GET(
       // Run review queries in parallel
       [reviews, reviewStats] = await Promise.all([
         Review.find({
-          tour: { $in: tourIds }
+          tenantId,
+          tour: { $in: tourIds },
         })
         .populate({
           path: 'user',
@@ -124,7 +159,7 @@ export async function GET(
         .lean(),
 
         Review.aggregate([
-          { $match: { tour: { $in: tourIds } } },
+          { $match: { tenantId, tour: { $in: tourIds } } },
           {
             $group: {
               _id: '$tour',
@@ -154,9 +189,15 @@ export async function GET(
     // Get related categories (fetch in parallel if possible, but skip during build)
     let relatedCategories: any[] = [];
     if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
-      relatedCategories = await Category.find({
-        _id: { $ne: (category as any)?._id }
-      }).limit(6).lean();
+      relatedCategories = await Category.find(
+        buildStrictTenantQuery(
+          {
+            ...PUBLIC_CONTENT_FILTER,
+            ...((category as any)?._id ? { _id: { $ne: (category as any)._id } } : {}),
+          },
+          tenantId,
+        ),
+      ).limit(6).lean();
     }
 
     // Transform reviews

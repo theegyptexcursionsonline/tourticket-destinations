@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import { buildStrictTenantQuery, getTenantFromRequest } from '@/lib/tenant';
 import { rankLiveSearchResults } from '@/lib/search/liveSearchRanking';
+import { PUBLIC_CONTENT_FILTER } from '@/lib/content/publicContentFilter';
 
 // Helper function for flexible live search
 function createLiveSearchConditions(searchQuery: string) {
@@ -30,13 +31,16 @@ function createLiveSearchConditions(searchQuery: string) {
 }
 
 export async function GET(req: NextRequest) {
-    const tenantId = req.nextUrl.searchParams.get('tenantId') || req.headers.get('x-tenant-id') || await getTenantFromRequest();
+    // Tenant identity is supplied by the host-aware proxy. Query parameters and
+    // caller-provided headers are filters, not authority, and must never be
+    // allowed to switch a public request into another brand's catalogue.
+    const tenantId = await getTenantFromRequest();
     await dbConnect(tenantId);
 
     try {
         const { searchParams } = new URL(req.url);
         const searchQuery = searchParams.get('q');
-        const tenantFilter = buildStrictTenantQuery({ isPublished: true }, tenantId);
+        const tenantFilter = buildStrictTenantQuery({ ...PUBLIC_CONTENT_FILTER }, tenantId);
 
         if (!searchQuery) {
             // Return tours based on filters when no search query

@@ -3,9 +3,9 @@ import dbConnect from '@/lib/dbConnect';
 import Tour from '@/lib/models/Tour';
 import { NextRequest, NextResponse } from 'next/server';
 import { buildStrictTenantQuery, getTenantFromRequest } from '@/lib/tenant';
+import { NOT_ARCHIVED_FILTER } from '@/lib/content/publicContentFilter';
 
 export async function GET(_request: NextRequest) {
-  await dbConnect();
   try {
     // Per-brand isolation (Issue #8): always filter by tenant, including
     // `default`. See the list route for the full rationale — the short
@@ -13,6 +13,7 @@ export async function GET(_request: NextRequest) {
     // the main EEO English site to surface every brand's content.
     let query: Record<string, unknown> = {
       isPublished: true,
+      ...NOT_ARCHIVED_FILTER,
       $and: [
         {
           $or: [
@@ -26,6 +27,7 @@ export async function GET(_request: NextRequest) {
     // Public callers cannot choose `all` or another tenant. Tenant identity is
     // derived from the trusted host/middleware only.
     const tenantId = await getTenantFromRequest();
+    await dbConnect(tenantId);
     query = buildStrictTenantQuery(query, tenantId);
     
     // Return public tour data with fields needed by DayTrips component

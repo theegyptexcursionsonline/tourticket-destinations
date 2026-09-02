@@ -5,6 +5,7 @@ import mongoose from 'mongoose';
 import Fuse from 'fuse.js';
 import { buildStrictTenantQuery, getTenantFromRequest } from '@/lib/tenant';
 import { durationValuesMatchingBuckets, parseDurationBuckets } from '@/lib/tours/durationFilter';
+import { PUBLIC_CONTENT_FILTER } from '@/lib/content/publicContentFilter';
 
 // Fuse.js configuration for fuzzy search fallback
 const fuseOptions = {
@@ -96,17 +97,17 @@ async function performTextSearch(searchQuery: string, additionalFilters: any = {
 
 export async function GET(request: Request) {
     try {
-        const tenantId =
-          new URL(request.url).searchParams.get('tenantId') ||
-          request.headers.get('x-tenant-id') ||
-          await getTenantFromRequest();
+        // The proxy derives this value from the serving host (or an explicitly
+        // enabled preview). A public query/header must not select another
+        // tenant, even when older clients still send `tenantId`.
+        const tenantId = await getTenantFromRequest();
 
         await dbConnect(tenantId);
         const { searchParams } = new URL(request.url);
 
         // Build additional filters - ALWAYS filter for published tours only
-        const additionalFilters: any = buildStrictTenantQuery({
-            isPublished: true
+        let additionalFilters: any = buildStrictTenantQuery({
+            ...PUBLIC_CONTENT_FILTER,
         }, tenantId);
 
         // Categories Filter
@@ -140,10 +141,20 @@ export async function GET(request: Request) {
             const priceQuery: any = {};
             if (minPrice) priceQuery.$gte = Number(minPrice);
             if (maxPrice) priceQuery.$lte = Number(maxPrice);
-            additionalFilters.$or = [
-                { discountPrice: priceQuery },
-                { price: priceQuery }
-            ];
+            // buildStrictTenantQuery itself owns a top-level $or. Keep the
+            // price alternatives in a separate $and clause so a price filter
+            // can never overwrite and remove tenant isolation.
+            additionalFilters = {
+                $and: [
+                    additionalFilters,
+                    {
+                        $or: [
+                            { discountPrice: priceQuery },
+                            { price: priceQuery },
+                        ],
+                    },
+                ],
+            };
         }
 
         // Duration Filter
@@ -161,7 +172,7 @@ export async function GET(request: Request) {
             if (buckets.length > 0) {
                 const knownDurations = await Tour.distinct(
                     'duration',
-                    buildStrictTenantQuery({ isPublished: true }, tenantId),
+                    buildStrictTenantQuery({ ...PUBLIC_CONTENT_FILTER }, tenantId),
                 );
                 const matching = durationValuesMatchingBuckets(knownDurations, buckets);
                 // No stored duration fits the request — say so with an empty

@@ -95,3 +95,22 @@ describe('slug resolution and the sitemap cannot surface trash', () => {
     }
   });
 });
+
+describe('every reviewed public Tour read excludes archived records', () => {
+  const publicTourReadInventory = [
+    ['app/api/tours/list/route.ts', 'PUBLIC_CONTENT_FILTER'],
+    ['app/api/tours/public/route.ts', 'NOT_ARCHIVED_FILTER'],
+    ['app/api/search/live/route.ts', 'PUBLIC_CONTENT_FILTER'],
+    ['app/api/search/tours/route.ts', 'PUBLIC_CONTENT_FILTER'],
+    ['app/api/tours/[tourId]/addons/route.ts', 'archivedAt: null'],
+    ['app/[locale]/offer/[token]/page.tsx', 'PUBLIC_CONTENT_FILTER'],
+    ['app/[locale]/search/page.tsx', 'PUBLIC_CONTENT_FILTER'],
+    ['app/api/interests/[slug]/route.ts', 'PUBLIC_CONTENT_FILTER'],
+  ] as const;
+
+  it.each(publicTourReadInventory)('%s composes the non-archived contract', (file, guard) => {
+    const contents = read(file);
+    expect(contents).toContain(guard);
+    expect(contents).not.toContain('archivedAt: { $exists: false }');
+  });
+});

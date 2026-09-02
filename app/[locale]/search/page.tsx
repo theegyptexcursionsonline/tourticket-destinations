@@ -15,6 +15,7 @@ import {
   categoryTranslationFields,
   destinationTranslationFields,
 } from '@/lib/i18n/translationFields';
+import { PUBLIC_CONTENT_FILTER } from '@/lib/content/publicContentFilter';
 
 // Enable ISR with 60 second revalidation for instant page loads
 export const dynamic = 'force-dynamic';
@@ -60,7 +61,7 @@ async function getFilters(locale: string) {
         // which is what Issue #2 was about. Any content the tenant can ever
         // surface is preferable to a completely empty filter bar.
 
-        const tourQuery = buildStrictTenantQuery({ isPublished: true }, tenantId);
+        const tourQuery = buildStrictTenantQuery({ ...PUBLIC_CONTENT_FILTER }, tenantId);
         const tours = await Tour.find(tourQuery)
           .select('category destination')
           .lean();
