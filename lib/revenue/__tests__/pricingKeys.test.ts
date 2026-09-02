@@ -15,4 +15,10 @@ describe('immutable pricing keys', () => {
     const second = ensureBookingOptionPricingKeys('tour-1', [{ id: 'source-option', type: 'group', label: 'Renamed' }])![0];
     expect(first.pricingKey?.split('-').at(-1)).toBe(second.pricingKey?.split('-').at(-1));
   });
+
+  it('uses a persisted Mongo id when a legacy option has no public id', () => {
+    const first = ensureBookingOptionPricingKeys('tour-1', [{ _id: '507f1f77bcf86cd799439011', type: 'group', label: 'Standard' }])![0];
+    const replay = ensureBookingOptionPricingKeys('tour-1', [{ _id: '507f1f77bcf86cd799439011', type: 'group', label: 'Renamed' }])![0];
+    expect(first.pricingKey?.split('-').at(-1)).toBe(replay.pricingKey?.split('-').at(-1));
+  });
 });

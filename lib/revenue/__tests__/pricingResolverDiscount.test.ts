@@ -93,11 +93,18 @@ describe('resolveEffectivePrice catalogue baseline with tour discounts', () => {
     expect(quote.prices.adult).toBe(90);
   });
 
-  it('applies the percentage automatically to the standard universal slot and tour base', async () => {
+  it('applies the percentage automatically to the standard universal slot and tour base when no options exist', async () => {
+    tourLean.mockResolvedValue({ ...discountedTour, bookingOptions: [] });
     const slotQuote = await resolveEffectivePrice({ tenantId: 'brand-a', tourId: 'a'.repeat(24), date: '2099-01-01', time: '09:00' });
     expect(slotQuote.prices.adult).toBe(60);
     const plainQuote = await resolveEffectivePrice({ tenantId: 'brand-a', tourId: 'a'.repeat(24), date: '2099-01-01', time: '11:00' });
     expect(plainQuote.prices.adult).toBe(80);
+  });
+
+  it('rejects the synthetic Standard target when configured options are the actual products', async () => {
+    await expect(resolveEffectivePrice({ tenantId: 'brand-a', tourId: 'a'.repeat(24), optionKey: 'standard', date: '2099-01-01', time: '09:00' }))
+      .rejects.toThrow('Pricing option unavailable');
+    expect(overrideFindOne).not.toHaveBeenCalled();
   });
 
   it('applies the same discount to explicit base guest prices', async () => {

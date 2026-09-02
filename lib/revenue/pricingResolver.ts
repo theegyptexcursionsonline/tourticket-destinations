@@ -58,6 +58,9 @@ export async function resolveEffectivePrice(input: { tourId: string; optionKey?:
   ]);
   if (!tour) throw new Error('Tour unavailable');
   if (!tenant || tenant.isActive === false) throw new Error('Tenant unavailable');
+  if (optionKey === STANDARD_OPTION_KEY && (tour.bookingOptions || []).length > 0) {
+    throw new Error('Pricing option unavailable');
+  }
   const option = optionKey === STANDARD_OPTION_KEY
     ? null
     : tour.bookingOptions?.find((candidate) => candidate.pricingKey === optionKey);

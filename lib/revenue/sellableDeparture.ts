@@ -13,6 +13,7 @@ import { isTourScheduled, localDepartureToUtc } from '@/lib/revenue/departureSch
 import { normalizePriceDate } from '@/lib/revenue/pricingResolver';
 import { RevenuePricingWriteError } from '@/lib/revenue/priceWriteGate';
 import type { Types } from 'mongoose';
+import { REVENUE_CAPACITY_BOOKING_STATUSES } from '@/lib/revenue/bookingCapacity';
 
 type SellableTour = {
   _id: Types.ObjectId;
@@ -80,7 +81,7 @@ export async function assertRevenuePriceTargetSellable(target: {
         {
           tour: tour._id,
           time: target.time,
-          status: { $in: ['Confirmed', 'Pending'] },
+          status: { $in: REVENUE_CAPACITY_BOOKING_STATUSES },
           $or: [{ date: { $gte: date, $lte: end } }, { dateString: target.date }],
         },
         { tenantId },

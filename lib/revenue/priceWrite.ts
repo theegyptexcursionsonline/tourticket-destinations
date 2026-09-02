@@ -7,7 +7,7 @@ import { normalizePriceDate, resolveEffectivePrice } from '@/lib/revenue/pricing
 import { assertRevenuePriceTargetSellable } from '@/lib/revenue/sellableDeparture';
 import type { PriceWrite } from '@/lib/revenue/priceWriteValidation';
 import { assertRevenuePilotCommissioningAllowed, commissioningMovementIsSafe } from '@/lib/revenue/commissioningGate';
-import type { HydratedDocument } from 'mongoose';
+import mongoose, { type HydratedDocument } from 'mongoose';
 export { validatePriceWrite } from '@/lib/revenue/priceWriteValidation';
 
 const APPLY_LEASE_MS = 30_000;
@@ -58,31 +58,157 @@ async function replayExistingExecution(existing: IRevenuePriceExecution, input: 
   return { receipt, state: existing.state === 'rollback_pending' ? 'rollback_pending' as const : 'pending' as const, replayed: true };
 }
 
+async function settleClaimedIntent(
+  intent: HydratedDocument<IRevenuePriceExecution>,
+  claimToken: string,
+  input: PriceWrite,
+  state: 'blocked' | 'conflict',
+  eventType: string,
+  reason?: string,
+  effectivePrices?: GuestPrices,
+) {
+  const now = new Date();
+  const receipt = await RevenuePriceExecution.findOneAndUpdate(
+    {
+      _id: intent._id,
+      state: 'pending',
+      applyClaimToken: claimToken,
+      applyClaimExpiresAt: { $gt: now },
+    },
+    {
+      $set: {
+        state,
+        ...(reason ? { blockReason: reason } : {}),
+        ...(effectivePrices ? { effectivePrices } : {}),
+      },
+      $unset: { applyClaimToken: 1, applyClaimExpiresAt: 1 },
+      $push: { events: { type: eventType, ...(reason ? { reason } : {}), at: now.toISOString() } },
+    },
+    { new: true },
+  ).lean<IRevenuePriceExecution | null>();
+  if (receipt) return { receipt } as const;
+  const latest = await RevenuePriceExecution.findById(intent._id).lean<IRevenuePriceExecution | null>();
+  return {
+    result: latest
+      ? await replayExistingExecution(latest, input)
+      : { state: 'pending' as const, replayed: true },
+  } as const;
+}
+
 async function markBlocked(
   intent: HydratedDocument<IRevenuePriceExecution>,
+  claimToken: string,
+  input: PriceWrite,
   reason: string,
   eventType: string,
   effectivePrices?: GuestPrices,
 ) {
-  intent.state = 'blocked';
-  intent.blockReason = reason;
-  if (effectivePrices) intent.effectivePrices = effectivePrices;
-  intent.applyClaimToken = undefined;
-  intent.applyClaimExpiresAt = undefined;
-  intent.events.push({ type: eventType, reason, at: new Date().toISOString() });
-  return intent.save();
+  return settleClaimedIntent(intent, claimToken, input, 'blocked', eventType, reason, effectivePrices);
 }
 
 async function markConflict(
   intent: HydratedDocument<IRevenuePriceExecution>,
+  claimToken: string,
+  input: PriceWrite,
   effectivePrices?: GuestPrices,
 ) {
-  intent.state = 'conflict';
-  if (effectivePrices) intent.effectivePrices = effectivePrices;
-  intent.applyClaimToken = undefined;
-  intent.applyClaimExpiresAt = undefined;
-  intent.events.push({ type: 'version_conflict', at: new Date().toISOString() });
-  return intent.save();
+  return settleClaimedIntent(intent, claimToken, input, 'conflict', 'version_conflict', undefined, effectivePrices);
+}
+
+class RevenueOverrideVersionConflict extends Error {}
+
+async function commitClaimedPriceOverride(input: {
+  intent: HydratedDocument<IRevenuePriceExecution>;
+  claimToken: string;
+  write: PriceWrite;
+  currentPrices: GuestPrices;
+  cataloguePrices: GuestPrices;
+  nextVersion: number;
+  date: Date;
+  sellability: Record<string, unknown>;
+}) {
+  const session = await mongoose.startSession();
+  let receipt: IRevenuePriceExecution | null = null;
+  try {
+    await session.withTransaction(async () => {
+      receipt = null;
+      const now = new Date();
+      // Updating the receipt first takes the transaction's write lock on this
+      // exact lease. The override and receipt then commit atomically. A stale
+      // worker cannot pass this fence after another worker renews or settles
+      // the claim, and a crash cannot leave only one of the two records live.
+      receipt = await RevenuePriceExecution.findOneAndUpdate(
+        {
+          _id: input.intent._id,
+          state: 'pending',
+          applyClaimToken: input.claimToken,
+          applyClaimExpiresAt: { $gt: now },
+        },
+        {
+          $set: { state: 'applied', appliedVersion: input.nextVersion, effectivePrices: input.write.prices },
+          $unset: { applyClaimToken: 1, applyClaimExpiresAt: 1 },
+          $push: {
+            events: {
+              $each: [
+                { type: 'sellable_departure_verified', ...input.sellability, at: now.toISOString() },
+                { type: 'price_applied', at: now.toISOString() },
+              ],
+            },
+          },
+        },
+        { new: true, session },
+      ).lean<IRevenuePriceExecution | null>();
+      if (!receipt) return;
+
+      let override;
+      try {
+        override = await RevenuePriceOverride.findOneAndUpdate(
+          {
+            tenantId: input.write.tenantId,
+            tourId: input.write.target.tourId,
+            optionKey: input.write.target.optionKey,
+            date: input.date,
+            time: input.write.target.time,
+            version: input.write.expectedVersion,
+          },
+          {
+            $set: {
+              currency: input.write.currency,
+              prices: input.write.prices,
+              cataloguePrices: input.cataloguePrices,
+              previousPrices: input.currentPrices,
+              version: input.nextVersion,
+              source: 'revenuepilot',
+              recommendationId: input.write.recommendationId,
+              executionId: input.write.executionId,
+              active: true,
+            },
+            $unset: { revertedAt: 1 },
+          },
+          {
+            new: true,
+            upsert: input.write.expectedVersion === 0,
+            runValidators: true,
+            session,
+          },
+        );
+      } catch (error: unknown) {
+        if (mongoErrorCode(error) !== 11000) throw error;
+      }
+      if (!override) throw new RevenueOverrideVersionConflict();
+    }, {
+      readConcern: { level: 'snapshot' },
+      writeConcern: { w: 'majority' },
+    });
+    return receipt
+      ? { state: 'applied' as const, receipt }
+      : { state: 'lease_lost' as const };
+  } catch (error: unknown) {
+    if (error instanceof RevenueOverrideVersionConflict) return { state: 'version_conflict' as const };
+    throw error;
+  } finally {
+    await session.endSession();
+  }
 }
 
 async function acquireExistingPending(
@@ -100,7 +226,9 @@ async function acquireExistingPending(
       },
       { new: true },
     ).lean();
-    return { result: { receipt: receipt || existing, effective, state: 'replayed' as const, outcome: 'applied' as const, replayed: true } };
+    if (receipt) return { result: { receipt, effective, state: 'replayed' as const, outcome: 'applied' as const, replayed: true } };
+    const latest = await RevenuePriceExecution.findById(existing._id).lean<IRevenuePriceExecution | null>();
+    return { result: latest ? await replayExistingExecution(latest, input) : { state: 'pending' as const, replayed: true } };
   }
   if (effective.version !== input.expectedVersion) {
     const receipt = await RevenuePriceExecution.findOneAndUpdate(
@@ -112,7 +240,9 @@ async function acquireExistingPending(
       },
       { new: true },
     ).lean();
-    return { result: { receipt: receipt || existing, current: effective, state: 'conflict' as const, replayed: true } };
+    if (receipt) return { result: { receipt, current: effective, state: 'conflict' as const, replayed: true } };
+    const latest = await RevenuePriceExecution.findById(existing._id).lean<IRevenuePriceExecution | null>();
+    return { result: latest ? await replayExistingExecution(latest, input) : { state: 'pending' as const, replayed: true } };
   }
 
   const claimToken = randomUUID();
@@ -216,25 +346,29 @@ export async function applyPriceWrite(input: PriceWrite, idempotencyKey: string,
 
   if (!intent || !current) throw new Error('Price execution intent could not be acquired.');
   if (current.version !== input.expectedVersion) {
-    const receipt = await markConflict(intent, current.prices);
-    return { receipt: receipt.toObject(), current, state: 'conflict' as const };
+    const settled = await markConflict(intent, claimToken, input, current.prices);
+    if ('result' in settled) return settled.result;
+    return { receipt: settled.receipt, current, state: 'conflict' as const };
   }
   if (current.sourceVersion !== input.sourceVersion) {
     const reason = 'Catalogue mapping source version is stale.';
-    const receipt = await markBlocked(intent, reason, 'source_version_blocked', current.prices);
-    return { receipt: receipt.toObject(), current, state: 'blocked' as const, reason };
+    const settled = await markBlocked(intent, claimToken, input, reason, 'source_version_blocked', current.prices);
+    if ('result' in settled) return settled.result;
+    return { receipt: settled.receipt, current, state: 'blocked' as const, reason };
   }
   const configuredMovement = Number(process.env.REVENUEPILOT_MAX_WRITE_PERCENT || 5);
   const maxMovement = Math.min(Number.isFinite(configuredMovement) ? configuredMovement : 5, input.policySnapshot.maxChangePercent);
   if (input.mode === 'commissioning' && !commissioningMovementIsSafe(current.prices, input.prices)) {
     const reason = 'Commissioning movement must be non-zero and no more than 1% or $1 for every paid guest type.';
-    const receipt = await markBlocked(intent, reason, 'commissioning_movement_blocked', current.prices);
-    return { receipt: receipt.toObject(), current, state: 'blocked' as const, reason };
+    const settled = await markBlocked(intent, claimToken, input, reason, 'commissioning_movement_blocked', current.prices);
+    if ('result' in settled) return settled.result;
+    return { receipt: settled.receipt, current, state: 'blocked' as const, reason };
   }
   if (input.mode !== 'commissioning' && movement(current.prices, input.prices) > maxMovement) {
     const reason = `Maximum movement is ${maxMovement}%.`;
-    const receipt = await markBlocked(intent, reason, 'movement_blocked', current.prices);
-    return { receipt: receipt.toObject(), current, state: 'blocked' as const, reason };
+    const settled = await markBlocked(intent, claimToken, input, reason, 'movement_blocked', current.prices);
+    if ('result' in settled) return settled.result;
+    return { receipt: settled.receipt, current, state: 'blocked' as const, reason };
   }
 
   let sellability;
@@ -242,27 +376,33 @@ export async function applyPriceWrite(input: PriceWrite, idempotencyKey: string,
     sellability = await assertRevenuePriceTargetSellable(targetWithTenant(input));
   } catch (error: unknown) {
     if (!(error instanceof RevenuePricingWriteError)) throw error;
-    const receipt = await markBlocked(intent, error.message, error.code, current.prices);
-    return { receipt: receipt.toObject(), current, state: 'blocked' as const, reason: error.message, code: error.code };
+    const settled = await markBlocked(intent, claimToken, input, error.message, error.code, current.prices);
+    if ('result' in settled) return settled.result;
+    return { receipt: settled.receipt, current, state: 'blocked' as const, reason: error.message, code: error.code };
   }
 
   const nextVersion = current.version + 1;
   const date = normalizePriceDate(input.target.date);
-  let override;
-  try {
-    override = await RevenuePriceOverride.findOneAndUpdate(
-      { tenantId: input.tenantId, tourId: input.target.tourId, optionKey: input.target.optionKey, date, time: input.target.time, version: input.expectedVersion },
-      { $set: { currency: input.currency, prices: input.prices, cataloguePrices: current.cataloguePrices, previousPrices: current.prices, version: nextVersion, source: 'revenuepilot', recommendationId: input.recommendationId, executionId: input.executionId, active: true }, $unset: { revertedAt: 1 } },
-      { new: true, upsert: input.expectedVersion === 0, runValidators: true },
-    );
-  } catch (error: unknown) {
-    if (mongoErrorCode(error) !== 11000) throw error;
+  const committed = await commitClaimedPriceOverride({
+    intent,
+    claimToken,
+    write: input,
+    currentPrices: current.prices,
+    cataloguePrices: current.cataloguePrices,
+    nextVersion,
+    date,
+    sellability,
+  });
+  if (committed.state === 'lease_lost') {
+    const latest = await RevenuePriceExecution.findById(intent._id).lean<IRevenuePriceExecution | null>();
+    if (latest) return replayExistingExecution(latest, input);
+    throw new Error('Price execution lease was lost and its receipt is unavailable.');
   }
-  if (!override) {
+  if (committed.state === 'version_conflict') {
     const effective = await resolveEffectivePrice(targetWithTenant(input));
     if (effective.executionId === input.executionId && effective.version === nextVersion) {
       const recovered = await RevenuePriceExecution.findOneAndUpdate(
-        { _id: intent._id, state: 'pending', applyClaimToken: claimToken },
+        { _id: intent._id, state: 'pending' },
         {
           $set: { state: 'applied', appliedVersion: nextVersion, effectivePrices: effective.prices },
           $unset: { applyClaimToken: 1, applyClaimExpiresAt: 1 },
@@ -272,24 +412,10 @@ export async function applyPriceWrite(input: PriceWrite, idempotencyKey: string,
       ).lean();
       return { receipt: recovered || intent.toObject(), effective, state: 'replayed' as const, outcome: 'applied' as const, replayed: true };
     }
-    const receipt = await markConflict(intent, effective.prices);
-    return { receipt: receipt.toObject(), current: effective, state: 'conflict' as const };
+    const settled = await markConflict(intent, claimToken, input, effective.prices);
+    if ('result' in settled) return settled.result;
+    return { receipt: settled.receipt, current: effective, state: 'conflict' as const };
   }
 
-  const receipt = await RevenuePriceExecution.findOneAndUpdate(
-    { _id: intent._id, state: 'pending', applyClaimToken: claimToken },
-    {
-      $set: { state: 'applied', appliedVersion: nextVersion, effectivePrices: input.prices },
-      $unset: { applyClaimToken: 1, applyClaimExpiresAt: 1 },
-      $push: { events: { $each: [{ type: 'sellable_departure_verified', ...sellability, at: new Date().toISOString() }, { type: 'price_applied', at: new Date().toISOString() }] } },
-    },
-    { new: true },
-  ).lean<IRevenuePriceExecution | null>();
-  if (!receipt) {
-    const latest = await RevenuePriceExecution.findById(intent._id).lean<IRevenuePriceExecution | null>();
-    if (latest) return replayExistingExecution(latest, input);
-    throw new Error('Applied price receipt could not be finalized.');
-  }
-
-  return { receipt, effective: await resolveEffectivePrice(targetWithTenant(input)), state: 'applied' as const };
+  return { receipt: committed.receipt, effective: await resolveEffectivePrice(targetWithTenant(input)), state: 'applied' as const };
 }

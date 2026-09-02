@@ -4,11 +4,13 @@ import Availability from '@/lib/models/Availability';
 import Booking from '@/lib/models/Booking';
 import StopSale from '@/lib/models/StopSale';
 import Tour from '@/lib/models/Tour';
-import { buildStrictTenantQuery } from '@/lib/tenant';
+import { buildStrictTenantQuery, getTenantConfigCached } from '@/lib/tenant';
 import { authenticateRevenueRequest, revenueError } from '@/lib/revenue/machineResponse';
 import { EEO_TIME_ZONE, isTourScheduled, localDepartureToUtc, parseIsoDateOnly } from '@/lib/revenue/departureSchedule';
 import { stoppedPricingKeysForOptionIds } from '@/lib/revenue/departureSellability';
 import type { Types } from 'mongoose';
+import { REVENUE_CAPACITY_BOOKING_STATUSES } from '@/lib/revenue/bookingCapacity';
+import { decodeRevenueCursor, encodeRevenueCursor, parseRevenuePageLimit } from '@/lib/revenue/pagination';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,9 +42,12 @@ export async function GET(request: NextRequest) {
   const auth = await authenticateRevenueRequest(request);
   if (auth.response) return auth.response;
   const tenantId = auth.tenantId!;
-  await dbConnect();
   const from = request.nextUrl.searchParams.get('from') || new Date().toISOString().slice(0, 10);
   const to = request.nextUrl.searchParams.get('to') || new Date(Date.now() + 90 * 86400000).toISOString().slice(0, 10);
+  const limitResult = parseRevenuePageLimit(request.nextUrl.searchParams.get('limit'), 25, 50);
+  if ('error' in limitResult) return revenueError(422, 'INVALID_LIMIT', limitResult.error);
+  const cursorResult = decodeRevenueCursor(request.nextUrl.searchParams.get('cursor'), { resource: 'departures', tenantId, scope: `${from}:${to}` });
+  if ('error' in cursorResult) return revenueError(422, 'INVALID_CURSOR', cursorResult.error);
   const rangeStart = parseIsoDateOnly(from);
   const parsedRangeEnd = parseIsoDateOnly(to);
   if (!rangeStart || !parsedRangeEnd) return revenueError(400, 'INVALID_RANGE', 'from and to must use real calendar dates in YYYY-MM-DD.');
@@ -50,14 +55,28 @@ export async function GET(request: NextRequest) {
   rangeEnd.setUTCHours(23, 59, 59, 999);
   if (rangeEnd < rangeStart) return revenueError(400, 'INVALID_RANGE', 'to must be on or after from.');
   if ((rangeEnd.getTime() - rangeStart.getTime()) / 86400000 > 120) return revenueError(400, 'RANGE_TOO_LARGE', 'Departure reads are limited to 120 days.');
+  await dbConnect();
 
-  const tours = await Tour.find(buildStrictTenantQuery({ isPublished: true, archivedAt: null }, tenantId))
+  const [tourRows, tenant] = await Promise.all([
+    Tour.find(buildStrictTenantQuery({
+      isPublished: true,
+      archivedAt: null,
+      ...(cursorResult.cursor ? { _id: { $gt: cursorResult.cursor.afterId } } : {}),
+    }, tenantId))
     .select('_id availability bookingOptions updatedAt')
-    .lean<DepartureTour[]>();
+    .sort({ _id: 1 })
+    .limit(limitResult.limit + 1)
+    .lean<DepartureTour[]>(),
+    getTenantConfigCached(tenantId),
+  ]);
+  if (!tenant || tenant.isActive === false) return revenueError(404, 'TENANT_NOT_FOUND', 'Tenant is unavailable.');
+  const hasMore = tourRows.length > limitResult.limit;
+  const tours = tourRows.slice(0, limitResult.limit);
+  const lastTour = tours.at(-1);
   const tourIds = tours.map((tour) => tour._id);
   const [explicitRows, bookings, stopSales] = await Promise.all([
     Availability.find({ tenantId, tour: { $in: tourIds }, date: { $gte: rangeStart, $lte: rangeEnd } }).lean<ExplicitAvailability[]>(),
-    Booking.find({ tenantId, tour: { $in: tourIds }, status: { $in: ['Confirmed', 'Pending'] }, $or: [{ date: { $gte: rangeStart, $lte: rangeEnd } }, { dateString: { $gte: from, $lte: to } }] }).select('tour date dateString time adultGuests childGuests infantGuests guests updatedAt').lean<DepartureBooking[]>(),
+    Booking.find({ tenantId, tour: { $in: tourIds }, status: { $in: REVENUE_CAPACITY_BOOKING_STATUSES }, $or: [{ date: { $gte: rangeStart, $lte: rangeEnd } }, { dateString: { $gte: from, $lte: to } }] }).select('tour date dateString time adultGuests childGuests infantGuests guests updatedAt').lean<DepartureBooking[]>(),
     StopSale.find({ tenantId, tourId: { $in: tourIds }, startDate: { $lte: rangeEnd }, endDate: { $gte: rangeStart } }).select('tourId optionIds startDate endDate').lean<DepartureStopSale[]>(),
   ]);
   const explicit = new Map(explicitRows.map((row) => [key(row.tour, new Date(row.date)), row]));
@@ -105,5 +124,12 @@ export async function GET(request: NextRequest) {
       }
     }
   }
-  return NextResponse.json({ tenantId, timeZone: EEO_TIME_ZONE, departures }, { headers: { 'Cache-Control': 'no-store' } });
+  return NextResponse.json({
+    tenantId,
+    timeZone: EEO_TIME_ZONE,
+    departures,
+    nextCursor: hasMore && lastTour
+      ? encodeRevenueCursor({ resource: 'departures', tenantId, afterId: String(lastTour._id), scope: `${from}:${to}` })
+      : null,
+  }, { headers: { 'Cache-Control': 'no-store' } });
 }

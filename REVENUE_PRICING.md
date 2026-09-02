@@ -12,7 +12,11 @@ Required deployment settings:
 - `REVENUEPILOT_ALLOWED_TOUR_IDS`: keep empty in the closed posture; use one exact Mongo ObjectId only for an approved canary. Wildcards and malformed IDs fail closed.
 - `CRON_SECRET`: authenticates the five-minute `revenue-maintenance` scheduled function and `/api/cron/pricing-summaries` recovery route.
 
-Run `pnpm revenue:backfill-pricing -- --tenant-id <tenant>` first to inspect the migration plan. It is dry-run by default. Only an approved production change may add `--apply`; the migration assigns immutable option keys and imports populated legacy slot prices into versioned overrides. Re-running it is safe.
+Run `pnpm revenue:backfill-pricing -- --tenant-id <tenant>` first to inspect the migration plan. It is dry-run by default. Only an approved production change may add `--apply`; the migration assigns immutable option keys, rewrites add-on assignments from legacy option IDs to those keys, and imports populated zero-option Standard slot prices into versioned overrides while preserving explicit child/infant policy. Re-running it is safe.
+
+## Read pagination
+
+`GET /api/v1/revenue/catalog` and `GET /api/v1/revenue/departures` are cursor-paginated over tenant-scoped tours in immutable `_id` order. Pass the response's opaque `nextCursor` back as `cursor` until it is `null`; do not decode or edit it, and keep the same departure `from`/`to` range while following a departure cursor. `limit` is the maximum number of source tours per page (catalog: default 100, maximum 200; departures: default 25, maximum 50). A departure page can be empty and still have a non-null cursor when that page's tours have no occurrences in the requested date range, so consumers must terminate only on `nextCursor: null`. Invalid, cross-tenant, wrong-endpoint, or wrong-range cursors return `422 INVALID_CURSOR` before catalogue data is read.
 
 The signed canonical request is `timestamp + newline + nonce + newline + method + newline + path-and-query + newline + SHA-256(body)`. Timestamps have a five-minute window and nonces are single use.
 

@@ -2,6 +2,7 @@ import {
   cleanAvailabilitySlotGuestPrices,
   cleanBookingOptionGuestPrices,
   cleanSlotGuestPrices,
+  effectiveCatalogueGuestPrices,
   effectiveSlotGuestPrices,
   guestPricedSubtotal,
   guestPricesFromBase,
@@ -76,6 +77,38 @@ describe('effectiveSlotGuestPrices', () => {
 
   it('falls back to the network default when no child or infant catalogue price exists', () => {
     expect(effectiveSlotGuestPrices({ adult: 81 })).toEqual({ adult: 81, child: 40.5, infant: 0 });
+  });
+});
+
+describe('effectiveCatalogueGuestPrices', () => {
+  it('verifies against the stored adult before discounting every explicit guest price', () => {
+    expect(effectiveCatalogueGuestPrices({
+      catalogueAdult: 150,
+      effectiveAdult: 120,
+      explicit: { adult: 150, child: 70, infant: 5 },
+      discountPercent: 20,
+      applyDiscount: true,
+    })).toEqual({ prices: { adult: 120, child: 56, infant: 4 }, verified: true });
+  });
+
+  it('keeps explicit prices undiscounted when the option did not opt in', () => {
+    expect(effectiveCatalogueGuestPrices({
+      catalogueAdult: 150,
+      effectiveAdult: 150,
+      explicit: { adult: 150, child: 70, infant: 5 },
+      discountPercent: 20,
+      applyDiscount: false,
+    })).toEqual({ prices: { adult: 150, child: 70, infant: 5 }, verified: true });
+  });
+
+  it('marks a mismatched stored adult unverified and falls back from the effective adult', () => {
+    expect(effectiveCatalogueGuestPrices({
+      catalogueAdult: 150,
+      effectiveAdult: 120,
+      explicit: { adult: 120, child: 70, infant: 5 },
+      discountPercent: 20,
+      applyDiscount: true,
+    })).toEqual({ prices: { adult: 120, child: 60, infant: 0 }, verified: false });
   });
 });
 

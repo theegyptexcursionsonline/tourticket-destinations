@@ -51,6 +51,38 @@ export function explicitCatalogueGuestPrices(adult: number, explicit?: Partial<G
 }
 
 /**
+ * Export a catalogue guest-price set after applying the same tour discount as
+ * checkout. Stored explicit prices are authored against the undiscounted
+ * catalogue adult, so verification must happen before the discount is
+ * applied. Comparing them with the already-discounted adult would incorrectly
+ * discard deliberate child and infant prices.
+ */
+export function effectiveCatalogueGuestPrices(input: {
+  catalogueAdult: number;
+  effectiveAdult: number;
+  explicit?: Partial<GuestPriceSet> | null;
+  discountPercent?: number | null;
+  applyDiscount?: boolean;
+}) {
+  const explicit = explicitCatalogueGuestPrices(input.catalogueAdult, input.explicit);
+  if (!explicit.verified) {
+    return {
+      prices: { adult: input.effectiveAdult, child: toMoney(input.effectiveAdult / 2), infant: 0 },
+      verified: false,
+    };
+  }
+  return {
+    prices: effectiveSlotGuestPrices({
+      adult: input.effectiveAdult,
+      base: explicit.prices,
+      discountPercent: input.discountPercent,
+      applyDiscount: input.applyDiscount,
+    }),
+    verified: true,
+  };
+}
+
+/**
  * Turn an editor/API payload into a complete guest-price set, or null.
  * Both child and infant must be present and valid; adult always mirrors the
  * price it is saved with (the base/option price), never a submitted value.
