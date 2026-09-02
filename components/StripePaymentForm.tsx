@@ -9,6 +9,10 @@ import { clearCheckoutAttemptId, getOrCreateCheckoutAttemptId } from '@/lib/chec
 import type { PaymentExperience } from '@/lib/checkout/paymentExperience';
 import { isAllowedStripeCheckoutUrl } from '@/lib/checkout/stripeCheckoutDestination';
 import { useStorefrontTheme } from '@/contexts/StorefrontThemeContext';
+import {
+  isAuthoritativePriceQuote,
+  type AuthoritativePriceQuote,
+} from '@/lib/cart/authoritativeCart';
 
 const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
@@ -33,9 +37,66 @@ export interface StripePaymentFormProps {
   discountCode?: string;
   onSuccess: (paymentIntentId: string) => void;
   onError: (error: string) => void;
+  onPriceChanged: (quote: AuthoritativePriceQuote) => Promise<boolean> | boolean;
   experience?: PaymentExperience;
   isOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
+}
+
+function PriceChangeReview({
+  quote,
+  accepting,
+  error,
+  onAccept,
+}: {
+  quote: AuthoritativePriceQuote;
+  accepting: boolean;
+  error: string;
+  onAccept: () => void;
+}) {
+  const formatPrice = (price: number) => new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: quote.currency,
+  }).format(price);
+
+  return (
+    <div role="alert" aria-live="assertive" className="overflow-hidden rounded-2xl border border-amber-300 bg-white shadow-sm">
+      <div className="flex items-start gap-3 bg-amber-50 px-5 py-4">
+        <AlertCircle className="mt-0.5 shrink-0 text-amber-700" size={22} aria-hidden="true" />
+        <div>
+          <p className="font-extrabold text-slate-950">Your price was updated</p>
+          <p className="mt-1 text-sm leading-6 text-slate-600">
+            The price changed before payment. You have not been charged. Review and accept the server-verified quote to continue.
+          </p>
+        </div>
+      </div>
+      <div className="space-y-4 p-5">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">{quote.tourTitle || 'Selected experience'}</p>
+          <p className="mt-1 text-sm text-slate-600">{quote.date} at {quote.time} · {quote.currency}</p>
+          <dl className="mt-4 grid grid-cols-3 gap-2">
+            {(['adult', 'child', 'infant'] as const).map((guestType) => (
+              <div key={guestType} className="rounded-lg bg-white px-3 py-3 ring-1 ring-slate-200">
+                <dt className="text-[11px] font-semibold capitalize text-slate-500">{guestType}</dt>
+                <dd className="mt-1 text-sm font-extrabold text-slate-900">{formatPrice(quote.prices[guestType])}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+        {error && <p role="status" className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{error}</p>}
+        <button
+          type="button"
+          onClick={onAccept}
+          disabled={accepting}
+          className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {accepting ? <Loader2 className="animate-spin" size={18} /> : <ShieldCheck size={18} />}
+          {accepting ? 'Saving updated quote…' : 'Accept updated price & continue'}
+        </button>
+        <p className="text-center text-xs text-slate-500">Payment is prepared only after you accept this quote.</p>
+      </div>
+    </div>
+  );
 }
 
 function PaymentFields({
@@ -101,6 +162,7 @@ function PaymentPanel({
   experience: _experience,
   onSuccess,
   onError,
+  onPriceChanged,
   onProcessingChange,
 }: StripePaymentFormProps & {
   experience: 'inline' | 'modal';
@@ -110,6 +172,10 @@ function PaymentPanel({
   const [clientSecret, setClientSecret] = useState('');
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const [pendingPriceChange, setPendingPriceChange] = useState<AuthoritativePriceQuote | null>(null);
+  const [acceptingPriceChange, setAcceptingPriceChange] = useState(false);
+  const [priceChangeError, setPriceChangeError] = useState('');
+  const [retryNonce, setRetryNonce] = useState(0);
   const customerPayload = useMemo(() => ({
     email: customer.email,
     firstName: customer.firstName,
@@ -128,6 +194,10 @@ function PaymentPanel({
   }, [onProcessingChange]);
 
   useEffect(() => {
+    if (pendingPriceChange) {
+      setLoading(false);
+      return;
+    }
     const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerPayload.email);
     if (!customerPayload.firstName || !customerPayload.lastName || !customerPayload.phone || !emailValid || cart.length === 0 || Number(pricing.total) <= 0) {
       setLoading(false);
@@ -144,7 +214,15 @@ function PaymentPanel({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ customer: customerPayload, cart, pricing, discountCode, checkoutAttemptId }),
         });
-        const payload = await response.json() as { success?: boolean; clientSecret?: string; message?: string };
+        const payload = await response.json() as { success?: boolean; clientSecret?: string; code?: string; message?: string; quote?: unknown };
+        if (response.status === 409 && payload.code === 'PRICE_CHANGED' && isAuthoritativePriceQuote(payload.quote)) {
+          if (active) {
+            setClientSecret('');
+            setPendingPriceChange(payload.quote);
+            setPriceChangeError('');
+          }
+          return;
+        }
         if (!response.ok || payload.success !== true || !payload.clientSecret) {
           throw new Error(payload.message || 'Secure payment could not be prepared.');
         }
@@ -161,7 +239,39 @@ function PaymentPanel({
     return () => { active = false; window.clearTimeout(timer); };
     // The serialized signature deliberately owns retries; using object identity
     // here would create a new PaymentIntent on every checkout render.
-  }, [requestSignature, customerPayload, cart, pricing, discountCode, onError]);
+  }, [requestSignature, customerPayload, cart, pricing, discountCode, onError, pendingPriceChange, retryNonce]);
+
+  const acceptUpdatedPrice = async () => {
+    if (!pendingPriceChange || acceptingPriceChange) return;
+    setAcceptingPriceChange(true);
+    setPriceChangeError('');
+    try {
+      const accepted = await onPriceChanged(pendingPriceChange);
+      if (!accepted) {
+        setPriceChangeError('We could not save the updated quote. Your original cart is unchanged. Please try again.');
+        return;
+      }
+      setClientSecret('');
+      setPendingPriceChange(null);
+      setLoading(true);
+      setRetryNonce((current) => current + 1);
+    } catch {
+      setPriceChangeError('We could not save the updated quote. Your original cart is unchanged. Please try again.');
+    } finally {
+      setAcceptingPriceChange(false);
+    }
+  };
+
+  if (pendingPriceChange) {
+    return (
+      <PriceChangeReview
+        quote={pendingPriceChange}
+        accepting={acceptingPriceChange}
+        error={priceChangeError}
+        onAccept={() => void acceptUpdatedPrice()}
+      />
+    );
+  }
 
   if (loading) {
     return (
@@ -208,8 +318,11 @@ function PaymentPanel({
   );
 }
 
-function HostedLauncher({ amount, currency, customer, cart, pricing, discountCode, onError }: StripePaymentFormProps) {
+function HostedLauncher({ amount, currency, customer, cart, pricing, discountCode, onError, onPriceChanged }: StripePaymentFormProps) {
   const [redirecting, setRedirecting] = useState(false);
+  const [pendingPriceChange, setPendingPriceChange] = useState<AuthoritativePriceQuote | null>(null);
+  const [acceptingPriceChange, setAcceptingPriceChange] = useState(false);
+  const [priceChangeError, setPriceChangeError] = useState('');
   const valid = Boolean(customer.firstName && customer.lastName && customer.phone && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customer.email));
   const total = new Intl.NumberFormat('en-US', { style: 'currency', currency: String(pricing.currency || currency || 'USD') }).format(Number(pricing.total ?? amount ?? 0));
 
@@ -225,7 +338,13 @@ function HostedLauncher({ amount, currency, customer, cart, pricing, discountCod
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ customer, cart, pricing, discountCode, checkoutAttemptId, locale }),
       });
-      const payload = await response.json() as { success?: boolean; url?: unknown; message?: string };
+      const payload = await response.json() as { success?: boolean; url?: unknown; code?: string; message?: string; quote?: unknown };
+      if (response.status === 409 && payload.code === 'PRICE_CHANGED' && isAuthoritativePriceQuote(payload.quote)) {
+        setPendingPriceChange(payload.quote);
+        setPriceChangeError('');
+        setRedirecting(false);
+        return;
+      }
       if (!response.ok || payload.success !== true || !isAllowedStripeCheckoutUrl(payload.url)) {
         throw new Error(payload.message || 'Stripe Checkout could not be opened.');
       }
@@ -235,6 +354,35 @@ function HostedLauncher({ amount, currency, customer, cart, pricing, discountCod
       setRedirecting(false);
     }
   };
+
+  const acceptUpdatedPrice = async () => {
+    if (!pendingPriceChange || acceptingPriceChange) return;
+    setAcceptingPriceChange(true);
+    setPriceChangeError('');
+    try {
+      const accepted = await onPriceChanged(pendingPriceChange);
+      if (!accepted) {
+        setPriceChangeError('We could not save the updated quote. Your original cart is unchanged. Please try again.');
+        return;
+      }
+      setPendingPriceChange(null);
+    } catch {
+      setPriceChangeError('We could not save the updated quote. Your original cart is unchanged. Please try again.');
+    } finally {
+      setAcceptingPriceChange(false);
+    }
+  };
+
+  if (pendingPriceChange) {
+    return (
+      <PriceChangeReview
+        quote={pendingPriceChange}
+        accepting={acceptingPriceChange}
+        error={priceChangeError}
+        onAccept={() => void acceptUpdatedPrice()}
+      />
+    );
+  }
 
   return (
     <section data-testid="hosted-payment-experience" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">

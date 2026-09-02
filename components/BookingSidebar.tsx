@@ -27,8 +27,13 @@ import {
   findSelectedBookingOption,
   isSelectedTimeSlot,
   nextAddOnSelectionQuantity,
+  perPersonAddOnLimit,
+  clampAddOnQuantity,
+  clampSelectedPerPersonAddOns,
 } from '@/lib/bookings/bookingSelection';
 import { optionSubtotal } from '@/lib/bookings/optionSubtotal';
+import { guestPricedSubtotal, resolveCatalogueGuestPrices } from '@/lib/revenue/guestPrices';
+import { groupAvailableAddOns } from '@/lib/bookings/addOnAvailability';
 import { capacityAvailability, isUnitPricedType, unitCount, unitNounKey, effectiveUnitSize } from '@/lib/bookings/unitPricing';
 
 // Enhanced Types with database compatibility
@@ -57,6 +62,7 @@ interface Tour {
   includes?: string[];
   whatsIncluded?: string[];
   whatsNotIncluded?: string[];
+  revenueGuestPrices?: { adult: number; child: number; infant: number };
   bookingOptions?: BookingOption[];
   addOns?: any[];
   location?: {
@@ -75,7 +81,7 @@ interface Tour {
   availability?: {
     type?: string;
     availableDays?: number[];
-    slots?: { time: string; capacity: number; price?: number }[];
+    slots?: { time: string; capacity: number; price?: number; guestPrices?: { child?: number; infant?: number } }[];
     blockedDates?: string[];
     startDate?: string;
     endDate?: string;
@@ -89,6 +95,7 @@ interface Tour {
 
 interface BookingOption {
   id?: string;
+  pricingKey?: string;
   type: string;
   label: string;
   price: number;
@@ -104,7 +111,8 @@ interface BookingOption {
   discount?: number;
   isRecommended?: boolean;
   applyTourDiscount?: boolean;
-  timeSlots?: Array<{ id?: string; time: string; capacity?: number; available?: number; price?: number; originalPrice?: number }>;
+  guestPrices?: { adult: number; child: number; infant: number };
+  timeSlots?: Array<{ id?: string; time: string; capacity?: number; available?: number; price?: number; originalPrice?: number; guestPrices?: { adult?: number; child?: number; infant?: number } }>;
 }
 
 interface TimeSlot {
@@ -117,6 +125,12 @@ interface TimeSlot {
   isPopular?: boolean;
   originalAvailable?: number;
   discount?: number;
+  guestPrices?: { adult: number; child: number; infant: number };
+  priceVersion?: number;
+  priceSourceVersion?: string | null;
+  priceExecutionId?: string | null;
+  priceOverrideId?: string | null;
+  priceSource?: 'catalogue' | 'override';
 }
 
 interface AddOnTour {
@@ -136,6 +150,8 @@ interface AddOnTour {
   icon?: React.ElementType;
   savings?: number;
   perGuest?: boolean;
+  groupKey?: string;
+  groupTitle?: string;
   pricingMethod?: 'per_unit' | 'per_person';
   bookingOptionKeys?: string[];
 }
@@ -155,6 +171,7 @@ interface AvailabilityData {
 
 interface TourOption {
   id: string;
+  pricingKey?: string;
   type?: string;
   /** Participants one priced unit covers, and the booking minimum. */
   minCapacity?: number;
@@ -162,6 +179,7 @@ interface TourOption {
   maxCapacity?: number;
   title: string;
   price: number;
+  guestPrices?: { adult: number; child: number; infant: number };
   originalPrice?: number;
   duration: string;
   languages: string[];
@@ -590,17 +608,37 @@ const TourOptionCard: React.FC<{
   const [descOverflows, setDescOverflows] = useState(false);
   const descRef = useRef<HTMLParagraphElement>(null);
 
-  // Only offer "Read more" when the clamped text is actually cut off.
+  // Only offer "Read more" when the clamped text is actually cut off. A card
+  // that mounts collapsed sits inside a hidden subtree where every box is
+  // 0px, so the measurement must repeat once the card is actually shown
+  // (client report, MT sheet 2026-08-31: "descriptions do not expand").
   useEffect(() => {
     const el = descRef.current;
-    if (el) setDescOverflows(el.scrollHeight > el.clientHeight + 1);
-  }, [option.description]);
+    if (!el || !expanded) return;
+    const measure = () => setDescOverflows(el.scrollHeight > el.clientHeight + 1);
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [option.description, expanded]);
 
   const basePrice = option.price;
   // Per Couple / Per Family / Per Group price a WHOLE unit, never one guest.
   // Multiplying them per participant is what overcharged a Per Group option
-  // by the head count (client report, EEO sheet 2026-08-20).
-  const subtotal = optionSubtotal(option, basePrice, adults, children, infants);
+  // by the head count (client report, EEO sheet 2026-08-20). Per Person
+  // options quote each guest type at the STORED child/infant price of the
+  // selected departure (MT sheet 2026-08-31 — guest prices parity with EEO),
+  // exactly what the server will charge.
+  const selectedSlotForOption = option.timeSlots.find((timeSlot) =>
+    isSelectedTimeSlot(selectedTimeSlot, option.id, timeSlot.id));
+  const cardGuestPrices = resolveCatalogueGuestPrices(tour, {
+    selectedBookingOption: { id: option.id },
+    selectedTime: selectedSlotForOption?.time ?? null,
+  });
+  const subtotal = tour
+    ? guestPricedSubtotal(option, cardGuestPrices, adults, children, infants)
+    : optionSubtotal(option, basePrice, adults, children, infants);
   // Capacity gate: an option is offered only for a party it can actually take.
   // Graying here is presentation; the server re-enforces the same rule.
   const participants = adults + children + infants;
@@ -618,8 +656,6 @@ const TourOptionCard: React.FC<{
   // long timetable cannot bury the other options.
   const usesSlotDropdown = option.timeSlots.length > 1;
   const [slotMenuOpen, setSlotMenuOpen] = useState(false);
-  const selectedSlotForOption = option.timeSlots.find((timeSlot) =>
-    isSelectedTimeSlot(selectedTimeSlot, option.id, timeSlot.id));
   const bookableSlotCount = option.timeSlots.filter((timeSlot) => timeSlot.available > 0).length;
   const capacityBlocked = !capacity.available || Boolean(option.isStopSale);
   // A collapsed card shows only its summary (title, badges, specs, price);
@@ -1049,10 +1085,19 @@ const AddOnCard: React.FC<{
   const { formatPrice } = useSettings();
   const IconComponent = addOn.icon || Gift;
   const isSelected = quantity > 0;
-  
-  const calculatedQuantity = addOn.perGuest ? guestCount : quantity;
-  const _totalPrice = isSelected ? addOn.price * calculatedQuantity : 0;
+
+  // Per-person add-ons are chosen 1..N by the guest (N = paying participants)
+  // instead of being multiplied by the party size automatically.
+  const perPersonLimit = Math.max(1, guestCount);
+  const calculatedQuantity = addOn.perGuest ? clampAddOnQuantity(quantity, perPersonLimit) : quantity;
+  const lineTotal = isSelected ? addOn.price * calculatedQuantity : 0;
   const _totalSavings = isSelected && addOn.savings ? addOn.savings * calculatedQuantity : 0;
+  const stepQuantity = (event: React.MouseEvent, delta: 1 | -1) => {
+    event.stopPropagation();
+    const next = calculatedQuantity + delta;
+    if (next < 1 || next > perPersonLimit) return;
+    onQuantityChange(addOn.id, next);
+  };
 
   const getCategoryColor = (category: string) => {
     switch (category) {
@@ -1128,6 +1173,34 @@ const AddOnCard: React.FC<{
               <div className="text-xs text-gray-500 mt-1">
                 {addOn.perGuest ? t('booking.pricePerPerson') : t('booking.pricePerGroup')}
               </div>
+              {addOn.perGuest && isSelected && (
+                <div className="mt-2 flex items-center gap-2" data-testid={`addon-quantity-${addOn.id}`}>
+                  <div className="inline-flex items-center rounded-full border border-red-200 bg-white" role="group" aria-label={`${addOn.title} quantity`}>
+                    <button
+                      type="button"
+                      aria-label={`Remove one ${addOn.title}`}
+                      disabled={calculatedQuantity <= 1}
+                      onClick={(event) => stepQuantity(event, -1)}
+                      className="h-8 w-8 rounded-full text-base font-bold text-red-600 disabled:opacity-40"
+                    >
+                      −
+                    </button>
+                    <span className="min-w-[1.5rem] text-center text-sm font-bold text-gray-900" aria-live="polite">{calculatedQuantity}</span>
+                    <button
+                      type="button"
+                      aria-label={`Add one ${addOn.title}`}
+                      disabled={calculatedQuantity >= perPersonLimit}
+                      onClick={(event) => stepQuantity(event, 1)}
+                      className="h-8 w-8 rounded-full text-base font-bold text-red-600 disabled:opacity-40"
+                    >
+                      +
+                    </button>
+                  </div>
+                  <span className="text-xs text-gray-500">
+                    {calculatedQuantity >= perPersonLimit ? `Max ${perPersonLimit} — one per participant` : `Up to ${perPersonLimit}`} · {formatPrice(lineTotal)}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Selection Indicator */}
@@ -1179,7 +1252,7 @@ const BookingSummaryCard: React.FC<{
     if (bookingData.adults > 0) parts.push(`${bookingData.adults} ${bookingData.adults > 1 ? t('booking.adults') : t('booking.adult')}`);
     if (bookingData.children > 0) parts.push(`${bookingData.children} ${bookingData.children > 1 ? t('booking.children') : t('booking.child')}`);
     if (bookingData.infants > 0) parts.push(`${bookingData.infants} ${bookingData.infants > 1 ? t('booking.infants') : t('booking.infant')}`);
-    return `${total} ${t('booking.participants')} (${parts.join(', ')})`;
+    return `${total} ${total === 1 ? t('booking.participant') : t('booking.participants')} (${parts.join(', ')})`;
   };
 
   // Get tour display data with proper fallbacks
@@ -1423,7 +1496,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
   const [bookingData, setBookingData] = useState<BookingData>({
     selectedDate: null,
     selectedTimeSlot: null,
-    adults: 2,
+    adults: 1,
     children: 0,
     infants: 0,
     selectedAddOns: {},
@@ -1671,15 +1744,18 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
                   originalAvailable: slot.available ?? slot.capacity ?? 15,
                   price: slotPricing.price,
                   originalPrice: slotPricing.discountApplied ? slotPricing.originalPrice : undefined,
+                  guestPrices: slot.guestPrices,
                   isPopular: slotIndex === 0,
                 };
               })
             : generateTimeSlotsFromAvailability(optionPrice, index, option);
           return {
             id: optionId,
+            pricingKey: option.pricingKey,
             type: option.type,
             title: option.label || option.title || 'Tour Option',
             price: optionPrice,
+            guestPrices: option.guestPrices,
             originalPrice: pricing.discountApplied
               ? pricing.originalPrice
               : (option.originalPrice || optionPrice),
@@ -1706,15 +1782,20 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
         const standardPrice = tourBasePricing.price;
         tourOptions = [
           {
-            id: 'standard-tour',
+            id: 'standard-default',
+            pricingKey: 'standard',
             title: 'Standard Tour Experience',
             price: standardPrice,
+            guestPrices: resolveCatalogueGuestPrices(tourDisplayData, {
+              selectedBookingOption: null,
+              selectedTime: undefined,
+            }),
             originalPrice: tourBasePricing.discountApplied ? tourBasePricing.originalPrice : standardPrice,
             duration: tourDisplayData?.duration || '3 hours',
             languages: tourDisplayData?.languages || ['English'],
             description: 'Perfect introduction to the destination with expert guide',
             timeSlots: bindTimeSlotsToOption(
-              'standard-tour',
+              'standard-default',
               generateTimeSlotsFromAvailability(standardPrice, 0),
             ),
             highlights: tourDisplayData?.highlights?.slice(0, 3) || ['Expert guide included', 'Small group experience', 'Photo opportunities'],
@@ -1770,6 +1851,8 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
           icon: getAddOnIcon(addon.category || 'Experience'),
           savings: addon.savings || (addon.price ? Math.round(addon.price * 0.3) : 5),
           perGuest: isPerPersonAddOn(addon),
+          groupKey: typeof addon.groupKey === 'string' ? addon.groupKey : undefined,
+          groupTitle: typeof addon.groupTitle === 'string' ? addon.groupTitle : undefined,
           bookingOptionKeys: normalizedBookingOptionKeys(addon),
         }));
       } else {
@@ -1806,7 +1889,6 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
   const { subtotal, addOnsTotal, total, totalSavings } = useMemo(() => {
     let basePrice = 0;
     let originalBasePrice = 0;
-    const totalGuests = bookingData.adults + bookingData.children;
 
     if (bookingData.selectedTimeSlot) {
       basePrice = bookingData.selectedTimeSlot.price;
@@ -1848,13 +1930,25 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
       originalBasePrice = estimateOption.candidate.originalPrice || estimateOption.candidate.price;
     }
     const pricedOption = slotOption ?? estimateOption?.candidate ?? null;
-    const subtotalCalc = optionSubtotal(pricedOption, basePrice, bookingData.adults, bookingData.children, bookingData.infants);
+    // Quote children and infants at the stored guest prices of the chosen
+    // departure — the same resolution the server applies at checkout.
+    const quotedGuestPrices = tour
+      ? resolveCatalogueGuestPrices(tour, {
+          selectedBookingOption: pricedOption ? { id: pricedOption.id, pricingKey: pricedOption.pricingKey } : null,
+          selectedTime: bookingData.selectedTimeSlot?.time ?? null,
+        })
+      : null;
+    const effectiveGuestPrices = bookingData.selectedTimeSlot?.guestPrices || pricedOption?.guestPrices || quotedGuestPrices;
+    const subtotalCalc = effectiveGuestPrices
+      ? guestPricedSubtotal(pricedOption, effectiveGuestPrices, bookingData.adults, bookingData.children, bookingData.infants)
+      : optionSubtotal(pricedOption, basePrice, bookingData.adults, bookingData.children, bookingData.infants);
     const originalSubtotal = optionSubtotal(pricedOption, originalBasePrice, bookingData.adults, bookingData.children, bookingData.infants);
 
+    const perPersonLimit = perPersonAddOnLimit(bookingData.adults, bookingData.children);
     const addOnsCalc = Object.entries(bookingData.selectedAddOns).reduce((acc, [addOnId, quantity]) => {
       const addOn = availability?.addOns.find(a => a.id === addOnId);
       if (addOn) {
-        const itemQuantity = addOn.perGuest ? totalGuests : quantity;
+        const itemQuantity = addOn.perGuest ? clampAddOnQuantity(quantity, perPersonLimit) : quantity;
         return acc + (addOn.price * itemQuantity);
       }
       return acc;
@@ -1863,7 +1957,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
     const addOnsSavings = Object.entries(bookingData.selectedAddOns).reduce((acc, [addOnId, quantity]) => {
       const addOn = availability?.addOns.find(a => a.id === addOnId);
       if (addOn && addOn.savings) {
-        const itemQuantity = addOn.perGuest ? totalGuests : quantity;
+        const itemQuantity = addOn.perGuest ? clampAddOnQuantity(quantity, perPersonLimit) : quantity;
         return acc + (addOn.savings * itemQuantity);
       }
       return acc;
@@ -1878,7 +1972,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
       total: subtotalCalc + addOnsCalc,
       totalSavings: totalSavingsCalc,
     };
-  }, [bookingData, availability, tourBasePricing, tourDisplayData]);
+  }, [bookingData, availability, tour, tourBasePricing, tourDisplayData]);
 
   const selectedBookingOption = useMemo(() => findSelectedBookingOption(
     availability?.tourOptions,
@@ -1899,7 +1993,10 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
 
   const availableAddOns = useMemo(() => (
     availability?.addOns || []
-  ).filter((addOn) => isAddOnAvailableForOption(addOn, selectedBookingOption?.id || null)), [availability?.addOns, selectedBookingOption]);
+  ).filter((addOn) => isAddOnAvailableForOption(
+    addOn,
+    selectedBookingOption?.pricingKey || selectedBookingOption?.id || null,
+  )), [availability?.addOns, selectedBookingOption]);
 
   useEffect(() => {
     const availableIds = new Set(availableAddOns.map((addOn) => addOn.id));
@@ -1925,7 +2022,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
       setBookingData({
         selectedDate: null,
         selectedTimeSlot: null,
-        adults: 2,
+        adults: 1,
         children: 0,
         infants: 0,
         selectedAddOns: {},
@@ -2054,13 +2151,54 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
     }
   }, [calendarAvailability, t]);
 
-  const handleTimeSlotSelect = useCallback((timeSlot: TimeSlot) => {
+  const handleTimeSlotSelect = useCallback(async (timeSlot: TimeSlot) => {
     if (timeSlot.available === 0) {
       toast.error(t('booking.timeSlotFullyBooked'));
       return;
     }
 
-    setBookingData(prev => ({ ...prev, selectedTimeSlot: timeSlot }));
+    let effectiveSlot = timeSlot;
+    try {
+      const selectedOption = findSelectedBookingOption(availability?.tourOptions, timeSlot);
+      const tourId = tour._id || tour.id;
+      if (selectedOption && !selectedOption.pricingKey) {
+        throw new Error('This booking option is awaiting a pricing migration. Please choose another option or contact support.');
+      }
+      if (tourId && bookingData.selectedDate) {
+        const query = new URLSearchParams({
+          date: toDateOnlyString(bookingData.selectedDate),
+          time: timeSlot.time,
+          optionKey: selectedOption?.pricingKey || 'standard',
+        });
+        const response = await fetch(`/api/tours/${tourId}/quote?${query}`, { cache: 'no-store' });
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload?.error?.message || 'Unable to confirm the live price.');
+        effectiveSlot = {
+          ...timeSlot,
+          price: payload.quote.prices.adult,
+          guestPrices: payload.quote.prices,
+          priceVersion: payload.quote.version,
+          priceSourceVersion: payload.quote.sourceVersion,
+          priceExecutionId: payload.quote.executionId,
+          priceOverrideId: payload.quote.overrideId,
+          priceSource: payload.quote.source === 'override' ? 'override' : 'catalogue',
+        };
+      }
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'Unable to confirm the live price.');
+      return;
+    }
+
+    const selectedOption = findSelectedBookingOption(availability?.tourOptions, effectiveSlot);
+    const selectedOptionKey = selectedOption?.pricingKey || null;
+    setBookingData(prev => ({
+      ...prev,
+      selectedTimeSlot: effectiveSlot,
+      selectedAddOns: Object.fromEntries(Object.entries(prev.selectedAddOns).filter(([addOnId]) => {
+        const addOn = availability?.addOns.find((candidate) => candidate.id === addOnId);
+        return Boolean(addOn && isAddOnAvailableForOption(addOn, selectedOptionKey));
+      })),
+    }));
 
     // Prevent duplicate toasts in React Strict Mode
     const toastId = `${timeSlot.id}-${timeSlot.time}`;
@@ -2076,7 +2214,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
         lastToastTimeSlotRef.current = null;
       }, 2100);
     }
-  }, [t]);
+  }, [availability, bookingData.selectedDate, t, tour]);
 
   // Enhanced participant controls
   const handleParticipantChange = useCallback((type: 'adults' | 'children' | 'infants', increment: boolean) => {
@@ -2093,7 +2231,18 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
         newCount = currentCount + 1;
       }
 
-      const next = { ...prev, [type]: newCount };
+      const nextAdults = type === 'adults' ? newCount : prev.adults;
+      const nextChildren = type === 'children' ? newCount : prev.children;
+      const next = {
+        ...prev,
+        [type]: newCount,
+        selectedAddOns: clampSelectedPerPersonAddOns(
+          prev.selectedAddOns,
+          availability?.addOns || [],
+          nextAdults,
+          nextChildren,
+        ),
+      };
       // A party change can invalidate the chosen option (below its minimum or
       // past its maximum). Clear the selection in the same transition rather
       // than carrying a selection the server would refuse.
@@ -2105,11 +2254,11 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
       }
       return next;
     });
-  }, [tourDisplayData?.maxGroupSize, availability?.tourOptions]);
+  }, [tourDisplayData?.maxGroupSize, availability?.addOns, availability?.tourOptions]);
 
   const getParticipantsText = useCallback(() => {
     const totalGuests = bookingData.adults + bookingData.children + bookingData.infants;
-    let text = `${totalGuests} ${t('booking.participants')}`;
+    let text = `${totalGuests} ${totalGuests === 1 ? t('booking.participant') : t('booking.participants')}`;
     const details = [];
 
     if (bookingData.adults > 0) details.push(`${bookingData.adults} ${bookingData.adults > 1 ? t('booking.adults') : t('booking.adult')}`);
@@ -2166,10 +2315,16 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
       }
 
       const normalizedDate = toDateOnlyString(selectedDateValue);
+      const selectedAddOns = clampSelectedPerPersonAddOns(
+        bookingData.selectedAddOns,
+        availability?.addOns || [],
+        bookingData.adults,
+        bookingData.children,
+      );
 
       // Prepare add-on details for cart storage
       const selectedAddOnDetails: { [key: string]: any } = {};
-      Object.keys(bookingData.selectedAddOns).forEach(addOnId => {
+      Object.keys(selectedAddOns).forEach(addOnId => {
         const addOnData = availability?.addOns.find(a => a.id === addOnId);
         if (addOnData) {
           selectedAddOnDetails[addOnId] = {
@@ -2178,6 +2333,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
             price: addOnData.price,
             category: addOnData.category,
             perGuest: addOnData.perGuest || false,
+            quantity: selectedAddOns[addOnId],
           };
         }
       });
@@ -2185,32 +2341,51 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
       // Prepare selected booking option details
       const selectedBookingOptionDetails = selectedOption ? {
         id: selectedOption.id,
+        pricingKey: selectedOption.pricingKey,
         title: selectedOption.title,
         // The pricing type rides along so the cart can total a whole-unit
         // option the way the server will charge it.
         type: selectedOption.type,
-        price: selectedOption.price,
+        price: selectedTimeSlot.price,
         originalPrice: selectedOption.originalPrice,
         duration: selectedOption.duration,
         badge: selectedOption.badge,
       } : undefined;
 
+      if (!selectedBookingOptionDetails?.pricingKey) {
+        throw new Error('The selected booking option is not ready for checkout. Please choose another option.');
+      }
+
+      const guestPrices = selectedTimeSlot.guestPrices || selectedOption?.guestPrices || resolveCatalogueGuestPrices(tour, {
+        selectedBookingOption: selectedOption ? { id: selectedOption.id, pricingKey: selectedOption.pricingKey } : null,
+        selectedTime: selectedTimeSlot.time,
+      });
+
       // Prepare the cart item
       const newCartItem = {
         ...tourDisplayData,
         id: tourDisplayData.id,
-        uniqueId: `${tourDisplayData.id}-${normalizedDate}-${selectedTimeSlot.id}-${JSON.stringify(bookingData.selectedAddOns)}`,
+        uniqueId: `${tourDisplayData.id}-${selectedBookingOptionDetails.pricingKey}-${normalizedDate}-${selectedTimeSlot.id}-${JSON.stringify(selectedAddOns)}`,
         quantity: bookingData.adults,
         childQuantity: bookingData.children,
         infantQuantity: bookingData.infants,
         selectedDate: normalizedDate,
         selectedTime: selectedTimeSlot.time,
-        selectedAddOns: bookingData.selectedAddOns,
+        selectedAddOns,
         selectedAddOnDetails,
         selectedBookingOption: selectedBookingOptionDetails,
-        price: selectedOption?.price || tourDisplayData.discountPrice,
+        guestPrices,
+        priceVersion: selectedTimeSlot.priceVersion,
+        priceSourceVersion: selectedTimeSlot.priceSourceVersion,
+        priceExecutionId: selectedTimeSlot.priceExecutionId,
+        priceOverrideId: selectedTimeSlot.priceOverrideId,
+        priceSource: selectedTimeSlot.priceSource,
+        bookingOptions: tour.bookingOptions || [],
+        revenueGuestPrices: tour.revenueGuestPrices,
+        availability: tour.availability,
+        price: selectedTimeSlot.price,
         originalPrice: selectedOption?.originalPrice || tourDisplayData.originalPrice,
-        discountPrice: selectedOption?.price || tourDisplayData.discountPrice,
+        discountPrice: selectedTimeSlot.price,
         totalPrice: 0,
       };
 
@@ -2245,7 +2420,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
     } finally {
       setIsProcessing(false);
     }
-  }, [isProcessing, onClose, router, bookingData, availability, tourDisplayData, addToCart, t]);
+  }, [isProcessing, onClose, router, bookingData, availability, tour, tourDisplayData, addToCart, t]);
 
   const formatDate = useCallback((date: Date) => {
     return date.toLocaleDateString('en-US', {
@@ -2491,7 +2666,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
                           </div>
                           <div className="flex items-center gap-2">
                             <motion.button
-                              onClick={() => handleParticipantChange('adults', false)}
+                              aria-label="Decrease adults" onClick={() => handleParticipantChange('adults', false)}
                               disabled={bookingData.adults <= 1}
                               className="w-8 h-8 rounded-full border-2 border-gray-300 flex items-center justify-center disabled:opacity-50 text-sm"
                             >
@@ -2499,7 +2674,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
                             </motion.button>
                             <span className="w-6 text-center font-bold text-sm">{bookingData.adults}</span>
                             <motion.button
-                              onClick={() => handleParticipantChange('adults', true)}
+                              aria-label="Increase adults" onClick={() => handleParticipantChange('adults', true)}
                               className="w-8 h-8 rounded-full border-2 border-red-500 text-red-500 flex items-center justify-center text-sm"
                             >
                               <Plus size={14} />
@@ -2514,7 +2689,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
                           </div>
                           <div className="flex items-center gap-2">
                             <motion.button
-                              onClick={() => handleParticipantChange('children', false)}
+                              aria-label="Decrease children" onClick={() => handleParticipantChange('children', false)}
                               disabled={bookingData.children <= 0}
                               className="w-8 h-8 rounded-full border-2 border-gray-300 flex items-center justify-center disabled:opacity-50 text-sm"
                             >
@@ -2522,7 +2697,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
                             </motion.button>
                             <span className="w-6 text-center font-bold text-sm">{bookingData.children}</span>
                             <motion.button
-                              onClick={() => handleParticipantChange('children', true)}
+                              aria-label="Increase children" onClick={() => handleParticipantChange('children', true)}
                               className="w-8 h-8 rounded-full border-2 border-red-500 text-red-500 flex items-center justify-center text-sm"
                             >
                               <Plus size={14} />
@@ -2537,7 +2712,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
                           </div>
                           <div className="flex items-center gap-2">
                             <motion.button
-                              onClick={() => handleParticipantChange('infants', false)}
+                              aria-label="Decrease infants" onClick={() => handleParticipantChange('infants', false)}
                               disabled={bookingData.infants <= 0}
                               className="w-8 h-8 rounded-full border-2 border-gray-300 flex items-center justify-center disabled:opacity-50 text-sm"
                             >
@@ -2545,7 +2720,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
                             </motion.button>
                             <span className="w-6 text-center font-bold text-sm">{bookingData.infants}</span>
                             <motion.button
-                              onClick={() => handleParticipantChange('infants', true)}
+                              aria-label="Increase infants" onClick={() => handleParticipantChange('infants', true)}
                               className="w-8 h-8 rounded-full border-2 border-red-500 text-red-500 flex items-center justify-center text-sm"
                             >
                               <Plus size={14} />
@@ -2610,14 +2785,21 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
             <h2 ref={stepHeadingRef} tabIndex={-1} className="text-xl sm:text-2xl font-bold text-gray-800 mb-2 focus:outline-none">{t('booking.enhance')}</h2>
             <p className="text-gray-600 mb-6">{t('booking.enhanceDescription')}</p>
             <div className="space-y-4 sm:space-y-6">
-              {availableAddOns.map(addOn => (
-                <AddOnCard
-                  key={addOn.id}
-                  addOn={addOn}
-                  quantity={bookingData.selectedAddOns[addOn.id] || 0}
-                  onQuantityChange={handleAddOnQuantityChange}
-                  guestCount={bookingData.adults + bookingData.children}
-                />
+              {groupAvailableAddOns(availableAddOns).map((group) => (
+                <div key={group.key} className="space-y-4 sm:space-y-6" data-testid={`addon-group-${group.key}`}>
+                  {group.title && (
+                    <h3 className="text-sm font-bold uppercase tracking-wide text-gray-500">{group.title}</h3>
+                  )}
+                  {group.addOns.map(addOn => (
+                    <AddOnCard
+                      key={addOn.id}
+                      addOn={addOn}
+                      quantity={bookingData.selectedAddOns[addOn.id] || 0}
+                      onQuantityChange={handleAddOnQuantityChange}
+                      guestCount={bookingData.adults + bookingData.children}
+                    />
+                  ))}
+                </div>
               ))}
               {availableAddOns.length === 0 && (
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-600">
@@ -2662,7 +2844,9 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
                     if (!addOn) return null;
                     
                     const IconComponent = addOn.icon || Gift;
-                    const addOnQuantity = addOn.perGuest ? (bookingData.adults + bookingData.children) : quantity;
+                    const addOnQuantity = addOn.perGuest
+                      ? clampAddOnQuantity(quantity, perPersonAddOnLimit(bookingData.adults, bookingData.children))
+                      : quantity;
                     const totalPrice = addOn.price * addOnQuantity;
                     
                     return (
@@ -2672,7 +2856,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
                         </div>
                         <div className="flex-1">
                           <div className="font-semibold text-gray-800 text-sm">{addOn.title}</div>
-                          <div className="text-xs text-gray-500">{addOn.category}</div>
+                          <div className="text-xs text-gray-500">{addOn.category} · ×{addOnQuantity}</div>
                         </div>
                         <div className="text-end">
                           <div className="font-bold text-purple-600">{formatPrice(totalPrice)}</div>

@@ -4,9 +4,12 @@ import dbConnect from '@/lib/dbConnect';
 import Booking from '@/lib/models/Booking';
 import { bookingPaymentFields, isDuplicateKeyError } from '@/lib/security/paymentEvidence';
 import Tour from '@/lib/models/Tour';
-import { authoritativeBasePrice } from '@/lib/pricing/authoritativePrice';
 import { effectiveUnitSize, isUnitPricedType, unitCount, type UnitCapacityOption } from '@/lib/bookings/unitPricing';
-import { optionSubtotal } from '@/lib/bookings/optionSubtotal';
+import { guestPricesFromBase } from '@/lib/revenue/guestPrices';
+import { lineAddOnQuantity, lineTotal } from '@/lib/checkout/lineTotals';
+import { unpackCartMetadata } from '@/lib/checkout/cartMetadata';
+import { recoverPaidCartLine, type PaidCartSummaryItem } from '@/lib/checkout/recoveryPricing';
+import { allocateChargedTotal } from '@/lib/bookings/storedLinePricing';
 import User from '@/lib/models/user';
 import Discount from '@/lib/models/Discount';
 import { EmailService } from '@/lib/email/emailService';
@@ -16,7 +19,12 @@ import { buildGoogleMapsLink, buildStaticMapImageUrl } from '@/lib/utils/mapImag
 import { getTenantConfigCached, getTenantFromRequest } from '@/lib/tenant';
 import { ITenant } from '@/lib/models/Tenant';
 import { TenantEmailBranding } from '@/lib/email/type';
-import { calculateCheckoutPricing, checkoutCustomerRef, checkoutFingerprint } from '@/lib/security/checkoutPricing';
+import {
+  calculateCheckoutPricing,
+  CheckoutPriceChangedError,
+  checkoutCustomerRef,
+  checkoutFingerprint,
+} from '@/lib/security/checkoutPricing';
 import { signToken } from '@/lib/jwt';
 import mongoose from 'mongoose';
 import Availability from '@/lib/models/Availability';
@@ -175,6 +183,69 @@ async function reserveAvailability(
   await availability.save({ session });
 }
 
+async function recoverSettledCheckout(
+  metadata: Record<string, string>,
+  tenantId: string,
+  currency: string,
+  amountMinor: number,
+) {
+  let summary: PaidCartSummaryItem[];
+  try {
+    const parsed = JSON.parse(unpackCartMetadata(metadata)) as unknown;
+    if (!Array.isArray(parsed) || parsed.length < 1 || parsed.length > 10) throw new Error('Invalid paid cart');
+    summary = parsed as PaidCartSummaryItem[];
+  } catch {
+    throw new Error('Paid booking details are unavailable. Please contact support.');
+  }
+  const expectedCount = Number(metadata.tour_count);
+  if (!Number.isInteger(expectedCount) || expectedCount !== summary.length) {
+    throw new Error('Paid booking details do not match this payment.');
+  }
+
+  const cart = [];
+  const lineSubtotals: number[] = [];
+  for (const item of summary) {
+    const tour = await Tour.findOne({
+      _id: item.t,
+      $or: [{ tenantId }, { tenantIds: tenantId }],
+    }).select('_id title originalPrice').lean<{ _id: mongoose.Types.ObjectId; title: string; originalPrice?: number } | null>();
+    if (!tour) throw new Error('A paid tour is no longer available to this website. Please contact support.');
+    const recovered = recoverPaidCartLine(item, {
+      id: String(tour._id),
+      title: tour.title,
+      originalPrice: tour.originalPrice,
+    });
+    cart.push(recovered.cartItem);
+    lineSubtotals.push(recovered.lineSubtotal);
+  }
+
+  const subtotal = Number(lineSubtotals.reduce((sum, value) => sum + value, 0).toFixed(2));
+  const serviceFee = Number((subtotal * 0.03).toFixed(2));
+  const tax = Number((subtotal * 0.05).toFixed(2));
+  const discount = Number(Number(metadata.pricing_discount || 0).toFixed(2));
+  const total = Number((subtotal + serviceFee + tax - discount).toFixed(2));
+  if (!Number.isFinite(discount) || discount < 0 || discount > subtotal + serviceFee + tax || total <= 0) {
+    throw new Error('Paid pricing details are invalid. Please contact support.');
+  }
+  const recorded = {
+    subtotal: Number(metadata.pricing_subtotal),
+    serviceFee: Number(metadata.pricing_service_fee),
+    tax: Number(metadata.pricing_tax),
+    total: Number(metadata.pricing_total),
+  };
+  if (
+    !Object.values(recorded).every(Number.isFinite)
+    || Math.abs(recorded.subtotal - subtotal) > 0.001
+    || Math.abs(recorded.serviceFee - serviceFee) > 0.001
+    || Math.abs(recorded.tax - tax) > 0.001
+    || Math.abs(recorded.total - total) > 0.001
+    || Math.round(total * 100) !== amountMinor
+    || String(metadata.pricing_currency || '').toUpperCase() !== currency.toUpperCase()
+  ) throw new Error('Paid pricing details do not match this payment.');
+
+  return { cart, pricing: { subtotal, serviceFee, tax, discount, total } };
+}
+
 export async function POST(request: Request) {
   try {
     await dbConnect();
@@ -218,23 +289,78 @@ export async function POST(request: Request) {
     
     // Get tenant configuration for tenant-specific settings
     const tenantConfig = await getTenantConfigCached(tenantId);
-    const validatedCheckout = await calculateCheckoutPricing(cart, tenantId, discountCode);
-    cart = validatedCheckout.cart;
-    const pricing = {
-      ...validatedCheckout.pricing,
-      currency: tenantConfig?.payments?.currency || 'USD',
-      symbol: tenantConfig?.payments?.currencySymbol || '$',
-    };
     const supportedPaymentMethods = resolveExecutablePaymentMethods(
       tenantConfig?.payments?.supportedPaymentMethods ?? ['card'],
     );
-
-    if (!isCustomerPaymentMethod(paymentMethod) || !supportedPaymentMethods.includes(paymentMethod)) {
+    if (!isCustomerPaymentMethod(paymentMethod) || paymentMethod !== 'card') {
       return NextResponse.json(
         { success: false, message: 'Selected payment method is not available for this tenant.' },
         { status: 400, headers: { 'Cache-Control': 'no-store' } },
       );
     }
+
+    const paymentIntentId = typeof paymentDetails?.paymentIntentId === 'string'
+      ? paymentDetails.paymentIntentId.trim()
+      : '';
+    if (!paymentIntentId) throw new Error('A verified payment intent is required.');
+    let paymentIntent: Stripe.PaymentIntent;
+    try {
+      paymentIntent = await getStripe().paymentIntents.retrieve(paymentIntentId, { expand: ['latest_charge'] });
+      assertStripePaymentAvailableForBooking(paymentIntent);
+    } catch (stripeError: any) {
+      console.error('Stripe payment verification error:', stripeError);
+      throw new Error(stripeError.message || 'Payment verification failed. Please contact support.');
+    }
+
+    const paidMetadata = paymentIntent.metadata || {};
+    const paidCurrency = String(paidMetadata.pricing_currency || paymentIntent.currency || '').toUpperCase();
+    if (
+      paidMetadata.has_booking_data !== 'true'
+      || paidMetadata.tenant_id !== tenantId
+      || paidMetadata.customer_ref !== checkoutCustomerRef(String(customer.email))
+      || !/^[A-Z]{3}$/.test(paidCurrency)
+      || paymentIntent.currency.toUpperCase() !== paidCurrency
+    ) throw new Error('Payment does not match this checkout.');
+    if (!supportedPaymentMethods.includes('card')) {
+      // Provider policy is enforced before the intent is created. Once Stripe
+      // has settled it, a later admin setting must not strand the paid order.
+      console.warn('Finalizing a settled card payment after the tenant disabled new card checkouts.');
+    }
+    const metadataDiscount = paidMetadata.discount_code && paidMetadata.discount_code !== 'none'
+      ? paidMetadata.discount_code.toUpperCase()
+      : null;
+    const appliedDiscountCode = metadataDiscount || (paidMetadata.discount_code ? null : discountCode);
+
+    let validatedCheckout: Awaited<ReturnType<typeof calculateCheckoutPricing>>;
+    try {
+      validatedCheckout = await calculateCheckoutPricing(cart, tenantId, appliedDiscountCode);
+    } catch (_pricingError) {
+      // Stripe has already accepted this server-authored quote. Recover that
+      // immutable snapshot when a later catalogue edit makes a fresh quote
+      // impossible; live inventory is still rechecked in the transaction.
+      validatedCheckout = await recoverSettledCheckout(
+        paidMetadata,
+        tenantId,
+        paidCurrency,
+        paymentIntent.amount,
+      );
+    }
+    cart = validatedCheckout.cart;
+    const pricing = {
+      ...validatedCheckout.pricing,
+      currency: paidCurrency,
+      symbol: tenantConfig?.payments?.currencySymbol || '$',
+    };
+    if (
+      paidMetadata.checkout_fingerprint !== checkoutFingerprint(cart, tenantId, paidCurrency)
+      || paymentIntent.amount !== Math.round(pricing.total * 100)
+    ) throw new Error('Payment does not match this checkout.');
+    const paymentResult = {
+      paymentId: paymentIntent.id,
+      status: paymentIntent.status,
+      amount: paymentIntent.amount / 100,
+      currency: paymentIntent.currency.toUpperCase(),
+    };
 
     let user = null;
 
@@ -315,83 +441,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Card is currently the only provider with a complete executable lifecycle.
-    let paymentResult;
-    {
-      // Process payment with Stripe for card payments.
-      try {
-        if (!paymentDetails?.paymentIntentId) {
-          throw new Error('A verified payment intent is required.');
-        }
-        // If paymentIntentId is provided, verify the payment
-        if (paymentDetails?.paymentIntentId) {
-          const stripe = getStripe();
-          const paymentIntent = await stripe.paymentIntents.retrieve(paymentDetails.paymentIntentId, {
-            expand: ['latest_charge'],
-          });
-          assertStripePaymentAvailableForBooking(paymentIntent);
-
-          if (
-            paymentIntent.metadata?.has_booking_data !== 'true' ||
-            paymentIntent.metadata?.tenant_id !== tenantId ||
-            paymentIntent.metadata?.customer_ref !== checkoutCustomerRef(String(customer.email)) ||
-            paymentIntent.metadata?.checkout_fingerprint !== checkoutFingerprint(cart, tenantId, String(pricing.currency)) ||
-            paymentIntent.currency.toLowerCase() !== String(pricing.currency).toLowerCase()
-          ) {
-            throw new Error('Payment does not match this checkout.');
-          }
-
-          // Verify the amount matches
-          const expectedAmount = Math.round(pricing.total * 100);
-          if (paymentIntent.amount !== expectedAmount) {
-            throw new Error('Payment amount mismatch. Please contact support.');
-          }
-
-          paymentResult = {
-            paymentId: paymentIntent.id,
-            status: paymentIntent.status,
-            amount: paymentIntent.amount / 100,
-            currency: paymentIntent.currency.toUpperCase(),
-          };
-        } else {
-          // Fallback: Create and auto-confirm PaymentIntent (for backward compatibility)
-          const stripe = getStripe();
-          const paymentIntent = await stripe.paymentIntents.create({
-            amount: Math.round(pricing.total * 100),
-            currency: (pricing.currency || 'USD').toLowerCase(),
-            description: `Booking for ${cart.length} tour${cart.length > 1 ? 's' : ''}`,
-            metadata: {
-              customer_email: customer.email,
-              customer_name: `${customer.firstName} ${customer.lastName}`,
-              tours: cart.map((item: any) => item.title).join(', '),
-              discount_code: discountCode || 'none',
-            },
-            // receipt_email removed - we send our own booking confirmation email
-            confirm: true,
-            automatic_payment_methods: {
-              enabled: true,
-              allow_redirects: 'never',
-            },
-            payment_method: 'pm_card_visa', // Test only - won't work with live keys
-          });
-
-          if (paymentIntent.status !== 'succeeded') {
-            throw new Error('Payment processing failed. Please try a different payment method.');
-          }
-
-          paymentResult = {
-            paymentId: paymentIntent.id,
-            status: paymentIntent.status,
-            amount: paymentIntent.amount / 100,
-            currency: paymentIntent.currency.toUpperCase(),
-          };
-        }
-      } catch (stripeError: any) {
-        console.error('Stripe payment error:', stripeError);
-        throw new Error(stripeError.message || 'Payment processing failed. Please try again.');
-      }
-    }
-
     // Idempotency guard for Stripe payments to avoid duplicate bookings/emails
     if (paymentResult?.paymentId) {
       const existingBookings = await Booking.find({
@@ -437,6 +486,9 @@ export async function POST(request: Request) {
     // Create every item atomically. A paid multi-item order must never leave a
     // partial set of bookings if one item fails validation or persistence.
     const createdBookings = [];
+    const lineSubtotals = cart.map((item: any) => lineTotal(item));
+    const chargedLineTotals = allocateChargedTotal(lineSubtotals, pricing.total);
+    const lineDiscounts = allocateChargedTotal(lineSubtotals, pricing.discount);
     const bookingSession = await mongoose.startSession();
     bookingSession.startTransaction();
     try {
@@ -467,50 +519,10 @@ export async function POST(request: Request) {
           bookingSession,
         );
 
-        // Calculate the correct total price including add-ons and fees
-        const calculateItemTotal = () => {
-          // Priced from the stored tour, not from the submitted cart: the
-          // discount lives on the tour as a percentage and the browser has no
-          // authority over what a guest is charged.
-          const basePrice = authoritativeBasePrice(tour, cartItem);
-          // A unit-priced option (Per Couple / Per Family / Per Group) covers a
-          // WHOLE unit. Charging it per guest multiplied a group price by the
-          // head count. The option type is read from the STORED tour, never
-          // from the submitted cart.
-          const storedOptions = ((tour as unknown as { bookingOptions?: Array<Record<string, unknown>> })?.bookingOptions) ?? [];
-          const requestedOptionId = cartItem.selectedBookingOption?.id;
-          const storedOption = requestedOptionId
-            ? (Array.isArray(storedOptions) ? storedOptions : []).find((candidate, index) =>
-                String(candidate.id || `option-${index}`) === String(requestedOptionId))
-            : undefined;
-          let tourTotal = optionSubtotal(
-            (storedOption as UnitCapacityOption | undefined) ?? null,
-            basePrice,
-            cartItem.quantity || 1,
-            cartItem.childQuantity || 0,
-            cartItem.infantQuantity || 0,
-          );
-
-          let addOnsTotal = 0;
-          if (cartItem.selectedAddOns && cartItem.selectedAddOnDetails) {
-            Object.entries(cartItem.selectedAddOns).forEach(([addOnId, quantity]) => {
-              const addOnDetail = cartItem.selectedAddOnDetails?.[addOnId];
-              if (addOnDetail && Number(quantity) > 0) {
-                const guestsForAddOns = (cartItem.quantity || 0) + (cartItem.childQuantity || 0);
-                const addOnQuantity = addOnDetail.perGuest ? guestsForAddOns : Number(quantity);
-                addOnsTotal += addOnDetail.price * addOnQuantity;
-              }
-            });
-          }
-
-          const subtotal = tourTotal + addOnsTotal;
-          const serviceFee = subtotal * 0.03;
-          const tax = subtotal * 0.05;
-
-          return subtotal + serviceFee + tax;
-        };
-
-        const itemTotalPrice = calculateItemTotal();
+        // Allocate the amount Stripe actually charged across the order in
+        // whole cents. The booking rows therefore sum exactly to the payment,
+        // including order-level discount and rounding.
+        const itemTotalPrice = chargedLineTotals[i];
 
         // Generate unique booking reference with tenant-specific prefix
         const bookingReference = await generateUniqueBookingReference(tenantId, tenantConfig);
@@ -528,6 +540,7 @@ export async function POST(request: Request) {
           time: bookingTime,
           guests: totalGuests,
           totalPrice: itemTotalPrice,
+          currency: String(pricing.currency || 'USD').toUpperCase(),
           status: evidence.status,
           paymentStatus: evidence.paymentStatus,
           amountPaid: evidence.amountPaid,
@@ -544,9 +557,22 @@ export async function POST(request: Request) {
           adultGuests: cartItem.quantity || 1,
           childGuests: cartItem.childQuantity || 0,
           infantGuests: cartItem.infantQuantity || 0,
+          guestPrices: cartItem.guestPrices,
           selectedAddOns: cartItem.selectedAddOns || {},
           selectedBookingOption: cartItem.selectedBookingOption,
+          priceSnapshot: {
+            guestPrices: cartItem.guestPrices,
+            unitPricing: cartItem.unitPricing || undefined,
+            version: Number(cartItem.priceVersion || 0),
+            sourceVersion: cartItem.priceSourceVersion || undefined,
+            executionId: cartItem.priceExecutionId || undefined,
+            overrideId: cartItem.priceOverrideId || undefined,
+            source: cartItem.priceOverrideId ? 'override' : 'catalogue',
+            capturedAt: new Date(),
+          },
           selectedAddOnDetails: cartItem.selectedAddOnDetails || {},
+          discountCode: appliedDiscountCode || undefined,
+          discountAmount: lineDiscounts[i] > 0 ? lineDiscounts[i] : undefined,
         }], { session: bookingSession });
 
         createdBookings.push(booking);
@@ -585,9 +611,9 @@ export async function POST(request: Request) {
 
     // Count usage only after the order transaction commits. Failed/rolled-back
     // checkouts must not consume a limited discount.
-    if (discountCode) {
+    if (appliedDiscountCode) {
       await Discount.findOneAndUpdate(
-        { code: String(discountCode).toUpperCase(), tenantId },
+        { code: String(appliedDiscountCode).toUpperCase(), tenantId },
         { $inc: { timesUsed: 1 } },
       );
     }
@@ -605,20 +631,7 @@ export async function POST(request: Request) {
     const currencySymbol = pricing?.symbol || '$';
     const formatMoney = (value?: number) => formatCurrencyValue(value, currencySymbol);
     const orderedItemsSummary = cart.map((item: any) => {
-      const basePrice = item.selectedBookingOption?.price || item.discountPrice || item.price || 0;
-      // Same rule as the charge: whole-unit options are not multiplied per guest.
-      let total = optionSubtotal(item.selectedBookingOption ?? null, basePrice, item.quantity || 1, item.childQuantity || 0, item.infantQuantity || 0);
-
-      if (item.selectedAddOns && item.selectedAddOnDetails) {
-        Object.entries(item.selectedAddOns).forEach(([addOnId, quantity]) => {
-          const addOnDetail = item.selectedAddOnDetails?.[addOnId];
-          if (addOnDetail && Number(quantity) > 0) {
-            const guestsForAddOns = (item.quantity || 0) + (item.childQuantity || 0);
-            const addOnQuantity = addOnDetail.perGuest ? guestsForAddOns : Number(quantity);
-            total += addOnDetail.price * addOnQuantity;
-          }
-        });
-      }
+      const total = lineTotal(item);
 
       return {
         title: item.title,
@@ -676,13 +689,17 @@ export async function POST(request: Request) {
         const basePrice = mainCartItem?.selectedBookingOption?.price || mainCartItem?.discountPrice || mainCartItem?.price || 0;
         participantParts.push(`${adultCount} x Adult${adultCount > 1 ? 's' : ''} ($${basePrice.toFixed(2)})`);
       }
+      const mainGuestPrices = guestPricesFromBase(
+        mainCartItem?.selectedBookingOption?.price || mainCartItem?.discountPrice || mainCartItem?.price || 0,
+        mainCartItem?.guestPrices,
+      );
       if (!mainIsUnitPriced && childCount > 0) {
-        const basePrice = mainCartItem?.selectedBookingOption?.price || mainCartItem?.discountPrice || mainCartItem?.price || 0;
-        const childPrice = basePrice / 2;
-        participantParts.push(`${childCount} x Child${childCount > 1 ? 'ren' : ''} ($${childPrice.toFixed(2)})`);
+        participantParts.push(`${childCount} x Child${childCount > 1 ? 'ren' : ''} ($${mainGuestPrices.child.toFixed(2)})`);
       }
       if (infantCount > 0) {
-        participantParts.push(`${infantCount} x Infant${infantCount > 1 ? 's' : ''} (Free)`);
+        participantParts.push(mainIsUnitPriced || mainGuestPrices.infant <= 0
+          ? `${infantCount} x Infant${infantCount > 1 ? 's' : ''} (Free)`
+          : `${infantCount} x Infant${infantCount > 1 ? 's' : ''} ($${mainGuestPrices.infant.toFixed(2)})`);
       }
 
       const emailBaseUrl = process.env.NEXT_PUBLIC_BASE_URL || '';
@@ -738,37 +755,16 @@ export async function POST(request: Request) {
         // Get add-ons details
         const addOns: string[] = [];
         if (item.selectedAddOns && item.selectedAddOnDetails) {
-          Object.entries(item.selectedAddOns).forEach(([addOnId, quantity]) => {
+          Object.entries(item.selectedAddOns).forEach(([addOnId]) => {
             const addOnDetail = item.selectedAddOnDetails?.[addOnId];
-            const numericQuantity = Number(quantity);
-            if (addOnDetail && numericQuantity > 0) {
-              addOns.push(addOnDetail.title);
+            const units = lineAddOnQuantity(item, addOnId);
+            if (addOnDetail && units > 0) {
+              addOns.push(`${addOnDetail.title} ×${units}`);
             }
           });
         }
 
         // Calculate item price
-        const getItemTotal = (item: any) => {
-          const basePrice = item.selectedBookingOption?.price || item.discountPrice || item.price || 0;
-          // Same rule as the charge: whole-unit options are not multiplied per guest.
-          let tourTotal = optionSubtotal(item.selectedBookingOption ?? null, basePrice, item.quantity || 1, item.childQuantity || 0, item.infantQuantity || 0);
-
-          let addOnsTotal = 0;
-          if (item.selectedAddOns && item.selectedAddOnDetails) {
-            Object.entries(item.selectedAddOns).forEach(([addOnId, quantity]) => {
-              const addOnDetail = item.selectedAddOnDetails?.[addOnId];
-              const numericQuantity = Number(quantity);
-              if (addOnDetail && numericQuantity > 0) {
-                const totalGuests = (item.quantity || 0) + (item.childQuantity || 0);
-                const addOnQuantity = addOnDetail.perGuest ? totalGuests : numericQuantity;
-                addOnsTotal += addOnDetail.price * addOnQuantity;
-              }
-            });
-          }
-
-          return tourTotal + addOnsTotal;
-        };
-
         return {
           title: tour?.title || item.title,
           // Use parseLocalDate to ensure consistent date parsing
@@ -787,7 +783,7 @@ export async function POST(request: Request) {
           infants: item.infantQuantity || 0,
           bookingOption: item.selectedBookingOption?.title,
           addOns: addOns.length > 0 ? addOns : undefined,
-          price: formatMoney(getItemTotal(item))
+          price: formatMoney(lineTotal(item))
         };
       }));
 
@@ -864,6 +860,13 @@ export async function POST(request: Request) {
 
   } catch (error: any) {
     console.error('Checkout error:', error);
+
+    if (error instanceof CheckoutPriceChangedError) {
+      return NextResponse.json(
+        { success: false, code: error.code, message: error.message, quote: error.quote },
+        { status: 409, headers: { 'Cache-Control': 'no-store' } },
+      );
+    }
     
     if (error.message.includes('Payment processing failed')) {
       return NextResponse.json(

@@ -22,6 +22,8 @@ export interface IBooking extends Document {
   time: string;
   guests: number;
   totalPrice: number;
+  /** ISO-4217 currency frozen with the booking; legacy rows may omit it. */
+  currency?: string;
   status:
     | 'Confirmed'
     | 'Pending'
@@ -73,9 +75,20 @@ export interface IBooking extends Document {
   adultGuests?: number;
   childGuests?: number;
   infantGuests?: number;
+  /**
+   * Unit prices each guest type was charged, resolved from the stored tour
+   * for the selected option and departure at booking time. Absent on legacy
+   * bookings, which were priced child = half the adult price, infant free.
+   */
+  guestPrices?: {
+    adult: number;
+    child: number;
+    infant: number;
+  };
   selectedAddOns?: { [key: string]: number };
   selectedBookingOption?: {
     id: string;
+    pricingKey?: string;
     title: string;
     /** Per Person / Per Couple / Per Family / Per Group — drives the whole-unit pricing rule. */
     type?: string;
@@ -84,6 +97,17 @@ export interface IBooking extends Document {
     duration?: string;
     badge?: string;
   };
+  /** Immutable price evidence captured when the booking was charged/created. */
+  priceSnapshot?: {
+    guestPrices: { adult: number; child: number; infant: number };
+    unitPricing?: { unitSize: number; unitPrice: number };
+    version: number;
+    sourceVersion?: string;
+    executionId?: string;
+    overrideId?: string;
+    source?: 'catalogue' | 'override' | 'manual';
+    capturedAt: Date;
+  };
   selectedAddOnDetails?: {
     [key: string]: {
       id: string;
@@ -91,6 +115,8 @@ export interface IBooking extends Document {
       price: number;
       category?: string;
       perGuest?: boolean;
+      /** Server-authoritative units billed for new per-person selections. */
+      quantity?: number;
     };
   };
   createdAt: Date;
@@ -100,6 +126,7 @@ export interface IBooking extends Document {
 const SelectedBookingOptionSchema = new Schema(
   {
     id: String,
+    pricingKey: String,
     title: String,
     // `type: { type: String }` is the explicit form; a bare `type: String`
     // here would be read as this schema's own SchemaType.
@@ -108,6 +135,18 @@ const SelectedBookingOptionSchema = new Schema(
     originalPrice: Number,
     duration: String,
     badge: String,
+  },
+  { _id: false },
+);
+
+// The per-guest unit prices recorded with the booking. No field here is named
+// `type`, so an inline declaration would be safe, but it is kept as its own
+// Schema for the same reason as SelectedBookingOptionSchema.
+const GuestPricesSchema = new Schema(
+  {
+    adult: { type: Number, required: true, min: 0 },
+    child: { type: Number, required: true, min: 0 },
+    infant: { type: Number, required: true, min: 0 },
   },
   { _id: false },
 );
@@ -201,6 +240,12 @@ const BookingSchema: Schema<IBooking> = new Schema({
     type: Number,
     required: true,
     min: 0,
+  },
+  currency: {
+    type: String,
+    uppercase: true,
+    trim: true,
+    match: [/^[A-Z]{3}$/, 'Currency must be a three-letter ISO code'],
   },
   
   status: {
@@ -345,6 +390,11 @@ const BookingSchema: Schema<IBooking> = new Schema({
     min: 0,
     default: 0,
   },
+
+  guestPrices: {
+    type: GuestPricesSchema,
+    required: false,
+  },
   
   selectedAddOns: {
     type: Map,
@@ -361,6 +411,23 @@ const BookingSchema: Schema<IBooking> = new Schema({
     required: false,
   },
 
+  priceSnapshot: {
+    type: {
+      guestPrices: { adult: Number, child: Number, infant: Number },
+      unitPricing: {
+        type: { unitSize: Number, unitPrice: Number },
+        required: false,
+      },
+      version: { type: Number, required: true },
+      sourceVersion: String,
+      executionId: String,
+      overrideId: String,
+      source: { type: String, enum: ['catalogue', 'override', 'manual'] },
+      capturedAt: { type: Date, required: true },
+    },
+    required: false,
+  },
+
   selectedAddOnDetails: {
     type: Map,
     of: {
@@ -369,6 +436,7 @@ const BookingSchema: Schema<IBooking> = new Schema({
       price: Number,
       category: String,
       perGuest: Boolean,
+      quantity: { type: Number, min: 1 },
     },
     default: new Map(),
   },

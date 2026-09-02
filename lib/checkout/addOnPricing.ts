@@ -1,3 +1,5 @@
+import { clampAddOnQuantity, perPersonAddOnLimit } from '@/lib/bookings/bookingSelection';
+
 export type AddOnPricingMethod = 'per_unit' | 'per_person';
 
 type AddOnLike = {
@@ -16,4 +18,34 @@ export function isPerPersonAddOn(addOn: AddOnLike): boolean {
 
 export function resolveAddOnPricingMethod(addOn: AddOnLike): AddOnPricingMethod {
   return isPerPersonAddOn(addOn) ? 'per_person' : 'per_unit';
+}
+
+export type StoredAddOnDetail = AddOnLike & {
+  quantity?: number | null;
+};
+
+const positiveInt = (value: unknown): number => {
+  const parsed = Math.floor(Number(value));
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+};
+
+/**
+ * Units a persisted add-on line was actually billed for.
+ *
+ * New bookings record the server-authoritative chosen quantity on the detail.
+ * Legacy per-person bookings do not, and were billed for every paying guest,
+ * so they retain that historical interpretation instead of being re-priced.
+ */
+export function storedAddOnUnits(
+  detail: StoredAddOnDetail | null | undefined,
+  storedQuantity: unknown,
+  adults: number,
+  children: number,
+): number {
+  const quantity = positiveInt(storedQuantity);
+  if (!detail?.perGuest) return quantity;
+  const limit = perPersonAddOnLimit(adults, children);
+  const recorded = positiveInt(detail.quantity);
+  if (recorded > 0) return clampAddOnQuantity(recorded, limit);
+  return positiveInt(adults) + positiveInt(children);
 }

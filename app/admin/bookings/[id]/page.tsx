@@ -36,8 +36,9 @@ import toast from 'react-hot-toast';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
 import { useAdminTenant } from '@/contexts/AdminTenantContext';
 import { toSafeCsvCell } from '@/lib/admin/csv';
-import { optionSubtotal } from '@/lib/bookings/optionSubtotal';
 import { isUnitPricedType } from '@/lib/bookings/unitPricing';
+import { guestPricedSubtotal, guestPricesFromBase } from '@/lib/revenue/guestPrices';
+import { storedAddOnUnits } from '@/lib/checkout/addOnPricing';
 
 // Enhanced interfaces matching your booking model
 interface BookingUser {
@@ -68,6 +69,7 @@ interface BookingTour {
 interface BookingDetails {
   dateString?: string;
   _id: string;
+  tenantId: string;
   bookingReference?: string;
   source?: 'online' | 'manual';
   paymentStatus?: 'paid' | 'pending' | 'pay_on_arrival';
@@ -96,6 +98,7 @@ interface BookingDetails {
   adultGuests?: number;
   childGuests?: number;
   infantGuests?: number;
+  guestPrices?: { adult: number; child: number; infant: number };
   paymentId?: string;
   paymentMethod?: string;
   specialRequests?: string;
@@ -110,6 +113,7 @@ interface BookingDetails {
   selectedAddOns?: { [key: string]: number };
   selectedBookingOption?: {
     id: string;
+    pricingKey?: string;
     title: string;
     type?: string;
     price: number;
@@ -122,6 +126,7 @@ interface BookingDetails {
       title: string;
       price: number;
       perGuest?: boolean;
+      quantity?: number;
     };
   };
   confirmationSentAt?: string;
@@ -132,6 +137,22 @@ interface BookingDetails {
   operatorNotificationFailureCode?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+interface ManualBookingOption {
+  id: string;
+  pricingKey?: string | null;
+  title: string;
+  type: string;
+  price: number;
+  timeSlots?: Array<{ id: string; time: string }>;
+}
+
+interface ManualPriceQuote {
+  prices: { adult: number; child: number; infant: number };
+  currency: string;
+  version: number;
+  source: 'catalogue' | 'override';
 }
 
 // Safe toFixed helper - handles undefined/null/NaN values
@@ -189,6 +210,7 @@ const BookingDetailPage = () => {
     children: 0,
     infants: 0,
     bookingOptionType: '',
+    bookingOptionKey: '',
     paymentStatus: 'paid' as 'paid' | 'pending' | 'pay_on_arrival',
     paymentMethod: 'cash' as 'cash' | 'card' | 'bank' | 'pay_later' | 'other',
     amountPaid: '' as string,
@@ -198,6 +220,10 @@ const BookingDetailPage = () => {
     specialRequests: '',
     internalNotes: '',
   });
+  const [manualOptions, setManualOptions] = useState<ManualBookingOption[]>([]);
+  const [manualQuote, setManualQuote] = useState<ManualPriceQuote | null>(null);
+  const [manualQuoteError, setManualQuoteError] = useState('');
+  const [loadingManualQuote, setLoadingManualQuote] = useState(false);
   const [savingManualEdit, setSavingManualEdit] = useState(false);
   
   const params = useParams();
@@ -268,7 +294,8 @@ const BookingDetailPage = () => {
       adults: booking.adultGuests ?? 1,
       children: booking.childGuests ?? 0,
       infants: booking.infantGuests ?? 0,
-      bookingOptionType: booking.selectedBookingOption?.id || '',
+      bookingOptionType: booking.selectedBookingOption?.type || '',
+      bookingOptionKey: booking.selectedBookingOption?.pricingKey || '',
       paymentStatus: booking.paymentStatus || 'paid',
       paymentMethod: (booking.paymentMethod as any) || 'cash',
       amountPaid: booking.amountPaid !== undefined ? String(booking.amountPaid) : '',
@@ -280,11 +307,78 @@ const BookingDetailPage = () => {
     });
   }, [booking]);
 
+  useEffect(() => {
+    if (!booking || booking.source !== 'manual' || !token) return;
+    const controller = new AbortController();
+    const params = new URLSearchParams({ tenantId: booking.tenantId, tourId: booking.tour._id });
+    fetch(`/api/bookings/manual/options?${params}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store',
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload?.error || 'Failed to load booking options.');
+        const options = Array.isArray(payload.options) ? payload.options as ManualBookingOption[] : [];
+        setManualOptions(options);
+        setManualEdit((current) => {
+          if (current.bookingOptionKey) return current;
+          const match = options.find((option) => option.id === booking.selectedBookingOption?.id)
+            || options.find((option) => option.type === current.bookingOptionType);
+          return match ? { ...current, bookingOptionKey: match.pricingKey || '', bookingOptionType: match.type } : current;
+        });
+      })
+      .catch((error: unknown) => {
+        if (!controller.signal.aborted) setManualQuoteError(error instanceof Error ? error.message : 'Failed to load booking options.');
+      });
+    return () => controller.abort();
+  }, [booking, token]);
+
+  useEffect(() => {
+    if (!showManualEdit || !booking || !token || !manualEdit.bookingOptionKey || !manualEdit.date || !manualEdit.time) {
+      setManualQuote(null);
+      return;
+    }
+    const controller = new AbortController();
+    setLoadingManualQuote(true);
+    setManualQuoteError('');
+    const params = new URLSearchParams({
+      tenantId: booking.tenantId,
+      tourId: booking.tour._id,
+      optionKey: manualEdit.bookingOptionKey,
+      date: manualEdit.date,
+      time: manualEdit.time,
+    });
+    fetch(`/api/bookings/manual/quote?${params}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store',
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload?.error || 'Unable to load the live price.');
+        setManualQuote(payload.quote as ManualPriceQuote);
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
+        setManualQuote(null);
+        setManualQuoteError(error instanceof Error ? error.message : 'Unable to load the live price.');
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoadingManualQuote(false);
+      });
+    return () => controller.abort();
+  }, [showManualEdit, booking, token, manualEdit.bookingOptionKey, manualEdit.date, manualEdit.time]);
+
   const saveManualEdits = async () => {
     if (!booking) return;
     if (booking.source !== 'manual') return;
     if (!token) {
       toast.error('Admin session missing. Please log in again.');
+      return;
+    }
+    if (!manualQuote || manualQuoteError || loadingManualQuote) {
+      toast.error(manualQuoteError || 'Wait for the live RevenuePilot quote before saving.');
       return;
     }
     setSavingManualEdit(true);
@@ -302,6 +396,8 @@ const BookingDetailPage = () => {
           children: manualEdit.children,
           infants: manualEdit.infants,
           bookingOptionType: manualEdit.bookingOptionType,
+          bookingOptionKey: manualEdit.bookingOptionKey,
+          quoteVersion: manualQuote.version,
           paymentStatus: manualEdit.paymentStatus,
           paymentMethod: manualEdit.paymentMethod,
           amountPaid: manualEdit.amountPaid,
@@ -314,6 +410,9 @@ const BookingDetailPage = () => {
       });
       const data = await res.json();
       if (!res.ok || !data?.success) {
+        if (res.status === 409 && data?.code === 'PRICE_CHANGED' && data?.quote) {
+          setManualQuote(data.quote as ManualPriceQuote);
+        }
         throw new Error(data?.error || 'Failed to update manual booking');
       }
       toast.success('Manual booking updated');
@@ -487,25 +586,31 @@ const BookingDetailPage = () => {
     if (!booking) return null;
 
     const basePrice = booking.selectedBookingOption?.price || 0;
-    const tourSubtotal = optionSubtotal(
+    const guestPrices = guestPricesFromBase(basePrice, booking.guestPrices);
+    const tourSubtotal = guestPricedSubtotal(
       booking.selectedBookingOption ?? null,
-      basePrice,
+      guestPrices,
       booking.adultGuests || 1,
       booking.childGuests || 0,
       booking.infantGuests || 0,
     );
     const unitPriced = isUnitPricedType(booking.selectedBookingOption?.type);
     // Whole-unit options have no per-guest split: the unit total sits on the adult row.
-    const adultPrice = unitPriced ? tourSubtotal : basePrice * (booking.adultGuests || 1);
-    const childPrice = unitPriced ? 0 : (basePrice / 2) * (booking.childGuests || 0);
+    const adultPrice = unitPriced ? tourSubtotal : guestPrices.adult * (booking.adultGuests || 1);
+    const childPrice = unitPriced ? 0 : guestPrices.child * (booking.childGuests || 0);
+    const infantPrice = unitPriced ? 0 : guestPrices.infant * (booking.infantGuests || 0);
 
     let addOnsTotal = 0;
     if (booking.selectedAddOns && booking.selectedAddOnDetails) {
       Object.entries(booking.selectedAddOns).forEach(([addOnId, quantity]) => {
         const addOnDetail = booking.selectedAddOnDetails?.[addOnId];
         if (addOnDetail && quantity > 0) {
-          const totalGuests = (booking.adultGuests || 0) + (booking.childGuests || 0);
-          const addOnQuantity = addOnDetail.perGuest ? totalGuests : quantity;
+          const addOnQuantity = storedAddOnUnits(
+            addOnDetail,
+            quantity,
+            booking.adultGuests || 0,
+            booking.childGuests || 0,
+          );
           addOnsTotal += addOnDetail.price * addOnQuantity;
         }
       });
@@ -529,6 +634,8 @@ const BookingDetailPage = () => {
       unitPriced,
       adultPrice,
       childPrice,
+      infantPrice,
+      guestPrices,
       tourSubtotal,
       subtotal,
       addOnsTotal,
@@ -990,20 +1097,22 @@ const BookingDetailPage = () => {
                   </div>
                 ) : booking.adultGuests && booking.adultGuests > 0 ? (
                   <div className="flex justify-between text-slate-700">
-                    <span>{booking.adultGuests} x Adult{booking.adultGuests > 1 ? 's' : ''} (${safeToFixed(booking.selectedBookingOption?.price)})</span>
+                    <span>{booking.adultGuests} x Adult{booking.adultGuests > 1 ? 's' : ''} (${safeToFixed(pricing.guestPrices.adult)})</span>
                     <span className="font-semibold">${safeToFixed(pricing.adultPrice)}</span>
                   </div>
                 ) : null}
                 {!pricing.unitPriced && booking.childGuests && booking.childGuests > 0 && (
                   <div className="flex justify-between text-slate-700">
-                    <span>{booking.childGuests} x Child{booking.childGuests > 1 ? 'ren' : ''} (${safeToFixed((booking.selectedBookingOption?.price || 0) / 2)})</span>
+                    <span>{booking.childGuests} x Child{booking.childGuests > 1 ? 'ren' : ''} (${safeToFixed(pricing.guestPrices.child)})</span>
                     <span className="font-semibold">${safeToFixed(pricing.childPrice)}</span>
                   </div>
                 )}
                 {booking.infantGuests && booking.infantGuests > 0 && (
                   <div className="flex justify-between text-slate-700">
-                    <span>{booking.infantGuests} x Infant{booking.infantGuests > 1 ? 's' : ''}</span>
-                    <span className="font-semibold text-green-600">FREE</span>
+                    <span>{booking.infantGuests} x Infant{booking.infantGuests > 1 ? 's' : ''}{!pricing.unitPriced && pricing.infantPrice > 0 ? ` ($${safeToFixed(pricing.guestPrices.infant)})` : ''}</span>
+                    {!pricing.unitPriced && pricing.infantPrice > 0
+                      ? <span className="font-semibold">${safeToFixed(pricing.infantPrice)}</span>
+                      : <span className="font-semibold text-green-600">FREE</span>}
                   </div>
                 )}
 
@@ -1083,8 +1192,12 @@ const BookingDetailPage = () => {
                   const addOnDetail = booking.selectedAddOnDetails?.[addOnId];
                   if (!addOnDetail || quantity === 0) return null;
                   
-                  const totalGuests = (booking.adultGuests || 0) + (booking.childGuests || 0);
-                    const addOnQuantity = addOnDetail.perGuest ? totalGuests : quantity;
+                  const addOnQuantity = storedAddOnUnits(
+                    addOnDetail,
+                    quantity,
+                    booking.adultGuests || 0,
+                    booking.childGuests || 0,
+                  );
                   const addOnTotal = addOnDetail.price * addOnQuantity;
                   
                   return (
@@ -1099,7 +1212,7 @@ const BookingDetailPage = () => {
                             {addOnDetail.title}
                           </div>
                           <div className="text-sm text-slate-500">
-                            {addOnDetail.perGuest ? `Per guest (${totalGuests} guests)` : 'Per booking'}
+                            {addOnDetail.perGuest ? `Per person (${addOnQuantity} ${addOnQuantity === 1 ? 'unit' : 'units'})` : `Per booking (${addOnQuantity} ${addOnQuantity === 1 ? 'unit' : 'units'})`}
                           </div>
                         </div>
                       </div>
@@ -1108,7 +1221,7 @@ const BookingDetailPage = () => {
                           ${safeToFixed(addOnTotal)}
                         </div>
                         <div className="text-xs text-slate-500">
-                          ${safeToFixed(addOnDetail.price)} {addOnDetail.perGuest ? 'per guest' : 'total'}
+                          ${safeToFixed(addOnDetail.price)} {addOnDetail.perGuest ? 'per person' : 'per unit'}
                         </div>
                       </div>
                     </div>
@@ -1223,13 +1336,36 @@ const BookingDetailPage = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Booking Option Type</label>
-                  <input
-                    value={manualEdit.bookingOptionType}
-                    onChange={(e) => setManualEdit({ ...manualEdit, bookingOptionType: e.target.value })}
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Booking Option</label>
+                  <select
+                    value={manualEdit.bookingOptionKey}
+                    onChange={(e) => {
+                      const option = manualOptions.find((candidate) => candidate.pricingKey === e.target.value);
+                      setManualEdit({
+                        ...manualEdit,
+                        bookingOptionKey: e.target.value,
+                        bookingOptionType: option?.type || '',
+                        time: option?.timeSlots?.some((slot) => slot.time === manualEdit.time)
+                          ? manualEdit.time
+                          : option?.timeSlots?.[0]?.time || manualEdit.time,
+                      });
+                    }}
                     className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500"
-                    placeholder="Must match tour booking option type"
-                  />
+                  >
+                    <option value="">Select option…</option>
+                    {manualOptions.map((option) => (
+                      <option key={option.id} value={option.pricingKey || ''} disabled={!option.pricingKey}>
+                        {option.title} — {option.price.toFixed(2)}
+                      </option>
+                    ))}
+                  </select>
+                  {loadingManualQuote && <p className="mt-1 text-xs text-slate-500">Loading live RevenuePilot price…</p>}
+                  {!loadingManualQuote && manualQuoteError && <p className="mt-1 text-xs text-red-600">{manualQuoteError}</p>}
+                  {!loadingManualQuote && manualQuote && (
+                    <p className="mt-1 text-xs text-slate-500">
+                      {manualQuote.currency} — Adult {manualQuote.prices.adult.toFixed(2)}, child {manualQuote.prices.child.toFixed(2)}, infant {manualQuote.prices.infant.toFixed(2)} · {manualQuote.source} v{manualQuote.version}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -1324,7 +1460,7 @@ const BookingDetailPage = () => {
               </button>
               <button
                 onClick={saveManualEdits}
-                disabled={savingManualEdit}
+                disabled={savingManualEdit || loadingManualQuote || !manualQuote || Boolean(manualQuoteError)}
                 className="flex items-center gap-2 px-5 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-50"
               >
                 {savingManualEdit && <Loader2 className="w-4 h-4 animate-spin" />}

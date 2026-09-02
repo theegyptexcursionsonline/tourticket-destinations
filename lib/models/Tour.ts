@@ -20,10 +20,24 @@ export interface IItineraryItem {
   day?: number;
 }
 
+/** Optional child/infant overrides; a blank value inherits the option/tour guest price. */
+export interface ISlotGuestPrices {
+  child?: number;
+  infant?: number;
+}
+
+/** A complete guest-price set — adult mirrors the base price it was saved with. */
+export interface IGuestPrices {
+  adult: number;
+  child: number;
+  infant: number;
+}
+
 export interface IAvailabilitySlot {
   time: string;
   capacity: number;
   price?: number;
+  guestPrices?: ISlotGuestPrices;
 }
 
 export interface IAvailability extends Document {
@@ -43,9 +57,13 @@ export interface IFAQ {
 
 export interface IBookingOption {
   id?: string; // Stable option id used for option-level stop-sale
+  /** Immutable machine-facing identifier; unlike array order it survives edits and reordering. */
+  pricingKey?: string;
   type: string;
   label: string;
   price: number;
+  /** Child/infant prices for this option (adult mirrors `price`). Absent = network default (child half, infant free). */
+  guestPrices?: IGuestPrices;
   originalPrice?: number;
   /** Participants one priced unit covers (Per Couple/Family/Group) and the booking minimum. */
   minCapacity?: number;
@@ -63,7 +81,7 @@ export interface IBookingOption {
   /** Opt this option into the tour's discount percentage. */
   applyTourDiscount?: boolean;
   /** Optional per-slot pricing; a blank price inherits the option's base. */
-  timeSlots?: Array<{ time: string; capacity?: number; price?: number }>;
+  timeSlots?: Array<{ time: string; capacity?: number; price?: number; guestPrices?: ISlotGuestPrices }>;
 }
 
 export interface IAddOn {
@@ -105,6 +123,8 @@ export interface ITour extends Document {
   discountPrice: number;
   /** Whole-number percentage applied to opted-in booking options. */
   discountPercent?: number;
+  /** Tour-level guest prices for RevenuePilot; adult mirrors the base price. */
+  revenueGuestPrices?: IGuestPrices;
   duration: string;
   difficulty?: string;
   maxGroupSize?: number;
@@ -162,6 +182,20 @@ export interface ITour extends Document {
   // Relationships
   reviews?: mongoose.Schema.Types.ObjectId[];
   availability: IAvailability;
+  /** Per-tenant listing summaries; a shared tour may have different live prices on each brand. */
+  pricingSummaries?: Array<{ tenantId: string; fromPrice: number; currency: string; version: number; validThrough?: Date }>;
+  pricingSearchProjections?: Array<{
+    tenantId: string;
+    status: 'pending' | 'syncing' | 'verified' | 'failed';
+    summaryVersion: number;
+    authoritativeVersion: number;
+    projectionToken: string;
+    attempts: number;
+    lastAttemptAt?: Date;
+    nextAttemptAt?: Date;
+    syncedAt?: Date;
+    lastErrorCode?: string;
+  }>;
   attractions?: mongoose.Schema.Types.ObjectId[]; // Link to AttractionPage
   interests?: mongoose.Schema.Types.ObjectId[]; // Link to AttractionPage (interest type)
 
@@ -240,6 +274,21 @@ const ItineraryItemSchema = new Schema<IItineraryItem>({
   day: { type: Number, min: 1 },
 }, { _id: false });
 
+// Per-departure child/infant overrides. Either may be blank (inherits), but a
+// present value must be a real non-negative amount.
+const SlotGuestPricesSchema = new Schema({
+  child: { type: Number, min: [0, 'Child price cannot be negative'], max: [999999, 'Child price cannot exceed 999999'] },
+  infant: { type: Number, min: [0, 'Infant price cannot be negative'], max: [999999, 'Infant price cannot exceed 999999'] },
+}, { _id: false });
+
+// A complete guest-price set. All three are required together so a partial
+// pair can never reach checkout half-configured.
+const RevenueGuestPricesSchema = new Schema({
+  adult: { type: Number, required: [true, 'Adult price is required'], min: [0, 'Adult price cannot be negative'], max: [999999, 'Adult price cannot exceed 999999'] },
+  child: { type: Number, required: [true, 'Child price is required'], min: [0, 'Child price cannot be negative'], max: [999999, 'Child price cannot exceed 999999'] },
+  infant: { type: Number, required: [true, 'Infant price is required'], min: [0, 'Infant price cannot be negative'], max: [999999, 'Infant price cannot exceed 999999'] },
+}, { _id: false });
+
 const AvailabilitySlotSchema = new Schema<IAvailabilitySlot>({
   time: { 
     type: String, 
@@ -263,6 +312,7 @@ const AvailabilitySlotSchema = new Schema<IAvailabilitySlot>({
     min: [0, 'Price cannot be negative'],
     max: [999999, 'Price cannot exceed 999999'],
   },
+  guestPrices: { type: SlotGuestPricesSchema },
 }, { _id: false });
 
 const AvailabilitySchema = new Schema<IAvailability>({
@@ -349,6 +399,12 @@ const BookingOptionSchema = new Schema<IBookingOption>({
     default: () => crypto.randomUUID(),
     index: true,
   },
+  pricingKey: {
+    type: String,
+    trim: true,
+    immutable: true,
+    match: [/^[a-z0-9][a-z0-9_-]{2,79}$/, 'Invalid pricing key'],
+  },
   type: {
     type: String,
     required: true,
@@ -367,6 +423,7 @@ const BookingOptionSchema = new Schema<IBookingOption>({
     min: [0, 'Price cannot be negative'],
     max: [999999, 'Price cannot exceed 999999']
   },
+  guestPrices: { type: RevenueGuestPricesSchema },
   originalPrice: { 
     type: Number, 
     min: [0, 'Original price cannot be negative'],
@@ -403,6 +460,7 @@ const BookingOptionSchema = new Schema<IBookingOption>({
     capacity: { type: Number, min: 0 },
     // Blank means "use the option's base price".
     price: { type: Number, min: 0, max: 999999 },
+    guestPrices: { type: SlotGuestPricesSchema },
   }],
   description: { 
     type: String, 
@@ -590,6 +648,9 @@ const TourSchema: Schema<ITour> = new Schema({
     min: [0, 'Discount percent cannot be negative'],
     max: [100, 'Discount percent cannot exceed 100'],
   },
+  // Tour-level guest prices ("Guest prices for RevenuePilot"). Adult mirrors
+  // discountPrice; child/infant are charged for the standard (no option) path.
+  revenueGuestPrices: { type: RevenueGuestPricesSchema },
   duration: { 
     type: String, 
     required: [true, 'Duration is required'],
@@ -842,6 +903,27 @@ const TourSchema: Schema<ITour> = new Schema({
       slots: [{ time: '10:00', capacity: 10 }]
     })
   },
+  pricingSummaries: [{
+    _id: false,
+    tenantId: { type: String, required: true, trim: true },
+    fromPrice: { type: Number, required: true, min: 0 },
+    currency: { type: String, required: true, uppercase: true, minlength: 3, maxlength: 3 },
+    version: { type: Number, required: true, default: 0, min: 0 },
+    validThrough: { type: Date },
+  }],
+  pricingSearchProjections: [{
+    _id: false,
+    tenantId: { type: String, required: true, trim: true },
+    status: { type: String, enum: ['pending', 'syncing', 'verified', 'failed'], default: 'pending' },
+    summaryVersion: { type: Number, default: 0, min: 0 },
+    authoritativeVersion: { type: Number, default: 0, min: 0 },
+    projectionToken: { type: String, maxlength: 80 },
+    attempts: { type: Number, default: 0, min: 0 },
+    lastAttemptAt: { type: Date },
+    nextAttemptAt: { type: Date },
+    syncedAt: { type: Date },
+    lastErrorCode: { type: String, maxlength: 80 },
+  }],
   attractions: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'AttractionPage',

@@ -56,6 +56,31 @@ describe('prepareStripeCheckout', () => {
     expect(prepared.quoteBinding).toMatch(/^[a-f0-9]{64}$/);
   });
 
+  it('carries what the webhook needs to re-resolve each line — option id and departure — and the quoted guest prices only as diagnostics', async () => {
+    mockCalculatePricing.mockResolvedValueOnce({
+      cart: [{
+        ...body.cart[0], title: 'Verified Tour', price: 100, discountPrice: 100,
+        quantity: 2, childQuantity: 1, infantQuantity: 1, selectedTime: '14:00',
+        selectedBookingOption: { id: 'slotted', title: 'Evening', type: 'Per Person', price: 100 },
+        guestPrices: { adult: 100, child: 80, infant: 0 },
+      }],
+      pricing: { subtotal: 280, serviceFee: 8.4, tax: 14, discount: 0, total: 302.4 },
+    });
+    const prepared = await prepareStripeCheckout(request(body), 'hosted');
+    expect(prepared.cartSummary[0]).toMatchObject({ bo: 'slotted', tm: '14:00', a: 2, c: 1, n: 1, gp: [100, 80, 0] });
+    expect(prepared.amountMinor).toBe(30_240);
+    // The packed metadata round-trips the re-resolution keys.
+    const { unpackCartMetadata } = jest.requireActual('@/lib/checkout/cartMetadata');
+    const packed = JSON.parse(unpackCartMetadata(prepared.metadata));
+    expect(packed[0]).toMatchObject({ bo: 'slotted', tm: '14:00', gp: [100, 80, 0] });
+  });
+
+  it('a validated line without guest prices packs no gp key', async () => {
+    const prepared = await prepareStripeCheckout(request(body), 'hosted');
+    expect(prepared.cartSummary[0]).not.toHaveProperty('gp', expect.anything());
+    expect(JSON.stringify(prepared.cartSummary[0])).not.toContain('"gp"');
+  });
+
   it('fails closed when the route does not match the current tenant presentation', async () => {
     mockGetTenantConfig.mockResolvedValueOnce({
       name: 'Brand One', domain: 'brand-one.example',

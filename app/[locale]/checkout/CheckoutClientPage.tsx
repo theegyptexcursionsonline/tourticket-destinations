@@ -37,7 +37,8 @@ import toast from 'react-hot-toast';
 import { parseLocalDate } from '@/utils/date';
 import { useTranslations } from 'next-intl';
 import type { PaymentExperience } from '@/lib/checkout/paymentExperience';
-import { optionSubtotal } from '@/lib/bookings/optionSubtotal';
+import { lineAddOnQuantity, lineGuestBreakdown, lineTotal } from '@/lib/checkout/lineTotals';
+import type { AuthoritativePriceQuote } from '@/lib/cart/authoritativeCart';
 
 const FormInput = ({ label, name, type = 'text', placeholder, required = true, value, onChange, disabled = false }: any) => (
   <div>
@@ -162,27 +163,12 @@ const SummaryItem: React.FC<{ item: CartItem }> = ({ item }) => {
   const { formatPrice } = useSettings();
   const { removeFromCart } = useCart();
 
-  // Use the same calculation logic as in BookingSidebar and CartSidebar
-  const getItemTotal = (item: CartItem) => {
-    const basePrice = item.selectedBookingOption?.price || item.discountPrice || item.price || 0;
-    let tourTotal = optionSubtotal(item.selectedBookingOption ?? null, basePrice, item.quantity || 1, item.childQuantity || 0, item.infantQuantity || 0);
-
-    let addOnsTotal = 0;
-    if (item.selectedAddOns && item.selectedAddOnDetails) {
-      Object.entries(item.selectedAddOns).forEach(([addOnId, quantity]) => {
-        const addOnDetail = item.selectedAddOnDetails?.[addOnId];
-        if (addOnDetail && quantity > 0) {
-          const totalGuests = (item.quantity || 0) + (item.childQuantity || 0);
-          const addOnQuantity = addOnDetail.perGuest ? totalGuests : Number(quantity);
-          addOnsTotal += addOnDetail.price * addOnQuantity;
-        }
-      });
-    }
-
-    return tourTotal + addOnsTotal;
-  };
-
-  const itemTotal = getItemTotal(item);
+  // One line rule for every surface (cart, checkout, charge, booking record):
+  // guest prices for the chosen departure, whole-unit options per unit,
+  // add-ons by the server's per-person clamp — lib/checkout/lineTotals.ts.
+  const itemTotal = lineTotal(item);
+  const guestLines = lineGuestBreakdown(item);
+  const showGuestPrices = guestLines.some((line) => line.differsFromDefault);
 
   return (
     <div className="flex gap-3 sm:gap-4 py-3 sm:py-4">
@@ -216,6 +202,21 @@ const SummaryItem: React.FC<{ item: CartItem }> = ({ item }) => {
           {item.infantQuantity > 0 && (item.quantity > 0 || item.childQuantity > 0) && ', '}
           {item.infantQuantity > 0 && `${item.infantQuantity} Infant${item.infantQuantity > 1 ? 's' : ''}`}
         </div>
+
+        {/* Per-guest prices when this departure charges children/infants
+            differently from the default — the same numbers the server bills. */}
+        {showGuestPrices && (
+          <div className="text-xs text-slate-500 mt-1 space-y-0.5" data-testid="guest-price-breakdown">
+            {guestLines.map((line) => (
+              <div key={line.guest} className="flex justify-between">
+                <span>
+                  {line.count} × {line.guest === 'adult' ? (line.count > 1 ? 'Adults' : 'Adult') : line.guest === 'child' ? (line.count > 1 ? 'Children' : 'Child') : (line.count > 1 ? 'Infants' : 'Infant')} ({formatPrice(line.unitPrice)})
+                </span>
+                <span>{formatPrice(line.total)}</span>
+              </div>
+            ))}
+          </div>
+        )}
         
         {/* Show selected add-ons */}
         {item.selectedAddOns && item.selectedAddOnDetails && Object.keys(item.selectedAddOns).length > 0 && (
@@ -226,13 +227,12 @@ const SummaryItem: React.FC<{ item: CartItem }> = ({ item }) => {
                 const addOnDetail = item.selectedAddOnDetails?.[addOnId];
                 if (!addOnDetail || quantity === 0) return null;
 
-                const totalGuests = (item.quantity || 0) + (item.childQuantity || 0);
-                const addOnQuantity = addOnDetail.perGuest ? totalGuests : Number(quantity);
+                const addOnQuantity = lineAddOnQuantity(item, addOnId);
                 const addOnTotal = addOnDetail.price * addOnQuantity;
 
                 return (
                   <div key={addOnId} className="flex justify-between">
-                    <span>• {addOnDetail.title}{addOnDetail.perGuest && ` (${totalGuests}x)`}</span>
+                    <span>• {addOnDetail.title}{addOnDetail.perGuest && ` (${addOnQuantity}x)`}</span>
                     <span>{formatPrice(addOnTotal)}</span>
                   </div>
                 );
@@ -374,6 +374,7 @@ const CheckoutFormStep = ({
   paymentExperience,
   isPaymentOpen,
   setIsPaymentOpen,
+  onPriceChanged,
 }: {
   onPaymentProcess: () => void;
   onPaymentProcessWithIntent: (intentId: string) => void;
@@ -395,6 +396,7 @@ const CheckoutFormStep = ({
   paymentExperience: PaymentExperience;
   isPaymentOpen: boolean;
   setIsPaymentOpen: (open: boolean) => void;
+  onPriceChanged: (quote: AuthoritativePriceQuote) => Promise<boolean>;
 }) => {
   const t = useTranslations();
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -619,6 +621,7 @@ const CheckoutFormStep = ({
                     experience={paymentExperience}
                     isOpen={isPaymentOpen}
                     onOpenChange={setIsPaymentOpen}
+                    onPriceChanged={onPriceChanged}
                     onSuccess={(paymentIntent) => {
                       // Set the payment intent ID immediately
                       setPaymentIntentId(paymentIntent);
@@ -1002,23 +1005,7 @@ const handleDownloadReceipt = async () => {
               <div className="space-y-3 mb-4">
                 <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Order Summary</p>
                 {orderedItems.map((item, index) => {
-                  const getItemTotal = (item: CartItem) => {
-                    const basePrice = item.selectedBookingOption?.price || item.discountPrice || item.price || 0;
-                    let tourTotal = optionSubtotal(item.selectedBookingOption ?? null, basePrice, item.quantity || 1, item.childQuantity || 0, item.infantQuantity || 0);
-                    let addOnsTotal = 0;
-                    if (item.selectedAddOns && item.selectedAddOnDetails) {
-                      Object.entries(item.selectedAddOns).forEach(([addOnId, quantity]) => {
-                        const addOnDetail = item.selectedAddOnDetails?.[addOnId];
-                        if (addOnDetail && quantity > 0) {
-                          const totalGuests = (item.quantity || 0) + (item.childQuantity || 0);
-                          const addOnQuantity = addOnDetail.perGuest ? totalGuests : Number(quantity);
-                          addOnsTotal += addOnDetail.price * addOnQuantity;
-                        }
-                      });
-                    }
-                    return tourTotal + addOnsTotal;
-                  };
-                  const itemTotal = getItemTotal(item);
+                  const itemTotal = lineTotal(item);
 
                   return (
                     <div key={`${item._id ?? index}-${index}`} className="flex items-center gap-3 bg-white rounded-xl p-3 border border-slate-100">
@@ -1036,6 +1023,7 @@ const handleDownloadReceipt = async () => {
                         <p className="text-xs text-slate-500">
                           {item.quantity} Adult{item.quantity > 1 ? 's' : ''}
                           {item.childQuantity > 0 && `, ${item.childQuantity} Child${item.childQuantity > 1 ? 'ren' : ''}`}
+                          {item.infantQuantity > 0 && `, ${item.infantQuantity} Infant${item.infantQuantity > 1 ? 's' : ''}`}
                         </p>
                       </div>
                       <p className="font-bold text-slate-900">{formatPrice(itemTotal)}</p>
@@ -1154,7 +1142,7 @@ const TrustIndicators = () => {
 };
 
 export default function CheckoutPage() {
-  const { cart, clearCart } = useCart();
+  const { cart, clearCart, acceptAuthoritativePriceQuote } = useCart();
   const { formatPrice, selectedCurrency } = useSettings();
   const { user } = useAuth();
   const { tenant } = useTenant();
@@ -1208,27 +1196,9 @@ export default function CheckoutPage() {
   });
 
  const pricing = useMemo(() => {
-  // Use the same calculation logic as in other components
-  const getItemTotal = (item: CartItem) => {
-    const basePrice = item.selectedBookingOption?.price || item.discountPrice || item.price || 0;
-    let tourTotal = optionSubtotal(item.selectedBookingOption ?? null, basePrice, item.quantity || 1, item.childQuantity || 0, item.infantQuantity || 0);
-
-    let addOnsTotal = 0;
-    if (item.selectedAddOns && item.selectedAddOnDetails) {
-      Object.entries(item.selectedAddOns).forEach(([addOnId, quantity]) => {
-        const addOnDetail = item.selectedAddOnDetails?.[addOnId];
-        if (addOnDetail && quantity > 0) {
-          const totalGuests = (item.quantity || 0) + (item.childQuantity || 0);
-          const addOnQuantity = addOnDetail.perGuest ? totalGuests : Number(quantity);
-          addOnsTotal += addOnDetail.price * addOnQuantity;
-        }
-      });
-    }
-
-    return tourTotal + addOnsTotal;
-  };
-
-  const subtotal = Number(((cart || []).reduce((acc, item) => acc + getItemTotal(item), 0)).toFixed(2));
+  // The same line rule as the cart, the charge and the booking record
+  // (lib/checkout/lineTotals.ts); the server re-prices before any money moves.
+  const subtotal = Number(((cart || []).reduce((acc, item) => acc + lineTotal(item), 0)).toFixed(2));
   const serviceFee = Number((subtotal * 0.03).toFixed(2));
   const tax = Number((subtotal * 0.05).toFixed(2));
   const total = Number((subtotal + serviceFee + tax - Number(discount || 0)).toFixed(2));
@@ -1468,6 +1438,7 @@ export default function CheckoutPage() {
                       paymentExperience={paymentExperience}
                       isPaymentOpen={isPaymentOpen}
                       setIsPaymentOpen={setIsPaymentOpen}
+                      onPriceChanged={acceptAuthoritativePriceQuote}
                     />
                   </div>
                   <div className="lg:col-span-1 order-1 lg:order-2">

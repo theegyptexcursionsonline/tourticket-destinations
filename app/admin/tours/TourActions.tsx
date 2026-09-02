@@ -69,9 +69,9 @@ export const TourActions = ({ tourId, isArchived = false }: { tourId: string; is
     })();
 
     toast.promise(promise, {
-      loading: "Archiving tour...",
-      success: "Tour archived. Existing bookings were preserved.",
-      error: (err) => `Archive failed: ${err?.message ?? "Unknown error"}`,
+      loading: "Moving tour to Trash...",
+      success: "Tour moved to Trash. Existing bookings were preserved.",
+      error: (err) => `Move to Trash failed: ${err?.message ?? "Unknown error"}`,
     });
 
     try {
@@ -239,7 +239,7 @@ export const TourActions = ({ tourId, isArchived = false }: { tourId: string; is
                 role="menuitem"
               >
                 <Archive className="w-4 h-4 text-rose-500" />
-                <span>Archive</span>
+                <span>Move to Trash</span>
               </button>
             )}
           </div>
@@ -258,7 +258,7 @@ export const TourActions = ({ tourId, isArchived = false }: { tourId: string; is
               </div>
 
               <div className="flex-1">
-                <h3 className="text-sm font-semibold text-slate-900">Archive tour</h3>
+                <h3 className="text-sm font-semibold text-slate-900">Move tour to Trash</h3>
                 <p className="mt-1 text-xs text-slate-500">The tour will be unpublished and removed from search. Existing bookings and receipts remain intact.</p>
 
                 <div className="mt-4 flex items-center justify-end gap-2">
@@ -280,12 +280,12 @@ export const TourActions = ({ tourId, isArchived = false }: { tourId: string; is
                     {isDeleting ? (
                       <>
                         <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="white" strokeWidth="3" strokeLinecap="round" strokeDasharray="31.4 31.4" fill="none" /></svg>
-                        Archiving...
+                        Moving...
                       </>
                     ) : (
                       <>
                         <Check className="w-4 h-4" />
-                        Archive
+                        Move to Trash
                       </>
                     )}
                   </button>

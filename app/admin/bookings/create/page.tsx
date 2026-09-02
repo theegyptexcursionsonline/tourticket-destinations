@@ -24,6 +24,7 @@ import {
 import { useAdminTenant } from '@/contexts/AdminTenantContext';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
 import { optionSubtotal } from '@/lib/bookings/optionSubtotal';
+import { guestPricedSubtotal } from '@/lib/revenue/guestPrices';
 
 type PaymentStatus = 'pending' | 'paid' | 'pay_on_arrival';
 type PaymentMethodUi = 'cash' | 'card' | 'bank' | 'other';
@@ -36,13 +37,25 @@ interface TourOptionLite {
 
 interface TourOptionApiOption {
   id: string;
+  pricingKey?: string;
   title: string;
   type?: string;
   price: number;
+  guestPrices?: { adult: number; child: number; infant: number };
   originalPrice?: number;
+  minCapacity?: number;
+  maxCapacity?: number;
   duration?: string;
   badge?: string;
   timeSlots?: Array<{ id: string; time: string; available?: number; price?: number }>;
+}
+
+interface LivePriceQuote {
+  prices: { adult: number; child: number; infant: number };
+  version: number;
+  sourceVersion?: string | null;
+  currency: string;
+  source: 'catalogue' | 'override';
 }
 
 interface OfferBestResponse {
@@ -116,6 +129,7 @@ export default withAuth(function CreateManualBookingPage() {
   // Tour options (booking options)
   const [bookingOptions, setBookingOptions] = useState<TourOptionApiOption[]>([]);
   const [bookingOptionType, setBookingOptionType] = useState(''); // maps to Tour.bookingOptions[].type
+  const [bookingOptionKey, setBookingOptionKey] = useState('');
   const [isLoadingBookingOptions, setIsLoadingBookingOptions] = useState(false);
 
   // Date/time
@@ -148,9 +162,20 @@ export default withAuth(function CreateManualBookingPage() {
   const [sendEmail, setSendEmail] = useState(true);
 
   // Pricing preview
-  const selectedBookingOption = useMemo(() => bookingOptions.find((o) => (o.type || '') === bookingOptionType) || null, [bookingOptions, bookingOptionType]);
-  const basePrice = Number(selectedBookingOption?.price || 0);
-  const subtotal = useMemo(() => optionSubtotal(selectedBookingOption, basePrice, Math.max(0, adults), Math.max(0, children), Math.max(0, infants)), [selectedBookingOption, basePrice, adults, children, infants]);
+  const selectedBookingOption = useMemo(
+    () => bookingOptions.find((option) => option.pricingKey === bookingOptionKey)
+      || bookingOptions.find((option) => (option.type || '') === bookingOptionType)
+      || null,
+    [bookingOptions, bookingOptionKey, bookingOptionType],
+  );
+  const [liveQuote, setLiveQuote] = useState<LivePriceQuote | null>(null);
+  const [quoteError, setQuoteError] = useState('');
+  const [isLoadingQuote, setIsLoadingQuote] = useState(false);
+  const basePrice = Number(liveQuote?.prices.adult ?? selectedBookingOption?.price ?? 0);
+  const subtotal = useMemo(() => liveQuote
+    ? guestPricedSubtotal(selectedBookingOption, liveQuote.prices, Math.max(0, adults), Math.max(0, children), Math.max(0, infants))
+    : optionSubtotal(selectedBookingOption, basePrice, Math.max(0, adults), Math.max(0, children), Math.max(0, infants)),
+  [selectedBookingOption, liveQuote, basePrice, adults, children, infants]);
   const totalGuests = useMemo(() => Math.max(0, adults) + Math.max(0, children) + Math.max(0, infants), [adults, children, infants]);
 
   const [offerPreview, setOfferPreview] = useState<BestOfferPreview>(null);
@@ -205,6 +230,7 @@ export default withAuth(function CreateManualBookingPage() {
       setIsLoadingBookingOptions(true);
       setBookingOptions([]);
       setBookingOptionType('');
+      setBookingOptionKey('');
       setTime('');
       try {
         const res = await fetch(`/api/tours/${encodeURIComponent(tourId)}/options`);
@@ -215,6 +241,7 @@ export default withAuth(function CreateManualBookingPage() {
         const first = options[0];
         if (first?.type) {
           setBookingOptionType(first.type);
+          setBookingOptionKey(first.pricingKey || '');
           // Default time slot if available
           const firstTime = first?.timeSlots?.[0]?.time;
           if (firstTime) setTime(firstTime);
@@ -235,6 +262,37 @@ export default withAuth(function CreateManualBookingPage() {
     const firstTime = selectedBookingOption.timeSlots?.[0]?.time;
     if (firstTime && !time) setTime(firstTime);
   }, [selectedBookingOption, time]);
+
+  useEffect(() => {
+    if (!token || !tenantId || !tourId || !bookingOptionKey || !date || !time) {
+      setLiveQuote(null);
+      setQuoteError('');
+      return;
+    }
+    const controller = new AbortController();
+    setIsLoadingQuote(true);
+    setQuoteError('');
+    const params = new URLSearchParams({ tenantId, tourId, optionKey: bookingOptionKey, date, time });
+    fetch(`/api/bookings/manual/quote?${params}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store',
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload?.error || 'Unable to load the live price.');
+        setLiveQuote(payload.quote as LivePriceQuote);
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
+        setLiveQuote(null);
+        setQuoteError(error instanceof Error ? error.message : 'Unable to load the live price.');
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setIsLoadingQuote(false);
+      });
+    return () => controller.abort();
+  }, [token, tenantId, tourId, bookingOptionKey, date, time]);
 
   // Offer preview
   useEffect(() => {
@@ -266,13 +324,14 @@ export default withAuth(function CreateManualBookingPage() {
     if (!tenantId) return false;
     if (!tourId) return false;
     if (!bookingOptionType) return false;
+    if (!bookingOptionKey || !liveQuote || isLoadingQuote || quoteError) return false;
     if (!date || !time) return false;
     if (totalGuests < 1) return false;
     if (!customerName.trim()) return false;
     if (!isValidEmail(customerEmail)) return false;
     if (!customerPhone.trim()) return false;
     return true;
-  }, [token, tenantId, tourId, bookingOptionType, date, time, totalGuests, customerName, customerEmail, customerPhone]);
+  }, [token, tenantId, tourId, bookingOptionType, bookingOptionKey, liveQuote, isLoadingQuote, quoteError, date, time, totalGuests, customerName, customerEmail, customerPhone]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -290,6 +349,8 @@ export default withAuth(function CreateManualBookingPage() {
           tenantId,
           tourId,
           bookingOptionType,
+          bookingOptionKey,
+          quoteVersion: liveQuote?.version,
           date,
           time,
           adults,
@@ -311,6 +372,9 @@ export default withAuth(function CreateManualBookingPage() {
       });
       const data = await res.json();
       if (!res.ok || !data?.success) {
+        if (res.status === 409 && data?.code === 'PRICE_CHANGED' && data?.quote) {
+          setLiveQuote(data.quote as LivePriceQuote);
+        }
         throw new Error(data?.error || 'Failed to create booking');
       }
       toast.success(`Manual booking created: ${data.data.bookingReference}`);
@@ -326,6 +390,8 @@ export default withAuth(function CreateManualBookingPage() {
     tenantId,
     tourId,
     bookingOptionType,
+    bookingOptionKey,
+    liveQuote,
     date,
     time,
     adults,
@@ -446,9 +512,11 @@ export default withAuth(function CreateManualBookingPage() {
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Tour Option *</label>
                 <select
-                  value={bookingOptionType}
+                  value={bookingOptionKey}
                   onChange={(e) => {
-                    setBookingOptionType(e.target.value);
+                    const option = bookingOptions.find((candidate) => candidate.pricingKey === e.target.value);
+                    setBookingOptionKey(e.target.value);
+                    setBookingOptionType(option?.type || '');
                     setTime('');
                   }}
                   className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500"
@@ -456,12 +524,18 @@ export default withAuth(function CreateManualBookingPage() {
                 >
                   <option value="">{isLoadingBookingOptions ? 'Loading options…' : 'Select option…'}</option>
                   {bookingOptions.map((o) => (
-                    <option key={o.id} value={o.type || ''}>
+                    <option key={o.id} value={o.pricingKey || ''} disabled={!o.pricingKey}>
                       {o.title} — ${Number(o.price || 0).toFixed(2)}
                     </option>
                   ))}
                 </select>
-                <p className="text-xs text-slate-500 mt-1">Price is used for calculation (children are 50% of adult).</p>
+                {isLoadingQuote && <p className="text-xs text-slate-500 mt-1">Loading live RevenuePilot price…</p>}
+                {!isLoadingQuote && quoteError && <p className="text-xs text-red-600 mt-1">{quoteError}</p>}
+                {!isLoadingQuote && liveQuote && (
+                  <p className="text-xs text-slate-500 mt-1">
+                    {liveQuote.currency} — Adult {liveQuote.prices.adult.toFixed(2)}, child {liveQuote.prices.child.toFixed(2)}, infant {liveQuote.prices.infant.toFixed(2)} · {liveQuote.source} v{liveQuote.version}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -793,5 +867,3 @@ export default withAuth(function CreateManualBookingPage() {
     </div>
   );
 }, { permissions: ['manageBookings'] });
-
-

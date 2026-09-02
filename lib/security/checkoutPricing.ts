@@ -6,11 +6,27 @@ import StopSale from '@/lib/models/StopSale';
 import { createHash, createHmac } from 'crypto';
 import { isPerPersonAddOn } from '@/lib/checkout/addOnPricing';
 import { authoritativeBasePrice } from '@/lib/pricing/authoritativePrice';
-import { optionSubtotal } from '@/lib/bookings/optionSubtotal';
-import { capacityAvailability, type UnitCapacityOption } from '@/lib/bookings/unitPricing';
+import { guestPricedSubtotal, resolveCatalogueGuestPrices } from '@/lib/revenue/guestPrices';
+import {
+  capacityAvailability,
+  effectiveUnitSize,
+  isUnitPricedType,
+  type UnitCapacityOption,
+} from '@/lib/bookings/unitPricing';
 import { isAddOnAvailableForOption } from '@/lib/bookings/addOnAvailability';
+import { clampAddOnQuantity, perPersonAddOnLimit } from '@/lib/bookings/bookingSelection';
+import { STANDARD_OPTION_KEY, type EffectivePriceQuote } from '@/lib/revenue/pricingContract';
 
 type CartItem = Record<string, any>;
+
+export class CheckoutPriceChangedError extends Error {
+  readonly code = 'PRICE_CHANGED';
+
+  constructor(public readonly quote: EffectivePriceQuote) {
+    super('The selected price changed. Review the new quote before continuing.');
+    this.name = 'CheckoutPriceChangedError';
+  }
+}
 
 export function checkoutFingerprint(cart: CartItem[], tenantId: string, currency: string): string {
   const canonical = cart.map((item) => ({
@@ -21,6 +37,9 @@ export function checkoutFingerprint(cart: CartItem[], tenantId: string, currency
     children: Number(item.childQuantity || 0),
     infants: Number(item.infantQuantity || 0),
     option: String(item.selectedBookingOption?.id || ''),
+    optionKey: String(item.selectedBookingOption?.pricingKey || ''),
+    priceVersion: item.priceVersion === undefined ? null : Number(item.priceVersion),
+    priceSourceVersion: item.priceSourceVersion === undefined ? null : String(item.priceSourceVersion),
     addOns: Object.entries(item.selectedAddOns || {}).sort(([a], [b]) => a.localeCompare(b)),
   }));
   return createHash('sha256').update(JSON.stringify({ tenantId, currency: currency.toLowerCase(), cart: canonical })).digest('hex');
@@ -93,7 +112,7 @@ export async function calculateCheckoutPricing(
     const id = submitted?._id || submitted?.id;
     if (typeof id !== 'string') throw new Error('Invalid tour');
     const tour: any = await Tour.findOne(
-      buildStrictTenantQuery({ _id: id, isPublished: true }, tenantId),
+      buildStrictTenantQuery({ _id: id, isPublished: true, archivedAt: null }, tenantId),
     ).lean();
     if (!tour) throw new Error('Tour not found');
 
@@ -103,11 +122,27 @@ export async function calculateCheckoutPricing(
     if (adults + children + infants < 1) throw new Error('At least one participant is required');
 
     let selectedOption: any;
-    const optionId = submitted.selectedBookingOption?.id;
-    if (optionId) {
-      selectedOption = (tour.bookingOptions || []).find(
-        (option: any, index: number) => String(option.id || `option-${index}`) === String(optionId),
-      );
+    let selectedOptionIndex = -1;
+    const optionId = submitted.selectedBookingOption?.id ? String(submitted.selectedBookingOption.id) : '';
+    const requestedPricingKey = submitted.selectedBookingOption?.pricingKey
+      ? String(submitted.selectedBookingOption.pricingKey)
+      : '';
+    const optionIdIsStandard = !optionId || optionId === 'standard-default' || optionId === 'standard-tour';
+    const pricingKeyIsStandard = !requestedPricingKey || requestedPricingKey === STANDARD_OPTION_KEY;
+    if (optionId && requestedPricingKey && optionIdIsStandard !== pricingKeyIsStandard) {
+      throw new Error('Invalid booking option');
+    }
+    if (!optionIdIsStandard || !pricingKeyIsStandard) {
+      const options = Array.isArray(tour.bookingOptions) ? tour.bookingOptions : [];
+      const idIndex = optionId
+        ? options.findIndex((option: any, index: number) => String(option.id || option._id || `option-${index}`) === optionId)
+        : -1;
+      const keyIndex = requestedPricingKey
+        ? options.findIndex((option: any) => String(option.pricingKey || '') === requestedPricingKey)
+        : -1;
+      if (idIndex >= 0 && keyIndex >= 0 && idIndex !== keyIndex) throw new Error('Invalid booking option');
+      selectedOptionIndex = keyIndex >= 0 ? keyIndex : idIndex;
+      selectedOption = selectedOptionIndex >= 0 ? options[selectedOptionIndex] : undefined;
       if (!selectedOption) throw new Error('Invalid booking option');
       if (typeof selectedOption.price !== 'number' || !Number.isFinite(selectedOption.price)) {
         throw new Error('Invalid tour price');
@@ -117,11 +152,59 @@ export async function calculateCheckoutPricing(
     // Stripe amount, the sidebar quote and the recorded booking can never
     // disagree: tour discount percentage and per-slot overrides included.
     // Only the option id is forwarded — never client-submitted prices.
-    const basePrice = authoritativeBasePrice(tour, {
-      selectedBookingOption: optionId ? { id: String(optionId) } : null,
+    let basePrice = authoritativeBasePrice(tour, {
+      selectedBookingOption: selectedOption ? {
+        id: String(selectedOption.id || selectedOption._id || `option-${selectedOptionIndex}`),
+        pricingKey: selectedOption.pricingKey,
+      } : null,
       selectedTime: submitted.selectedTime ?? null,
     });
     if (!Number.isFinite(basePrice) || basePrice < 0) throw new Error('Invalid tour price');
+    // Child and infant follow the selected departure: slot override, then the
+    // option's / tour's guest-price set, then the network default (child half,
+    // infant free). Resolved from the stored tour — a client-supplied
+    // `guestPrices` on the cart item is ignored below.
+    let guestPrices = resolveCatalogueGuestPrices(tour, {
+      selectedBookingOption: selectedOption ? {
+        id: String(selectedOption.id || selectedOption._id || `option-${selectedOptionIndex}`),
+        pricingKey: selectedOption.pricingKey,
+      } : null,
+      selectedTime: submitted.selectedTime ?? null,
+    });
+    let priceQuote: EffectivePriceQuote | null = null;
+    const shouldResolveMachinePrice = Boolean(
+      submitted.selectedDate
+      && submitted.selectedTime
+      && (
+        process.env.REVENUEPILOT_PRICING_API_ENABLED === 'true'
+        || submitted.priceVersion !== undefined
+        || submitted.priceSourceVersion !== undefined
+      )
+    );
+    if (shouldResolveMachinePrice) {
+      const { resolveEffectivePrice } = await import('@/lib/revenue/pricingResolver');
+      const optionKey = selectedOption ? String(selectedOption.pricingKey || '') : STANDARD_OPTION_KEY;
+      if (!optionKey) throw new Error('Booking option pricing key is not configured');
+      priceQuote = await resolveEffectivePrice({
+        tenantId,
+        tourId: String(tour._id),
+        optionKey,
+        date: String(submitted.selectedDate).slice(0, 10),
+        time: String(submitted.selectedTime),
+      });
+      if (
+        (process.env.REVENUEPILOT_PRICING_API_ENABLED === 'true' && submitted.priceVersion === undefined)
+        || (submitted.priceVersion !== undefined && Number(submitted.priceVersion) !== priceQuote.version)
+        || (submitted.priceSourceVersion !== undefined && String(submitted.priceSourceVersion) !== priceQuote.sourceVersion)
+      ) {
+        throw new CheckoutPriceChangedError(priceQuote);
+      }
+      basePrice = priceQuote.prices.adult;
+      guestPrices = priceQuote.prices;
+    }
+    for (const guest of ['child', 'infant'] as const) {
+      if (!Number.isFinite(guestPrices[guest]) || guestPrices[guest] < 0) throw new Error('Invalid tour price');
+    }
 
     const selectedAddOns: Record<string, number> = {};
     const selectedAddOnDetails: Record<string, any> = {};
@@ -139,10 +222,14 @@ export async function calculateCheckoutPricing(
       const perGuest = stored ? isPerPersonAddOn(stored) : fallback.perGuest;
       const title = stored?.name ?? fallback.title;
       if (!Number.isFinite(price) || price < 0) throw new Error('Invalid add-on price');
-      const billedQuantity = perGuest ? adults + children : requestedQuantity;
+      // A per-person add-on is billed for the units the guest chose, capped at
+      // one per paying participant (adults + children) — never multiplied by
+      // the party size on the guest's behalf, never above the party size, and
+      // never for infants (client sheet EEO 24 Aug / MT 31 Aug).
+      const billedQuantity = perGuest ? clampAddOnQuantity(requestedQuantity, perPersonAddOnLimit(adults, children)) : requestedQuantity;
       addOnsTotal += price * billedQuantity;
-      selectedAddOns[addOnId] = requestedQuantity;
-      selectedAddOnDetails[addOnId] = { title, price, perGuest };
+      selectedAddOns[addOnId] = billedQuantity;
+      selectedAddOnDetails[addOnId] = { title, price, perGuest, quantity: billedQuantity };
     }
 
     // Capacity is authorization, not presentation: a party that the option
@@ -160,7 +247,8 @@ export async function calculateCheckoutPricing(
 
     // A unit-priced option (Per Couple / Per Family / Per Group) is charged
     // in whole units, never per guest — the client's reported overcharge.
-    const itemSubtotal = optionSubtotal(selectedOption ?? null, basePrice, adults, children, infants) + addOnsTotal;
+    // Per Person options charge each guest type its stored price.
+    const itemSubtotal = guestPricedSubtotal(selectedOption ?? null, guestPrices, adults, children, infants) + addOnsTotal;
     subtotal += itemSubtotal;
     cart.push({
       ...submitted,
@@ -170,11 +258,36 @@ export async function calculateCheckoutPricing(
       quantity: adults,
       childQuantity: children,
       infantQuantity: infants,
+      guestPrices,
       selectedBookingOption: selectedOption
-        ? { ...submitted.selectedBookingOption, id: optionId, title: selectedOption.label, type: selectedOption.type, price: basePrice }
-        : undefined,
+        ? {
+            id: String(selectedOption.id || selectedOption._id || `option-${selectedOptionIndex}`),
+            pricingKey: String(selectedOption.pricingKey || ''),
+            title: selectedOption.label,
+            type: selectedOption.type,
+            price: basePrice,
+            originalPrice: selectedOption.originalPrice,
+            duration: selectedOption.duration,
+            badge: selectedOption.badge,
+          }
+        : {
+            id: 'standard-default',
+            pricingKey: STANDARD_OPTION_KEY,
+            title: `${tour.title} - Standard Experience`,
+            type: 'Per Person',
+            price: basePrice,
+            originalPrice: tour.originalPrice,
+          },
       selectedAddOns,
       selectedAddOnDetails,
+      unitPricing: selectedOption && isUnitPricedType(selectedOption.type)
+        ? { unitSize: effectiveUnitSize(selectedOption) ?? 0, unitPrice: guestPrices.adult }
+        : null,
+      priceVersion: priceQuote?.version ?? 0,
+      priceSourceVersion: priceQuote?.sourceVersion ?? null,
+      priceExecutionId: priceQuote?.executionId ?? null,
+      priceOverrideId: priceQuote?.overrideId ?? null,
+      priceSource: priceQuote?.source === 'override' ? 'override' : 'catalogue',
     });
     await assertBookable({ ...submitted, quantity: adults, childQuantity: children, infantQuantity: infants }, tenantId);
   }

@@ -61,6 +61,8 @@ export const formatTourForAlgolia = (tour: any) => {
     isFeatured: tour.isFeatured || false,
     tenantId: tour.tenantId || 'default',
     tenantIds: Array.isArray(tour.tenantIds) ? tour.tenantIds : [tour.tenantId || 'default'],
+    pricingSummaries: Array.isArray(tour.pricingSummaries) ? tour.pricingSummaries : [],
+    archivedAt: tour.archivedAt || null,
     bookings: tour.bookings || 0,
     highlights: tour.highlights || [],
     included: tour.included || [],
@@ -93,6 +95,51 @@ export const syncTourToAlgolia = async (tour: any) => {
     console.error('Error syncing tour to Algolia:', error);
     throw error;
   }
+};
+
+/**
+ * RevenuePilot propagation is complete only after Algolia has published the
+ * indexing task and a read-back matches the tenant-scoped pricing summaries.
+ */
+export const syncTourToAlgoliaVerified = async (tour: any) => {
+  const client = getAlgoliaClient();
+  if (!client) throw new Error('Algolia write client is not configured');
+
+  const formattedTour = formatTourForAlgolia(tour);
+  const saved = await client.saveObject({
+    indexName: ALGOLIA_INDEX_NAME,
+    body: formattedTour,
+  });
+  await client.waitForTask({
+    indexName: ALGOLIA_INDEX_NAME,
+    taskID: saved.taskID,
+    maxRetries: 20,
+    timeout: (retryCount) => Math.min(1_000, 100 * (2 ** retryCount)),
+  });
+  const indexed = await client.getObject({
+    indexName: ALGOLIA_INDEX_NAME,
+    objectID: formattedTour.objectID,
+    attributesToRetrieve: ['objectID', 'tenantIds', 'pricingSummaries', 'archivedAt', 'category', 'destination', '_tags'],
+  }) as {
+    objectID?: string;
+    tenantIds?: string[];
+    pricingSummaries?: unknown[];
+    archivedAt?: unknown;
+    category?: unknown;
+    destination?: unknown;
+    _tags?: unknown[];
+  };
+  const matches = String(indexed.objectID) === formattedTour.objectID
+    && JSON.stringify(indexed.tenantIds || []) === JSON.stringify(formattedTour.tenantIds || [])
+    && JSON.stringify(indexed.pricingSummaries || []) === JSON.stringify(formattedTour.pricingSummaries || [])
+    && JSON.stringify(indexed.archivedAt ?? null) === JSON.stringify(formattedTour.archivedAt ?? null)
+    && JSON.stringify(indexed.category ?? null) === JSON.stringify(formattedTour.category ?? null)
+    && JSON.stringify(indexed.destination ?? null) === JSON.stringify(formattedTour.destination ?? null)
+    && JSON.stringify(indexed._tags || []) === JSON.stringify(formattedTour._tags || []);
+  if (!matches) {
+    throw new Error('Algolia pricing read-back did not match the tenant-scoped tour projection');
+  }
+  return indexed;
 };
 
 // Sync multiple tours to Algolia
@@ -186,7 +233,9 @@ export const configureAlgoliaIndex = async () => {
           'filterOnly(rating)',
           'filterOnly(duration)',
           'filterOnly(isPublished)',
-          'filterOnly(isFeatured)'
+          'filterOnly(isFeatured)',
+          'filterOnly(tenantIds)',
+          'filterOnly(archivedAt)'
         ],
         customRanking: [
           'desc(isFeatured)',
@@ -222,6 +271,10 @@ export const configureAlgoliaIndex = async () => {
           'destination',
           'isPublished',
           'isFeatured',
+          'tenantId',
+          'tenantIds',
+          'pricingSummaries',
+          'archivedAt',
           'highlights',
           'included',
           'excluded'

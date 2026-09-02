@@ -4,6 +4,7 @@ import Tour from '@/lib/models/Tour';
 import { buildStrictTenantQuery, getTenantFromRequest } from '@/lib/tenant';
 import { effectiveOptionPrice, effectiveTourPrice, percentageOff } from '@/lib/pricing/effectivePrice';
 import { authoritativeBasePrice } from '@/lib/pricing/authoritativePrice';
+import { effectiveSlotGuestPrices } from '@/lib/revenue/guestPrices';
 
 const isValidObjectId = (id: string): boolean => /^[0-9a-fA-F]{24}$/.test(id);
 
@@ -21,7 +22,7 @@ export async function GET(
     const tenantId = await getTenantFromRequest();
     const identity = isValidObjectId(tourId) ? { _id: tourId } : { slug: tourId };
     const tour: any = await Tour.findOne(
-      buildStrictTenantQuery({ ...identity, isPublished: true }, tenantId),
+      buildStrictTenantQuery({ ...identity, isPublished: true, archivedAt: null }, tenantId),
     ).lean();
 
     if (!tour) {
@@ -52,13 +53,27 @@ export async function GET(
                   available: slot.capacity ?? universalCapacityByTime.get(slot.time) ?? 0,
                   price: slotPricing.price,
                   originalPrice: slotPricing.discountApplied ? slotPricing.originalPrice : undefined,
+                  guestPrices: effectiveSlotGuestPrices({
+                    adult: slotPricing.price,
+                    base: option.guestPrices,
+                    slot,
+                    discountPercent: tour.discountPercent,
+                    applyDiscount: Boolean(option.applyTourDiscount),
+                  }),
                   isPopular: false,
                 };
               })
-            : availabilitySlots.map((slot: any) => ({
+            : availabilitySlots.map((slot: any, slotIndex: number) => ({
                 ...slot,
                 price: pricing.price,
                 originalPrice: pricing.discountApplied ? pricing.originalPrice : undefined,
+                guestPrices: effectiveSlotGuestPrices({
+                  adult: pricing.price,
+                  base: option.guestPrices,
+                  slot: sourceAvailabilitySlots[slotIndex],
+                  discountPercent: tour.discountPercent,
+                  applyDiscount: Boolean(option.applyTourDiscount),
+                }),
                 isPopular: false,
               }));
 
@@ -70,6 +85,13 @@ export async function GET(
             minCapacity: option.minCapacity ?? undefined,
             maxCapacity: option.maxCapacity ?? undefined,
             price: pricing.price,
+            applyTourDiscount: Boolean(option.applyTourDiscount),
+            guestPrices: effectiveSlotGuestPrices({
+              adult: pricing.price,
+              base: option.guestPrices,
+              discountPercent: tour.discountPercent,
+              applyDiscount: Boolean(option.applyTourDiscount),
+            }),
             originalPrice: pricing.discountApplied ? pricing.originalPrice : option.originalPrice,
             duration: option.duration || tour.duration || '3 hours',
             languages: option.languages || tour.languages || ['English'],
@@ -91,7 +113,15 @@ export async function GET(
             id: 'standard-default',
             pricingKey: 'standard',
             title: `${tour.title} - Standard Experience`,
+            type: 'Per Person',
             price: pricing.price,
+            applyTourDiscount: true,
+            guestPrices: effectiveSlotGuestPrices({
+              adult: pricing.price,
+              base: tour.revenueGuestPrices,
+              discountPercent: tour.discountPercent,
+              applyDiscount: true,
+            }),
             originalPrice: pricing.discountApplied ? pricing.originalPrice : undefined,
             duration: tour.duration || '3 hours',
             languages: tour.languages || ['English'],
@@ -102,6 +132,13 @@ export async function GET(
                 ...slot,
                 price: authoritativeBasePrice(tour, { selectedBookingOption: null, selectedTime: slot.time }),
                 originalPrice: slotPricing.discountApplied ? slotPricing.originalPrice : undefined,
+                guestPrices: effectiveSlotGuestPrices({
+                  adult: slotPricing.price,
+                  base: tour.revenueGuestPrices,
+                  slot: sourceAvailabilitySlots[index],
+                  discountPercent: tour.discountPercent,
+                  applyDiscount: true,
+                }),
                 isPopular: false,
               };
             }),

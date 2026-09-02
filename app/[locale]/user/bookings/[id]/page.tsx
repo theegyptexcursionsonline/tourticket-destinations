@@ -28,8 +28,9 @@ import {
 import Image from 'next/image';
 import toast from 'react-hot-toast';
 import QRCode from 'qrcode';
-import { optionSubtotal } from '@/lib/bookings/optionSubtotal';
 import { isUnitPricedType } from '@/lib/bookings/unitPricing';
+import { guestPricedSubtotal, guestPricesFromBase } from '@/lib/revenue/guestPrices';
+import { storedAddOnUnits } from '@/lib/checkout/addOnPricing';
 
 interface BookingUser {
   _id: string;
@@ -76,6 +77,8 @@ interface BookingDetails {
   adultGuests?: number;
   childGuests?: number;
   infantGuests?: number;
+  /** Unit prices recorded at booking time; absent on legacy bookings (child half, infant free). */
+  guestPrices?: { adult: number; child: number; infant: number };
   paymentId?: string;
   paymentMethod?: string;
   specialRequests?: string;
@@ -95,6 +98,7 @@ interface BookingDetails {
       title: string;
       price: number;
       perGuest?: boolean;
+      quantity?: number;
     };
   };
   createdAt: string;
@@ -307,25 +311,33 @@ const UserBookingDetailPage = () => {
     if (!booking) return null;
 
     const basePrice = booking.selectedBookingOption?.price || 0;
-    const tourSubtotal = optionSubtotal(
+    // The unit prices recorded with the booking; a legacy booking without
+    // them was priced child = half the adult price, infant free.
+    const guestPrices = guestPricesFromBase(basePrice, booking.guestPrices);
+    const tourSubtotal = guestPricedSubtotal(
       booking.selectedBookingOption ?? null,
-      basePrice,
+      guestPrices,
       booking.adultGuests || 1,
       booking.childGuests || 0,
       booking.infantGuests || 0,
     );
     const unitPriced = isUnitPricedType(booking.selectedBookingOption?.type);
     // Whole-unit options have no per-guest split: the unit total sits on the adult row.
-    const adultPrice = unitPriced ? tourSubtotal : basePrice * (booking.adultGuests || 1);
-    const childPrice = unitPriced ? 0 : (basePrice / 2) * (booking.childGuests || 0);
+    const adultPrice = unitPriced ? tourSubtotal : guestPrices.adult * (booking.adultGuests || 1);
+    const childPrice = unitPriced ? 0 : guestPrices.child * (booking.childGuests || 0);
+    const infantPrice = unitPriced ? 0 : guestPrices.infant * (booking.infantGuests || 0);
 
     let addOnsTotal = 0;
     if (booking.selectedAddOns && booking.selectedAddOnDetails) {
       Object.entries(booking.selectedAddOns).forEach(([addOnId, quantity]) => {
         const addOnDetail = booking.selectedAddOnDetails?.[addOnId];
-        if (addOnDetail && quantity > 0) {
-          const totalGuests = (booking.adultGuests || 0) + (booking.childGuests || 0);
-          const addOnQuantity = addOnDetail.perGuest ? totalGuests : quantity;
+        const addOnQuantity = storedAddOnUnits(
+          addOnDetail,
+          quantity,
+          booking.adultGuests || 0,
+          booking.childGuests || 0,
+        );
+        if (addOnDetail && addOnQuantity > 0) {
           addOnsTotal += addOnDetail.price * addOnQuantity;
         }
       });
@@ -346,8 +358,10 @@ const UserBookingDetailPage = () => {
 
     return {
       unitPriced,
+      guestPrices,
       adultPrice,
       childPrice,
+      infantPrice,
       tourSubtotal,
       subtotal,
       addOnsTotal,
@@ -648,20 +662,22 @@ const UserBookingDetailPage = () => {
                     </div>
                   ) : booking.adultGuests && booking.adultGuests > 0 ? (
                     <div className="flex justify-between text-slate-700">
-                      <span>{booking.adultGuests} x Adult{booking.adultGuests > 1 ? 's' : ''} (${(booking.selectedBookingOption?.price || 0).toFixed(2)})</span>
+                      <span>{booking.adultGuests} x Adult{booking.adultGuests > 1 ? 's' : ''} (${pricing.guestPrices.adult.toFixed(2)})</span>
                       <span className="font-semibold">${pricing.adultPrice.toFixed(2)}</span>
                     </div>
                   ) : null}
                   {!pricing.unitPriced && booking.childGuests && booking.childGuests > 0 && (
                     <div className="flex justify-between text-slate-700">
-                      <span>{booking.childGuests} x Child{booking.childGuests > 1 ? 'ren' : ''} (${((booking.selectedBookingOption?.price || 0) / 2).toFixed(2)})</span>
+                      <span>{booking.childGuests} x Child{booking.childGuests > 1 ? 'ren' : ''} (${pricing.guestPrices.child.toFixed(2)})</span>
                       <span className="font-semibold">${pricing.childPrice.toFixed(2)}</span>
                     </div>
                   )}
                   {booking.infantGuests && booking.infantGuests > 0 && (
                     <div className="flex justify-between text-slate-700">
-                      <span>{booking.infantGuests} x Infant{booking.infantGuests > 1 ? 's' : ''}</span>
-                      <span className="font-semibold text-green-600">FREE</span>
+                      <span>{booking.infantGuests} x Infant{booking.infantGuests > 1 ? 's' : ''}{!pricing.unitPriced && pricing.infantPrice > 0 ? ` ($${pricing.guestPrices.infant.toFixed(2)})` : ''}</span>
+                      {!pricing.unitPriced && pricing.infantPrice > 0
+                        ? <span className="font-semibold">${pricing.infantPrice.toFixed(2)}</span>
+                        : <span className="font-semibold text-green-600">FREE</span>}
                     </div>
                   )}
                   
@@ -741,8 +757,12 @@ const UserBookingDetailPage = () => {
                     const addOnDetail = booking.selectedAddOnDetails?.[addOnId];
                     if (!addOnDetail || quantity === 0) return null;
                     
-                    const totalGuests = (booking.adultGuests || 0) + (booking.childGuests || 0);
-                    const addOnQuantity = addOnDetail.perGuest ? totalGuests : quantity;
+                    const addOnQuantity = storedAddOnUnits(
+                      addOnDetail,
+                      quantity,
+                      booking.adultGuests || 0,
+                      booking.childGuests || 0,
+                    );
                     const addOnTotal = addOnDetail.price * addOnQuantity;
                     
                     return (
@@ -757,7 +777,7 @@ const UserBookingDetailPage = () => {
                               {addOnDetail.title}
                             </div>
                             <div className="text-sm text-slate-500">
-                              {addOnDetail.perGuest ? `Per guest (${totalGuests} guests)` : 'Per booking'}
+                              {addOnDetail.perGuest ? `Per person (${addOnQuantity} ${addOnQuantity === 1 ? 'unit' : 'units'})` : `Per booking (${addOnQuantity} ${addOnQuantity === 1 ? 'unit' : 'units'})`}
                             </div>
                           </div>
                         </div>
@@ -766,7 +786,7 @@ const UserBookingDetailPage = () => {
                             ${addOnTotal.toFixed(2)}
                           </div>
                           <div className="text-xs text-slate-500">
-                            ${addOnDetail.price.toFixed(2)} {addOnDetail.perGuest ? 'per guest' : 'total'}
+                            ${addOnDetail.price.toFixed(2)} {addOnDetail.perGuest ? 'per person' : 'per unit'}
                           </div>
                         </div>
                       </div>

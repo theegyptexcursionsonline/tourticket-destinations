@@ -3,7 +3,8 @@
 import { PDFDocument, StandardFonts, rgb, PDFPage, PDFFont } from 'pdf-lib';
 import { Buffer } from 'buffer';
 import { parseLocalDate } from '@/utils/date';
-import { optionSubtotal } from '@/lib/bookings/optionSubtotal';
+import { guestPricedSubtotal, guestPricesFromBase } from '@/lib/revenue/guestPrices';
+import { storedAddOnUnits } from '@/lib/checkout/addOnPricing';
 
 let QR: typeof import('qrcode') | null = null;
 try {
@@ -53,7 +54,9 @@ const wrapText = (text: string, font: PDFFont, size: number, maxWidth: number): 
 
 const calculateItemTotal = (item: ReceiptOrderedItem) => {
   const basePrice = item.selectedBookingOption?.price || item.discountPrice || item.price || 0;
-  let tourTotal = optionSubtotal(item.selectedBookingOption ?? null, basePrice, item.quantity || 1, item.childQuantity || 0, item.infantQuantity || 0);
+  // Child/infant use the departure's quoted prices when the checkout carried
+  // them; otherwise the network default (child half, infant free).
+  let tourTotal = guestPricedSubtotal(item.selectedBookingOption ?? null, guestPricesFromBase(basePrice, item.guestPrices), item.quantity || 1, item.childQuantity || 0, item.infantQuantity || 0);
 
   let addOnsTotal = 0;
   if (item.selectedAddOns && item.selectedAddOnDetails) {
@@ -61,8 +64,12 @@ const calculateItemTotal = (item: ReceiptOrderedItem) => {
       const addOnDetail = item.selectedAddOnDetails?.[addOnId];
       const qtyNum = Number(qty) || 0;
       if (addOnDetail && qtyNum > 0) {
-        const totalGuests = (item.quantity || 0) + (item.childQuantity || 0);
-        const addOnQuantity = addOnDetail.perGuest ? totalGuests : qtyNum;
+        const addOnQuantity = storedAddOnUnits(
+          addOnDetail,
+          qtyNum,
+          item.quantity || 0,
+          item.childQuantity || 0,
+        );
         addOnsTotal += addOnDetail.price * addOnQuantity;
       }
     });
@@ -101,6 +108,8 @@ export interface ReceiptOrderedItem {
   quantity?: number;
   childQuantity?: number;
   infantQuantity?: number;
+  /** Adult/child/infant unit prices quoted for this departure at checkout. */
+  guestPrices?: { adult: number; child: number; infant: number };
   price?: number;
   discountPrice?: number;
   totalPrice?: number;
@@ -111,7 +120,7 @@ export interface ReceiptOrderedItem {
     price?: number;
   };
   selectedAddOns?: Record<string, number>;
-  selectedAddOnDetails?: Record<string, { price: number; perGuest: boolean }>;
+  selectedAddOnDetails?: Record<string, { price: number; perGuest?: boolean; quantity?: number }>;
 }
 
 export interface ReceiptPricing {

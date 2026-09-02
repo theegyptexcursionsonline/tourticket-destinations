@@ -33,7 +33,9 @@ import {
   isOfferApplicableByTravelDate,
   type OfferData,
 } from '@/lib/utils/offerCalculations';
-import { optionSubtotal } from '@/lib/bookings/optionSubtotal';
+import { resolveEffectivePrice } from '@/lib/revenue/pricingResolver';
+import { STANDARD_OPTION_KEY } from '@/lib/revenue/pricingContract';
+import { guestPricedSubtotal } from '@/lib/revenue/guestPrices';
 
 function splitName(fullName: string): { firstName: string; lastName: string } {
   const safe = String(fullName || '').trim();
@@ -105,12 +107,6 @@ function formatMoney(amount: number, symbol = '$'): string {
   return `${symbol}${safe.toFixed(2)}`;
 }
 
-// Whole-unit options (Per Group / Per Couple / Per Family) are charged per
-// unit; Per Person keeps the per-guest rule with children at half.
-function computeSubtotal(option: { type?: string } | null | undefined, basePrice: number, adults: number, children: number, infants: number): number {
-  return optionSubtotal(option ?? null, basePrice, adults, children, infants);
-}
-
 async function POSTHandler(request: NextRequest) {
   const auth = await requireAdminAuth(request, { permissions: ['manageBookings'] });
   if (auth instanceof NextResponse) return auth;
@@ -124,6 +120,8 @@ async function POSTHandler(request: NextRequest) {
       tenantId,
       tourId,
       bookingOptionType, // Tour.bookingOptions[].type
+      bookingOptionKey,
+      quoteVersion,
       date, // YYYY-MM-DD
       time, // HH:MM
       adults = 1,
@@ -188,6 +186,7 @@ async function POSTHandler(request: NextRequest) {
 
     const tour = await Tour.findOne({
       _id: tourId,
+      archivedAt: null,
       $or: [{ tenantId }, { tenantIds: tenantId }],
     }).lean();
     if (!tour) {
@@ -195,16 +194,49 @@ async function POSTHandler(request: NextRequest) {
     }
 
     const bookingOptions = Array.isArray(tour.bookingOptions) ? tour.bookingOptions : [];
-    const selectedOption = bookingOptions.find((o: any) => o?.type === bookingOptionType);
-    if (!selectedOption) {
+    const optionsByType = bookingOptions.filter((option: any) => option?.type === bookingOptionType);
+    const selectedOption = bookingOptionKey === STANDARD_OPTION_KEY
+      ? {
+          id: 'standard-default',
+          pricingKey: STANDARD_OPTION_KEY,
+          type: 'Per Person',
+          label: `${tour.title} - Standard Experience`,
+          price: tour.discountPrice,
+          originalPrice: tour.originalPrice,
+          duration: tour.duration,
+        }
+      : bookingOptionKey
+        ? bookingOptions.find((option: any) => option?.pricingKey === bookingOptionKey)
+        : optionsByType.length === 1 ? optionsByType[0] : undefined;
+    if (!selectedOption || (bookingOptionKey && selectedOption.type !== bookingOptionType)) {
       return NextResponse.json(
         { success: false, error: 'Selected booking option not found for this tour.' },
         { status: 400 },
       );
     }
+    if (!selectedOption.pricingKey) {
+      return NextResponse.json(
+        { success: false, error: 'This booking option is awaiting its RevenuePilot pricing key.' },
+        { status: 409 },
+      );
+    }
 
-    const basePrice = Number(selectedOption.price) || 0;
-    const subtotal = computeSubtotal(selectedOption, basePrice, numericAdults, numericChildren, numericInfants);
+    const quote = await resolveEffectivePrice({
+      tenantId,
+      tourId: String(tourId),
+      optionKey: selectedOption.pricingKey || STANDARD_OPTION_KEY,
+      date: dateString,
+      time: String(time),
+    });
+    if (!Number.isInteger(Number(quoteVersion)) || Number(quoteVersion) !== quote.version) {
+      return NextResponse.json(
+        { success: false, code: 'PRICE_CHANGED', error: 'The selected price changed. Review the refreshed quote before creating the booking.', quote },
+        { status: 409, headers: { 'Cache-Control': 'no-store' } },
+      );
+    }
+    const guestPrices = quote.prices;
+    const subtotal = guestPricedSubtotal(selectedOption, guestPrices, numericAdults, numericChildren, numericInfants);
+    const basePrice = guestPrices.adult;
 
     // Apply best active offer (server-side)
     const now = new Date();
@@ -291,6 +323,7 @@ async function POSTHandler(request: NextRequest) {
       time: String(time),
       guests: totalGuests,
       totalPrice: discountedTotal,
+      currency: quote.currency,
       status: bookingStatus,
       paymentMethod: normalizedPaymentMethod,
       paymentStatus: normalizedPaymentStatus,
@@ -303,14 +336,25 @@ async function POSTHandler(request: NextRequest) {
       adultGuests: numericAdults,
       childGuests: numericChildren,
       infantGuests: numericInfants,
+      guestPrices,
       selectedBookingOption: {
-        id: String(selectedOption.type),
-      type: String(selectedOption.type),
+        id: String(selectedOption.id),
+        pricingKey: String(selectedOption.pricingKey),
+        type: String(selectedOption.type),
         title: String(selectedOption.label),
         price: basePrice,
         originalPrice: selectedOption.originalPrice ? Number(selectedOption.originalPrice) : undefined,
         duration: selectedOption.duration ? String(selectedOption.duration) : undefined,
         badge: selectedOption.badge ? String(selectedOption.badge) : undefined,
+      },
+      priceSnapshot: {
+        guestPrices,
+        version: quote.version,
+        sourceVersion: quote.sourceVersion,
+        executionId: quote.executionId || undefined,
+        overrideId: quote.overrideId || undefined,
+        source: quote.source,
+        capturedAt: new Date(),
       },
       appliedOffer: best
         ? {
@@ -343,8 +387,10 @@ async function POSTHandler(request: NextRequest) {
           participants: `${totalGuests} participant${totalGuests !== 1 ? 's' : ''}`,
           participantBreakdown: [
             numericAdults > 0 ? `${numericAdults} x Adult ($${basePrice.toFixed(2)})` : null,
-            numericChildren > 0 ? `${numericChildren} x Child ($${(basePrice / 2).toFixed(2)})` : null,
-            numericInfants > 0 ? `${numericInfants} x Infant (Free)` : null,
+            numericChildren > 0 ? `${numericChildren} x Child ($${guestPrices.child.toFixed(2)})` : null,
+            numericInfants > 0
+              ? (guestPrices.infant > 0 ? `${numericInfants} x Infant ($${guestPrices.infant.toFixed(2)})` : `${numericInfants} x Infant (Free)`)
+              : null,
           ]
             .filter(Boolean)
             .join(', '),
@@ -364,6 +410,7 @@ async function POSTHandler(request: NextRequest) {
               childQuantity: numericChildren,
               infantQuantity: numericInfants,
               price: basePrice,
+              guestPrices,
               totalPrice: formatMoney(discountedTotal),
               selectedBookingOption: String(selectedOption.label),
             },

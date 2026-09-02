@@ -122,6 +122,8 @@ export interface Category {
 export interface AvailabilitySlot {
   time: string;
   capacity: number;
+  price?: number;
+  guestPrices?: { child?: number; infant?: number };
 }
 
 export interface Availability {
@@ -151,6 +153,7 @@ export interface FAQ {
 
 export interface BookingOption {
   id?: string; // Stable id used for option-level stop-sale
+  pricingKey?: string;
   type: string;
   label: string;
   price: number;
@@ -164,6 +167,13 @@ export interface BookingOption {
   badge?: string;
   discount?: number;
   isRecommended?: boolean;
+  applyTourDiscount?: boolean;
+  guestPrices?: { adult: number; child: number; infant: number };
+  timeSlots?: Array<{
+    time: string;
+    price?: number;
+    guestPrices?: { child?: number; infant?: number };
+  }>;
 }
 
 export interface AddOn {
@@ -193,6 +203,9 @@ export interface Tour {
   images?: string[];
   imageMetadata?: ImageMetadata[];
   discountPrice: number;
+  discountPercent?: number;
+  revenueGuestPrices?: { adult: number; child: number; infant: number };
+  pricingSummaries?: Array<{ tenantId: string; fromPrice: number; currency: string; version: number; validThrough?: string }>;
   originalPrice?: number;
   price?: number;
   duration: string;
@@ -430,10 +443,14 @@ export interface CartItem extends Tour {
       price: number;
       category: string;
       perGuest: boolean;
+      quantity?: number;
     }
   };
+  /** Unit prices resolved for the selected departure and frozen at checkout. */
+  guestPrices?: { adult: number; child: number; infant: number };
   selectedBookingOption?: {
     id: string;
+    pricingKey?: string;
     title: string;
     /** Pricing type ("Per Person", "Per Group", ...) — decides per-guest vs whole-unit totals. */
     type?: string;
@@ -442,6 +459,11 @@ export interface CartItem extends Tour {
     duration?: string;
     badge?: string;
   };
+  priceVersion?: number;
+  priceSourceVersion?: string | null;
+  priceExecutionId?: string | null;
+  priceOverrideId?: string | null;
+  priceSource?: 'catalogue' | 'override';
   totalPrice: number;
 }
 

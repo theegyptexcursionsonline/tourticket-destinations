@@ -1,10 +1,12 @@
 import type { AuditActor } from '@/lib/admin/auditStamp';
+import { finalizeAddOnAssignments, stripBookingOptionClientKeys } from '@/lib/admin/addOnAssignments';
+import { ensureBookingOptionPricingKeys } from '@/lib/revenue/pricingKeys';
 
 type SourceRecord = Record<string, unknown>;
 
 const TOUR_COPY_FIELDS = [
   'tenantIds', 'breadcrumbLabel', 'parentPage', 'destination', 'category',
-  'description', 'longDescription', 'price', 'discountPrice', 'discountPercent',
+  'description', 'longDescription', 'price', 'originalPrice', 'discountPrice', 'discountPercent', 'revenueGuestPrices',
   'duration', 'difficulty', 'maxGroupSize', 'location', 'image', 'images',
   'imageMetadata', 'includes', 'highlights', 'whatsIncluded', 'whatsNotIncluded',
   'tags', 'itinerary', 'faq', 'bookingOptions', 'addOns', 'whatToBring',
@@ -100,19 +102,31 @@ export function buildTourDuplicate(source: SourceRecord, params: { id: string; t
     labelLimit: 200, slugLimit: 100, fallback: 'Tour',
   });
   const draft = pick(source, TOUR_COPY_FIELDS);
-  const bookingOptions = Array.isArray(draft.bookingOptions)
-    ? draft.bookingOptions.map((option, index) => ({
-        ...(cloneValue(option) as SourceRecord),
-        id: `copy-${params.id}-${index + 1}`,
-      }))
-    : [];
+  const sourceOptions = Array.isArray(draft.bookingOptions) ? draft.bookingOptions : [];
+  const unkeyedOptions: Array<SourceRecord & {
+    clientKey: string;
+    id?: string;
+    pricingKey?: string;
+    label?: string;
+    type?: string;
+  }> = sourceOptions.map((option, index) => {
+    const content = cloneValue(option) as SourceRecord;
+    const clientKey = String(content.pricingKey || content.id || content._id || '');
+    delete content._id;
+    delete content.id;
+    delete content.pricingKey;
+    return { ...content, id: `copy-${params.id}-${index + 1}`, clientKey };
+  });
+  const keyedOptions = ensureBookingOptionPricingKeys(params.id, unkeyedOptions) || [];
+  const addOns = finalizeAddOnAssignments(draft.addOns, keyedOptions);
   return {
     ...draft,
     _id: params.id,
     tenantId: params.tenantId,
     title: identity.label,
     slug: identity.slug,
-    bookingOptions,
+    bookingOptions: stripBookingOptionClientKeys(keyedOptions),
+    addOns,
     isPublished: false,
     isFeatured: false,
     reviews: [],

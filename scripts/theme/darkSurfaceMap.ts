@@ -97,6 +97,34 @@ export const HUE_TINTS: Record<string, { 50: string; 100: string; 200: string }>
   rose:    { 50: '#2a1520', 100: '#3a1d2c', 200: '#4a2538' },
 };
 
+/**
+ * Readable ink for HUED text on the darkened tinted cards. The tinted
+ * surfaces above are darkened, but `text-rose-800`, `text-amber-900`,
+ * `text-purple-900` and friends were left at their light-mode value, so the
+ * What to Know / Accessibility / Policies / Cultural cards rendered dark ink
+ * on a dark card (client report, MT sheet 2026-08-31; EEO parity of 36d72d1).
+ * Each value keeps the hue's identity while clearing 4.5:1 against its own tint.
+ */
+export const HUE_INKS: Record<string, string> = {
+  red:     '#fca5a5',
+  orange:  '#fdba74',
+  amber:   '#fcd34d',
+  yellow:  '#fde047',
+  lime:    '#bef264',
+  green:   '#86efac',
+  emerald: '#6ee7b7',
+  teal:    '#5eead4',
+  cyan:    '#67e8f9',
+  sky:     '#7dd3fc',
+  blue:    '#93c5fd',
+  indigo:  '#a5b4fc',
+  violet:  '#c4b5fd',
+  purple:  '#d8b4fe',
+  fuchsia: '#f0abfc',
+  pink:    '#f9a8d4',
+  rose:    '#fda4af',
+};
+
 /** Neutral surface ladder: lighter Tailwind shade -> darker replacement. */
 export const NEUTRAL_SURFACES: Record<string, string> = {
   white: '#111827',
@@ -135,7 +163,15 @@ export interface BucketSpec {
   suffix?: string;
 }
 
+/** Ink colour for a hued-text bucket (`ink-rose`), or null when not one. */
+export function bucketInk(bucket: string): string | null {
+  if (!bucket.startsWith('ink-')) return null;
+  return HUE_INKS[bucket.slice('ink-'.length)] ?? null;
+}
+
 export function bucketSpec(bucket: string): BucketSpec {
+  const ink = bucketInk(bucket);
+  if (ink) return { declarations: [`color: ${ink}`] };
   const surface = bucketColor(bucket);
   if (surface) return { declarations: [`background-color: ${surface}`] };
   switch (bucket) {
@@ -250,6 +286,7 @@ const RE = {
   stopHex: /^(?:from|via|to)-\[#([0-9a-fA-F]{3,8})\]$/,
   gradientDir: /^bg-gradient-to-(?:t|tr|r|br|b|bl|l|tl)$/,
   text: new RegExp(`^text-(black|(?:${NEUTRAL_RE})-(400|500|600|700|800|900|950))(?:\\/\\d{1,3})?$`),
+  textHue: new RegExp(`^text-(${HUE_RE})-(?:700|800|900|950)(?:\\/\\d{1,3})?$`),
   borderWhite: /^border-white(?:\/(\d{1,3}))?$/,
   borderNeutral: new RegExp(`^border-(?:${NEUTRAL_RE})-(?:50|100|200|300)(?:\\/\\d{1,3})?$`),
   borderWidth: /^border(?:-[xytrbles])?(?:-(?:0|2|4|8))?$/,
@@ -335,6 +372,14 @@ export function classifyUtility(base: string): Classification | null {
     const shade = m[2] ? Number(m[2]) : 900;
     const bucket = shade >= 800 ? 'text-strong' : shade >= 600 ? 'text-muted' : 'text-subtle';
     return mk('text', 'darken', bucket);
+  }
+  if ((m = RE.textHue.exec(base))) {
+    // Dark hued ink (700+) sat on a tint that IS darkened — lighten it to the
+    // same hue so the card stays branded and readable. Lighter hued text
+    // (<=600) is already legible on a dark card and keeps its brand colour.
+    return HUE_INKS[m[1]]
+      ? mk('text', 'darken', `ink-${m[1]}`)
+      : mk('text', 'preserve', null, 'no ink mapping for this hue');
   }
 
   if ((m = RE.borderWhite.exec(base))) {

@@ -25,6 +25,7 @@ jest.mock('@/lib/models/StopSale', () => ({
   default: { exists: jest.fn().mockResolvedValue(null) },
 }));
 
+import Tour from '@/lib/models/Tour';
 import { calculateCheckoutPricing } from '@/lib/security/checkoutPricing';
 
 describe('checkout pricing security', () => {
@@ -61,12 +62,20 @@ describe('checkout pricing security', () => {
     expect(result.cart[0].title).toBe('Canonical tour');
     expect(result.cart[0].selectedBookingOption.price).toBe(150);
     expect(result.cart[0].selectedAddOnDetails['addon-1'].price).toBe(20);
+    expect(Tour.findOne).toHaveBeenCalledWith({
+      _id: '507f1f77bcf86cd799439011',
+      isPublished: true,
+      archivedAt: null,
+      tenantId: 'brand-a',
+    });
+    // Per-person add-ons bill the guest's chosen units (1 here), not the
+    // party size — client sheet EEO 24 Aug / MT 31 Aug. Base 375 + 20 × 1.
     expect(result.pricing).toEqual({
-      subtotal: 435,
-      serviceFee: 13.05,
-      tax: 21.75,
+      subtotal: 395,
+      serviceFee: 11.85,
+      tax: 19.75,
       discount: 0,
-      total: 469.8,
+      total: 426.6,
     });
   });
 
@@ -385,4 +394,103 @@ describe('checkout pricing applies the tour discount exactly like the booking wr
     expect(result.pricing.subtotal).toBe(80);
   });
 
+
+  describe('child and infant prices follow the stored departure, never the cart', () => {
+    beforeEach(() => {
+      tourLean.mockResolvedValue({
+        _id: '507f1f77bcf86cd799439011',
+        tenantId: 'brand-a',
+        title: 'Guest-priced tour',
+        discountPrice: 100,
+        revenueGuestPrices: { adult: 100, child: 60, infant: 10 },
+        availability: { slots: [{ time: '10:00', capacity: 10 }, { time: '14:00', capacity: 10, guestPrices: { child: 40 } }] },
+        bookingOptions: [
+          {
+            id: 'private',
+            type: 'Per Person',
+            label: 'Private',
+            price: 150,
+            guestPrices: { adult: 150, child: 90, infant: 20 },
+            timeSlots: [{ time: '10:00' }, { time: '14:00', guestPrices: { child: 75, infant: 0 } }],
+          },
+          { id: 'plain', type: 'Per Person', label: 'Plain', price: 80 },
+        ],
+      });
+    });
+
+    const base = {
+      id: '507f1f77bcf86cd799439011',
+      selectedDate: '2099-01-01',
+      quantity: 1,
+      childQuantity: 2,
+      infantQuantity: 1,
+    };
+
+    it('charges the option child and infant prices and ignores client-supplied guestPrices', async () => {
+      const result = await calculateCheckoutPricing([{
+        ...base,
+        selectedTime: '10:00',
+        selectedBookingOption: { id: 'private', price: 0.01 },
+        guestPrices: { adult: 0.01, child: 0.01, infant: 0.01 },
+      }], 'brand-a');
+
+      expect(result.cart[0].guestPrices).toEqual({ adult: 150, child: 90, infant: 20 });
+      // 150 + 2 × 90 + 20
+      expect(result.pricing.subtotal).toBe(350);
+    });
+
+    it('charges the selected departure override on the option', async () => {
+      const result = await calculateCheckoutPricing([{
+        ...base,
+        selectedTime: '14:00',
+        selectedBookingOption: { id: 'private' },
+      }], 'brand-a');
+
+      expect(result.cart[0].guestPrices).toEqual({ adult: 150, child: 75, infant: 0 });
+      // 150 + 2 × 75 + 0
+      expect(result.pricing.subtotal).toBe(300);
+    });
+
+    it('keeps the network default (child half, infant free) for an option without guest prices', async () => {
+      const result = await calculateCheckoutPricing([{
+        ...base,
+        selectedTime: '10:00',
+        selectedBookingOption: { id: 'plain' },
+      }], 'brand-a');
+
+      expect(result.cart[0].guestPrices).toEqual({ adult: 80, child: 40, infant: 0 });
+      expect(result.pricing.subtotal).toBe(160);
+    });
+
+    it('uses the tour-level RevenuePilot set and universal slot override when no option is chosen', async () => {
+      const morning = await calculateCheckoutPricing([{ ...base, selectedTime: '10:00' }], 'brand-a');
+      expect(morning.cart[0].guestPrices).toEqual({ adult: 100, child: 60, infant: 10 });
+      expect(morning.pricing.subtotal).toBe(230);
+
+      const afternoon = await calculateCheckoutPricing([{ ...base, selectedTime: '14:00' }], 'brand-a');
+      expect(afternoon.cart[0].guestPrices).toEqual({ adult: 100, child: 40, infant: 10 });
+      expect(afternoon.pricing.subtotal).toBe(190);
+    });
+
+    it('never applies guest prices per head to a whole-unit option', async () => {
+      tourLean.mockResolvedValue({
+        _id: '507f1f77bcf86cd799439011',
+        tenantId: 'brand-a',
+        title: 'Couple tour',
+        discountPrice: 100,
+        bookingOptions: [{ id: 'couple', type: 'Per Couple', label: 'Couple', price: 200, minCapacity: 2, maxCapacity: 4, guestPrices: { adult: 200, child: 150, infant: 50 } }],
+      });
+      const result = await calculateCheckoutPricing([{
+        ...base,
+        quantity: 2,
+        childQuantity: 1,
+        infantQuantity: 1,
+        selectedTime: '10:00',
+        selectedBookingOption: { id: 'couple' },
+      }], 'brand-a');
+
+      // 4 participants → 2 units × 200, no per-guest arithmetic.
+      expect(result.pricing.subtotal).toBe(400);
+    });
+  });
 });

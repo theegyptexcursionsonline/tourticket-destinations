@@ -51,6 +51,13 @@ interface Tour {
   slug: string;
 }
 
+// The picker only ever offers live tours: a trashed tour must not be linkable
+// to a destination. The API already excludes them (includeArchived=false); the
+// client filter is defence in depth against a cached or older response.
+export function isSelectableTour(tour: { archivedAt?: string | null } | null | undefined): boolean {
+  return Boolean(tour) && !tour?.archivedAt;
+}
+
 interface FormData {
   translations: Record<string, Record<string, unknown>>;
   name: string;
@@ -184,15 +191,14 @@ export default function DestinationManager({ initialDestinations }: { initialDes
   useEffect(() => {
     const fetchTours = async () => {
       try {
-        const params = new URLSearchParams();
+        const params = new URLSearchParams({ includeArchived: 'false' });
         if (selectedTenantId && selectedTenantId !== 'all') {
           params.set('tenantId', selectedTenantId);
         }
-        const query = params.toString();
-        const response = await fetch(`/api/admin/tours${query ? `?${query}` : ''}`);
+        const response = await fetch(`/api/admin/tours?${params.toString()}`);
         const data = await response.json();
         if (data.success) {
-          setAvailableTours(data.data.map((tour: any) => ({
+          setAvailableTours((data.data as any[]).filter(isSelectableTour).map((tour: any) => ({
             _id: tour._id,
             title: tour.title,
             slug: tour.slug
@@ -302,12 +308,14 @@ export default function DestinationManager({ initialDestinations }: { initialDes
 
     // Fetch tours for this destination
     if (dest._id) {
-      fetch(`/api/admin/tours${selectedTenantId && selectedTenantId !== 'all' ? `?tenantId=${encodeURIComponent(selectedTenantId)}` : ''}`)
+      const linkedScope = selectedTenantId && selectedTenantId !== 'all' ? `&tenantId=${encodeURIComponent(selectedTenantId)}` : '';
+      fetch(`/api/admin/tours?includeArchived=false${linkedScope}`)
         .then(res => res.json())
         .then(data => {
           if (data.success) {
-            // Find tours that have this destination
-            const toursForThisDestination = data.data
+            // Find live tours that have this destination
+            const toursForThisDestination = (data.data as any[])
+              .filter(isSelectableTour)
               .filter((tour: any) => {
                 const tourDestId = typeof tour.destination === 'string' ? tour.destination : tour.destination?._id;
                 return tourDestId === (dest._id as any).toString();

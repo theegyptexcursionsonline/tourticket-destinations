@@ -49,6 +49,10 @@ jest.mock('@/lib/admin/auditStamp', () => ({
 }));
 jest.mock('@/lib/translation/translateService', () => ({ translateTourInBackground: jest.fn() }));
 jest.mock('@/lib/storefront/revalidateTourStorefront', () => ({ revalidateTourStorefront: jest.fn() }));
+jest.mock('@/lib/revenue/pricingSummary', () => ({
+  refreshTourPricingSummaries: jest.fn().mockResolvedValue([]),
+  syncTourPricingSearchIndex: jest.fn().mockResolvedValue(true),
+}));
 
 import { DELETE, PUT } from '@/app/api/admin/tours/[id]/route';
 

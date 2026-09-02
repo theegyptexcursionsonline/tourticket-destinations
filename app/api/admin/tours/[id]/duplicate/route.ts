@@ -14,6 +14,7 @@ import {
 } from '@/lib/admin/contentDuplication';
 import { registerAdminAuditDetail, withAdminAudit } from '@/lib/admin/adminAudit';
 import { revalidateTourStorefront } from '@/lib/storefront/revalidateTourStorefront';
+import { refreshTourPricingSummaries } from '@/lib/revenue/pricingSummary';
 
 type SourceTour = Record<string, unknown> & {
   tenantId?: unknown;
@@ -75,6 +76,9 @@ async function POSTHandler(request: NextRequest, { params }: { params: Promise<{
       },
       create: (draft) => Tour.create(draft),
     });
+
+    const sellingTenantIds = [...new Set([tenantId, ...ids(duplicate.tenantIds)])];
+    await refreshTourPricingSummaries(String(duplicate._id), sellingTenantIds);
 
     revalidateTourStorefront();
     registerAdminAuditDetail({

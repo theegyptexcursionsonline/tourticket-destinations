@@ -20,6 +20,7 @@ import { tourFromPrice } from '@/lib/pricing/displayPrice';
 import LinkedPageCardsSection from '@/components/content/LinkedPageCardsSection';
 import type { LinkedPageCard } from '@/lib/attractionPages/pageContent';
 import { contentPath } from '@/lib/content/contentUrl';
+import { useTenant } from '@/contexts/TenantContext';
 
 type CategoryPageCopy = {
   searchToursPlaceholder: string;
@@ -765,7 +766,8 @@ const TourCard = ({
   copy: CategoryPageCopy;
 }) => {
   const { formatPrice } = useSettings();
-  const displayedPrice = tourFromPrice(tour).price;
+  const { tenantId } = useTenant();
+  const displayedPrice = tourFromPrice(tour, tenantId).price;
 
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow flex flex-col group">
@@ -840,6 +842,7 @@ export default function CategoryPageClient({
     const rtl = isRTL(locale);
     const copy = locale.startsWith('ar') ? CATEGORY_PAGE_COPY.ar : CATEGORY_PAGE_COPY.en;
     const { formatPrice } = useSettings();
+    const { tenantId } = useTenant();
     const [selectedTour, setSelectedTour] = useState<Tour | null>(null);
     const [isBookingSidebarOpen, setBookingSidebarOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
@@ -891,7 +894,7 @@ export default function CategoryPageClient({
                 durationSet.add(tour.duration);
             }
 
-            const price = tourFromPrice(tour).price;
+            const price = tourFromPrice(tour, tenantId).price;
             if (price && Number.isFinite(price)) {
                 prices.push(price);
             }
@@ -942,7 +945,7 @@ export default function CategoryPageClient({
             minPriceLabel,
             priceRangeLabel,
         } satisfies CategoryInsights;
-    }, [category, categoryTours, formatPrice, locale]);
+    }, [category, categoryTours, formatPrice, locale, tenantId]);
 
     // Top Picks only earns its own section when it can show something the grid
     // below does not; with three tours or fewer the two lists were identical.
@@ -988,7 +991,7 @@ export default function CategoryPageClient({
         // Price range filter
         if (priceRange) {
             filtered = filtered.filter(tour => {
-                const price = tourFromPrice(tour).price;
+                const price = tourFromPrice(tour, tenantId).price;
                 if (priceRange === '0-50') return price < 50;
                 if (priceRange === '50-100') return price >= 50 && price < 100;
                 if (priceRange === '100-200') return price >= 100 && price < 200;
@@ -1000,15 +1003,13 @@ export default function CategoryPageClient({
         // Sort
         switch (sortBy) {
             case 'price_low':
-                filtered.sort((a, b) => tourFromPrice(a).price - tourFromPrice(b).price);
+                filtered.sort((a, b) => tourFromPrice(a, tenantId).price - tourFromPrice(b, tenantId).price);
                 break;
             case 'price_high':
                 // Sort by the same number the card shows. This branch used to read
-                // `pricingSummary.fromPrice`, a field this network's Tour model does
-                // not have, so it silently fell back to discountPrice/originalPrice
-                // and ordered tours by a price the customer never sees — visibly
-                // wrong for any tour whose cheapest booking option differs.
-                filtered.sort((a, b) => tourFromPrice(b).price - tourFromPrice(a).price);
+                // Sort by the same tenant-scoped RevenuePilot summary shown on
+                // each card so another storefront's override cannot influence it.
+                filtered.sort((a, b) => tourFromPrice(b, tenantId).price - tourFromPrice(a, tenantId).price);
                 break;
             case 'rating':
                 filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
@@ -1028,7 +1029,7 @@ export default function CategoryPageClient({
         }
 
         return filtered;
-    }, [categoryTours, topPickIds, searchQuery, sortBy, selectedDuration, priceRange]);
+    }, [categoryTours, topPickIds, searchQuery, sortBy, selectedDuration, priceRange, tenantId]);
 
     const pageTemplate = normalizePageTemplate(category.pageTemplate);
 

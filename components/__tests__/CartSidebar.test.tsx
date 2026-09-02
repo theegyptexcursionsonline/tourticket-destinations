@@ -75,4 +75,55 @@ describe('CartSidebar', () => {
     const buttons = screen.getAllByRole('button')
     expect(buttons.length).toBeGreaterThan(0)
   })
+
+  describe('guest prices', () => {
+    const bookingOptions = [
+      { id: 'legacy', type: 'Per Person', label: 'Standard', price: 100 },
+      { id: 'priced', type: 'Per Person', label: 'Family', price: 100, guestPrices: { adult: 100, child: 70, infant: 15 } },
+      {
+        id: 'slotted', type: 'Per Person', label: 'Evening', price: 100,
+        guestPrices: { adult: 100, child: 70, infant: 15 },
+        timeSlots: [{ time: '14:00', guestPrices: { child: 80, infant: 0 } }],
+      },
+    ]
+    const cartWith = (optionId: string, selectedTime: string) => {
+      const option = bookingOptions.find((candidate) => candidate.id === optionId)!
+      return {
+        cart: [{
+          id: '1', uniqueId: 'u1', title: 'Pyramids Tour', image: '/pyramid.jpg',
+          price: 100, discountPrice: 100, bookingOptions, discountPercent: 0,
+          quantity: 2, childQuantity: 1, infantQuantity: 1,
+          selectedDate: '2099-05-01', selectedTime,
+          selectedBookingOption: { id: option.id, title: option.label, type: option.type, price: option.price },
+        }],
+        totalPrice: 0, totalItems: 4,
+        removeFromCart: jest.fn(), updateQuantity: jest.fn(), clearCart: jest.fn(), addToCart: jest.fn(),
+        isCartOpen: true, openCart: jest.fn(), closeCart: mockCloseCart,
+      }
+    }
+    const useCartMock = () => require('@/hooks/useCart').useCart
+
+    it('legacy option totals child half and infant free with no per-guest breakdown', () => {
+      useCartMock().mockReturnValueOnce(cartWith('legacy', '09:00'))
+      render(<CartSidebar />)
+      expect(screen.getAllByText(/\$250/).length).toBeGreaterThan(0)
+      expect(screen.queryByTestId('guest-price-breakdown')).not.toBeInTheDocument()
+    })
+
+    it('a child-priced option shows the child and infant lines the server will charge', () => {
+      useCartMock().mockReturnValueOnce(cartWith('priced', '09:00'))
+      render(<CartSidebar />)
+      expect(screen.getAllByText(/\$285/).length).toBeGreaterThan(0)
+      const breakdown = screen.getByTestId('guest-price-breakdown')
+      expect(breakdown).toHaveTextContent('$70')
+      expect(breakdown).toHaveTextContent('$15')
+    })
+
+    it('a per-departure override prices the selected departure', () => {
+      useCartMock().mockReturnValueOnce(cartWith('slotted', '14:00'))
+      render(<CartSidebar />)
+      expect(screen.getAllByText(/\$280/).length).toBeGreaterThan(0)
+      expect(screen.getByTestId('guest-price-breakdown')).toHaveTextContent('$80')
+    })
+  })
 })

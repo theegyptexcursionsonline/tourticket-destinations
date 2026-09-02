@@ -96,8 +96,8 @@ const getTagColor = (tag: string) => {
 // Enhanced Tour Card Component
 const TourCard = ({ tour, onAddToCartClick }: { tour: Tour; onAddToCartClick: (tour: Tour) => void }) => {
   const { formatPrice } = useSettings();
-  const { getSiteName } = useTenant();
-  const fromPrice = tourFromPrice(tour);
+  const { getSiteName, tenantId } = useTenant();
+  const fromPrice = tourFromPrice(tour, tenantId);
 
   return (
     <Link

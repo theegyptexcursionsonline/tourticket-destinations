@@ -83,16 +83,20 @@ export default function UnifiedPagesAdmin() {
     const status = initialParams().get('status');
     return status === 'published' || status === 'draft' || status === 'archived' ? status : 'all';
   });
+  const [sortBy, setSortBy] = useState<'created' | 'updated'>(() =>
+    initialParams().get('sort') === 'updated' ? 'updated' : 'created',
+  );
   const [editorFilter, setEditorFilter] = useState(() => initialParams().get('editor') || '');
   useEffect(() => {
     const params = new URLSearchParams();
     if (searchTerm.trim()) params.set('q', searchTerm.trim());
     if (filterKind !== 'all') params.set('kind', filterKind);
     if (filterStatus !== 'all') params.set('status', filterStatus);
+    if (sortBy !== 'created') params.set('sort', sortBy);
     if (editorFilter.trim()) params.set('editor', editorFilter.trim());
     const query = params.toString();
     window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
-  }, [searchTerm, filterKind, filterStatus, editorFilter]);
+  }, [searchTerm, filterKind, filterStatus, sortBy, editorFilter]);
 
   const requestSeq = useRef(0);
   const activeRequest = useRef<AbortController | null>(null);
@@ -107,10 +111,11 @@ export default function UnifiedPagesAdmin() {
     if (searchTerm.trim()) params.set('q', searchTerm.trim());
     if (filterKind !== 'all') params.set('kind', filterKind);
     if (filterStatus !== 'all') params.set('status', filterStatus);
+    if (sortBy !== 'created') params.set('sort', sortBy);
     if (editorFilter.trim()) params.set('editor', editorFilter.trim());
     if (cursor) params.set('cursor', cursor);
     return params.toString();
-  }, [searchTerm, filterKind, filterStatus, editorFilter, selectedTenantId]);
+  }, [searchTerm, filterKind, filterStatus, sortBy, editorFilter, selectedTenantId]);
 
   const fetchPage = useCallback(async (cursor: string | null, append: boolean) => {
     const seq = ++requestSeq.current;
@@ -331,6 +336,16 @@ export default function UnifiedPagesAdmin() {
             <option value="draft">Draft</option>
             <option value="archived">Archived</option>
           </select>
+
+          <select
+            aria-label="Sort pages"
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+          >
+            <option value="created">Sort: Newest First</option>
+            <option value="updated">Sort: Last Modified</option>
+          </select>
         </div>
       </div>
 
@@ -348,16 +363,15 @@ export default function UnifiedPagesAdmin() {
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Page</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">URL</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{sortBy === 'updated' ? 'Modified' : 'Created'}</th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                  <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
                     {searchTerm || editorFilter || filterKind !== 'all' || filterStatus !== 'all'
                       ? 'No pages match your filters'
                       : 'No pages found'}
@@ -391,9 +405,6 @@ export default function UnifiedPagesAdmin() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-xs font-mono text-gray-500">{row.publicPath}</span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                         row.isPublished ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
                       }`}>
@@ -406,12 +417,17 @@ export default function UnifiedPagesAdmin() {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <div>{row.createdAt ? new Date(row.createdAt).toLocaleDateString() : 'N/A'}</div>
-                      {(row.updatedBy?.name || row.updatedBy?.email || row.createdBy?.name || row.createdBy?.email) && (
-                        <div className="mt-1 text-xs text-gray-400">
-                          Edited by {row.updatedBy?.name || row.updatedBy?.email || row.createdBy?.name || row.createdBy?.email}
-                        </div>
-                      )}
+                      {(() => {
+                        const stamp = sortBy === 'updated' ? row.updatedAt || row.createdAt : row.createdAt;
+                        const actor = row.updatedBy || row.createdBy;
+                        const actorLabel = actor?.name || actor?.email;
+                        return (
+                          <div>
+                            <div>{stamp ? new Date(stamp).toLocaleDateString() : 'N/A'}</div>
+                            {actorLabel ? <div className="mt-1 text-xs text-gray-400">Edited by {actorLabel}</div> : null}
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end gap-2">

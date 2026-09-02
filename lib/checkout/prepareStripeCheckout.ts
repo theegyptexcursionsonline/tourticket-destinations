@@ -9,6 +9,7 @@ import {
 import { resolveExecutablePaymentMethods } from '@/lib/payments/paymentProviderPolicy';
 import {
   calculateCheckoutPricing,
+  CheckoutPriceChangedError,
   checkoutCustomerRef,
   checkoutFingerprint,
 } from '@/lib/security/checkoutPricing';
@@ -55,6 +56,7 @@ export class StripeCheckoutInputError extends Error {
     public status: number,
     public code: string,
     message: string,
+    public details?: Record<string, unknown>,
   ) {
     super(message);
     this.name = 'StripeCheckoutInputError';
@@ -174,12 +176,23 @@ export async function prepareStripeCheckout(
     );
   }
 
-  const validated = await calculateCheckoutPricing(submittedCart, tenantId, discountCode);
+  let validated: Awaited<ReturnType<typeof calculateCheckoutPricing>>;
+  try {
+    validated = await calculateCheckoutPricing(submittedCart, tenantId, discountCode);
+  } catch (error) {
+    if (error instanceof CheckoutPriceChangedError) {
+      throw new StripeCheckoutInputError(409, error.code, error.message, { quote: error.quote });
+    }
+    throw error;
+  }
   const currency = String(tenantConfig.payments?.currency || 'USD').toLowerCase();
   const pricing = { ...validated.pricing, currency: currency.toUpperCase() };
   const fingerprint = checkoutFingerprint(validated.cart, tenantId, currency);
   const customerRef = checkoutCustomerRef(customer.email);
   const cartSummary = validated.cart.map((item: Record<string, any>, index: number) => ({
+    // Add-on quantity contract v1: q is the customer-chosen, server-billed
+    // unit count. Missing on an in-flight legacy payment means whole party.
+    aqv: 1,
     i: index,
     t: item._id || item.id,
     d: item.selectedDate,
@@ -187,10 +200,24 @@ export async function prepareStripeCheckout(
     a: item.quantity || 1,
     c: item.childQuantity || 0,
     n: item.infantQuantity || 0,
+    // `bp`, `gp`, unit fields, and version ids form the immutable server quote
+    // used after Stripe settles. The webhook checks that snapshot against the
+    // charge and rechecks live inventory, but a later catalogue edit must not
+    // re-price a payment already accepted by Stripe.
     bp: item.selectedBookingOption?.price || item.discountPrice || item.price || 0,
+    gp: item.guestPrices
+      ? [Number(item.guestPrices.adult) || 0, Number(item.guestPrices.child) || 0, Number(item.guestPrices.infant) || 0]
+      : undefined,
     bo: item.selectedBookingOption?.id || '',
+    ok: item.selectedBookingOption?.pricingKey || '',
     bot: item.selectedBookingOption?.title || '',
     boty: item.selectedBookingOption?.type || '',
+    us: item.unitPricing?.unitSize,
+    up: item.unitPricing?.unitPrice,
+    pv: item.priceVersion,
+    psv: item.priceSourceVersion,
+    pe: item.priceExecutionId,
+    po: item.priceOverrideId,
     ao: Object.entries(item.selectedAddOns || {}).map(([id, quantity]) => ({
       id,
       q: Number(quantity),
@@ -268,7 +295,7 @@ export async function prepareStripeCheckout(
 export function checkoutInputErrorResponse(error: unknown): Response | null {
   if (!(error instanceof StripeCheckoutInputError)) return null;
   return Response.json(
-    { success: false, code: error.code, message: error.message },
+    { success: false, code: error.code, message: error.message, ...(error.details || {}) },
     { status: error.status, headers: { 'Cache-Control': 'no-store' } },
   );
 }

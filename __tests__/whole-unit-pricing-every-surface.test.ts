@@ -23,9 +23,43 @@ const SURFACES = [
   'components/CartSidebar.tsx',
 ];
 
+// Surfaces that quote child/infant prices total through guestPricedSubtotal,
+// which delegates every whole-unit option to optionSubtotal (proved in
+// lib/revenue/__tests__/guestPrices.test.ts) — the unit rule is unchanged.
+const GUEST_PRICED_SURFACES = new Set([
+  'lib/security/checkoutPricing.ts',
+  'app/api/bookings/manual/route.ts',
+  'app/api/bookings/manual/[id]/route.ts',
+  'lib/utils/generateReceiptPdf.ts',
+  'app/[locale]/user/bookings/[id]/page.tsx',
+  'app/admin/bookings/[id]/page.tsx',
+]);
+
+// Surfaces that total a line through lib/checkout/lineTotals.ts (client) or
+// lib/bookings/storedLinePricing.ts (server) — thin wrappers over
+// guestPricedSubtotal, so the whole-unit rule is unchanged there too.
+const LINE_HELPER_SURFACES: Record<string, { importLine: string; call: RegExp }> = {
+  'app/api/checkout/route.ts': { importLine: "from '@/lib/checkout/lineTotals'", call: /lineTotal\((?:cartItem|item)\)/ },
+  'app/api/webhooks/stripe/route.ts': { importLine: "from '@/lib/bookings/storedLinePricing'", call: /priceStoredLine\(\{/ },
+  'app/[locale]/checkout/CheckoutClientPage.tsx': { importLine: "from '@/lib/checkout/lineTotals'", call: /lineTotal\(item\)/ },
+  'components/CartSidebar.tsx': { importLine: "from '@/lib/checkout/lineTotals'", call: /lineTotal\(item\)/ },
+};
+
 describe('whole-unit option pricing on every surface', () => {
   it.each(SURFACES)('%s totals through the shared optionSubtotal rule', (rel) => {
     const src = read(rel);
+    if (GUEST_PRICED_SURFACES.has(rel)) {
+      expect(src).toContain("from '@/lib/revenue/guestPrices'");
+      expect(src).toMatch(/guestPricedSubtotal\(/);
+      expect(src).not.toMatch(/\boptionSubtotal\(/);
+      return;
+    }
+    if (LINE_HELPER_SURFACES[rel]) {
+      expect(src).toContain(LINE_HELPER_SURFACES[rel].importLine);
+      expect(src).toMatch(LINE_HELPER_SURFACES[rel].call);
+      expect(src).not.toMatch(/\boptionSubtotal\(/);
+      return;
+    }
     expect(src).toContain("from '@/lib/bookings/optionSubtotal'");
     expect(src).toMatch(/optionSubtotal\(/);
   });
@@ -52,15 +86,23 @@ describe('whole-unit option pricing on every surface', () => {
     expect(model).toMatch(/selectedBookingOption: \{\s*\n\s*type: SelectedBookingOptionSchema,/);
     expect(model).not.toMatch(/selectedBookingOption: \{\s*\n\s*type: \{\s*\n\s*id: String,/);
     expect(read('lib/checkout/prepareStripeCheckout.ts')).toContain('boty: item.selectedBookingOption?.type');
-    expect(read('app/api/webhooks/stripe/route.ts')).toContain("type: String(storedOption?.type || item.boty || '')");
+    expect(read('app/api/webhooks/stripe/route.ts')).toContain("type: String(bookingOption?.type || item.boty || 'Per Person')");
     expect(read('app/api/bookings/manual/route.ts')).toContain('type: String(selectedOption.type),');
     expect(read('app/api/bookings/manual/[id]/route.ts')).toContain('type: String(selectedOption.type),');
   });
 
-  it('the webhook reads the option type from the stored tour, never trusting the summary alone', () => {
+  it('the webhook recovers a paid line from the immutable quote, with a legacy catalogue fallback', () => {
     const src = read('app/api/webhooks/stripe/route.ts');
     expect(src).toContain('storedOptions.find(');
-    expect(src).toMatch(/optionSubtotal\(\s*\(storedOption as UnitCapacityOption \| undefined\) \?\? null/);
+    expect(src).toMatch(/priceStoredLine\(\{[\s\S]*?option: \(storedOption as UnitCapacityOption & Record<string, unknown>\) \?\? null/);
+    expect(src).toContain('const hasPaidSnapshot = item.gp !== undefined;');
+    expect(src).toContain('tourSubtotal = recoveryTourSubtotal(paidItem, snapshotOption as UnitCapacityOption | undefined, guestPrices);');
+    // `bp` (the server-authoritative adult price captured before payment) is
+    // used only to reconstruct that paid snapshot and in mismatch diagnostics.
+    const pricingUses = (src.match(/item\.bp/g) || []).length;
+    expect(pricingUses).toBe(2);
+    expect(src).toMatch(/quotedAtPayment: \{ adult: line\.item\.bp/);
+    expect(src).toContain('if (recomputedMinor !== paymentIntent.amount) {');
   });
 
   it('the option card labels a whole-unit rate by its unit, never "per person"', () => {
@@ -93,6 +135,23 @@ describe('whole-unit option pricing on every surface', () => {
     expect(src).toContain('const mainIsUnitPriced = Boolean(mainOption && isUnitPricedType(mainOption.type));');
     expect(src).toContain('!mainIsUnitPriced && childCount > 0');
   });
+
+  it('persists and re-renders the server-billed add-on quantity on every after-sale surface', () => {
+    const bookingModel = read('lib/models/Booking.ts');
+    const webhook = read('app/api/webhooks/stripe/route.ts');
+    expect(bookingModel).toMatch(/selectedAddOnDetails:[\s\S]*?quantity: \{ type: Number, min: 1 \}/);
+    expect(webhook).toContain('quantity: billedQuantity');
+    for (const rel of [
+      'app/[locale]/user/bookings/[id]/page.tsx',
+      'app/admin/bookings/[id]/page.tsx',
+      'lib/utils/generateReceiptPdf.ts',
+    ]) {
+      const src = read(rel);
+      expect(src).toContain("from '@/lib/checkout/addOnPricing'");
+      expect(src).toMatch(/storedAddOnUnits\(/);
+      expect(src).not.toMatch(/addOnDetail\.perGuest \? totalGuests/);
+    }
+  });
   it('the running total before a departure is chosen follows the option rule, not per-guest', () => {
     const src = read('components/BookingSidebar.tsx');
     expect(src).toContain('const estimateOption = !slotOption');
@@ -106,9 +165,11 @@ describe('whole-unit option pricing on every surface', () => {
     // Every optionSubtotal call carries a fifth argument (infants) — the
     // authority gate reads it too. A call with only adults + children drifts
     // from the client's "total participants" rule.
-    const calls = src.match(/optionSubtotal\([^;]*/g) || [];
+    const calls = src.match(/(?:optionSubtotal|guestPricedSubtotal|priceStoredLine|lineTotal)\([^;]*/g) || [];
     expect(calls.length).toBeGreaterThan(0);
     for (const call of calls) {
+      // lineTotal(item) reads the infant count from the line itself.
+      if (/^lineTotal\(item\)/.test(call)) continue;
       expect(call).toMatch(/infant|\bitem\.n\b|\binfants\b|numericInfants/);
     }
   });

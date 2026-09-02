@@ -47,6 +47,7 @@ type TourType = {
   discountPrice?: number;
   duration?: string | number;
   createdAt?: string;
+  updatedAt?: string;
   isPublished?: boolean;
   isFeatured?: boolean;
   tenantId?: string;
@@ -198,7 +199,7 @@ export function ToursListClient({
   const [activeTab, setActiveTab] = useState<TabFilter>(initialTab);
   const [query, setQuery] = useState('');
   const [view, setView] = useState<'table' | 'cards'>('table');
-  const [sortBy, setSortBy] = useState<'newest' | 'price-asc' | 'price-desc'>('newest');
+  const [sortBy, setSortBy] = useState<'newest' | 'updated' | 'price-asc' | 'price-desc'>('newest');
   const [editorFilter, setEditorFilter] = useState<string>(searchParams.get('editor') || '');
   const [perPage, setPerPage] = useState(12);
   const [page, setPage] = useState(initialPage);
@@ -286,6 +287,13 @@ export function ToursListClient({
       list.sort(
         (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
       );
+    // Last modified: editors asked to find what they touched most recently.
+    if (sortBy === 'updated')
+      list.sort(
+        (a, b) =>
+          new Date(b.updatedAt || b.createdAt || 0).getTime() -
+          new Date(a.updatedAt || a.createdAt || 0).getTime()
+      );
     if (sortBy === 'price-asc')
       list.sort(
         (a, b) => (a.discountPrice || a.price || 0) - (b.discountPrice || b.price || 0)
@@ -335,7 +343,7 @@ export function ToursListClient({
     { id: 'published' as TabFilter, label: 'Published', icon: CheckCircle, count: tabCounts.published },
     { id: 'draft' as TabFilter, label: 'Draft', icon: Edit3, count: tabCounts.draft },
     { id: 'featured' as TabFilter, label: 'Featured', icon: Star, count: tabCounts.featured },
-    { id: 'archived' as TabFilter, label: 'Archived', icon: Archive, count: tabCounts.archived },
+    { id: 'archived' as TabFilter, label: 'Trash', icon: Archive, count: tabCounts.archived },
   ];
 
   return (
@@ -379,7 +387,7 @@ export function ToursListClient({
         {activeTab === 'archived' && tabCounts.archived > 0 && (
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-100 bg-rose-50/70 px-4 py-3 text-sm text-rose-900">
             <span>
-              Archived tours stay off the storefront. Empty the trash to remove them permanently — tours with bookings are always kept.
+              Tours in the Trash stay off the storefront. Empty the trash to remove them permanently — tours with bookings are always kept.
             </span>
             <button
               type="button"
@@ -444,10 +452,11 @@ export function ToursListClient({
               </div>
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
+                onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
                 className="w-full ps-11 pe-4 py-3.5 bg-white border border-slate-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer text-slate-700 font-medium"
               >
                 <option value="newest">📅 Newest First</option>
+                <option value="updated">🕒 Last Modified</option>
                 <option value="price-asc">💰 Price: Low to High</option>
                 <option value="price-desc">💰 Price: High to Low</option>
               </select>

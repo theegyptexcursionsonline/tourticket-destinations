@@ -951,8 +951,33 @@ const ExperienceDescription = ({ html }: { html: string }) => {
   );
 };
 
+/**
+ * The editor offers both a repeater ("What's Included") and a one-per-line
+ * list ("What's Included (List)") — they are the same customer-facing list,
+ * so both are shown here, de-duplicated. "What's Not Included (List)" was
+ * stored but never rendered on the network storefront (client report, MT
+ * sheet 2026-08-31; EEO parity of 36d72d1).
+ */
+export const mergeContentLists = (...lists: Array<string[] | undefined>): string[] => {
+  const seen = new Set<string>();
+  const merged: string[] = [];
+  for (const list of lists) {
+    for (const raw of list || []) {
+      const item = String(raw || '').trim();
+      if (!item) continue;
+      const key = item.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      merged.push(item);
+    }
+  }
+  return merged;
+};
+
 const OverviewSection = ({ tour, sectionRef }: { tour: Tour, sectionRef: React.RefObject<HTMLDivElement | null> }) => {
   const t = useTranslations('tour');
+  const includedItems = mergeContentLists(tour.includes, tour.whatsIncluded);
+  const notIncludedItems = mergeContentLists(tour.whatsNotIncluded);
   return (
   <div ref={sectionRef} id="overview" className="space-y-8 scroll-mt-24">
     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
@@ -962,13 +987,26 @@ const OverviewSection = ({ tour, sectionRef }: { tour: Tour, sectionRef: React.R
       </div>
       <ExperienceDescription html={formatExperienceDescription(sanitizeRichHtml(tour.longDescription || tour.description))} />
       <div className="grid grid-cols-1 gap-4 border-t border-slate-200 pt-7 md:grid-cols-2 md:gap-5">
-        {tour.includes && tour.includes.length > 0 && (
+        {includedItems.length > 0 && (
           <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-5">
             <h3 className="mb-4 flex items-center gap-2.5 text-lg font-semibold text-slate-900"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50"><CheckCircle size={18} className="text-emerald-600" /></span>{t('includes')}</h3>
             <ul className="space-y-3">
-              {tour.includes.map((item, index) => (
+              {includedItems.map((item, index) => (
                 <li key={index} className="flex items-start gap-3 text-slate-600">
                   <CheckCircle size={16} className="mt-0.5 flex-shrink-0 text-emerald-600" />
+                  <span className="text-sm leading-6">{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {notIncludedItems.length > 0 && (
+          <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-5" data-section="not-included">
+            <h3 className="mb-4 flex items-center gap-2.5 text-lg font-semibold text-slate-900"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-50"><X size={18} className="text-rose-600" /></span>{t('notIncluded')}</h3>
+            <ul className="space-y-3">
+              {notIncludedItems.map((item, index) => (
+                <li key={index} className="flex items-start gap-3 text-slate-600">
+                  <X size={16} className="mt-0.5 flex-shrink-0 text-rose-600" />
                   <span className="text-sm leading-6">{item}</span>
                 </li>
               ))}

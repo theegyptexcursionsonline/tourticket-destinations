@@ -3,7 +3,7 @@ import { withAdminAudit } from '@/lib/admin/adminAudit';
 import dbConnect from '@/lib/dbConnect';
 import Tour from '@/lib/models/Tour';
 import { NextRequest, NextResponse } from 'next/server';
-import { syncTourToAlgolia } from '@/lib/algolia';
+import mongoose from 'mongoose';
 import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 import { translateTourInBackground } from '@/lib/translation/translateService';
 import { revalidateTourStorefront } from '@/lib/storefront/revalidateTourStorefront';
@@ -11,6 +11,14 @@ import { collectTourOptionIds } from '@/lib/admin/tourOptionIdentifiers';
 import { auditStamp } from '@/lib/admin/auditStamp';
 import { finalizeAddOnAssignments, stripBookingOptionClientKeys } from '@/lib/admin/addOnAssignments';
 import { applyBookingOptionCapacityDefaults, bookingOptionCapacityError } from '@/lib/admin/bookingOptionCapacity';
+import {
+  cleanAvailabilitySlotGuestPrices,
+  cleanBookingOptionGuestPrices,
+  hasOnlyConfiguredTimeSlots,
+  normalizeGuestPriceSet,
+} from '@/lib/revenue/guestPrices';
+import { assignNewBookingOptionPricingKeys } from '@/lib/revenue/pricingKeys';
+import { refreshTourPricingSummaries, syncTourPricingSearchIndex } from '@/lib/revenue/pricingSummary';
 
 const ADMIN_TOUR_LIST_PROJECTION = [
   'title',
@@ -116,8 +124,10 @@ function cleanBookingOptions(bookingOptions: any[]): any[] {
     if (cleanedOption.discount) {
       cleanedOption.discount = Number(cleanedOption.discount);
     }
-    
-    return cleanedOption;
+
+    // Child/infant prices: the option set must be complete (or is unset);
+    // per-slot overrides are cleaned independently.
+    return cleanBookingOptionGuestPrices(cleanedOption);
   });
 }
 
@@ -189,7 +199,15 @@ export async function GET(request: NextRequest) {
     if (featured === 'true') {
       filter.isFeatured = true;
     }
-    
+
+    // Trashed (archived) tours are returned by default because the Manage
+    // Tours list renders them under its Trash tab. Pickers that link tours to
+    // other content (destinations, pages) opt out with includeArchived=false
+    // so a trashed tour can never be selected for a live listing.
+    if (searchParams.get('includeArchived') === 'false') {
+      filter.archivedAt = null;
+    }
+
     const tours = await fetchToursWithPopulate(filter);
 
     return NextResponse.json({ 
@@ -216,6 +234,10 @@ async function POSTHandler(request: NextRequest) {
 
   try {
     const body = await request.json();
+    const tourId = new mongoose.Types.ObjectId();
+    body._id = tourId;
+    delete body.pricingSummaries;
+    delete body.pricingSearchProjections;
 
     // Tenant guard: if a tenantId scope is passed (from AdminTenantContext),
     // require body.tenantId to match. Prevents an admin viewing tenant A from
@@ -280,8 +302,32 @@ async function POSTHandler(request: NextRequest) {
       if (capacityError) {
         return NextResponse.json({ error: capacityError }, { status: 400 });
       }
-      body.addOns = finalizeAddOnAssignments(body.addOns, cleanedOptions);
-      body.bookingOptions = stripBookingOptionClientKeys(cleanedOptions);
+      const keyedOptions = assignNewBookingOptionPricingKeys(String(tourId), cleanedOptions) || [];
+      body.addOns = finalizeAddOnAssignments(body.addOns, keyedOptions);
+      body.bookingOptions = stripBookingOptionClientKeys(keyedOptions);
+    }
+
+    // Tour-level guest prices for RevenuePilot: adult mirrors the base price;
+    // a blank/partial pair stores nothing.
+    if ('revenueGuestPrices' in body) {
+      body.revenueGuestPrices = normalizeGuestPriceSet(body.discountPrice ?? body.price, body.revenueGuestPrices) ?? undefined;
+    }
+    if (body.availability && typeof body.availability === 'object') {
+      body.availability = cleanAvailabilitySlotGuestPrices(body.availability);
+    }
+    // Booking-option time slots are a strict subset of the tour's universal
+    // availability — a hand-built request cannot sell a departure that does
+    // not exist.
+    if (Array.isArray(body.bookingOptions)) {
+      const availabilitySlots: Array<{ time?: string }> = Array.isArray(body.availability?.slots) ? body.availability.slots : [];
+      const slotsAreValid = body.bookingOptions.every((option: { timeSlots?: unknown }) =>
+        hasOnlyConfiguredTimeSlots(option?.timeSlots, availabilitySlots));
+      if (!slotsAreValid) {
+        return NextResponse.json({
+          success: false,
+          error: 'Booking option contains a time slot that is not in tour availability',
+        }, { status: 400 });
+      }
     }
 
     // Handle category, attractions and interests arrays
@@ -302,6 +348,8 @@ async function POSTHandler(request: NextRequest) {
     }
 
     const tour = await Tour.create(body);
+    const sellingTenantIds = [...new Set([String(tour.tenantId), ...(tour.tenantIds || []).map(String)])];
+    await refreshTourPricingSummaries(String(tour._id), sellingTenantIds);
     revalidateTourStorefront();
     
     let populated: any = tour;
@@ -320,7 +368,7 @@ async function POSTHandler(request: NextRequest) {
     // Sync to Algolia if published
     if (body.isPublished) {
       try {
-        await syncTourToAlgolia(populated ?? tour);
+        await Promise.all(sellingTenantIds.map((tenantId) => syncTourPricingSearchIndex(String(tour._id), tenantId)));
       } catch (algoliaErr) {
         console.warn('Failed to sync tour to Algolia:', algoliaErr);
         // Don't fail the request if Algolia sync fails

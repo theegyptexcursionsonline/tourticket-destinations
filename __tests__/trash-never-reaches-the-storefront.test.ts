@@ -74,4 +74,24 @@ describe('slug resolution and the sitemap cannot surface trash', () => {
     expect(helper).toContain('archivedAt: null');
     expect(helper).toContain('isPublished: true');
   });
+
+  it('pricing, checkout and RevenuePilot reads use the same null-or-missing archive contract', () => {
+    const guardedReads = [
+      'lib/security/checkoutPricing.ts',
+      'lib/revenue/pricingResolver.ts',
+      'lib/revenue/sellableDeparture.ts',
+      'app/api/tours/[tourId]/options/route.ts',
+      'app/api/bookings/manual/route.ts',
+      'app/api/bookings/manual/[id]/route.ts',
+      'app/api/bookings/manual/options/route.ts',
+      'app/api/v1/revenue/catalog/route.ts',
+      'app/api/v1/revenue/departures/route.ts',
+      'app/api/v1/revenue/bookings/route.ts',
+    ];
+    for (const file of guardedReads) {
+      const contents = read(file);
+      expect(contents).toContain('archivedAt: null');
+      expect(contents).not.toContain('archivedAt: { $exists: false }');
+    }
+  });
 });

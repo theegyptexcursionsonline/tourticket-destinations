@@ -12,7 +12,7 @@ import SafeImage from '@/components/shared/SafeImage';
 import { parseLocalDate } from '@/utils/date';
 import { useLocale } from 'next-intl';
 import { isRTL } from '@/i18n/config';
-import { optionSubtotal } from '@/lib/bookings/optionSubtotal';
+import { lineAddOnQuantity, lineGuestBreakdown, lineTotal } from '@/lib/checkout/lineTotals';
 
 const CartSidebar: FC = () => {
     const t = useTranslations();
@@ -22,28 +22,14 @@ const CartSidebar: FC = () => {
     const { isCartOpen, closeCart, cart, totalItems, removeFromCart } = useCart();
     const { formatPrice } = useSettings();
 
-  // Calculate individual item total including add-ons
-    const getItemTotal = (item: any) => {
-        // Use selected booking option price if available, otherwise fall back to item price
-        const basePrice = item.selectedBookingOption?.price || item.discountPrice || 0;
-        
-        // Whole-unit options (couple/family/group) are charged per unit, not
-        // per guest — the same rule the server bills by.
-        let tourTotal = optionSubtotal(item.selectedBookingOption ?? null, basePrice, item.quantity || 1, item.childQuantity || 0, item.infantQuantity || 0);
-
-        let addOnsTotal = 0;
-        if (item.selectedAddOns && item.selectedAddOnDetails) {
-            Object.entries(item.selectedAddOns).forEach(([addOnId, quantity]: [string, any]) => {
-                const addOnDetail = item.selectedAddOnDetails?.[addOnId];
-                if (addOnDetail && quantity > 0) {
-                    const totalGuests = item.quantity + item.childQuantity;
-                    const addOnQuantity = addOnDetail.perGuest ? totalGuests : Number(quantity);
-                    addOnsTotal += addOnDetail.price * addOnQuantity;
-                }
-            });
-        }
-
-        return tourTotal + addOnsTotal;
+  // One line total for every surface: the tour subtotal at the departure's
+    // guest prices (whole-unit options per unit), plus add-ons billed by the
+    // same clamp the server applies — see lib/checkout/lineTotals.ts.
+    const getItemTotal = (item: any) => lineTotal(item);
+    const guestLabel = (guest: 'adult' | 'child' | 'infant', count: number) => {
+        if (guest === 'adult') return count > 1 ? t('booking.adults') : t('booking.adult');
+        if (guest === 'child') return count > 1 ? t('booking.children') : t('booking.child');
+        return count > 1 ? t('booking.infants') : t('booking.infant');
     };
 
     // Calculate total price including add-ons and booking options
@@ -175,8 +161,24 @@ const CartSidebar: FC = () => {
                                                                     {item.childQuantity > 0 &&
                                                                         `, ${item.childQuantity} ${item.childQuantity > 1 ? t('booking.children') : t('booking.child')}`
                                                                     }
+                                                                    {item.infantQuantity > 0 &&
+                                                                        `, ${item.infantQuantity} ${item.infantQuantity > 1 ? t('booking.infants') : t('booking.infant')}`
+                                                                    }
                                                                 </span>
                                                             </div>
+                                                            {/* Child/infant lines appear when this departure prices them
+                                                                differently from the network default, so the cart shows
+                                                                exactly what checkout will charge. */}
+                                                            {lineGuestBreakdown(item).some((line) => line.differsFromDefault) && (
+                                                                <div className="space-y-0.5 pt-1" data-testid="guest-price-breakdown">
+                                                                    {lineGuestBreakdown(item).map((line) => (
+                                                                        <div key={line.guest} className="flex items-center justify-between text-xs text-slate-500">
+                                                                            <span>{line.count} × {guestLabel(line.guest, line.count)} ({formatPrice(line.unitPrice)})</span>
+                                                                            <span className="font-medium text-slate-700">{formatPrice(line.total)}</span>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            )}
                                                         </div>
 
                                                         {/* Price */}
@@ -209,15 +211,14 @@ const CartSidebar: FC = () => {
                                                                 const addOnDetail = item.selectedAddOnDetails?.[addOnId];
                                                                 if (!addOnDetail || quantity === 0) return null;
 
-                                                                const totalGuests = item.quantity + item.childQuantity;
-                                                                const addOnQuantity = addOnDetail.perGuest ? totalGuests : Number(quantity);
+                                                                const addOnQuantity = lineAddOnQuantity(item, addOnId);
                                                                 const addOnTotal = addOnDetail.price * addOnQuantity;
 
                                                                 return (
                                                                     <div key={addOnId} className="flex items-center justify-between text-xs">
                                                                         <span className="text-slate-600 truncate pe-2">
                                                                             {addOnDetail.title}
-                                                                            {addOnDetail.perGuest && ` (${totalGuests}x)`}
+                                                                            {addOnDetail.perGuest && ` (${addOnQuantity}x)`}
                                                                         </span>
                                                                         <span className="text-slate-700 font-medium">
                                                                             {formatPrice(addOnTotal)}

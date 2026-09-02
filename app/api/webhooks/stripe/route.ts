@@ -20,9 +20,15 @@ import { unpackCartMetadata } from '@/lib/checkout/cartMetadata';
 import CheckoutPaymentQuote from '@/lib/models/CheckoutPaymentQuote';
 import Availability from '@/lib/models/Availability';
 import StopSale from '@/lib/models/StopSale';
-import { calculateCheckoutPricing } from '@/lib/security/checkoutPricing';
 import { type UnitCapacityOption } from '@/lib/bookings/unitPricing';
-import { optionSubtotal } from '@/lib/bookings/optionSubtotal';
+import { allocateChargedTotal, priceStoredLine } from '@/lib/bookings/storedLinePricing';
+import {
+  recoveryAddOnUnits,
+  recoveryAddOnsTotal,
+  recoveryGuestPrices,
+  recoveryTourSubtotal,
+  type RecoveryCartItem,
+} from '@/lib/checkout/recoveryPricing';
 
 // Lazy Stripe initialization to avoid build-time errors
 let stripeInstance: Stripe | null = null;
@@ -247,19 +253,10 @@ async function processSuccessfulPayment(paymentIntent: Stripe.PaymentIntent) {
       await refundHostedPayment('hosted_quote_invalid');
       return { created: false, reason: 'hosted_quote_refunded' };
     }
-    try {
-      const refreshed = await calculateCheckoutPricing(
-        hostedQuote.cart,
-        tenantId,
-        hostedQuote.discountCode,
-      );
-      const currentAmount = Math.round(Number(refreshed.pricing.total || 0) * 100);
-      if (currentAmount !== paymentIntent.amount) throw new Error('Authoritative price changed');
-    } catch (error) {
-      console.error(`[Webhook] Hosted booking is no longer sellable for ${paymentId}:`, error);
-      await refundHostedPayment('hosted_inventory_or_price_changed');
-      return { created: false, reason: 'hosted_payment_refunded' };
-    }
+    // The persisted, server-created quote is immutable after Stripe charges
+    // it. A later operator price change must not turn a valid paid order into
+    // an automatic refund; live inventory is still rechecked transactionally
+    // before the booking is written below.
     await CheckoutPaymentQuote.updateOne(
       { _id: hostedQuote._id, tenantId },
       { $set: { status: 'paid', paymentIntentId: paymentId } },
@@ -470,22 +467,181 @@ async function processSuccessfulPayment(paymentIntent: Stripe.PaymentIntent) {
     return { created: false, reason: 'user_creation_failed' };
   }
 
+  // ── Reconstruct the immutable server quote and prove it against the charge ──
+  // New payment metadata carries the complete server-created price snapshot.
+  // An operator edit after Stripe accepts payment must not re-price or reject
+  // that paid order. Legacy intents without a snapshot retain the old stored-
+  // catalogue recovery path. In both cases the reconstructed total must equal
+  // the Stripe charge before any booking is written.
+  const discountCode = hostedQuote?.discountCode
+    || (metadata.discount_code && metadata.discount_code !== 'none' ? metadata.discount_code.toUpperCase() : undefined);
+  const totalDiscount = Number(hostedQuote?.pricing?.discount || metadata.pricing_discount || 0);
+  const chargedTotal = paymentIntent.amount / 100;
+  const pricingTotal = chargedTotal;
+
+  type PricedLine = {
+    item: any;
+    tour: any;
+    bookingOption: Record<string, unknown> | undefined;
+    guestPrices: { adult: number; child: number; infant: number };
+    tourSubtotal: number;
+    lineSubtotal: number;
+    selectedAddOns: Record<string, number>;
+    selectedAddOnDetails: Record<string, any>;
+  };
+  const pricedLines: PricedLine[] = [];
+  try {
+    for (const item of cartData) {
+      const tour = await Tour.findOne({
+        _id: item.t,
+        $or: [{ tenantId }, { tenantIds: tenantId }],
+      });
+      if (!tour) throw new Error(`Tour is not available for tenant ${tenantId}`);
+
+      const adults = Number(item.a || 1);
+      const children = Number(item.c || 0);
+      const infants = Number(item.n || 0);
+      // Current option lookup is retained for legacy intents and operational
+      // context. New intents use the paid snapshot below, so a later rename,
+      // re-price, reorder, or removal cannot invalidate a settled payment.
+      const storedOptions = Array.isArray((tour as unknown as { bookingOptions?: Array<Record<string, unknown>> }).bookingOptions)
+        ? (tour as unknown as { bookingOptions: Array<Record<string, unknown>> }).bookingOptions
+        : [];
+      const standardOption = (!item.bo || item.bo === 'standard-default' || item.bo === 'standard-tour')
+        && (!item.ok || item.ok === 'standard');
+      const optionById = item.bo && !['standard-default', 'standard-tour'].includes(String(item.bo))
+        ? storedOptions.find((candidate, index) => String(candidate.id || candidate._id || `option-${index}`) === String(item.bo))
+        : undefined;
+      const optionByKey = item.ok && item.ok !== 'standard'
+        ? storedOptions.find((candidate) => String(candidate.pricingKey || '') === String(item.ok))
+        : undefined;
+      const hasPaidSnapshot = item.gp !== undefined;
+      if (!hasPaidSnapshot && optionById && optionByKey && optionById !== optionByKey) throw new Error('Pricing option mismatch');
+      const storedOption = optionByKey || optionById;
+      const paidItem = item as RecoveryCartItem;
+      const snapshotOption = !standardOption && hasPaidSnapshot
+        ? {
+            id: item.bo ? String(item.bo) : undefined,
+            pricingKey: item.ok ? String(item.ok) : undefined,
+            label: item.bot ? String(item.bot) : 'Selected experience',
+            type: item.boty ? String(item.boty) : (item.us !== undefined ? 'Per Group' : 'Per Person'),
+            price: Number(item.bp || 0),
+          }
+        : undefined;
+      if (!standardOption && !storedOption && !snapshotOption) throw new Error('Pricing option unavailable');
+      const bookingOption = (snapshotOption || storedOption) as Record<string, unknown> | undefined;
+      let guestPrices: { adult: number; child: number; infant: number };
+      let tourSubtotal: number;
+      if (hasPaidSnapshot) {
+        guestPrices = recoveryGuestPrices(paidItem);
+        tourSubtotal = recoveryTourSubtotal(paidItem, snapshotOption as UnitCapacityOption | undefined, guestPrices);
+      } else {
+        const catalogue = priceStoredLine({
+          tour: tour as unknown as Record<string, unknown>,
+          option: (storedOption as UnitCapacityOption & Record<string, unknown>) ?? null,
+          selectedTime: item.tm || null,
+          adults,
+          children,
+          infants,
+        });
+        guestPrices = catalogue.guestPrices;
+        tourSubtotal = catalogue.tourSubtotal;
+      }
+
+      // Add-on unit prices were resolved from the stored tour when the intent
+      // was created; the billed quantity follows the same per-person clamp as
+      // the authority (one per paying participant, never auto-multiplied).
+      const addOns = Array.isArray(item.ao) ? item.ao : [];
+      const addOnsTotal = recoveryAddOnsTotal(paidItem);
+      const selectedAddOns: Record<string, number> = {};
+      const selectedAddOnDetails: Record<string, any> = {};
+      for (const addOn of addOns) {
+        if (!addOn?.id) continue;
+        const requested = Number(addOn?.q || 0);
+        if (!Number.isFinite(requested) || requested <= 0) continue;
+        const billedQuantity = recoveryAddOnUnits(paidItem, addOn);
+        selectedAddOns[addOn.id] = billedQuantity;
+        selectedAddOnDetails[addOn.id] = {
+          id: addOn.id,
+          title: addOn.t || 'Add-on',
+          price: Number(addOn.p || 0),
+          category: 'add-on',
+          perGuest: Boolean(addOn.pg),
+          quantity: billedQuantity,
+        };
+      }
+
+      pricedLines.push({
+        item,
+        tour,
+        bookingOption,
+        guestPrices,
+        tourSubtotal,
+        lineSubtotal: Math.round((tourSubtotal + addOnsTotal) * 100) / 100,
+        selectedAddOns,
+        selectedAddOnDetails,
+      });
+    }
+  } catch (pricingError) {
+    console.error(`[Webhook] Could not price the paid order from the stored tours for ${paymentId}:`, pricingError);
+    if (hostedCheckout) {
+      await refundHostedPayment('hosted_price_unresolvable');
+      return { created: false, reason: 'hosted_payment_refunded' };
+    }
+    return { created: false, reason: 'price_unresolvable' };
+  }
+
+  // Same arithmetic as calculateCheckoutPricing: fees on the rounded order
+  // subtotal, then the discount, then the total rounded to cents.
+  const recomputedSubtotal = Number(pricedLines.reduce((sum, line) => sum + line.lineSubtotal, 0).toFixed(2));
+  const recomputedServiceFee = Number((recomputedSubtotal * 0.03).toFixed(2));
+  const recomputedTax = Number((recomputedSubtotal * 0.05).toFixed(2));
+  const recomputedTotal = Number((recomputedSubtotal + recomputedServiceFee + recomputedTax - Number(totalDiscount.toFixed(2))).toFixed(2));
+  const recomputedMinor = Math.round(recomputedTotal * 100);
+  if (recomputedMinor !== paymentIntent.amount) {
+    console.error(
+      `[Webhook] PRICE MISMATCH for ${paymentId} (tenant ${tenantId}): Stripe charged ${paymentIntent.amount} minor units, `
+      + `the stored tours price this order at ${recomputedMinor}. No booking written.`,
+      {
+        paymentId,
+        tenantId,
+        charged: paymentIntent.amount,
+        recomputed: recomputedMinor,
+        subtotal: recomputedSubtotal,
+        discount: totalDiscount,
+        lines: pricedLines.map((line) => ({
+          tour: String(line.tour?._id),
+          option: line.item.bo || null,
+          time: line.item.tm || null,
+          party: { adults: line.item.a, children: line.item.c, infants: line.item.n },
+          quotedAtPayment: { adult: line.item.bp, guestPrices: line.item.gp ?? null },
+          storedNow: line.guestPrices,
+          lineSubtotal: line.lineSubtotal,
+        })),
+      },
+    );
+    if (hostedCheckout) {
+      await refundHostedPayment('hosted_price_mismatch');
+      return { created: false, reason: 'hosted_payment_refunded' };
+    }
+    return { created: false, reason: 'price_mismatch' };
+  }
+
+  // Each booking records its share of the amount actually charged, in whole
+  // cents, so the bookings for one payment always sum to the charge.
+  const lineTotals = allocateChargedTotal(pricedLines.map((line) => line.lineSubtotal), chargedTotal);
+  const lineDiscounts = pricedLines.map((line) => (pricedLines.length === 1
+    ? totalDiscount
+    : Math.round((line.lineSubtotal / (recomputedSubtotal || 1)) * totalDiscount * 100) / 100));
+
   // Create every paid item atomically and increment the same availability rows
   // used by the browser checkout. A webhook retry cannot create a partial order.
   const createdBookings: Array<{ booking: any; tour: any }> = [];
-  const pricingTotal = Number(hostedQuote?.pricing?.total || metadata.pricing_total) || (paymentIntent.amount / 100);
   const bookingSession = await mongoose.startSession();
   bookingSession.startTransaction();
   try {
-    for (let cartIndex = 0; cartIndex < cartData.length; cartIndex++) {
-      const item = cartData[cartIndex];
-      const tourId = item.t;
-      const tour = await Tour.findOne({
-        _id: tourId,
-        $or: [{ tenantId }, { tenantIds: tenantId }],
-      }).session(bookingSession);
-      if (!tour) throw new Error(`Tour is not available for tenant ${tenantId}`);
-
+    for (let cartIndex = 0; cartIndex < pricedLines.length; cartIndex++) {
+      const { item, tour, bookingOption, guestPrices, selectedAddOns, selectedAddOnDetails } = pricedLines[cartIndex];
       const bookingTenantId = tenantId;
       const bookingDate = parseLocalDate(item.d) || new Date();
       const bookingDateString = ensureDateOnlyString(item.d);
@@ -496,62 +652,14 @@ async function processSuccessfulPayment(paymentIntent: Stripe.PaymentIntent) {
         String(tour._id),
         bookingDateString,
         bookingTime,
-        item.bo || undefined,
+        item.bo && !['standard-default', 'standard-tour'].includes(String(item.bo)) ? String(item.bo) : undefined,
         totalGuests,
         bookingSession,
       );
 
-      const basePrice = Number(item.bp || 0);
-      // Whole-unit options are charged per unit, not per guest. The type is
-      // read from the stored tour so the recorded booking matches the charge.
-      const storedOptions = Array.isArray((tour as unknown as { bookingOptions?: Array<Record<string, unknown>> }).bookingOptions)
-        ? (tour as unknown as { bookingOptions: Array<Record<string, unknown>> }).bookingOptions
-        : [];
-      const storedOption = item.bo
-        ? storedOptions.find((candidate, index) => String(candidate.id || `option-${index}`) === String(item.bo))
-        : undefined;
-      let itemSubtotal = optionSubtotal(
-        (storedOption as UnitCapacityOption | undefined) ?? null,
-        basePrice,
-        Number(item.a || 1),
-        Number(item.c || 0),
-        Number(item.n || 0),
-      );
-      const addOns = Array.isArray(item.ao) ? item.ao : [];
-      for (const addOn of addOns) {
-        const quantity = Number(addOn?.q || 0);
-        if (!Number.isFinite(quantity) || quantity <= 0) continue;
-        const billedQuantity = addOn?.pg ? Number(item.a || 0) + Number(item.c || 0) : quantity;
-        itemSubtotal += Number(addOn?.p || 0) * billedQuantity;
-      }
-
-      const itemSubtotalRounded = Math.round(itemSubtotal * 100) / 100;
-      const itemTotalBeforeDiscount = itemSubtotalRounded * 1.08;
-      const discountCode = hostedQuote?.discountCode
-        || (metadata.discount_code && metadata.discount_code !== 'none' ? metadata.discount_code.toUpperCase() : undefined);
-      const totalDiscount = Number(hostedQuote?.pricing?.discount || metadata.pricing_discount || 0);
-      const pricingSubtotal = Number(hostedQuote?.pricing?.subtotal || metadata.pricing_subtotal || itemSubtotalRounded);
-      const itemDiscountShare = cartData.length === 1
-        ? totalDiscount
-        : Math.round((itemSubtotalRounded / pricingSubtotal) * totalDiscount * 100) / 100;
-      const itemTotalWithDiscount = Math.max(0, itemTotalBeforeDiscount - itemDiscountShare);
+      const itemTotalWithDiscount = lineTotals[cartIndex];
+      const itemDiscountShare = lineDiscounts[cartIndex];
       const bookingReference = await generateUniqueBookingReference(bookingTenantId, tenantConfig);
-
-      const selectedAddOns: Record<string, number> = {};
-      const selectedAddOnDetails: Record<string, any> = {};
-      for (const addOn of addOns) {
-        if (!addOn?.id) continue;
-        const quantity = Number(addOn?.q || 0);
-        if (!Number.isFinite(quantity) || quantity <= 0) continue;
-        selectedAddOns[addOn.id] = quantity;
-        selectedAddOnDetails[addOn.id] = {
-          id: addOn.id,
-          title: addOn.t || 'Add-on',
-          price: Number(addOn.p || 0),
-          category: 'add-on',
-          perGuest: Boolean(addOn.pg),
-        };
-      }
 
       let booking: any;
       try {
@@ -576,9 +684,32 @@ async function processSuccessfulPayment(paymentIntent: Stripe.PaymentIntent) {
         adultGuests: item.a || 1,
         childGuests: item.c || 0,
         infantGuests: item.n || 0,
+        // Unit prices from the stored tour — the numbers the charge was proven against.
+        guestPrices,
         selectedAddOns: Object.keys(selectedAddOns).length ? selectedAddOns : undefined,
         selectedAddOnDetails: Object.keys(selectedAddOnDetails).length ? selectedAddOnDetails : undefined,
-        selectedBookingOption: item.bo ? { id: item.bo, title: item.bot || '', type: String(storedOption?.type || item.boty || '') || undefined, price: item.bp || 0 } : undefined,
+        selectedBookingOption: {
+          id: bookingOption?.id ? String(bookingOption.id) : 'standard-default',
+          pricingKey: String(bookingOption?.pricingKey || item.ok || 'standard'),
+          title: String(bookingOption?.label || item.bot || `${tour.title} - Standard Experience`),
+          type: String(bookingOption?.type || item.boty || 'Per Person'),
+          price: guestPrices.adult,
+          originalPrice: Number(bookingOption?.originalPrice || tour.originalPrice || guestPrices.adult),
+          duration: bookingOption?.duration ? String(bookingOption.duration) : undefined,
+          badge: bookingOption?.badge ? String(bookingOption.badge) : undefined,
+        },
+        priceSnapshot: {
+          guestPrices,
+          unitPricing: item.us !== undefined && Number.isFinite(Number(item.up))
+            ? { unitSize: Number(item.us), unitPrice: Number(item.up) }
+            : undefined,
+          version: Number(item.pv || 0),
+          sourceVersion: item.psv || undefined,
+          executionId: item.pe || undefined,
+          overrideId: item.po || undefined,
+          source: item.po ? 'override' : 'catalogue',
+          capturedAt: new Date(),
+        },
         discountCode,
         discountAmount: itemDiscountShare > 0 ? itemDiscountShare : undefined,
         hotelPickupDetails: hotelPickupDetails || undefined,
@@ -626,11 +757,11 @@ async function processSuccessfulPayment(paymentIntent: Stripe.PaymentIntent) {
     const hotelPickupMapImage = hotelPickupLocation ? buildStaticMapImageUrl(hotelPickupLocation) : undefined;
     const hotelPickupMapLink = hotelPickupLocation ? buildGoogleMapsLink(hotelPickupLocation) : undefined;
 
-    // Pricing from metadata
-    const pricingSubtotal = parseFloat(metadata.pricing_subtotal) || pricingTotal;
-    const pricingServiceFee = parseFloat(metadata.pricing_service_fee) || 0;
-    const pricingTax = parseFloat(metadata.pricing_tax) || 0;
-    const pricingDiscount = parseFloat(metadata.pricing_discount) || 0;
+    // Pricing as recomputed from the stored tours and proven against the charge
+    const pricingSubtotal = recomputedSubtotal;
+    const pricingServiceFee = recomputedServiceFee;
+    const pricingTax = recomputedTax;
+    const pricingDiscount = totalDiscount;
 
     const timeUntilTour = computeTimeUntilTour(mainBooking.booking.date, mainBooking.booking.time);
     const dateBadge = buildDateBadge(mainBooking.booking.date);
@@ -648,6 +779,7 @@ async function processSuccessfulPayment(paymentIntent: Stripe.PaymentIntent) {
       childQuantity: item.booking.childGuests || 0,
       infantQuantity: item.booking.infantGuests || 0,
       price: item.booking.selectedBookingOption?.price || 0,
+      guestPrices: item.booking.guestPrices || undefined,
       selectedBookingOption: item.booking.selectedBookingOption || undefined,
     }));
 
@@ -838,7 +970,7 @@ export async function POST(request: Request) {
         try {
           const result = await processSuccessfulPayment(paymentIntent);
           console.log(`[Webhook] Process result for ${paymentIntent.id}:`, result);
-          if (result && result.created === false && ['missing_customer_data', 'invalid_cart_data'].includes(String(result.reason))) {
+          if (result && result.created === false && ['missing_customer_data', 'invalid_cart_data', 'price_unresolvable', 'price_mismatch'].includes(String(result.reason))) {
             throw new Error(`Payment recovery data is invalid: ${result.reason}`);
           }
         } catch (processError: any) {

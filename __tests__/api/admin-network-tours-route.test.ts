@@ -22,12 +22,20 @@ jest.mock('next/server', () => {
 });
 
 jest.mock('@/lib/dbConnect', () => jest.fn().mockResolvedValue(undefined));
+jest.mock('mongoose', () => ({
+  __esModule: true,
+  default: { Types: { ObjectId: Object.assign(function MockObjectId() {}, { isValid: jest.fn().mockReturnValue(true) }) } },
+}));
 jest.mock('@/lib/auth/adminAuth', () => ({
   requireAdminAuth: mockRequireAdminAuth,
   canAccessTenant: () => true,
   tenantForbiddenResponse: () => ({ status: 403 }),
 }));
 jest.mock('@/lib/algolia', () => ({ syncTourToAlgolia: jest.fn() }));
+jest.mock('@/lib/revenue/pricingSummary', () => ({
+  refreshTourPricingSummaries: jest.fn().mockResolvedValue([]),
+  syncTourPricingSearchIndex: jest.fn().mockResolvedValue(true),
+}));
 jest.mock('@/lib/translation/translateService', () => ({ translateTourInBackground: jest.fn() }));
 jest.mock('@/lib/models/Tour', () => ({
   __esModule: true,
@@ -83,5 +91,31 @@ describe('EEO Network GET /api/admin/tours list payload', () => {
         { tenantIds: 'makadi-bay' },
       ],
     });
+  });
+
+  // The Manage Tours list needs trashed rows for its Trash tab, so the default
+  // stays inclusive; pickers that link tours elsewhere (destinations) opt out.
+  it('returns trashed tours by default so the Trash tab can render them', async () => {
+    const { GET } = await import('@/app/api/admin/tours/route');
+    await GET({ url: 'https://dashboard.egypt-excursionsonline.com/api/admin/tours?tenantId=makadi-bay' } as never);
+    expect(mockTourFind.mock.calls[0][0]).not.toHaveProperty('archivedAt');
+  });
+
+  it('excludes trashed tours when includeArchived=false, keeping the tenant scope', async () => {
+    const { GET } = await import('@/app/api/admin/tours/route');
+    await GET({ url: 'https://dashboard.egypt-excursionsonline.com/api/admin/tours?tenantId=makadi-bay&includeArchived=false' } as never);
+    expect(mockTourFind).toHaveBeenCalledWith({
+      $or: [
+        { tenantId: 'makadi-bay' },
+        { tenantIds: 'makadi-bay' },
+      ],
+      archivedAt: null,
+    });
+  });
+
+  it('ignores any other includeArchived value (only an explicit false opts out)', async () => {
+    const { GET } = await import('@/app/api/admin/tours/route');
+    await GET({ url: 'https://dashboard.egypt-excursionsonline.com/api/admin/tours?includeArchived=true' } as never);
+    expect(mockTourFind.mock.calls[0][0]).not.toHaveProperty('archivedAt');
   });
 });

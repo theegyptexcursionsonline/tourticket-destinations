@@ -26,6 +26,7 @@ import { ensureImageMetadata } from '@/lib/content/imageMetadata';
 import ContentNavigationFields from '@/components/admin/ContentNavigationFields';
 import { PAGE_TEMPLATES, PAGE_TEMPLATE_LABELS, normalizePageTemplate } from '@/lib/content/pageTemplate';
 import { useAdminTenant } from '@/contexts/AdminTenantContext';
+import PageTypeConversionActions from '@/app/admin/pages/PageTypeConversionActions';
 import ListingPicker, { type PickerOption } from '@/components/admin/ListingPicker';
 import {
   contentPageDraftDefaults,
@@ -600,6 +601,7 @@ export default function AttractionPageForm({ pageId, initialPageType = 'attracti
                     {/* Basic Info Tab */}
                     {activeTab === 'basic' && (
                       <div className="space-y-6">
+                        <PageTypeConversionActions pageId={pageId} currentKind={formData.pageType === 'category' ? 'category-landing' : 'attraction'} />
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                           <div className="space-y-3">
                             <FormLabel icon={Sparkles} required>Title</FormLabel>

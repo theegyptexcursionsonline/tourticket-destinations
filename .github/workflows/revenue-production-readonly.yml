@@ -1,0 +1,45 @@
+name: Mountain Tour RevenuePilot production safety
+
+on:
+  schedule:
+    - cron: "37 2 * * *"
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: Expected disabled pricing profile
+        required: true
+        type: choice
+        default: closed
+        options:
+          - closed
+          - canary-staged
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mountain-tour-revenue-production-readonly
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Verify disabled pricing and scheduled recovery
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.3
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm revenue:verify-production
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          REVENUEPILOT_BASE_URL: ${{ vars.REVENUEPILOT_BASE_URL }}
+          REVENUEPILOT_NETLIFY_SITE_ID: ${{ vars.REVENUEPILOT_NETLIFY_SITE_ID }}
+          REVENUEPILOT_PRODUCTION_PROFILE: ${{ github.event_name == 'workflow_dispatch' && inputs.profile || vars.REVENUEPILOT_PRODUCTION_PROFILE || 'closed' }}

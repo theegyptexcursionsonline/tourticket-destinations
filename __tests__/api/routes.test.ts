@@ -51,6 +51,11 @@ jest.mock('@/lib/auth/loginAudit', () => ({
   recordLoginAudit: jest.fn().mockResolvedValue(undefined),
 }));
 
+jest.mock('@/lib/revenue/pricingSummary', () => ({
+  refreshTourPricingSummaries: jest.fn().mockResolvedValue([]),
+  syncTourPricingSearchIndex: jest.fn().mockResolvedValue(true),
+}));
+
 jest.mock('mongoose', () => ({
   __esModule: true,
   default: { Types: { ObjectId: { isValid: jest.fn().mockReturnValue(false) } } },

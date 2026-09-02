@@ -14,7 +14,9 @@ import Booking from '@/lib/models/Booking';
 import Tour from '@/lib/models/Tour';
 import SpecialOffer from '@/lib/models/SpecialOffer';
 import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
-import { optionSubtotal } from '@/lib/bookings/optionSubtotal';
+import { resolveEffectivePrice } from '@/lib/revenue/pricingResolver';
+import { STANDARD_OPTION_KEY } from '@/lib/revenue/pricingContract';
+import { guestPricedSubtotal } from '@/lib/revenue/guestPrices';
 import {
   getBestOffer,
   isOfferApplicableByTravelDate,
@@ -26,12 +28,6 @@ function ensureDateOnlyString(dateInput: string): string | null {
   const match = String(dateInput || '').trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (!match) return null;
   return `${match[1]}-${match[2]}-${match[3]}`;
-}
-
-// Whole-unit options (Per Group / Per Couple / Per Family) are charged per
-// unit; Per Person keeps the per-guest rule with children at half.
-function computeSubtotal(option: { type?: string } | null | undefined, basePrice: number, adults: number, children: number, infants: number): number {
-  return optionSubtotal(option ?? null, basePrice, adults, children, infants);
 }
 
 async function PUTHandler(
@@ -66,6 +62,8 @@ async function PUTHandler(
       children,
       infants,
       bookingOptionType,
+      bookingOptionKey,
+      quoteVersion,
       paymentStatus,
       paymentMethod,
       amountPaid,
@@ -78,6 +76,7 @@ async function PUTHandler(
 
     const tour = await Tour.findOne({
       _id: booking.tour,
+      archivedAt: null,
       $or: [{ tenantId: booking.tenantId }, { tenantIds: booking.tenantId }],
     }).lean();
     if (!tour) {
@@ -98,19 +97,52 @@ async function PUTHandler(
       return NextResponse.json({ success: false, error: 'At least 1 participant is required' }, { status: 400 });
     }
 
-    const nextOptionType = bookingOptionType ? String(bookingOptionType) : booking.selectedBookingOption?.id;
+    const nextOptionType = bookingOptionType ? String(bookingOptionType) : booking.selectedBookingOption?.type;
+    const nextOptionKey = bookingOptionKey
+      ? String(bookingOptionKey)
+      : booking.selectedBookingOption?.pricingKey;
     if (!nextOptionType) {
       return NextResponse.json({ success: false, error: 'Booking option is required' }, { status: 400 });
     }
 
     const bookingOptions = Array.isArray((tour as any).bookingOptions) ? (tour as any).bookingOptions : [];
-    const selectedOption = bookingOptions.find((o: any) => o?.type === nextOptionType);
+    const optionsByType = bookingOptions.filter((option: any) => option?.type === nextOptionType);
+    const selectedOption = nextOptionKey === STANDARD_OPTION_KEY
+      ? {
+          id: 'standard-default',
+          pricingKey: STANDARD_OPTION_KEY,
+          type: 'Per Person',
+          label: `${(tour as any).title} - Standard Experience`,
+          price: (tour as any).discountPrice,
+          originalPrice: (tour as any).originalPrice,
+          duration: (tour as any).duration,
+        }
+      : nextOptionKey
+        ? bookingOptions.find((option: any) => option?.pricingKey === nextOptionKey)
+        : optionsByType.length === 1 ? optionsByType[0] : undefined;
     if (!selectedOption) {
       return NextResponse.json({ success: false, error: 'Selected booking option not found for this tour' }, { status: 400 });
     }
 
-    const basePrice = Number(selectedOption.price) || 0;
-    const subtotal = computeSubtotal(selectedOption, basePrice, numericAdults, numericChildren, numericInfants);
+    if (!selectedOption.pricingKey) {
+      return NextResponse.json({ success: false, error: 'This booking option is awaiting its RevenuePilot pricing key.' }, { status: 409 });
+    }
+    const quote = await resolveEffectivePrice({
+      tenantId: String(booking.tenantId),
+      tourId: String((tour as any)._id),
+      optionKey: String(selectedOption.pricingKey),
+      date: nextDateString,
+      time: nextTime,
+    });
+    if (!Number.isInteger(Number(quoteVersion)) || Number(quoteVersion) !== quote.version) {
+      return NextResponse.json(
+        { success: false, code: 'PRICE_CHANGED', error: 'The selected price changed. Review the refreshed quote before saving.', quote },
+        { status: 409, headers: { 'Cache-Control': 'no-store' } },
+      );
+    }
+    const guestPrices = quote.prices;
+    const subtotal = guestPricedSubtotal(selectedOption, guestPrices, numericAdults, numericChildren, numericInfants);
+    const basePrice = guestPrices.adult;
     const travelDate = new Date(`${nextDateString}T00:00:00.000Z`);
 
     // Apply offers (server-side)
@@ -160,16 +192,28 @@ async function PUTHandler(
     booking.adultGuests = numericAdults;
     booking.childGuests = numericChildren;
     booking.infantGuests = numericInfants;
+    booking.guestPrices = guestPrices;
     booking.totalPrice = discountedTotal;
+    booking.currency = quote.currency;
 
     booking.selectedBookingOption = {
-      id: String(selectedOption.type),
+      id: String(selectedOption.id),
+      pricingKey: String(selectedOption.pricingKey),
       type: String(selectedOption.type),
       title: String(selectedOption.label),
       price: basePrice,
       originalPrice: selectedOption.originalPrice ? Number(selectedOption.originalPrice) : undefined,
       duration: selectedOption.duration ? String(selectedOption.duration) : undefined,
       badge: selectedOption.badge ? String(selectedOption.badge) : undefined,
+    };
+    booking.priceSnapshot = {
+      guestPrices,
+      version: quote.version,
+      sourceVersion: quote.sourceVersion,
+      executionId: quote.executionId || undefined,
+      overrideId: quote.overrideId || undefined,
+      source: quote.source,
+      capturedAt: new Date(),
     };
 
     if (paymentStatus) booking.paymentStatus = paymentStatus;

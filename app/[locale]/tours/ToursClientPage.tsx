@@ -8,6 +8,7 @@ import { ITour } from '@/lib/models/Tour';
 import { useSettings } from '@/hooks/useSettings';
 import { motion, AnimatePresence } from 'framer-motion';
 import { tourFromPrice } from '@/lib/pricing/displayPrice';
+import { useTenant } from '@/contexts/TenantContext';
 
 interface TourWithDetails extends Omit<ITour, 'destination' | 'categories'> {
   destination: { name: string };
@@ -21,7 +22,8 @@ interface ToursClientPageProps {
 
 const TourCard = ({ tour }: { tour: TourWithDetails }) => {
   const { formatPrice } = useSettings();
-  const fromPrice = tourFromPrice(tour);
+  const { tenantId } = useTenant();
+  const fromPrice = tourFromPrice(tour, tenantId);
   const discountPercent = fromPrice.discountApplied
     ? Math.round(((fromPrice.originalPrice - fromPrice.price) / fromPrice.originalPrice) * 100)
     : 0;
@@ -129,6 +131,7 @@ const TourCard = ({ tour }: { tour: TourWithDetails }) => {
 };
 
 export default function ToursClientPage({ tours }: ToursClientPageProps) {
+  const { tenantId } = useTenant();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDestination, setSelectedDestination] = useState<string>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -169,10 +172,10 @@ export default function ToursClientPage({ tours }: ToursClientPageProps) {
     // Sort
     switch (sortBy) {
       case 'price-low':
-        filtered.sort((a, b) => tourFromPrice(a).price - tourFromPrice(b).price);
+        filtered.sort((a, b) => tourFromPrice(a, tenantId).price - tourFromPrice(b, tenantId).price);
         break;
       case 'price-high':
-        filtered.sort((a, b) => tourFromPrice(b).price - tourFromPrice(a).price);
+        filtered.sort((a, b) => tourFromPrice(b, tenantId).price - tourFromPrice(a, tenantId).price);
         break;
       case 'rating':
         filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
@@ -184,7 +187,7 @@ export default function ToursClientPage({ tours }: ToursClientPageProps) {
     }
 
     return filtered;
-  }, [tours, searchQuery, selectedDestination, selectedCategory, sortBy]);
+  }, [tours, searchQuery, selectedDestination, selectedCategory, sortBy, tenantId]);
 
   const activeFiltersCount =
     (selectedDestination !== 'all' ? 1 : 0) +

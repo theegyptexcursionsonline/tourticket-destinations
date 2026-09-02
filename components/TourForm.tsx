@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -59,6 +59,7 @@ import type { ParentPageValue } from '@/lib/content/contentNavigation';
 import { bookingOptionUnitLabel } from '@/lib/bookings/bookingOptionLabels';
 import { practicalDefaultText, type PracticalDefaultKey } from '@/lib/tours/practicalDefaults';
 import { defaultMinCapacity, isUnitPricedType, minCapacityRequired } from '@/lib/bookings/unitPricing';
+import { hasPartialGuestPrices, normalizeGuestPriceSet, pruneBookingOptionTimeSlots } from '@/lib/revenue/guestPrices';
 
 // --- Interface Definitions ---
 interface Category {
@@ -78,10 +79,16 @@ interface AttractionInterest {
     pageType: 'attraction' | 'category';
 }
 
+interface SlotGuestPrices {
+    child?: number;
+    infant?: number;
+}
+
 interface TimeSlot {
     time: string;
     capacity: number;
     price?: number;
+    guestPrices?: SlotGuestPrices;
 }
 
 interface Availability {
@@ -90,11 +97,21 @@ interface Availability {
     availableDays?: number[];
 }
 
+/** Editor-side guest prices: blank strings until the admin fills both. */
+interface GuestPriceInput {
+    adult?: number | string;
+    child: number | string;
+    infant: number | string;
+}
+
 interface BookingOption {
     id?: string; // Stable id used for option-level stop-sale
+    pricingKey?: string; // Immutable RevenuePilot identifier
     type: string;
     label: string;
     price: number;
+    /** Child/infant for this option; adult mirrors `price`. */
+    guestPrices?: GuestPriceInput;
     originalPrice?: number;
     /** Participants one priced unit covers (Per Couple/Family/Group) and the booking minimum. */
     minCapacity?: number | string;
@@ -110,7 +127,7 @@ interface BookingOption {
     discount?: number;
     isRecommended?: boolean;
     applyTourDiscount?: boolean;
-    timeSlots?: Array<{ time: string; capacity?: number; price?: number }>;
+    timeSlots?: Array<{ time: string; capacity?: number; price?: number; guestPrices?: SlotGuestPrices }>;
 }
 
 interface ItineraryItem {
@@ -157,6 +174,8 @@ interface TourFormData {
     duration: string;
     discountPrice: string | number;
     discountPercent: string | number;
+    /** "Guest prices for RevenuePilot" — adult mirrors discountPrice. */
+    revenueGuestPrices?: GuestPriceInput;
     destination: string;
     category: string[];
     image: string;
@@ -206,6 +225,19 @@ interface Tour extends Partial<TourFormData> {
     faq?: FAQ[];
     price?: number | string;
 }
+
+/** Restore a stored guest-price set into editor inputs (blank when unset). */
+const guestPriceInputs = (adult: number | string, stored?: { child?: number; infant?: number } | null): GuestPriceInput => (
+    stored && stored.child !== undefined && stored.infant !== undefined
+        ? { adult, child: stored.child, infant: stored.infant }
+        : { child: '', infant: '' }
+);
+
+/** Payload form: a complete set, or null so a cleared pair is unset on save. */
+const normalizeGuestPrices = (adult: number | string, prices?: GuestPriceInput) => normalizeGuestPriceSet(adult, prices);
+
+/** Legacy add-ons saved before grouping existed collect under one group. */
+const LEGACY_ADD_ON_GROUP = 'legacy-add-ons';
 
 // --- Helper Components ---
 const FormLabel = ({ children, icon: Icon, required = false }: {
@@ -301,6 +333,21 @@ const AvailabilityManager = ({ availability, setAvailability, CurrencyIcon }: { 
         setAvailability({ ...availability, slots: newSlots });
     };
 
+    // Child/infant are independent per-slot overrides: blank inherits the
+    // tour's guest price, so an empty pair stores nothing at all.
+    const handleSlotGuestPriceChange = (index: number, guest: 'child' | 'infant', value: string) => {
+        const newSlots = [...(availability.slots || [])];
+        const slot = newSlots[index];
+        const guestPrices = { ...slot.guestPrices };
+        if (value === '') delete guestPrices[guest];
+        else guestPrices[guest] = Number(value);
+        newSlots[index] = {
+            ...slot,
+            guestPrices: Object.keys(guestPrices).length > 0 ? guestPrices : undefined,
+        };
+        setAvailability({ ...availability, slots: newSlots });
+    };
+
     const addSlot = () => {
         const newSlots = [...(availability.slots || []), { time: '12:00', capacity: 10 }];
         setAvailability({ ...availability, slots: newSlots });
@@ -371,7 +418,7 @@ const AvailabilityManager = ({ availability, setAvailability, CurrencyIcon }: { 
                     {(availability?.slots || []).map((slot: TimeSlot, index: number) => (
                         <div 
                             key={index} 
-                            className="group flex items-center gap-4 p-4 bg-white rounded-xl border border-slate-200 hover:border-indigo-300 transition-all duration-200 hover:shadow-md"
+                            className="group grid grid-cols-1 gap-4 rounded-xl border border-slate-200 bg-white p-4 transition-all duration-200 hover:border-indigo-300 hover:shadow-md sm:grid-cols-2 xl:grid-cols-[repeat(5,minmax(0,1fr))_auto]"
                         >
                             {/* Time Input */}
                             <div className="flex-1">
@@ -423,11 +470,27 @@ const AvailabilityManager = ({ availability, setAvailability, CurrencyIcon }: { 
                                 </div>
                             </div>
 
+                            {(['child', 'infant'] as const).map((guest) => (
+                                <div key={guest} className="flex-1">
+                                    <label className="mb-1 block text-xs font-medium capitalize text-slate-500" htmlFor={`availability-slot-${index}-${guest}`}>{guest} price (optional)</label>
+                                    <input
+                                        id={`availability-slot-${index}-${guest}`}
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        value={slot.guestPrices?.[guest] ?? ''}
+                                        onChange={(event) => handleSlotGuestPriceChange(index, guest, event.target.value)}
+                                        className={inputBase}
+                                        placeholder={`Use ${guest} base`}
+                                    />
+                                </div>
+                            ))}
+
                             {/* Remove Button */}
                             <button 
                                 type="button" 
                                 onClick={() => removeSlot(index)} 
-                                className="flex items-center justify-center w-10 h-10 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all duration-200 group-hover:opacity-100 opacity-70"
+                                className="flex items-center justify-center w-10 h-10 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all duration-200 group-hover:opacity-100 opacity-70 self-end"
                             >
                                 <XCircle className="h-4 w-4"/>
                             </button>
@@ -464,6 +527,7 @@ export default function TourForm({ tourToEdit, onSave, fullPage = false }: { tou
     const [expandedOptionIndex, setExpandedOptionIndex] = useState<number | null>(0);
     const [expandedItineraryIndex, setExpandedItineraryIndex] = useState<number | null>(0);
     const [expandedFaqIndex, setExpandedFaqIndex] = useState<number | null>(0);
+    const [expandedAddOnGroupKey, setExpandedAddOnGroupKey] = useState<string | null>(null);
 
     // Determine the default tenantId for a new tour (Issue #15).
     //
@@ -503,6 +567,7 @@ export default function TourForm({ tourToEdit, onSave, fullPage = false }: { tou
         duration: '',
         discountPrice: '',
         discountPercent: '',
+        revenueGuestPrices: { child: '', infant: '' },
         destination: '',
         category: [],
         image: '',
@@ -584,6 +649,10 @@ export default function TourForm({ tourToEdit, onSave, fullPage = false }: { tou
                 duration: tourToEdit.duration || '',
                 discountPrice: tourToEdit.discountPrice || tourToEdit.price || '',
                 discountPercent: tourToEdit.discountPercent ?? '',
+                revenueGuestPrices: guestPriceInputs(
+                    tourToEdit.discountPrice || tourToEdit.price || '',
+                    tourToEdit.revenueGuestPrices as { child?: number; infant?: number } | undefined,
+                ),
                 destination: (tourToEdit.destination as any)?._id?.toString() || tourToEdit.destination || '',
                 category: Array.isArray(tourToEdit.category)
                     ? tourToEdit.category.map((cat: any) => cat?._id?.toString() || cat?.toString() || cat)
@@ -618,9 +687,13 @@ export default function TourForm({ tourToEdit, onSave, fullPage = false }: { tou
                 bookingOptions: (tourToEdit.bookingOptions?.length ?? 0) > 0
                     ? tourToEdit.bookingOptions!.map((option: BookingOption) => ({
                         id: (option as any).id || generateBookingOptionId(),
+                        pricingKey: (option as any).pricingKey,
                         type: option.type || 'Per Person',
                         label: option.label || '',
                         price: option.price || 0,
+                        // This mapping is a whitelist: any editable option field
+                        // missing here is blanked on open and erased on save.
+                        guestPrices: guestPriceInputs(option.price || 0, option.guestPrices as { child?: number; infant?: number } | undefined),
                         description: option.description || '',
                         originalPrice: option.originalPrice || undefined,
                         minCapacity: option.minCapacity ?? '',
@@ -639,6 +712,7 @@ export default function TourForm({ tourToEdit, onSave, fullPage = false }: { tou
                                 time: slot.time,
                                 capacity: slot.capacity,
                                 price: slot.price,
+                                guestPrices: slot.guestPrices,
                             })),
                         isRecommended: option.isRecommended || false
                     }))
@@ -647,6 +721,7 @@ export default function TourForm({ tourToEdit, onSave, fullPage = false }: { tou
                         type: 'Per Person', 
                         label: '', 
                         price: 0, 
+                        guestPrices: { child: '', infant: '' },
                         description: '',
                         originalPrice: undefined,
                         minCapacity: '',
@@ -663,12 +738,15 @@ export default function TourForm({ tourToEdit, onSave, fullPage = false }: { tou
                             time: slot.time,
                             capacity: slot.capacity,
                             price: slot.price,
+                            guestPrices: slot.guestPrices,
                         })),
                         isRecommended: false
                     }],
                 addOns: (tourToEdit.addOns?.length ?? 0) > 0
                     ? tourToEdit.addOns!.map((addon) => ({
                         ...addon,
+                        groupKey: addon.groupKey || LEGACY_ADD_ON_GROUP,
+                        groupTitle: addon.groupTitle || '',
                         bookingOptionKeys: Array.isArray(addon.bookingOptionKeys) ? addon.bookingOptionKeys : [],
                         pricingMethod: addon.pricingMethod || (addon.category === 'Food' ? 'per_person' : 'per_unit'),
                     }))
@@ -786,6 +864,7 @@ export default function TourForm({ tourToEdit, onSave, fullPage = false }: { tou
             duration: '',
             discountPrice: '',
             discountPercent: '',
+            revenueGuestPrices: { child: '', infant: '' },
             destination: '',
             category: [],
             image: '',
@@ -851,7 +930,13 @@ export default function TourForm({ tourToEdit, onSave, fullPage = false }: { tou
     };
 
     const setAvailability = (availabilityData: Availability) => {
-        setFormData((prev) => ({ ...prev, availability: availabilityData }));
+        setFormData((prev) => ({
+            ...prev,
+            availability: availabilityData,
+            // Removing or renaming a universal slot must also remove it from
+            // every option. Otherwise the hidden stale slot remains bookable.
+            bookingOptions: pruneBookingOptionTimeSlots(prev.bookingOptions, availabilityData.slots),
+        }));
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -983,7 +1068,7 @@ const addItineraryItem = () => {
         setExpandedOptionIndex(expandedOptionIndex === index ? null : index);
     };
 
-    const handleBookingOptionChange = (index: number, field: string, value: string | number | boolean | string[]) => {
+    const handleBookingOptionChange = (index: number, field: string, value: string | number | boolean | string[] | GuestPriceInput) => {
         const updatedOptions = [...formData.bookingOptions];
         updatedOptions[index] = { ...updatedOptions[index], [field]: value };
         if (field === 'type') {
@@ -1002,7 +1087,7 @@ const addItineraryItem = () => {
         const isSelected = currentSlots.some((entry) => entry.time === slot.time);
         const nextSlots = isSelected
             ? currentSlots.filter((entry) => entry.time !== slot.time)
-            : [...currentSlots, { time: slot.time, capacity: slot.capacity, price: slot.price }];
+            : [...currentSlots, { time: slot.time, capacity: slot.capacity, price: slot.price, guestPrices: slot.guestPrices }];
         updatedOptions[optionIndex] = { ...option, timeSlots: nextSlots };
         setFormData((previous) => ({ ...previous, bookingOptions: updatedOptions }));
     };
@@ -1021,6 +1106,24 @@ const addItineraryItem = () => {
         setFormData((previous) => ({ ...previous, bookingOptions: updatedOptions }));
     };
 
+    // Per-slot child/infant overrides for one option; blank inherits the
+    // option's guest price.
+    const handleBookingOptionSlotGuestPrice = (optionIndex: number, time: string, guest: 'child' | 'infant', value: string) => {
+        const updatedOptions = [...formData.bookingOptions];
+        const option = updatedOptions[optionIndex];
+        updatedOptions[optionIndex] = {
+            ...option,
+            timeSlots: (option.timeSlots || []).map((slot) => {
+                if (slot.time !== time) return slot;
+                const guestPrices = { ...slot.guestPrices };
+                if (value === '') delete guestPrices[guest];
+                else guestPrices[guest] = Number(value);
+                return { ...slot, guestPrices: Object.keys(guestPrices).length > 0 ? guestPrices : undefined };
+            }),
+        };
+        setFormData((previous) => ({ ...previous, bookingOptions: updatedOptions }));
+    };
+
     const addBookingOption = () => {
         setFormData((p) => ({ 
             ...p, 
@@ -1029,10 +1132,13 @@ const addItineraryItem = () => {
                 type: 'Per Person',
                 label: '',
                 price: 0,
+                guestPrices: { child: '', infant: '' },
+                duration: '',
                 timeSlots: (p.availability.slots || []).map((slot) => ({
                     time: slot.time,
                     capacity: slot.capacity,
                     price: slot.price,
+                    guestPrices: slot.guestPrices,
                 })),
             }]
         }));
@@ -1052,9 +1158,15 @@ const addItineraryItem = () => {
             return;
         }
 
-        const option = formData.bookingOptions[index];
+        // Only universal slots are bookable; a stale slot the panel cannot
+        // show must not reach the API (it refuses it).
+        const option = pruneBookingOptionTimeSlots([formData.bookingOptions[index]], formData.availability?.slots)[0];
         if (!option.label?.trim()) {
             toast.error('Option name is required');
+            return;
+        }
+        if (hasPartialGuestPrices(option.guestPrices)) {
+            toast.error('Enter both child and infant prices, or leave both blank');
             return;
         }
 
@@ -1067,6 +1179,7 @@ const addItineraryItem = () => {
                     option: {
                         ...option,
                         price: parseFloat(String(option.price)) || 0,
+                        guestPrices: normalizeGuestPrices(option.price, option.guestPrices),
                         originalPrice: option.originalPrice ? parseFloat(String(option.originalPrice)) : undefined,
                         minCapacity: option.minCapacity === '' || option.minCapacity === undefined ? undefined : Number(option.minCapacity),
                         maxCapacity: option.maxCapacity === '' || option.maxCapacity === undefined ? undefined : Number(option.maxCapacity),
@@ -1092,16 +1205,55 @@ const addItineraryItem = () => {
         setFormData((p) => ({ ...p, addOns: updatedAddOns }));
     };
 
-    const addAddOn = () => {
-        setFormData((p) => ({ 
-            ...p, 
-            addOns: [...p.addOns, { name: '', description: '', price: 0, pricingMethod: 'per_unit' as const, bookingOptionKeys: [] }]
+    // Add-ons live in groups: a group carries the title and the booking-option
+    // assignment; every add-on inside it inherits both.
+    const addAddOn = (groupKey?: string) => {
+        const resolvedGroupKey = groupKey || `addon-group-${Date.now()}`;
+        const existingGroup = formData.addOns.find((addOn) => addOn.groupKey === resolvedGroupKey);
+        setFormData((p) => ({
+            ...p,
+            addOns: [...p.addOns, {
+                name: '',
+                description: '',
+                price: 0,
+                pricingMethod: 'per_unit' as const,
+                groupKey: resolvedGroupKey,
+                groupTitle: existingGroup?.groupTitle || '',
+                bookingOptionKeys: existingGroup?.bookingOptionKeys || [],
+            }]
         }));
+        setExpandedAddOnGroupKey(resolvedGroupKey);
     };
 
     const removeAddOn = (index: number) => {
         const updatedAddOns = formData.addOns.filter((_, i: number) => i !== index);
         setFormData((p) => ({ ...p, addOns: updatedAddOns }));
+    };
+
+    const addOnGroups = useMemo(() => {
+        const groups = new globalThis.Map<string, { key: string; title: string; bookingOptionKeys: string[]; entries: Array<{ addOn: AddOn; index: number }> }>();
+        formData.addOns.forEach((addOn, index) => {
+            const key = addOn.groupKey || LEGACY_ADD_ON_GROUP;
+            const group = groups.get(key) || { key, title: addOn.groupTitle || '', bookingOptionKeys: addOn.bookingOptionKeys || [], entries: [] };
+            group.entries.push({ addOn, index });
+            groups.set(key, group);
+        });
+        return Array.from(groups.values());
+    }, [formData.addOns]);
+
+    const updateAddOnGroup = (groupKey: string, changes: Pick<AddOn, 'groupTitle' | 'bookingOptionKeys'>) => {
+        setFormData((previous) => ({
+            ...previous,
+            addOns: previous.addOns.map((addOn) => (addOn.groupKey || LEGACY_ADD_ON_GROUP) === groupKey ? { ...addOn, ...changes } : addOn),
+        }));
+    };
+
+    const removeAddOnGroup = (groupKey: string) => {
+        setFormData((previous) => ({
+            ...previous,
+            addOns: previous.addOns.filter((addOn) => (addOn.groupKey || LEGACY_ADD_ON_GROUP) !== groupKey),
+        }));
+        setExpandedAddOnGroupKey(null);
     };
 
     const handleListChange = (index: number, value: string, field: 'highlights' | 'includes') => {
@@ -1183,6 +1335,12 @@ const addItineraryItem = () => {
             setIsSubmitting(false);
             return;
         }
+        if (hasPartialGuestPrices(formData.revenueGuestPrices) || formData.bookingOptions.some((option) => hasPartialGuestPrices(option.guestPrices))) {
+            toast.error('Each price set must include both child and infant prices, or leave both blank.');
+            setActiveTab(hasPartialGuestPrices(formData.revenueGuestPrices) ? 'pricing' : 'booking');
+            setIsSubmitting(false);
+            return;
+        }
 
         const invalidCoordinateIndex = formData.itinerary.findIndex((item) => {
             const latText = String(item.coordinates?.lat ?? '').trim();
@@ -1243,6 +1401,8 @@ const addItineraryItem = () => {
                 discountPercent: String(cleanedData.discountPercent ?? '').trim() === ''
                     ? undefined
                     : Math.max(0, Math.min(100, parseFloat(String(cleanedData.discountPercent)) || 0)),
+                // Complete set or null: null unsets a cleared pair on update.
+                revenueGuestPrices: normalizeGuestPrices(cleanedData.discountPrice, cleanedData.revenueGuestPrices),
                 longDescription: cleanedData.longDescription?.trim() || cleanedData.description.trim(),
                 destination: cleanedData.destination,
                 category: cleanedData.category,
@@ -1292,7 +1452,14 @@ const addItineraryItem = () => {
                         }))
                     : [],
                 faq: Array.isArray(cleanedData.faqs) ? cleanedData.faqs.filter((faq: FAQ) => faq.question?.trim() && faq.answer?.trim()) : [],
-                bookingOptions: Array.isArray(cleanedData.bookingOptions) ? cleanedData.bookingOptions.filter((option: BookingOption) => option.label?.trim()) : [],
+                bookingOptions: Array.isArray(cleanedData.bookingOptions)
+                    ? pruneBookingOptionTimeSlots(cleanedData.bookingOptions, cleanedData.availability?.slots)
+                        .filter((option: BookingOption) => option.label?.trim())
+                        .map((option: BookingOption) => ({
+                            ...option,
+                            guestPrices: normalizeGuestPrices(option.price, option.guestPrices),
+                        }))
+                    : [],
                 addOns: Array.isArray(cleanedData.addOns) ? cleanedData.addOns.filter((addon: AddOn) => addon.name?.trim()) : [],
                 tags: typeof cleanedData.tags === 'string'
                     ? cleanedData.tags.split(',').map((t: string) => t.trim()).filter(Boolean)
@@ -1786,6 +1953,53 @@ const addItineraryItem = () => {
                                                     className={inputBase} 
                                                     placeholder="e.g., Staff Favourite, -25%, New" 
                                                 />
+                                            </div>
+                                        </div>
+
+                                        <div className="rounded-2xl border border-indigo-100 bg-indigo-50/60 p-5" data-testid="revenue-guest-prices">
+                                            <div className="mb-4">
+                                                <p className="text-sm font-semibold text-slate-800">Guest prices for RevenuePilot</p>
+                                                <p className="mt-1 text-xs leading-5 text-slate-600">
+                                                    Adult follows the base price above. Enter both child and infant prices to charge them for this tour; leave both blank to keep the default (children half price, infants free).
+                                                </p>
+                                            </div>
+                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                                <div className="space-y-2">
+                                                    <label className="block text-sm font-medium text-slate-700">Adult ({selectedCurrency.symbol})</label>
+                                                    <input type="number" value={formData.discountPrice} disabled className={`${inputBase} bg-slate-100`} aria-label="Adult price follows base price" />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="block text-sm font-medium text-slate-700" htmlFor="revenue-guest-price-child">Child ({selectedCurrency.symbol})</label>
+                                                    <input
+                                                        id="revenue-guest-price-child"
+                                                        type="number"
+                                                        min="0"
+                                                        step="0.01"
+                                                        value={formData.revenueGuestPrices?.child ?? ''}
+                                                        onChange={(event) => setFormData((current) => ({
+                                                            ...current,
+                                                            revenueGuestPrices: { child: event.target.value, infant: current.revenueGuestPrices?.infant ?? '' },
+                                                        }))}
+                                                        className={inputBase}
+                                                        placeholder="0.00"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="block text-sm font-medium text-slate-700" htmlFor="revenue-guest-price-infant">Infant ({selectedCurrency.symbol})</label>
+                                                    <input
+                                                        id="revenue-guest-price-infant"
+                                                        type="number"
+                                                        min="0"
+                                                        step="0.01"
+                                                        value={formData.revenueGuestPrices?.infant ?? ''}
+                                                        onChange={(event) => setFormData((current) => ({
+                                                            ...current,
+                                                            revenueGuestPrices: { child: current.revenueGuestPrices?.child ?? '', infant: event.target.value },
+                                                        }))}
+                                                        className={inputBase}
+                                                        placeholder="0.00"
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
 
@@ -2544,14 +2758,14 @@ const addItineraryItem = () => {
                                                                         Option ID · RevenuePilot
                                                                     </p>
                                                                     <code className="mt-1 block break-all font-mono text-xs text-slate-700">
-                                                                        {option.id || 'Assigned automatically when this tour is saved'}
+                                                                        {option.pricingKey || 'Assigned automatically when this tour is saved'}
                                                                     </code>
                                                                 </div>
-                                                                {option.id && (
+                                                                {option.pricingKey && (
                                                                     <button
                                                                         type="button"
                                                                         onClick={() => {
-                                                                            void navigator.clipboard.writeText(option.id!);
+                                                                            void navigator.clipboard.writeText(option.pricingKey!);
                                                                             toast.success('Option ID copied');
                                                                         }}
                                                                         className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-indigo-200 bg-white px-3 py-2 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100"
@@ -2621,6 +2835,57 @@ const addItineraryItem = () => {
                                                                 </div>
                                                             </div>
 
+                                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                                <div className="space-y-2">
+                                                                    <label className="block text-sm font-medium text-slate-700" htmlFor={`option-${index}-duration`}>Duration (optional)</label>
+                                                                    <input
+                                                                        id={`option-${index}-duration`}
+                                                                        type="text"
+                                                                        maxLength={50}
+                                                                        value={option.duration || ''}
+                                                                        onChange={(e) => handleBookingOptionChange(index, 'duration', e.target.value)}
+                                                                        className={inputBase}
+                                                                        placeholder="e.g. 8 hours"
+                                                                    />
+                                                                    <p className="text-xs text-slate-500">Shown on this option at checkout. Leave blank to show nothing.</p>
+                                                                </div>
+                                                                <div className="space-y-2">
+                                                                    <label className="block text-sm font-medium text-slate-700" htmlFor={`option-${index}-child-price`}>Child price ({selectedCurrency.symbol})</label>
+                                                                    <input
+                                                                        id={`option-${index}-child-price`}
+                                                                        type="number"
+                                                                        step="0.01"
+                                                                        min="0"
+                                                                        value={option.guestPrices?.child ?? ''}
+                                                                        onChange={(event) => handleBookingOptionChange(index, 'guestPrices', {
+                                                                            child: event.target.value,
+                                                                            infant: option.guestPrices?.infant ?? '',
+                                                                        })}
+                                                                        className={inputBase}
+                                                                        placeholder="Half the adult price"
+                                                                    />
+                                                                </div>
+                                                                <div className="space-y-2">
+                                                                    <label className="block text-sm font-medium text-slate-700" htmlFor={`option-${index}-infant-price`}>Infant price ({selectedCurrency.symbol})</label>
+                                                                    <input
+                                                                        id={`option-${index}-infant-price`}
+                                                                        type="number"
+                                                                        step="0.01"
+                                                                        min="0"
+                                                                        value={option.guestPrices?.infant ?? ''}
+                                                                        onChange={(event) => handleBookingOptionChange(index, 'guestPrices', {
+                                                                            child: option.guestPrices?.child ?? '',
+                                                                            infant: event.target.value,
+                                                                        })}
+                                                                        className={inputBase}
+                                                                        placeholder="Free"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                            <p className="text-xs text-slate-500">
+                                                                Adult follows the option price. Enter both child and infant prices to charge them for this option; leave both blank to keep the default (children half price, infants free).
+                                                            </p>
+
                                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                                 <div className="space-y-2">
                                                                     <label className="block text-sm font-medium text-slate-700">
@@ -2676,7 +2941,7 @@ const addItineraryItem = () => {
                                                                 <div>
                                                                     <h6 className="text-sm font-semibold text-slate-800">Available time slots</h6>
                                                                     <p className="text-xs text-slate-500">
-                                                                        Choose the universal slots this option uses. Leave the price blank to inherit this option&apos;s base price.
+                                                                        Choose the universal slots this option uses. Leave the price blank to inherit this option&apos;s base price. Child and infant inherit the option&apos;s guest prices.
                                                                     </p>
                                                                 </div>
                                                                 {(formData.availability.slots || []).length === 0 ? (
@@ -2689,7 +2954,7 @@ const addItineraryItem = () => {
                                                                             const selectedSlot = (option.timeSlots || []).find((entry) => entry.time === slot.time);
                                                                             const isSelected = Boolean(selectedSlot);
                                                                             return (
-                                                                                <div key={slot.time} className="grid grid-cols-[auto_1fr] items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 sm:grid-cols-[auto_minmax(0,1fr)_minmax(10rem,0.7fr)]">
+                                                                                <div key={slot.time} className="grid grid-cols-[auto_1fr] items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 sm:grid-cols-[auto_minmax(0,1fr)_repeat(3,minmax(7rem,0.6fr))]">
                                                                                     <input
                                                                                         type="checkbox"
                                                                                         checked={isSelected}
@@ -2702,7 +2967,7 @@ const addItineraryItem = () => {
                                                                                         <p className="text-xs text-slate-500">Capacity {slot.capacity}</p>
                                                                                     </div>
                                                                                     <div className="col-span-2 sm:col-span-1">
-                                                                                        <label className="sr-only" htmlFor={`option-${index}-slot-${slot.time}-price`}>Slot price</label>
+                                                                                        <label className="mb-1 block text-xs font-medium text-slate-500" htmlFor={`option-${index}-slot-${slot.time}-price`}>Adult</label>
                                                                                         <input
                                                                                             id={`option-${index}-slot-${slot.time}-price`}
                                                                                             type="number"
@@ -2715,6 +2980,22 @@ const addItineraryItem = () => {
                                                                                             placeholder={`Use ${selectedCurrency.symbol}${option.price || 0}`}
                                                                                         />
                                                                                     </div>
+                                                                                    {(['child', 'infant'] as const).map((guest) => (
+                                                                                        <div key={guest} className="col-span-2 sm:col-span-1">
+                                                                                            <label className="mb-1 block text-xs font-medium capitalize text-slate-500" htmlFor={`option-${index}-slot-${slot.time}-${guest}`}>{guest}</label>
+                                                                                            <input
+                                                                                                id={`option-${index}-slot-${slot.time}-${guest}`}
+                                                                                                type="number"
+                                                                                                min="0"
+                                                                                                step="0.01"
+                                                                                                disabled={!isSelected}
+                                                                                                value={selectedSlot?.guestPrices?.[guest] ?? ''}
+                                                                                                onChange={(event) => handleBookingOptionSlotGuestPrice(index, slot.time, guest, event.target.value)}
+                                                                                                className={`${inputBase} disabled:cursor-not-allowed disabled:bg-slate-100`}
+                                                                                                placeholder={`Use ${guest} base`}
+                                                                                            />
+                                                                                        </div>
+                                                                                    ))}
                                                                                 </div>
                                                                             );
                                                                         })}
@@ -2762,178 +3043,125 @@ const addItineraryItem = () => {
                                 {/* Add-ons Tab */}
                                 {activeTab === 'addons' && (
                                     <div className="space-y-6">
-                                        <FormLabel icon={Zap}>Tour Add-ons</FormLabel>
-                                        
-                                        {formData.addOns.length > 0 && (
-                                            <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-xl border border-green-200">
-                                                <h4 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
-                                                    <Eye className="h-5 w-5 text-green-500" />
-                                                    Preview - How customers see add-ons
-                                                </h4>
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                    {formData.addOns.map((addon: AddOn, index: number) => (
-                                                        <div key={index} className="bg-white p-4 rounded-lg border border-slate-200 hover:border-green-300 transition-all duration-200">
-                                                            <div className="flex items-start justify-between mb-3">
-                                                                <div className="flex-1">
-                                                                    <h5 className="font-semibold text-slate-900 mb-1">
-                                                                        {addon.name || `Add-on ${index + 1}`}
-                                                                    </h5>
-                                                                    <p className="text-sm text-slate-600 line-clamp-2">
-                                                                        {addon.description || 'No description provided'}
-                                                                    </p>
-                                                                </div>
-                                                                <div className="text-end">
-                                                                    <div className="text-lg font-bold text-slate-900">
-                                                                        {selectedCurrency.symbol}{addon.price?.toFixed(2) || '0.00'}
-                                                                    </div>
-                                                                    <div className="text-xs text-slate-500">
-                                                                        {addon.pricingMethod === 'per_person' ? 'per person' : 'per unit'}
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <div className="pt-2 border-t border-slate-100">
-                                                                <div className="flex items-center justify-center w-full py-2 bg-green-50 text-green-600 rounded-lg text-sm font-medium">
-                                                                    Add to Tour
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
+                                        <div className="flex flex-wrap items-start justify-between gap-3">
+                                            <div>
+                                                <FormLabel icon={Zap}>Tour Add-on Groups</FormLabel>
+                                                <p className="mt-1 text-sm text-slate-500">Show the right optional extras for all or selected booking options.</p>
                                             </div>
-                                        )}
-
-                                        <div className="space-y-4">
-                                            {formData.addOns.map((addon: AddOn, index: number) => (
-                                                <div key={index} className="bg-white border border-slate-200 rounded-xl p-6 hover:border-green-300 transition-all duration-200">
-                                                    <div className="flex items-center justify-between mb-4">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="flex items-center justify-center w-8 h-8 bg-green-100 text-green-600 rounded-lg font-bold text-sm">
-                                                                {index + 1}
-                                                            </div>
-                                                            <h5 className="font-semibold text-slate-900">Add-on {index + 1}</h5>
-                                                        </div>
-                                                        <button 
-                                                            type="button" 
-                                                            onClick={() => removeAddOn(index)} 
-                                                            className="text-red-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-xl transition-all duration-200"
-                                                        >
-                                                            <XCircle className="w-5 h-5" />
-                                                        </button>
-                                                    </div>
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-                                                        <div className="space-y-2">
-                                                            <label className="block text-sm font-medium text-slate-700">Add-on Name *</label>
-                                                            <input 
-                                                                value={addon.name || ''} 
-                                                                onChange={(e) => handleAddOnChange(index, 'name', e.target.value)}
-                                                                className={inputBase} 
-                                                                placeholder="e.g., Professional Photography" 
-                                                                required
-                                                            />
-                                                        </div>
-                                                        <div className="space-y-2">
-                                                            <label className="block text-sm font-medium text-slate-700">Pricing Method *</label>
-                                                            <select
-                                                                value={addon.pricingMethod || 'per_unit'}
-                                                                onChange={(e) => handleAddOnChange(index, 'pricingMethod', e.target.value)}
-                                                                className={`${inputBase} appearance-none cursor-pointer`}
-                                                            >
-                                                                <option value="per_unit">Per unit — price × selected quantity</option>
-                                                                <option value="per_person">Per person — price × each guest</option>
-                                                            </select>
-                                                            <p className="text-xs text-slate-500">
-                                                                {addon.pricingMethod === 'per_person'
-                                                                    ? 'Charged once per paying guest (adults + children; infants free).'
-                                                                    : 'Charged for each selected unit.'}
-                                                            </p>
-                                                        </div>
-                                                        <div className="space-y-2">
-                                                            <label className="block text-sm font-medium text-slate-700">Price ({selectedCurrency.symbol}) *</label>
-                                                            <div className="relative">
-                                                                <CurrencyIcon className="absolute start-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-                                                                <input 
-                                                                    type="number" 
-                                                                    step="0.01"
-                                                                    value={addon.price || ''} 
-                                                                    onChange={(e) => handleAddOnChange(index, 'price', parseFloat(e.target.value) || 0)}
-                                                                    className={`${inputBase} ps-10`}placeholder="0.00"
-                                                                    min="0"
-                                                                    required
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                        <div className="space-y-2">
-                                                            <label className="block text-sm font-medium text-slate-700">Category</label>
-                                                            <select 
-                                                                value={addon.category || 'Experience'} 
-                                                                onChange={(e) => handleAddOnChange(index, 'category', e.target.value)}
-                                                                className={`${inputBase} appearance-none cursor-pointer`}
-                                                            >
-                                                                <option value="Experience">Experience</option>
-                                                                <option value="Photography">Photography</option>
-                                                                <option value="Transport">Transport</option>
-                                                                <option value="Food">Food & Drink</option>
-                                                            </select>
-                                                        </div>
-                                                    </div>
-                                                    <fieldset className="mt-6 space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                                                        <legend className="px-1 text-sm font-semibold text-slate-700">Available with booking options</legend>
-                                                        <label className="flex cursor-pointer items-center gap-3 text-sm text-slate-700">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={(addon.bookingOptionKeys || []).length === 0}
-                                                                onChange={(event) => handleAddOnChange(index, 'bookingOptionKeys', event.target.checked ? [] : [formData.bookingOptions[0]?.id || ''].filter(Boolean))}
-                                                            />
-                                                            All booking options
-                                                        </label>
-                                                        {(addon.bookingOptionKeys || []).length > 0 && (
-                                                            <div className="grid gap-2 sm:grid-cols-2">
-                                                                {formData.bookingOptions.map((option, optionIndex) => {
-                                                                    const key = option.id || '';
-                                                                    const selected = Boolean(key && addon.bookingOptionKeys?.includes(key));
-                                                                    return (
-                                                                        <label key={key || optionIndex} className="flex cursor-pointer items-center gap-2 rounded-lg bg-white px-3 py-2 text-sm text-slate-700">
-                                                                            <input
-                                                                                type="checkbox"
-                                                                                checked={selected}
-                                                                                onChange={(event) => handleAddOnChange(index, 'bookingOptionKeys', event.target.checked
-                                                                                    ? [...(addon.bookingOptionKeys || []), key]
-                                                                                    : (addon.bookingOptionKeys || []).filter((value) => value !== key))}
-                                                                            />
-                                                                            {option.label.trim() || `Booking option ${optionIndex + 1}`}
-                                                                        </label>
-                                                                    );
-                                                                })}
-                                                            </div>
-                                                        )}
-                                                    </fieldset>
-                                                    <div className="mt-6 space-y-2">
-                                                        <label className="block text-sm font-medium text-slate-700">Description <span className="font-normal text-slate-400">(optional)</span></label>
-                                                        <textarea 
-                                                            value={addon.description || ''} 
-                                                            onChange={(e) => handleAddOnChange(index, 'description', e.target.value)}
-                                                            className={textareaBase} 
-                                                            rows={3}
-                                                            placeholder="Describe what this add-on includes and why customers would want it..."
-                                                        />
-                                                    </div>
-                                                </div>
-                                            ))}
+                                            <button type="button" onClick={() => addAddOn()} className="inline-flex items-center gap-2 rounded-xl bg-green-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-green-700">
+                                                <Plus className="h-4 w-4" /> Create add-on group
+                                            </button>
                                         </div>
 
-                                        <button 
-                                            type="button" 
-                                            onClick={addAddOn} 
-                                            className="w-full flex items-center justify-center gap-3 px-6 py-4 text-sm font-semibold text-green-600 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-dashed border-green-300 rounded-xl hover:from-green-100 hover:to-emerald-100 hover:border-green-400 transition-all duration-200"
-                                        >
-                                            <Plus className="h-5 w-5" /> 
-                                            Add Tour Enhancement
-                                        </button>
+                                        {addOnGroups.map((group, groupIndex) => {
+                                            const expanded = expandedAddOnGroupKey === group.key;
+                                            const appliesToAll = group.bookingOptionKeys.length === 0;
+                                            return (
+                                                <section key={group.key} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" data-testid={`addon-group-${groupIndex + 1}`}>
+                                                    <div className="flex items-center gap-3 bg-slate-50 px-5 py-4">
+                                                        <button type="button" onClick={() => setExpandedAddOnGroupKey(expanded ? null : group.key)} className="flex min-w-0 flex-1 items-center gap-3 text-start" aria-expanded={expanded}>
+                                                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-green-100 font-bold text-green-700">{groupIndex + 1}</span>
+                                                            <span className="min-w-0">
+                                                                <span className="block truncate font-semibold text-slate-900">{group.title.trim() || `Add-on Group ${groupIndex + 1}`}</span>
+                                                                <span className="block text-xs text-slate-500">{group.entries.length} add-on{group.entries.length === 1 ? '' : 's'} · {appliesToAll ? 'All booking options' : `${group.bookingOptionKeys.length} selected option${group.bookingOptionKeys.length === 1 ? '' : 's'}`}</span>
+                                                            </span>
+                                                            <ChevronDown className={`ms-auto h-5 w-5 text-slate-500 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+                                                        </button>
+                                                        <button type="button" onClick={() => removeAddOnGroup(group.key)} className="rounded-lg p-2 text-red-500 hover:bg-red-50" aria-label={`Remove ${group.title || `Add-on Group ${groupIndex + 1}`}`}><XCircle className="h-5 w-5" /></button>
+                                                    </div>
 
-                                        {formData.addOns.length === 0 && (
-                                            <div className="text-center py-8 text-slate-500">
-                                                <Zap className="h-12 w-12 mx-auto mb-4 text-slate-300" />
-                                                <p>No add-ons yet. Click "Add Tour Enhancement" to create optional extras.</p>
+                                                    {expanded && (
+                                                        <div className="space-y-5 border-t border-slate-200 p-5">
+                                                            <div className="grid gap-5 lg:grid-cols-2">
+                                                                <div className="space-y-2">
+                                                                    <label className="block text-sm font-medium text-slate-700" htmlFor={`addon-group-${groupIndex}-title`}>Group title <span className="font-normal text-slate-400">(optional)</span></label>
+                                                                    <input id={`addon-group-${groupIndex}-title`} value={group.title} onChange={(event) => updateAddOnGroup(group.key, { groupTitle: event.target.value })} className={inputBase} placeholder={`Add-on Group ${groupIndex + 1}`} />
+                                                                </div>
+                                                                <fieldset className="space-y-3">
+                                                                    <legend className="text-sm font-medium text-slate-700">Available with</legend>
+                                                                    <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border border-slate-200 px-4">
+                                                                        <input type="radio" name={`addon-group-${groupIndex}-scope`} checked={appliesToAll} onChange={() => updateAddOnGroup(group.key, { bookingOptionKeys: [] })} />
+                                                                        <span className="text-sm font-medium text-slate-700">All booking options</span>
+                                                                    </label>
+                                                                    <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border border-slate-200 px-4">
+                                                                        <input type="radio" name={`addon-group-${groupIndex}-scope`} checked={!appliesToAll} onChange={() => updateAddOnGroup(group.key, { bookingOptionKeys: [formData.bookingOptions[0]?.id || ''].filter(Boolean) })} />
+                                                                        <span className="text-sm font-medium text-slate-700">Selected booking options</span>
+                                                                    </label>
+                                                                    {!appliesToAll && (
+                                                                        <div className="grid gap-2 sm:grid-cols-2">
+                                                                            {formData.bookingOptions.map((option, optionIndex) => {
+                                                                                const key = option.id || '';
+                                                                                const checked = Boolean(key && group.bookingOptionKeys.includes(key));
+                                                                                return (
+                                                                                    <label key={key || optionIndex} className="flex cursor-pointer items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                                                                                        <input type="checkbox" checked={checked} onChange={(event) => updateAddOnGroup(group.key, { bookingOptionKeys: event.target.checked ? [...group.bookingOptionKeys, key] : group.bookingOptionKeys.filter((value) => value !== key) })} />
+                                                                                        {option.label.trim() || `Booking option ${optionIndex + 1}`}
+                                                                                    </label>
+                                                                                );
+                                                                            })}
+                                                                        </div>
+                                                                    )}
+                                                                </fieldset>
+                                                            </div>
+
+                                                            {group.entries.map(({ addOn, index }, addOnIndex) => (
+                                                                <div key={addOn._id || `${group.key}-${index}`} className="rounded-xl border border-slate-200 p-5">
+                                                                    <div className="mb-4 flex items-center justify-between">
+                                                                        <h5 className="font-semibold text-slate-900">Add-on {addOnIndex + 1}</h5>
+                                                                        <button type="button" onClick={() => removeAddOn(index)} className="rounded-lg p-2 text-red-500 hover:bg-red-50" aria-label={`Remove add-on ${addOnIndex + 1}`}><XCircle className="h-5 w-5" /></button>
+                                                                    </div>
+                                                                    <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+                                                                        <div className="space-y-2">
+                                                                            <label className="block text-sm font-medium text-slate-700" htmlFor={`addon-${index}-name`}>Add-on name *</label>
+                                                                            <input id={`addon-${index}-name`} value={addOn.name || ''} onChange={(event) => handleAddOnChange(index, 'name', event.target.value)} className={inputBase} placeholder="e.g., Professional Photography" required />
+                                                                        </div>
+                                                                        <div className="space-y-2">
+                                                                            <label className="block text-sm font-medium text-slate-700" htmlFor={`addon-${index}-price`}>Price ({selectedCurrency.symbol}) *</label>
+                                                                            <div className="relative">
+                                                                                <CurrencyIcon className="absolute start-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                                                                <input id={`addon-${index}-price`} type="number" step="0.01" min="0" value={addOn.price || ''} onChange={(event) => handleAddOnChange(index, 'price', parseFloat(event.target.value) || 0)} className={`${inputBase} ps-10`} placeholder="0.00" required />
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="space-y-2">
+                                                                            <label className="block text-sm font-medium text-slate-700" htmlFor={`addon-${index}-pricing-method`}>Pricing method *</label>
+                                                                            <select id={`addon-${index}-pricing-method`} value={addOn.pricingMethod || 'per_unit'} onChange={(event) => handleAddOnChange(index, 'pricingMethod', event.target.value)} className={`${inputBase} appearance-none cursor-pointer`}>
+                                                                                <option value="per_unit">Per unit — price × selected quantity</option>
+                                                                                <option value="per_person">Per person — price × each guest</option>
+                                                                            </select>
+                                                                            <p className="text-xs text-slate-500">
+                                                                                {addOn.pricingMethod === 'per_person'
+                                                                                    ? 'Charged once per paying guest (adults + children; infants free).'
+                                                                                    : 'Charged for each selected unit.'}
+                                                                            </p>
+                                                                        </div>
+                                                                        <div className="space-y-2">
+                                                                            <label className="block text-sm font-medium text-slate-700" htmlFor={`addon-${index}-category`}>Category</label>
+                                                                            <select id={`addon-${index}-category`} value={addOn.category || 'Experience'} onChange={(event) => handleAddOnChange(index, 'category', event.target.value)} className={`${inputBase} appearance-none cursor-pointer`}>
+                                                                                <option value="Experience">Experience</option>
+                                                                                <option value="Photography">Photography</option>
+                                                                                <option value="Transport">Transport</option>
+                                                                                <option value="Food">Food &amp; Drink</option>
+                                                                            </select>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="mt-5 space-y-2">
+                                                                        <label className="block text-sm font-medium text-slate-700" htmlFor={`addon-${index}-description`}>Description <span className="font-normal text-slate-400">(optional)</span></label>
+                                                                        <textarea id={`addon-${index}-description`} value={addOn.description || ''} onChange={(event) => handleAddOnChange(index, 'description', event.target.value)} className={textareaBase} rows={3} placeholder="Describe what this add-on includes and why customers would want it..." />
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+
+                                                            <button type="button" onClick={() => addAddOn(group.key)} className="inline-flex items-center gap-2 rounded-xl border border-dashed border-green-300 px-4 py-2.5 text-sm font-semibold text-green-700 hover:bg-green-50"><Plus className="h-4 w-4" /> Add another add-on</button>
+                                                        </div>
+                                                    )}
+                                                </section>
+                                            );
+                                        })}
+
+                                        {addOnGroups.length === 0 && (
+                                            <div className="rounded-2xl border-2 border-dashed border-slate-200 py-10 text-center text-slate-500">
+                                                <Zap className="mx-auto mb-3 h-10 w-10 text-slate-300" />
+                                                <p>No add-on groups yet. Create a group to configure optional extras.</p>
                                             </div>
                                         )}
                                     </div>

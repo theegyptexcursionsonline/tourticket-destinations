@@ -51,13 +51,19 @@ describe('whole-unit option pricing', () => {
 
 describe('every pricing surface bills by the one shared subtotal rule', () => {
   it.each([
-    ['the Stripe amount', 'lib/security/checkoutPricing.ts', 'optionSubtotal(selectedOption ?? null, basePrice, adults, children, infants)'],
-    ['the recorded booking', 'app/api/checkout/route.ts', 'optionSubtotal('],
-    ['the cart', 'components/CartSidebar.tsx', 'optionSubtotal(item.selectedBookingOption ?? null'],
-    ['the booking sidebar', 'components/BookingSidebar.tsx', 'optionSubtotal(option, basePrice, adults, children, infants)'],
-  ])('%s uses optionSubtotal', (_surface, file, call) => {
+    // The Stripe amount and the recorded booking quote child/infant prices
+    // per departure through guestPricedSubtotal, which hands every whole-unit
+    // option to optionSubtotal (proved in lib/revenue/__tests__/guestPrices.test.ts).
+    ['the Stripe amount', 'lib/security/checkoutPricing.ts', 'guestPricedSubtotal(selectedOption ?? null, guestPrices, adults, children, infants)', "from '@/lib/revenue/guestPrices'"],
+    // The booking writer consumes the already server-validated cart and uses
+    // lineTotal, whose implementation delegates to guestPricedSubtotal.
+    ['the recorded booking', 'app/api/checkout/route.ts', 'lineTotal(item)', "from '@/lib/checkout/lineTotals'"],
+    // The cart totals through lib/checkout/lineTotals.ts, a thin wrapper over guestPricedSubtotal.
+    ['the cart', 'components/CartSidebar.tsx', 'lineTotal(item)', "from '@/lib/checkout/lineTotals'"],
+    ['the booking sidebar', 'components/BookingSidebar.tsx', 'optionSubtotal(option, basePrice, adults, children, infants)', "from '@/lib/bookings/optionSubtotal'"],
+  ])('%s uses optionSubtotal', (_surface, file, call, importLine) => {
     const source = read(file);
-    expect(source).toContain("from '@/lib/bookings/optionSubtotal'");
+    expect(source).toContain(importLine);
     expect(source).toContain(call);
     // no surface keeps its own per-guest arithmetic alongside the rule
     expect(source).not.toMatch(/basePrice \* adults \+ \(basePrice \/ 2\)/);
@@ -66,10 +72,13 @@ describe('every pricing surface bills by the one shared subtotal rule', () => {
 
   it('the server surfaces read the option type from the stored tour, never the cart', () => {
     const checkout = read('app/api/checkout/route.ts');
-    expect(checkout).toContain('storedOptions');
+    expect(checkout).toContain('validatedCheckout = await calculateCheckoutPricing(cart, tenantId, appliedDiscountCode)');
+    expect(checkout).toContain('validatedCheckout = await recoverSettledCheckout(');
+    expect(checkout).toContain('cart = validatedCheckout.cart');
     expect(checkout).not.toMatch(/optionSubtotal\(cartItem\.selectedBookingOption/);
     const stripe = read('lib/security/checkoutPricing.ts');
-    expect(stripe).toMatch(/selectedOption = \(tour\.bookingOptions \|\| \[\]\)\.find/);
+    expect(stripe).toContain('const options = Array.isArray(tour.bookingOptions) ? tour.bookingOptions : []');
+    expect(stripe).toContain('selectedOption = selectedOptionIndex >= 0 ? options[selectedOptionIndex] : undefined');
   });
 });
 
@@ -81,12 +90,13 @@ describe('the option type reaches every surface that totals a line', () => {
 
   it('the validated cart carries the STORED type, so emails and the booking record total correctly', () => {
     const stripe = read('lib/security/checkoutPricing.ts');
-    expect(stripe).toContain('type: selectedOption.type, price: basePrice');
+    expect(stripe).toMatch(/type: selectedOption\.type,[\s\S]{0,80}price: basePrice/);
   });
 
   it('no copy of the per-guest arithmetic survives in the checkout route', () => {
     const checkout = read('app/api/checkout/route.ts');
     expect(checkout).not.toMatch(/const adultPrice = basePrice \* \(/);
-    expect((checkout.match(/optionSubtotal\(/g) || []).length).toBeGreaterThanOrEqual(3);
+    expect((checkout.match(/lineTotal\(/g) || []).length).toBeGreaterThanOrEqual(3);
+    expect(checkout).not.toMatch(/\boptionSubtotal\(/);
   });
 });

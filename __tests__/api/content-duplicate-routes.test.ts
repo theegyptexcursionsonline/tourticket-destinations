@@ -54,6 +54,10 @@ jest.mock('@/lib/storefront/revalidateTourStorefront', () => ({
   revalidateTourStorefront: jest.fn(),
   revalidateStorefrontContent: jest.fn(),
 }));
+jest.mock('@/lib/revenue/pricingSummary', () => ({
+  refreshTourPricingSummaries: jest.fn().mockResolvedValue([]),
+  syncTourPricingSearchIndex: jest.fn().mockResolvedValue(true),
+}));
 jest.mock('@/lib/tenant', () => ({
   buildStrictTenantQuery: (query: Record<string, unknown>, tenantId: string) => ({ ...query, tenantId }),
 }));
