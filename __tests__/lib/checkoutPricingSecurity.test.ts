@@ -56,6 +56,7 @@ describe('checkout pricing security', () => {
       childQuantity: 1,
       selectedBookingOption: { id: 'private', title: 'Fake', price: 0.01 },
       selectedAddOns: { 'addon-1': 1 },
+      addOnQuantityVersion: 1,
       selectedAddOnDetails: { 'addon-1': { title: 'Fake', price: 0.01 } },
     }], 'brand-a');
 
@@ -154,6 +155,7 @@ describe('checkout pricing security', () => {
       id: '507f1f77bcf86cd799439011',
       quantity: 1,
       selectedDate: '2099-01-01',
+      selectedBookingOption: { id: 'private' },
       selectedAddOns: { forged: 1 },
     }], 'brand-a')).rejects.toThrow('Invalid add-on');
   });
@@ -162,6 +164,14 @@ describe('checkout pricing security', () => {
     // Legacy clients persisted the guest count (or worse) as the add-on quantity.
     // A per-person (Food) add-on must bill price × (adults + children) only:
     // no quantity multiplication (the guest-count² overcharge) and no infants.
+    tourLean.mockResolvedValueOnce({
+      _id: '507f1f77bcf86cd799439011',
+      tenantId: 'brand-a',
+      title: 'Canonical tour',
+      discountPrice: 100,
+      bookingOptions: [],
+      addOns: [{ _id: 'addon-1', name: 'Lunch', price: 20, category: 'Food' }],
+    });
     const result = await calculateCheckoutPricing([{
       id: '507f1f77bcf86cd799439011',
       quantity: 2,
@@ -182,7 +192,7 @@ describe('checkout pricing security', () => {
       tenantId: 'brand-a',
       title: 'Canonical tour',
       discountPrice: 100,
-      addOns: [{ _id: 'addon-1', name: 'Lunch box', price: 20, category: 'Food', pricingMethod: 'per_unit' }],
+      addOns: [{ _id: 'addon-1', name: 'Lunch box', price: 20, category: 'Food', pricingMethod: 'per_unit', maxQuantity: 2 }],
     });
 
     const result = await calculateCheckoutPricing([{
@@ -383,6 +393,7 @@ describe('checkout pricing applies the tour discount exactly like the booking wr
   });
 
   it('applies the percentage to the no-option tour base price', async () => {
+    tourLean.mockResolvedValueOnce({ ...discountedTour, bookingOptions: [] });
     const result = await calculateCheckoutPricing([{
       id: '507f1f77bcf86cd799439011',
       quantity: 1,
@@ -396,26 +407,28 @@ describe('checkout pricing applies the tour discount exactly like the booking wr
 
 
   describe('child and infant prices follow the stored departure, never the cart', () => {
+    const guestPricedTour = {
+      _id: '507f1f77bcf86cd799439011',
+      tenantId: 'brand-a',
+      title: 'Guest-priced tour',
+      discountPrice: 100,
+      revenueGuestPrices: { adult: 100, child: 60, infant: 10 },
+      availability: { slots: [{ time: '10:00', capacity: 10 }, { time: '14:00', capacity: 10, guestPrices: { child: 40 } }] },
+      bookingOptions: [
+        {
+          id: 'private',
+          type: 'Per Person',
+          label: 'Private',
+          price: 150,
+          guestPrices: { adult: 150, child: 90, infant: 20 },
+          timeSlots: [{ time: '10:00' }, { time: '14:00', guestPrices: { child: 75, infant: 0 } }],
+        },
+        { id: 'plain', type: 'Per Person', label: 'Plain', price: 80 },
+      ],
+    };
+
     beforeEach(() => {
-      tourLean.mockResolvedValue({
-        _id: '507f1f77bcf86cd799439011',
-        tenantId: 'brand-a',
-        title: 'Guest-priced tour',
-        discountPrice: 100,
-        revenueGuestPrices: { adult: 100, child: 60, infant: 10 },
-        availability: { slots: [{ time: '10:00', capacity: 10 }, { time: '14:00', capacity: 10, guestPrices: { child: 40 } }] },
-        bookingOptions: [
-          {
-            id: 'private',
-            type: 'Per Person',
-            label: 'Private',
-            price: 150,
-            guestPrices: { adult: 150, child: 90, infant: 20 },
-            timeSlots: [{ time: '10:00' }, { time: '14:00', guestPrices: { child: 75, infant: 0 } }],
-          },
-          { id: 'plain', type: 'Per Person', label: 'Plain', price: 80 },
-        ],
-      });
+      tourLean.mockResolvedValue(guestPricedTour);
     });
 
     const base = {
@@ -463,6 +476,7 @@ describe('checkout pricing applies the tour discount exactly like the booking wr
     });
 
     it('uses the tour-level RevenuePilot set and universal slot override when no option is chosen', async () => {
+      tourLean.mockResolvedValue({ ...guestPricedTour, bookingOptions: [] });
       const morning = await calculateCheckoutPricing([{ ...base, selectedTime: '10:00' }], 'brand-a');
       expect(morning.cart[0].guestPrices).toEqual({ adult: 100, child: 60, infant: 10 });
       expect(morning.pricing.subtotal).toBe(230);
