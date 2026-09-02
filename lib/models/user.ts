@@ -38,6 +38,7 @@ export interface ICartItem {
   priceExecutionId?: string | null;
   priceOverrideId?: string | null;
   priceSource?: 'catalogue' | 'override';
+  addOnQuantityVersion?: 1;
   selectedAddOns?: Array<{
     id: string;
     name: string;
@@ -45,6 +46,7 @@ export interface ICartItem {
     quantity: number;
     category?: string;
     perGuest?: boolean;
+    maxQuantity?: number;
   }>;
   uniqueId: string;
   addedAt: Date;
@@ -272,6 +274,7 @@ const UserSchema: Schema<IUser> = new Schema({
     priceExecutionId: { type: String },
     priceOverrideId: { type: String },
     priceSource: { type: String, enum: ['catalogue', 'override'] },
+    addOnQuantityVersion: { type: Number, enum: [1], required: false },
     selectedAddOns: [{
       id: String,
       name: String,
@@ -279,6 +282,7 @@ const UserSchema: Schema<IUser> = new Schema({
       quantity: Number,
       category: String,
       perGuest: Boolean,
+      maxQuantity: { type: Number, min: 1, max: 50 },
     }],
     uniqueId: { type: String, required: true },
     addedAt: { type: Date, default: Date.now },

@@ -45,14 +45,45 @@ export function nextAddOnSelectionQuantity(currentQuantity: number): number {
  */
 export function perPersonAddOnLimit(adults: number, children: number): number {
   const paying = Math.max(0, Math.floor(Number(adults) || 0)) + Math.max(0, Math.floor(Number(children) || 0));
-  return Math.max(1, paying);
+  return paying;
 }
 
-/** Clamp a requested add-on quantity into [1, limit]; invalid input counts as 1. */
+/** Clamp a requested add-on quantity into [1, limit], or zero when nobody can consume it. */
 export function clampAddOnQuantity(requested: number, limit: number): number {
+  const normalizedLimit = Math.max(0, Math.floor(Number(limit) || 0));
+  if (normalizedLimit === 0) return 0;
   const q = Math.floor(Number(requested));
   if (!Number.isFinite(q) || q < 1) return 1;
-  return Math.min(q, Math.max(1, Math.floor(limit)));
+  return Math.min(q, normalizedLimit);
+}
+
+/** Authoritative selectable units for either add-on pricing method. */
+export function addOnQuantityLimit(
+  addOn: { perGuest?: boolean; maxQuantity?: number },
+  adults: number,
+  children: number,
+): number {
+  const authored = Number.isInteger(addOn.maxQuantity) && Number(addOn.maxQuantity) > 0
+    ? Math.min(50, Number(addOn.maxQuantity))
+    : undefined;
+  if (!addOn.perGuest) return authored ?? 1;
+  const paying = perPersonAddOnLimit(adults, children);
+  return Math.min(paying, authored ?? paying);
+}
+
+/** Keep every selected quantity inside its authored and participant ceiling. */
+export function clampSelectedAddOnQuantities(
+  selected: Record<string, number>,
+  addOns: Array<{ id: string; perGuest?: boolean; maxQuantity?: number }>,
+  adults: number,
+  children: number,
+): Record<string, number> {
+  const catalogue = new Map(addOns.map((addOn) => [addOn.id, addOn]));
+  return Object.fromEntries(Object.entries(selected).map(([id, quantity]) => {
+    const addOn = catalogue.get(id);
+    if (!addOn || Number(quantity) <= 0) return [id, quantity];
+    return [id, clampAddOnQuantity(quantity, addOnQuantityLimit(addOn, adults, children))];
+  }).filter(([, quantity]) => Number(quantity) > 0));
 }
 
 /**
@@ -65,13 +96,5 @@ export function clampSelectedPerPersonAddOns(
   adults: number,
   children: number,
 ): Record<string, number> {
-  const perPersonIds = new Set(addOns.filter((addOn) => addOn.perGuest).map((addOn) => addOn.id));
-  const limit = perPersonAddOnLimit(adults, children);
-
-  return Object.fromEntries(Object.entries(selected).map(([id, quantity]) => [
-    id,
-    perPersonIds.has(id) && Number(quantity) > 0
-      ? clampAddOnQuantity(quantity, limit)
-      : quantity,
-  ]));
+  return clampSelectedAddOnQuantities(selected, addOns, adults, children);
 }

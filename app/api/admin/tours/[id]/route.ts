@@ -20,6 +20,7 @@ import {
 } from '@/lib/revenue/guestPrices';
 import { preserveBookingOptionPricingKeys } from '@/lib/revenue/pricingKeys';
 import { refreshTourPricingSummaries, syncTourPricingSearchIndex } from '@/lib/revenue/pricingSummary';
+import { guestPricePayloadError } from '@/lib/admin/guestPricePayload';
 
 function generateOptionId() {
     return globalThis.crypto?.randomUUID?.() || `opt-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -192,6 +193,10 @@ async function PUTHandler(
         await dbConnect();
         const { id } = await params;
         const body = await request.json();
+        const guestPriceError = guestPricePayloadError(body);
+        if (guestPriceError) {
+            return NextResponse.json({ success: false, error: guestPriceError }, { status: 400 });
+        }
         delete body.pricingSummaries;
         delete body.pricingSearchProjections;
 

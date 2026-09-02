@@ -93,6 +93,7 @@ export interface IAddOn {
   groupKey?: string;
   groupTitle?: string;
   bookingOptionKeys?: string[];
+  maxQuantity?: number;
 }
 
 // Complete Tour Interface
@@ -536,6 +537,12 @@ const AddOnSchema = new Schema<IAddOn>({
   groupKey: { type: String, trim: true, maxlength: 80 },
   groupTitle: { type: String, trim: true, maxlength: 120 },
   bookingOptionKeys: [{ type: String, trim: true, maxlength: 80 }],
+  maxQuantity: {
+    type: Number,
+    min: 1,
+    max: 50,
+    validate: { validator: Number.isInteger, message: 'Add-on maximum quantity must be a whole number' },
+  },
 });
 
 // COMPLETE Tour Schema with all fields and validation

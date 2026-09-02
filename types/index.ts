@@ -185,6 +185,8 @@ export interface AddOn {
   groupKey?: string;
   groupTitle?: string;
   bookingOptionKeys?: string[];
+  /** Maximum units selectable; per-unit add-ons default to one when omitted. */
+  maxQuantity?: number;
 }
 
 // =================================================================
@@ -436,6 +438,8 @@ export interface CartItem extends Tour {
   selectedDate: string;
   selectedTime: string;
   selectedAddOns: { [key: string]: number };
+  /** 1 means selectedAddOns values are explicit customer-chosen units. */
+  addOnQuantityVersion?: 1;
   selectedAddOnDetails?: {
     [key: string]: {
       id: string;
@@ -444,6 +448,7 @@ export interface CartItem extends Tour {
       category: string;
       perGuest: boolean;
       quantity?: number;
+      maxQuantity?: number;
     }
   };
   /** Unit prices resolved for the selected departure and frozen at checkout. */
@@ -499,6 +504,7 @@ export interface Booking {
   specialRequests?: string;
   emergencyContact?: string;
   selectedAddOns?: { [key: string]: number };
+  addOnQuantityVersion?: 1;
   createdAt: string;
   updatedAt: string;
 }

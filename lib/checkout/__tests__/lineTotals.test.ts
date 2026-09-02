@@ -105,7 +105,10 @@ describe('add-ons follow the server clamp', () => {
     lunch: { title: 'Lunch', price: 20, perGuest: true },
     photos: { title: 'Photos', price: 35, perGuest: false },
   };
-  const withAddOns = line('priced', { selectedAddOns: { lunch: 1, photos: 2 }, selectedAddOnDetails });
+  const withAddOns = line('priced', { addOnQuantityVersion: 1, selectedAddOns: { lunch: 1, photos: 2 }, selectedAddOnDetails: {
+    ...selectedAddOnDetails,
+    photos: { ...selectedAddOnDetails.photos, maxQuantity: 2 },
+  } });
 
   it('bills a per-person add-on for the units chosen, capped at paying participants, never auto-multiplied', () => {
     expect(lineAddOnQuantity(withAddOns, 'lunch')).toBe(1);
@@ -117,6 +120,12 @@ describe('add-ons follow the server clamp', () => {
   it('totals add-ons and the line', () => {
     expect(lineAddOnsTotal(withAddOns)).toBe(20 + 70);
     expect(lineTotal(withAddOns)).toBe(285 + 90);
+  });
+
+  it('keeps legacy unversioned per-person toggles charged for the whole paying party', () => {
+    const legacy = line('priced', { selectedAddOns: { lunch: 1 }, selectedAddOnDetails });
+    expect(lineAddOnQuantity(legacy, 'lunch')).toBe(3);
+    expect(lineAddOnsTotal(legacy)).toBe(60);
   });
 });
 

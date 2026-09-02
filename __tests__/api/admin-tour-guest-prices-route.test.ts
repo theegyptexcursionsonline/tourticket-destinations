@@ -105,7 +105,7 @@ const fullBody = () => ({
     availableDays: [0, 1, 2, 3, 4, 5, 6],
     slots: [
       { time: '10:00', capacity: 10, guestPrices: { child: '', infant: '' } },
-      { time: '14:00', capacity: 10, guestPrices: { child: 40, infant: -3 } },
+      { time: '14:00', capacity: 10, guestPrices: { child: 40, infant: '' } },
     ],
   },
   bookingOptions: [
@@ -174,17 +174,16 @@ describe('admin tour update keeps guest prices', () => {
     expect(plain.guestPrices).toBeNull();
   });
 
-  it('unsets a partial or negative pair instead of storing half a set', async () => {
+  it('rejects a partial or negative pair instead of silently clearing stored prices', async () => {
     const body = fullBody();
     body.revenueGuestPrices = { adult: 1, child: '60', infant: '' };
     body.bookingOptions[0].guestPrices = { child: '-5', infant: '20' };
 
     const response = await PUT(putRequest(body), params);
 
-    expect(response.status).toBe(200);
-    const set = Tour.findOneAndUpdate.mock.calls[0][1].$set;
-    expect(set.revenueGuestPrices).toBeNull();
-    expect(set.bookingOptions[0].guestPrices).toBeNull();
+    expect(response.status).toBe(400);
+    expect((await response.json()).error).toMatch(/requires both child and infant/);
+    expect(Tour.findOneAndUpdate).not.toHaveBeenCalled();
   });
 
   it('leaves the stored tour set alone when the request does not mention it', async () => {
@@ -251,6 +250,19 @@ describe('admin tour create keeps guest prices', () => {
   it('refuses to create an option that sells a departure the tour does not have', async () => {
     const body = { ...fullBody(), tenantId: 'brand-a' };
     body.bookingOptions[1].timeSlots = [{ time: '23:00', capacity: 2 }];
+
+    const response = await POST({
+      url: 'https://dashboard.example/api/admin/tours?tenantId=brand-a',
+      json: jest.fn().mockResolvedValue(body),
+    } as never);
+
+    expect(response.status).toBe(400);
+    expect(Tour.create).not.toHaveBeenCalled();
+  });
+
+  it('refuses malformed guest prices before creating a tour', async () => {
+    const body = { ...fullBody(), tenantId: 'brand-a' };
+    body.bookingOptions[0].guestPrices = { child: 'not-a-price', infant: '20' };
 
     const response = await POST({
       url: 'https://dashboard.example/api/admin/tours?tenantId=brand-a',

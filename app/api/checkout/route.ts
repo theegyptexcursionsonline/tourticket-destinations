@@ -559,6 +559,7 @@ export async function POST(request: Request) {
           infantGuests: cartItem.infantQuantity || 0,
           guestPrices: cartItem.guestPrices,
           selectedAddOns: cartItem.selectedAddOns || {},
+          addOnQuantityVersion: cartItem.addOnQuantityVersion,
           selectedBookingOption: cartItem.selectedBookingOption,
           priceSnapshot: {
             guestPrices: cartItem.guestPrices,

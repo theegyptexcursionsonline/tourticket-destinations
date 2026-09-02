@@ -16,6 +16,7 @@ function TestComponent() {
         price: 100,
         quantity: 1,
         selectedDate: '2024-01-01',
+        addOnQuantityVersion: 1,
       } as any, false)}>
         Add Item
       </button>
@@ -101,5 +102,28 @@ describe('CartContext', () => {
 
     const stored = localStorage.getItem('cart')
     expect(stored).toBeTruthy()
+    expect(JSON.parse(stored || '[]')[0].addOnQuantityVersion).toBe(1)
+  })
+
+  it('loads an unversioned local cart without erasing or upgrading its legacy semantics', async () => {
+    localStorage.setItem('cart', JSON.stringify([{
+      id: 'legacy-tour',
+      title: 'Legacy Tour',
+      quantity: 2,
+      childQuantity: 1,
+      selectedAddOns: { meal: 1 },
+      uniqueId: 'legacy-line',
+    }]))
+
+    render(
+      <CartProvider>
+        <TestComponent />
+      </CartProvider>
+    )
+
+    await act(async () => { await Promise.resolve() })
+    const cart = JSON.parse(screen.getByTestId('cart-items').textContent || '[]')
+    expect(cart[0]).toMatchObject({ id: 'legacy-tour', selectedAddOns: { meal: 1 } })
+    expect(cart[0]).not.toHaveProperty('addOnQuantityVersion')
   })
 })

@@ -17,6 +17,7 @@ import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/li
 import { resolveEffectivePrice } from '@/lib/revenue/pricingResolver';
 import { STANDARD_OPTION_KEY } from '@/lib/revenue/pricingContract';
 import { guestPricedSubtotal } from '@/lib/revenue/guestPrices';
+import { ParticipantCountError, validateParticipantCounts } from '@/lib/bookings/participantCounts';
 import {
   getBestOffer,
   isOfferApplicableByTravelDate,
@@ -89,13 +90,19 @@ async function PUTHandler(
     }
 
     const nextTime = time ? String(time) : booking.time;
-    const numericAdults = Math.max(0, Number(adults ?? booking.adultGuests ?? 1) || 0);
-    const numericChildren = Math.max(0, Number(children ?? booking.childGuests ?? 0) || 0);
-    const numericInfants = Math.max(0, Number(infants ?? booking.infantGuests ?? 0) || 0);
-    const totalGuests = numericAdults + numericChildren + numericInfants;
-    if (totalGuests < 1) {
-      return NextResponse.json({ success: false, error: 'At least 1 participant is required' }, { status: 400 });
-    }
+    const {
+      adults: numericAdults,
+      children: numericChildren,
+      infants: numericInfants,
+      total: totalGuests,
+    } = validateParticipantCounts(
+      { adults, children, infants },
+      {
+        adults: Number(booking.adultGuests ?? 1),
+        children: Number(booking.childGuests ?? 0),
+        infants: Number(booking.infantGuests ?? 0),
+      },
+    );
 
     const nextOptionType = bookingOptionType ? String(bookingOptionType) : booking.selectedBookingOption?.type;
     const nextOptionKey = bookingOptionKey
@@ -107,7 +114,7 @@ async function PUTHandler(
 
     const bookingOptions = Array.isArray((tour as any).bookingOptions) ? (tour as any).bookingOptions : [];
     const optionsByType = bookingOptions.filter((option: any) => option?.type === nextOptionType);
-    const selectedOption = nextOptionKey === STANDARD_OPTION_KEY
+    const selectedOption = nextOptionKey === STANDARD_OPTION_KEY && bookingOptions.length === 0
       ? {
           id: 'standard-default',
           pricingKey: STANDARD_OPTION_KEY,
@@ -257,7 +264,7 @@ async function PUTHandler(
     console.error('Failed to update manual booking:', error);
     return NextResponse.json(
       { success: false, error: error?.message || 'Failed to update manual booking' },
-      { status: 500 },
+      { status: error instanceof ParticipantCountError ? 400 : 500 },
     );
   }
 }

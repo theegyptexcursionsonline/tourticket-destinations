@@ -25,13 +25,11 @@ import TourPriceDisplay from '@/components/pricing/TourPriceDisplay';
 
 // Hooks and contexts
 import { useSettings } from '@/hooks/useSettings';
-import { useCart } from '@/hooks/useCart';
 import { useWishlist } from '@/contexts/WishlistContext';
 import { useTenant } from '@/contexts/TenantContext';
 import { useLocale, useTranslations } from 'next-intl';
-import type { CartItem, Review, Tour } from '@/types';
+import type { Review, Tour } from '@/types';
 import toast from 'react-hot-toast';
-import { toDateOnlyString } from '@/utils/date';
 import { sanitizeRichHtml } from '@/lib/security/sanitizeRichHtml';
 import { formatExperienceDescription } from '@/lib/content/experienceDescription';
 import { imageMetadataFor } from '@/lib/content/imageMetadata';
@@ -1063,7 +1061,6 @@ interface TourPageClientProps {
 // Main TourPageClient component
 export default function TourPageClient({ tour, relatedTours, initialReviews = [], initialStopSaleDates }: TourPageClientProps) {
   const { formatPrice } = useSettings();
-  const { addToCart } = useCart();
   const { tenant } = useTenant();
   const t = useTranslations('tour');
   const tCommon = useTranslations('common');
@@ -1124,9 +1121,6 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
     }
   };
 
-  const [isAdding, setIsAdding] = useState(false);
-  const [added, setAdded] = useState(false);
-  const [liveMessage, setLiveMessage] = useState('');
   const [activeTab, setActiveTab] = useState('overview');
   
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
@@ -1206,41 +1200,6 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
     { id: 'reviews', label: t('reviews'), icon: Star },
     { id: 'faq', label: t('faq'), icon: MessageCircle }
   ];
-
-  const handleQuickAdd = async () => {
-    if (isAdding) return;
-    setIsAdding(true);
-    setLiveMessage(t('addingToCart'));
-
-    try {
-      const quickAddCartItem: CartItem = {
-        ...tour,
-        uniqueId: `${tour._id}-quick-add-${Date.now()}`,
-        quantity: 1,
-        childQuantity: 0,
-        infantQuantity: 0,
-        selectedDate: toDateOnlyString(new Date()),
-        selectedTime: 'Anytime',
-        selectedAddOns: {},
-        totalPrice: tourBasePricing.price,
-      };
-      addToCart(quickAddCartItem);
-      setAdded(true);
-      setLiveMessage(t('addedToCart'));
-
-      setTimeout(() => {
-        setAdded(false);
-      }, 2500);
-    } catch (err: unknown) {
-      console.error('Add to cart failed:', err);
-      setLiveMessage(t('failedToAddToCart'));
-      setTimeout(() => {
-        setLiveMessage('');
-      }, 2500);
-    } finally {
-      setIsAdding(false);
-    }
-  };
 
   const openBookingSidebar = () => {
     setBookingSidebarOpen(true);
@@ -1567,46 +1526,6 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
                       <span>{t('selectDateTime')}</span>
                     </button>
 
-                    <button
-                      onClick={handleQuickAdd}
-                      disabled={isAdding}
-                      className={`shimmer-effect w-full relative overflow-hidden py-3 px-6 rounded-full border-2 font-bold flex items-center justify-center gap-2 transition-all duration-300 focus:outline-none ${added
-                          ? 'bg-green-600 text-white border-green-600 shadow-lg scale-105'
-                          : 'bg-white text-red-600 border-red-600 hover:bg-red-50'
-                        }`}
-                      aria-live="polite"
-                      aria-disabled={isAdding}
-                    >
-                      <span className="shimmer-line"></span>
-                      {isAdding && (
-                        <svg
-                          className="animate-spin -ms-1 me-2 h-5 w-5 text-current"
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          aria-hidden="true"
-                        >
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8v8z"
-                          ></path>
-                        </svg>
-                      )}
-
-                      {added ? (
-                        <>
-                          <CheckCircle size={18} />
-                          <span>{t('added')}</span>
-                        </>
-                      ) : (
-                        <>
-                          <ShoppingCart size={18} />
-                          <span>{t('quickAddToCart')}</span>
-                        </>
-                      )}
-                    </button>
                   </div>
 
                   <div className="mt-6 pt-6 border-t border-slate-200">
@@ -1691,10 +1610,6 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
         currency={'$'}
         onClick={openBookingSidebar}
       />
-
-      <div className="sr-only" aria-live="polite">
-        {liveMessage}
-      </div>
 
       <style jsx>{`
         .scrollbar-hide::-webkit-scrollbar {

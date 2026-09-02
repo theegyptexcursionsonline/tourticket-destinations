@@ -4,7 +4,11 @@ import { buildStrictTenantQuery } from '@/lib/tenant';
 import Availability from '@/lib/models/Availability';
 import StopSale from '@/lib/models/StopSale';
 import { createHash, createHmac } from 'crypto';
-import { isPerPersonAddOn } from '@/lib/checkout/addOnPricing';
+import {
+  ADD_ON_QUANTITY_VERSION,
+  hasChosenAddOnQuantities,
+  isPerPersonAddOn,
+} from '@/lib/checkout/addOnPricing';
 import { authoritativeBasePrice } from '@/lib/pricing/authoritativePrice';
 import { guestPricedSubtotal, resolveCatalogueGuestPrices } from '@/lib/revenue/guestPrices';
 import {
@@ -14,7 +18,7 @@ import {
   type UnitCapacityOption,
 } from '@/lib/bookings/unitPricing';
 import { isAddOnAvailableForOption } from '@/lib/bookings/addOnAvailability';
-import { clampAddOnQuantity, perPersonAddOnLimit } from '@/lib/bookings/bookingSelection';
+import { addOnQuantityLimit, clampAddOnQuantity, perPersonAddOnLimit } from '@/lib/bookings/bookingSelection';
 import { STANDARD_OPTION_KEY, type EffectivePriceQuote } from '@/lib/revenue/pricingContract';
 
 type CartItem = Record<string, any>;
@@ -40,6 +44,7 @@ export function checkoutFingerprint(cart: CartItem[], tenantId: string, currency
     optionKey: String(item.selectedBookingOption?.pricingKey || ''),
     priceVersion: item.priceVersion === undefined ? null : Number(item.priceVersion),
     priceSourceVersion: item.priceSourceVersion === undefined ? null : String(item.priceSourceVersion),
+    addOnQuantityVersion: item.addOnQuantityVersion === undefined ? null : Number(item.addOnQuantityVersion),
     addOns: Object.entries(item.selectedAddOns || {}).sort(([a], [b]) => a.localeCompare(b)),
   }));
   return createHash('sha256').update(JSON.stringify({ tenantId, currency: currency.toLowerCase(), cart: canonical })).digest('hex');
@@ -82,18 +87,11 @@ async function assertBookable(item: CartItem, tenantId: string) {
   if (remaining < requested) throw new Error('Not enough availability for the selected participants');
 }
 
-const FALLBACK_ADD_ONS: Record<string, { title: string; price: number; perGuest: boolean }> = {
-  'photo-package-fallback': { title: 'Professional Photography Package', price: 35, perGuest: false },
-  'transport-premium-fallback': { title: 'Premium Hotel Transfer Service', price: 15, perGuest: false },
-  'refreshment-upgrade-fallback': { title: 'Gourmet Refreshment Package', price: 12, perGuest: true },
-  'guide-upgrade-fallback': { title: 'Private Guide Enhancement', price: 45, perGuest: false },
-};
-
 const count = (value: unknown, fallback = 0) => {
   if (value === undefined || value === null || value === '') return fallback;
   const number = Number(value);
   if (!Number.isInteger(number) || number < 0 || number > 50) throw new Error('Invalid participant quantity');
-  return number || fallback;
+  return number;
 };
 
 export async function calculateCheckoutPricing(
@@ -129,11 +127,17 @@ export async function calculateCheckoutPricing(
       : '';
     const optionIdIsStandard = !optionId || optionId === 'standard-default' || optionId === 'standard-tour';
     const pricingKeyIsStandard = !requestedPricingKey || requestedPricingKey === STANDARD_OPTION_KEY;
+    const options = Array.isArray(tour.bookingOptions) ? tour.bookingOptions : [];
     if (optionId && requestedPricingKey && optionIdIsStandard !== pricingKeyIsStandard) {
       throw new Error('Invalid booking option');
     }
+    // A configured-option tour has no implicit Standard product. Accepting an
+    // omitted/forged Standard selection here bypassed the exact option and
+    // departure the operator authored and RevenuePilot priced.
+    if (optionIdIsStandard && pricingKeyIsStandard && options.length > 0) {
+      throw new Error('A configured booking option is required');
+    }
     if (!optionIdIsStandard || !pricingKeyIsStandard) {
-      const options = Array.isArray(tour.bookingOptions) ? tour.bookingOptions : [];
       const idIndex = optionId
         ? options.findIndex((option: any, index: number) => String(option.id || option._id || `option-${index}`) === optionId)
         : -1;
@@ -214,22 +218,35 @@ export async function calculateCheckoutPricing(
       if (requestedQuantity === 0) continue;
       const index = (tour.addOns || []).findIndex((addOn: any) => String(addOn._id) === addOnId);
       const stored = index >= 0 ? tour.addOns[index] : null;
-      const fallback = FALLBACK_ADD_ONS[addOnId];
-      if (!stored && !fallback) throw new Error('Invalid add-on');
+      if (!stored) throw new Error('Invalid add-on');
       const selectedOptionKey = selectedOption?.pricingKey || selectedOption?.id || null;
-      if (stored && !isAddOnAvailableForOption(stored, selectedOptionKey)) throw new Error('Invalid add-on');
-      const price = Number(stored?.price ?? fallback.price);
-      const perGuest = stored ? isPerPersonAddOn(stored) : fallback.perGuest;
-      const title = stored?.name ?? fallback.title;
+      if (!isAddOnAvailableForOption(stored, selectedOptionKey)) throw new Error('Invalid add-on');
+      const price = Number(stored.price);
+      const perGuest = isPerPersonAddOn(stored);
+      const title = stored.name;
       if (!Number.isFinite(price) || price < 0) throw new Error('Invalid add-on price');
-      // A per-person add-on is billed for the units the guest chose, capped at
-      // one per paying participant (adults + children) — never multiplied by
-      // the party size on the guest's behalf, never above the party size, and
-      // never for infants (client sheet EEO 24 Aug / MT 31 Aug).
-      const billedQuantity = perGuest ? clampAddOnQuantity(requestedQuantity, perPersonAddOnLimit(adults, children)) : requestedQuantity;
+      const authoredMax = stored.maxQuantity === undefined ? undefined : Number(stored.maxQuantity);
+      if (authoredMax !== undefined && (!Number.isInteger(authoredMax) || authoredMax < 1 || authoredMax > 50)) {
+        throw new Error('Invalid add-on quantity limit');
+      }
+      let billedQuantity: number;
+      if (perGuest) {
+        const payingParty = perPersonAddOnLimit(adults, children);
+        if (payingParty === 0) throw new Error('A paying participant is required for this add-on');
+        const ceiling = addOnQuantityLimit({ perGuest, maxQuantity: authoredMax }, adults, children);
+        const intended = hasChosenAddOnQuantities(submitted.addOnQuantityVersion)
+          ? requestedQuantity
+          : payingParty;
+        if (intended > ceiling) throw new Error(`This add-on allows at most ${ceiling} units`);
+        billedQuantity = clampAddOnQuantity(intended, ceiling);
+      } else {
+        const ceiling = addOnQuantityLimit({ perGuest, maxQuantity: authoredMax }, adults, children);
+        if (requestedQuantity > ceiling) throw new Error(`This add-on allows at most ${ceiling} units`);
+        billedQuantity = requestedQuantity;
+      }
       addOnsTotal += price * billedQuantity;
       selectedAddOns[addOnId] = billedQuantity;
-      selectedAddOnDetails[addOnId] = { title, price, perGuest, quantity: billedQuantity };
+      selectedAddOnDetails[addOnId] = { title, price, perGuest, quantity: billedQuantity, maxQuantity: authoredMax ?? (perGuest ? undefined : 1) };
     }
 
     // Capacity is authorization, not presentation: a party that the option
@@ -280,6 +297,7 @@ export async function calculateCheckoutPricing(
           },
       selectedAddOns,
       selectedAddOnDetails,
+      addOnQuantityVersion: ADD_ON_QUANTITY_VERSION,
       unitPricing: selectedOption && isUnitPricedType(selectedOption.type)
         ? { unitSize: effectiveUnitSize(selectedOption) ?? 0, unitPrice: guestPrices.adult }
         : null,

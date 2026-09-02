@@ -687,6 +687,7 @@ async function processSuccessfulPayment(paymentIntent: Stripe.PaymentIntent) {
         // Unit prices from the stored tour — the numbers the charge was proven against.
         guestPrices,
         selectedAddOns: Object.keys(selectedAddOns).length ? selectedAddOns : undefined,
+        addOnQuantityVersion: 1,
         selectedAddOnDetails: Object.keys(selectedAddOnDetails).length ? selectedAddOnDetails : undefined,
         selectedBookingOption: {
           id: bookingOption?.id ? String(bookingOption.id) : 'standard-default',

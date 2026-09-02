@@ -159,6 +159,7 @@ interface AddOn {
     groupKey?: string;
     groupTitle?: string;
     bookingOptionKeys?: string[];
+    maxQuantity?: number;
 }
 
 interface TourFormData {
@@ -749,6 +750,7 @@ export default function TourForm({ tourToEdit, onSave, fullPage = false }: { tou
                         groupTitle: addon.groupTitle || '',
                         bookingOptionKeys: Array.isArray(addon.bookingOptionKeys) ? addon.bookingOptionKeys : [],
                         pricingMethod: addon.pricingMethod || (addon.category === 'Food' ? 'per_person' : 'per_unit'),
+                        maxQuantity: addon.maxQuantity,
                     }))
                     : [],
              isPublished: tourToEdit.isPublished || false,
@@ -1199,7 +1201,7 @@ const addItineraryItem = () => {
         }
     };
 
-    const handleAddOnChange = (index: number, field: string, value: string | number | string[]) => {
+    const handleAddOnChange = (index: number, field: string, value: string | number | string[] | undefined) => {
         const updatedAddOns = [...formData.addOns];
         updatedAddOns[index] = { ...updatedAddOns[index], [field]: value };
         setFormData((p) => ({ ...p, addOns: updatedAddOns }));
@@ -1217,6 +1219,7 @@ const addItineraryItem = () => {
                 description: '',
                 price: 0,
                 pricingMethod: 'per_unit' as const,
+                maxQuantity: 1,
                 groupKey: resolvedGroupKey,
                 groupTitle: existingGroup?.groupTitle || '',
                 bookingOptionKeys: existingGroup?.bookingOptionKeys || [],
@@ -3110,7 +3113,7 @@ const addItineraryItem = () => {
                                                                         <h5 className="font-semibold text-slate-900">Add-on {addOnIndex + 1}</h5>
                                                                         <button type="button" onClick={() => removeAddOn(index)} className="rounded-lg p-2 text-red-500 hover:bg-red-50" aria-label={`Remove add-on ${addOnIndex + 1}`}><XCircle className="h-5 w-5" /></button>
                                                                     </div>
-                                                                    <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+                                                                    <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-5">
                                                                         <div className="space-y-2">
                                                                             <label className="block text-sm font-medium text-slate-700" htmlFor={`addon-${index}-name`}>Add-on name *</label>
                                                                             <input id={`addon-${index}-name`} value={addOn.name || ''} onChange={(event) => handleAddOnChange(index, 'name', event.target.value)} className={inputBase} placeholder="e.g., Professional Photography" required />
@@ -3119,8 +3122,23 @@ const addItineraryItem = () => {
                                                                             <label className="block text-sm font-medium text-slate-700" htmlFor={`addon-${index}-price`}>Price ({selectedCurrency.symbol}) *</label>
                                                                             <div className="relative">
                                                                                 <CurrencyIcon className="absolute start-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-                                                                                <input id={`addon-${index}-price`} type="number" step="0.01" min="0" value={addOn.price || ''} onChange={(event) => handleAddOnChange(index, 'price', parseFloat(event.target.value) || 0)} className={`${inputBase} ps-10`} placeholder="0.00" required />
+                                                                                <input id={`addon-${index}-price`} type="number" step="0.01" min="0" value={addOn.price ?? ''} onChange={(event) => handleAddOnChange(index, 'price', event.target.value === '' ? 0 : Number(event.target.value))} className={`${inputBase} ps-10`} placeholder="0.00" required />
                                                                             </div>
+                                                                        </div>
+                                                                        <div className="space-y-2">
+                                                                            <label className="block text-sm font-medium text-slate-700" htmlFor={`addon-${index}-max-quantity`}>Maximum units</label>
+                                                                            <input
+                                                                                id={`addon-${index}-max-quantity`}
+                                                                                type="number"
+                                                                                min="1"
+                                                                                max="50"
+                                                                                step="1"
+                                                                                value={addOn.maxQuantity ?? ''}
+                                                                                onChange={(event) => handleAddOnChange(index, 'maxQuantity', event.target.value === '' ? undefined : Number(event.target.value))}
+                                                                                className={inputBase}
+                                                                                placeholder={addOn.pricingMethod === 'per_person' ? 'Paying guests' : '1'}
+                                                                            />
+                                                                            <p className="text-xs text-slate-500">Blank means all paying guests per person, or one unit per booking.</p>
                                                                         </div>
                                                                         <div className="space-y-2">
                                                                             <label className="block text-sm font-medium text-slate-700" htmlFor={`addon-${index}-pricing-method`}>Pricing method *</label>

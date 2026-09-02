@@ -86,6 +86,7 @@ export interface IBooking extends Document {
     infant: number;
   };
   selectedAddOns?: { [key: string]: number };
+  addOnQuantityVersion?: 1;
   selectedBookingOption?: {
     id: string;
     pricingKey?: string;
@@ -117,6 +118,7 @@ export interface IBooking extends Document {
       perGuest?: boolean;
       /** Server-authoritative units billed for new per-person selections. */
       quantity?: number;
+      maxQuantity?: number;
     };
   };
   createdAt: Date;
@@ -376,18 +378,24 @@ const BookingSchema: Schema<IBooking> = new Schema({
   adultGuests: {
     type: Number,
     min: 0,
+    max: 50,
+    validate: { validator: Number.isInteger, message: 'Adult guests must be a whole number' },
     default: 1,
   },
   
   childGuests: {
     type: Number,
     min: 0,
+    max: 50,
+    validate: { validator: Number.isInteger, message: 'Child guests must be a whole number' },
     default: 0,
   },
   
   infantGuests: {
     type: Number,
     min: 0,
+    max: 50,
+    validate: { validator: Number.isInteger, message: 'Infant guests must be a whole number' },
     default: 0,
   },
 
@@ -400,6 +408,12 @@ const BookingSchema: Schema<IBooking> = new Schema({
     type: Map,
     of: Number,
     default: new Map(),
+  },
+
+  addOnQuantityVersion: {
+    type: Number,
+    enum: [1],
+    required: false,
   },
 
   // Declared as its own Schema, not an inline object. A nested field literally
@@ -437,6 +451,7 @@ const BookingSchema: Schema<IBooking> = new Schema({
       category: String,
       perGuest: Boolean,
       quantity: { type: Number, min: 1 },
+      maxQuantity: { type: Number, min: 1, max: 50 },
     },
     default: new Map(),
   },

@@ -36,6 +36,7 @@ import {
 import { resolveEffectivePrice } from '@/lib/revenue/pricingResolver';
 import { STANDARD_OPTION_KEY } from '@/lib/revenue/pricingContract';
 import { guestPricedSubtotal } from '@/lib/revenue/guestPrices';
+import { ParticipantCountError, validateParticipantCounts } from '@/lib/bookings/participantCounts';
 
 function splitName(fullName: string): { firstName: string; lastName: string } {
   const safe = String(fullName || '').trim();
@@ -173,16 +174,12 @@ async function POSTHandler(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Invalid date format.' }, { status: 400 });
     }
 
-    const numericAdults = Math.max(0, Number(adults) || 0);
-    const numericChildren = Math.max(0, Number(children) || 0);
-    const numericInfants = Math.max(0, Number(infants) || 0);
-    const totalGuests = numericAdults + numericChildren + numericInfants;
-    if (totalGuests < 1) {
-      return NextResponse.json(
-        { success: false, error: 'At least 1 participant is required.' },
-        { status: 400 },
-      );
-    }
+    const {
+      adults: numericAdults,
+      children: numericChildren,
+      infants: numericInfants,
+      total: totalGuests,
+    } = validateParticipantCounts({ adults, children, infants });
 
     const tour = await Tour.findOne({
       _id: tourId,
@@ -195,7 +192,7 @@ async function POSTHandler(request: NextRequest) {
 
     const bookingOptions = Array.isArray(tour.bookingOptions) ? tour.bookingOptions : [];
     const optionsByType = bookingOptions.filter((option: any) => option?.type === bookingOptionType);
-    const selectedOption = bookingOptionKey === STANDARD_OPTION_KEY
+    const selectedOption = bookingOptionKey === STANDARD_OPTION_KEY && bookingOptions.length === 0
       ? {
           id: 'standard-default',
           pricingKey: STANDARD_OPTION_KEY,
@@ -509,7 +506,7 @@ async function POSTHandler(request: NextRequest) {
     console.error('Failed to create manual booking:', error);
     return NextResponse.json(
       { success: false, error: error?.message || 'Failed to create manual booking' },
-      { status: 500 },
+      { status: error instanceof ParticipantCountError ? 400 : 500 },
     );
   }
 }

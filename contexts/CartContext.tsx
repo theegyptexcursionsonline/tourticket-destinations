@@ -32,6 +32,7 @@ interface RawAddOn {
     quantity?: unknown;
     category?: string;
     perGuest?: boolean;
+    maxQuantity?: number;
 }
 
 type RawCartItem = Omit<Partial<CartItem>, 'selectedAddOns' | 'selectedBookingOption'> & {
@@ -83,6 +84,7 @@ const serializeCartItemForServer = (item: CartItem) => {
         priceExecutionId: pricingFields.priceExecutionId,
         priceOverrideId: pricingFields.priceOverrideId,
         priceSource: pricingFields.priceSource,
+        addOnQuantityVersion: item.addOnQuantityVersion,
         selectedAddOns: item.selectedAddOnDetails
             ? Object.values(item.selectedAddOnDetails).map(addon => ({
                 id: addon.id,
@@ -91,6 +93,7 @@ const serializeCartItemForServer = (item: CartItem) => {
                 quantity: toNumberQty(item.selectedAddOns?.[addon.id], 1),
                 category: addon.category || 'add-on',
                 perGuest: addon.perGuest ?? false,
+                maxQuantity: addon.maxQuantity,
             }))
             : [],
         uniqueId: item.uniqueId,
@@ -102,6 +105,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     const [isCartOpen, setIsCartOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [hasSyncedFromServer, setHasSyncedFromServer] = useState(false);
+    const [hasLoadedGuestCart, setHasLoadedGuestCart] = useState(false);
     const cartRef = useRef<CartItem[]>([]);
 
     const { token, isAuthenticated } = useAuth();
@@ -120,6 +124,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             category: string;
             perGuest: boolean;
             quantity?: number;
+            maxQuantity?: number;
         }> = {};
 
         if (Array.isArray(nextItem.selectedAddOns)) {
@@ -134,6 +139,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
                     category: addon.category || 'add-on',
                     perGuest: addon.perGuest ?? false,
                     quantity,
+                    maxQuantity: addon.maxQuantity,
                 };
             });
         } else if (nextItem.selectedAddOns && typeof nextItem.selectedAddOns === 'object') {
@@ -154,6 +160,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
                     category: addOn.category || 'add-on',
                     perGuest: addOn.perGuest ?? false,
                     quantity,
+                    maxQuantity: addOn.maxQuantity,
                 };
             }
         }
@@ -182,6 +189,9 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
                 localStorage.removeItem('cart');
             }
             setHasSyncedFromServer(false);
+            setHasLoadedGuestCart(true);
+        } else {
+            setHasLoadedGuestCart(false);
         }
     }, [isAuthenticated, normalizeCartItem]);
 
@@ -282,14 +292,14 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
     // Save to localStorage (for guests) whenever cart changes
     useEffect(() => {
-        if (!isAuthenticated) {
+        if (!isAuthenticated && hasLoadedGuestCart) {
             try {
                 localStorage.setItem('cart', JSON.stringify(cart));
             } catch (error) {
                 console.error("Failed to save cart to localStorage", error);
             }
         }
-    }, [cart, isAuthenticated]);
+    }, [cart, isAuthenticated, hasLoadedGuestCart]);
 
     const openCart = useCallback(() => setIsCartOpen(true), []);
     const closeCart = useCallback(() => setIsCartOpen(false), []);

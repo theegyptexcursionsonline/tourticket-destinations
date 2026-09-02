@@ -177,6 +177,7 @@ export function recoverPaidCartLine(
     selectedBookingOption,
     selectedAddOns,
     selectedAddOnDetails,
+    addOnQuantityVersion: 1 as const,
     unitPricing: unitSize !== undefined && unitPrice !== undefined ? { unitSize, unitPrice } : null,
     priceVersion: Number(item.pv || 0),
     priceSourceVersion: item.psv || null,

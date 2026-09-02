@@ -13,13 +13,21 @@ describe('MT sheet 31 Aug — storefront contracts', () => {
     expect((sidebar.match(/adults:\s*1,/g) || []).length).toBeGreaterThanOrEqual(2);
   });
 
+  it('requires a real option and departure instead of quick-adding an unpriced cart row', () => {
+    expect(tourPage).not.toContain('handleQuickAdd');
+    expect(tourPage).not.toContain('quick-add-');
+    expect(tourPage).not.toContain("selectedTime: 'Anytime'");
+    expect(tourPage).toContain('data-testid="open-booking-drawer"');
+  });
+
   it('re-measures the option description once the collapsed card is shown', () => {
     expect(sidebar).toContain('}, [option.description, expanded]);');
     expect(sidebar).toContain('new ResizeObserver(measure)');
   });
 
   it('lets guests pick 1..N units of a per-person add-on instead of auto-multiplying', () => {
-    expect(sidebar).toContain('clampAddOnQuantity(quantity, perPersonLimit)');
+    expect(sidebar).toContain('addOnQuantityLimit(addOn, guestCount, 0)');
+    expect(sidebar).toContain('clampAddOnQuantity(quantity, quantityLimit)');
     expect(sidebar).toContain('aria-label={`Add one ${addOn.title}`}');
     expect(sidebar).toContain('aria-label={`Remove one ${addOn.title}`}');
     expect(sidebar).not.toContain('addOn.perGuest ? totalGuests : quantity');
@@ -58,11 +66,22 @@ describe('MT sheet 31 Aug — guest prices, add-on groups and page-type switch r
     expect(sidebar).toContain("from '@/lib/revenue/guestPrices'");
     expect(sidebar).toContain('guestPricedSubtotal(option, cardGuestPrices, adults, children, infants)');
     expect(sidebar).toContain('guestPricedSubtotal(pricedOption, effectiveGuestPrices,');
+    expect(sidebar).toContain("t('booking.child')}: {formatPrice(cardGuestPrices.child)}");
+    expect(sidebar).toContain("t('booking.infant')}: {formatPrice(cardGuestPrices.infant)}");
+    expect(sidebar).toContain("formatPrice(participantGuestPrices.infant)");
+    expect(sidebar).not.toContain("{t('booking.under2')} - {t('price.free')}");
   });
 
   it('renders add-on groups with their titles', () => {
     expect(sidebar).toContain('groupAvailableAddOns(availableAddOns).map((group)');
     expect(sidebar).toContain('data-testid={`addon-group-${group.key}`}');
+  });
+
+  it('uses only authored add-ons, including deliberately free add-ons', () => {
+    expect(sidebar).toContain('addOnsToUse = [];');
+    expect(sidebar).toContain('const price = Number(addon.price);');
+    expect(sidebar).toContain('Number.isFinite(addon.price) && addon.price >= 0');
+    expect(sidebar).not.toContain('addon.price ||');
   });
 
   it('matches an assigned add-on against the durable booking-option pricing key', () => {

@@ -12,6 +12,7 @@ interface CartAddOnInput {
   quantity?: unknown;
   category?: string;
   perGuest?: boolean;
+  maxQuantity?: number;
 }
 
 interface CartItemInput {
@@ -47,6 +48,7 @@ interface CartItemInput {
   priceExecutionId?: string | null;
   priceOverrideId?: string | null;
   priceSource?: PriceSource;
+  addOnQuantityVersion?: unknown;
   selectedAddOns?: CartAddOnInput[];
   uniqueId: string;
   addedAt?: string | Date;
@@ -86,6 +88,7 @@ const toStoredCartItem = (item: CartItemInput, addedAt: string | Date = new Date
     priceExecutionId: pricingFields.priceExecutionId,
     priceOverrideId: pricingFields.priceOverrideId,
     priceSource: pricingFields.priceSource,
+    addOnQuantityVersion: item.addOnQuantityVersion === 1 ? 1 : undefined,
     selectedAddOns: (item.selectedAddOns || []).map((addOn) => ({
       id: addOn.id,
       name: addOn.name || addOn.title,
@@ -93,6 +96,7 @@ const toStoredCartItem = (item: CartItemInput, addedAt: string | Date = new Date
       quantity: toNumberQty(addOn.quantity, 1),
       category: addOn.category || 'add-on',
       perGuest: addOn.perGuest ?? false,
+      maxQuantity: addOn.maxQuantity,
     })),
     uniqueId: item.uniqueId,
     addedAt,

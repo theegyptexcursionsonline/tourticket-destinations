@@ -1,4 +1,5 @@
 import { clampAddOnQuantity, perPersonAddOnLimit } from '@/lib/bookings/bookingSelection';
+import { hasChosenAddOnQuantities } from '@/lib/checkout/addOnPricing';
 import { isUnitPricedType, type UnitCapacityOption } from '@/lib/bookings/unitPricing';
 import {
   guestPricedSubtotal,
@@ -32,6 +33,7 @@ export interface PricedLineAddOnDetail {
   price?: number;
   perGuest?: boolean;
   quantity?: number;
+  maxQuantity?: number;
 }
 
 export interface PricedLine {
@@ -45,6 +47,7 @@ export interface PricedLine {
   selectedBookingOption?: (UnitCapacityOption & { id?: string; pricingKey?: string; price?: number | null }) | null;
   selectedAddOns?: Record<string, number> | null;
   selectedAddOnDetails?: Record<string, PricedLineAddOnDetail> | null;
+  addOnQuantityVersion?: number;
   guestPrices?: Partial<GuestPriceSet> | null;
   bookingOptions?: unknown;
   availability?: unknown;
@@ -117,9 +120,17 @@ export function lineAddOnQuantity(item: PricedLine | null | undefined, addOnId: 
   if (!Number.isFinite(requested) || requested <= 0) return 0;
   const detail = item?.selectedAddOnDetails?.[addOnId];
   if (!detail) return 0;
-  return detail.perGuest
-    ? clampAddOnQuantity(requested, perPersonAddOnLimit(wholeCount(item?.quantity), wholeCount(item?.childQuantity)))
-    : Math.floor(requested);
+  if (detail.perGuest) {
+    const payingParty = perPersonAddOnLimit(wholeCount(item?.quantity), wholeCount(item?.childQuantity));
+    if (payingParty === 0) return 0;
+    return hasChosenAddOnQuantities(item?.addOnQuantityVersion)
+      ? clampAddOnQuantity(requested, payingParty)
+      : payingParty;
+  }
+  const configuredMax = Number.isInteger(detail.maxQuantity) && Number(detail.maxQuantity) > 0
+    ? Number(detail.maxQuantity)
+    : 1;
+  return Math.min(Math.floor(requested), configuredMax);
 }
 
 /** Add-ons total for one line. Items without stored detail are not billable and add nothing. */

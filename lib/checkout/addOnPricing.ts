@@ -2,6 +2,13 @@ import { clampAddOnQuantity, perPersonAddOnLimit } from '@/lib/bookings/bookingS
 
 export type AddOnPricingMethod = 'per_unit' | 'per_person';
 
+/** Version 1 means a stored quantity is the exact customer-chosen unit count. */
+export const ADD_ON_QUANTITY_VERSION = 1 as const;
+
+export function hasChosenAddOnQuantities(value: unknown): value is typeof ADD_ON_QUANTITY_VERSION {
+  return value === ADD_ON_QUANTITY_VERSION;
+}
+
 type AddOnLike = {
   pricingMethod?: string | null;
   perGuest?: boolean | null;
@@ -45,6 +52,7 @@ export function storedAddOnUnits(
   const quantity = positiveInt(storedQuantity);
   if (!detail?.perGuest) return quantity;
   const limit = perPersonAddOnLimit(adults, children);
+  if (limit === 0) return 0;
   const recorded = positiveInt(detail.quantity);
   if (recorded > 0) return clampAddOnQuantity(recorded, limit);
   return positiveInt(adults) + positiveInt(children);

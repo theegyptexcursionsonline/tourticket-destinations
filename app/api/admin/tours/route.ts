@@ -19,6 +19,7 @@ import {
 } from '@/lib/revenue/guestPrices';
 import { assignNewBookingOptionPricingKeys } from '@/lib/revenue/pricingKeys';
 import { refreshTourPricingSummaries, syncTourPricingSearchIndex } from '@/lib/revenue/pricingSummary';
+import { guestPricePayloadError } from '@/lib/admin/guestPricePayload';
 
 const ADMIN_TOUR_LIST_PROJECTION = [
   'title',
@@ -234,6 +235,10 @@ async function POSTHandler(request: NextRequest) {
 
   try {
     const body = await request.json();
+    const guestPriceError = guestPricePayloadError(body);
+    if (guestPriceError) {
+      return NextResponse.json({ success: false, error: guestPriceError }, { status: 400 });
+    }
     const tourId = new mongoose.Types.ObjectId();
     body._id = tourId;
     delete body.pricingSummaries;
