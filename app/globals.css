@@ -423,7 +423,7 @@ html[data-storefront-theme="dark"] body.storefront-theme .es-review-background-c
   color: #94a3b8 !important;
 }
 /* dark-theme:generated:start — built by `pnpm theme:generate`; do not hand-edit */
-/* 310 light utilities darkened, 29 deliberately preserved. */
+/* 308 light utilities darkened, 29 deliberately preserved. */
 
 html[data-storefront-theme="dark"] body.storefront-theme :where([class~="from-gray-100"], [class~="from-slate-100"]):not([class~="bg-clip-text"]) {
   --tw-gradient-from: #1e293b var(--tw-gradient-from-position) !important;
@@ -683,7 +683,7 @@ html[data-storefront-theme="dark"] body.storefront-theme :where([class~="to-indi
   --tw-gradient-to: rgb(17 24 39 / 0.2) var(--tw-gradient-to-position) !important;
 }
 
-html[data-storefront-theme="dark"] body.storefront-theme :where([class~="to-blue-50/30"], [class~="to-indigo-50/30"], [class~="to-pink-200/30"], [class~="to-purple-50/30"], [class~="to-red-50/30"], [class~="to-slate-50/30"]):not([class~="bg-clip-text"]) {
+html[data-storefront-theme="dark"] body.storefront-theme :where([class~="to-blue-50/30"], [class~="to-indigo-50/30"], [class~="to-pink-200/30"], [class~="to-purple-50/30"], [class~="to-red-50/30"]):not([class~="bg-clip-text"]) {
   --tw-gradient-to: rgb(17 24 39 / 0.3) var(--tw-gradient-to-position) !important;
 }
 
@@ -939,7 +939,7 @@ html[data-storefront-theme="dark"] body.storefront-theme :where([class~="bg-yell
   background-color: #282413 !important;
 }
 
-html[data-storefront-theme="dark"] body.storefront-theme :where([class~="border-gray-100"], [class~="border-gray-100/50"], [class~="border-gray-200"], [class~="border-gray-200/50"], [class~="border-gray-300"], [class~="border-gray-50"], [class~="border-slate-100"], [class~="border-slate-200"], [class~="border-slate-200/50"], [class~="border-slate-200/60"], [class~="border-slate-200/80"], [class~="border-slate-300"], [class~="border-stone-200"], [class~="border-stone-300"]) {
+html[data-storefront-theme="dark"] body.storefront-theme :where([class~="border-gray-100"], [class~="border-gray-100/50"], [class~="border-gray-200"], [class~="border-gray-200/50"], [class~="border-gray-300"], [class~="border-gray-50"], [class~="border-slate-100"], [class~="border-slate-200"], [class~="border-slate-200/50"], [class~="border-slate-200/60"], [class~="border-slate-300"], [class~="border-stone-200"], [class~="border-stone-300"]) {
   border-color: #334155 !important;
 }
 

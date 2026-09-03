@@ -113,7 +113,6 @@ describe('practical information is explicit, not invented', () => {
 
   it.each([
     'app/[locale]/[slug]/TourDetailClientPage.tsx',
-    'components/TourDetailPage.tsx',
   ])('%s hides empty fields rather than publishing generic promises', (file) => {
     const source = read(file);
     expect(source).not.toContain('SMART fallbacks');
