@@ -27,19 +27,22 @@ jest.mock('@/lib/models/user', () => ({
 jest.mock('next/server', () => {
   class MockNextResponse {
     status: number;
-    constructor(_body?: unknown, init?: { status?: number }) {
+    private body: unknown;
+    constructor(body?: unknown, init?: { status?: number }) {
+      this.body = body;
       this.status = init?.status || 200;
     }
-    static json(_data: unknown, init?: { status?: number }) {
-      return new MockNextResponse(null, init);
+    static json(data: unknown, init?: { status?: number }) {
+      return new MockNextResponse(data, init);
     }
+    async json() { return this.body; }
   }
   return { NextResponse: MockNextResponse, NextRequest: jest.fn() };
 });
 
 import { NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/jwt';
-import { requireAdminAuth } from '../adminAuth';
+import { requireAdminAuth, tenantForbiddenResponse } from '../adminAuth';
 
 const mockedVerifyToken = verifyToken as jest.MockedFunction<typeof verifyToken>;
 
@@ -152,5 +155,44 @@ describe('requireAdminAuth', () => {
       permissions: [],
       tenantIds: ['hurghada-speedboat'],
     }));
+  });
+});
+
+describe('tenantForbiddenResponse', () => {
+  it('preserves the generic fail-closed response for existing callers', async () => {
+    const response = tenantForbiddenResponse();
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({
+      success: false,
+      error: 'You do not have access to this tenant.',
+    });
+  });
+
+  it('provides brand context without exposing internal tenant identifiers', async () => {
+    const response = tenantForbiddenResponse({
+      resourceName: 'destination',
+      tenantName: 'Marsa Alam Tours',
+    });
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({
+      success: false,
+      error: 'This destination belongs to Marsa Alam Tours. Only an administrator assigned to that brand can make this change.',
+    });
+  });
+
+  it('points separately managed content to its own admin', async () => {
+    const response = tenantForbiddenResponse({
+      resourceName: 'destination',
+      tenantName: 'Egypt Excursions Online',
+      separateAdmin: true,
+    });
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({
+      success: false,
+      error: 'This destination belongs to Egypt Excursions Online. Make this change in the Egypt Excursions Online admin.',
+    });
   });
 });

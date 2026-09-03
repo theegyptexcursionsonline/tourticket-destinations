@@ -17,6 +17,9 @@ const mockFindOneAndDelete = jest.fn();
 const mockTourUpdateMany = jest.fn();
 const mockTourCountDocuments = jest.fn();
 const mockRevalidate = jest.fn();
+const mockCanAccessTenant = jest.fn();
+const mockTenantForbiddenResponse = jest.fn();
+const mockTenantFindOne = jest.fn();
 
 jest.mock('next/server', () => {
   class MockNextResponse {
@@ -42,8 +45,8 @@ jest.mock('@/lib/admin/auditStamp', () => ({ auditStamp: () => ({}) }));
 jest.mock('@/lib/storefront/revalidateTourStorefront', () => ({ revalidateStorefrontContent: (...a: unknown[]) => mockRevalidate(...a) }));
 jest.mock('@/lib/auth/adminAuth', () => ({
   requireAdminAuth: (...a: unknown[]) => mockRequireAdminAuth(...a),
-  canAccessTenant: () => true,
-  tenantForbiddenResponse: () => ({ status: 403 }),
+  canAccessTenant: (...a: unknown[]) => mockCanAccessTenant(...a),
+  tenantForbiddenResponse: (...a: unknown[]) => mockTenantForbiddenResponse(...a),
   requireAdminTenantAccess: () => null,
 }));
 jest.mock('@/lib/models/Destination', () => ({
@@ -62,6 +65,12 @@ jest.mock('@/lib/models/Tour', () => ({
     countDocuments: (...a: unknown[]) => mockTourCountDocuments(...a),
   },
 }));
+jest.mock('@/lib/models/Tenant', () => ({
+  __esModule: true,
+  default: {
+    findOne: (...a: unknown[]) => mockTenantFindOne(...a),
+  },
+}));
 
 const DESTINATION_ID = '507f1f77bcf86cd799439011';
 const buildRequest = (body?: unknown, query = '') => ({
@@ -77,6 +86,25 @@ describe('destination Trash route', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockRequireAdminAuth.mockResolvedValue({ userId: 'admin-1', role: 'super_admin', tenantIds: [], permissions: ['manageContent'] });
+    mockCanAccessTenant.mockReturnValue(true);
+    mockTenantForbiddenResponse.mockImplementation((context?: {
+      resourceName: string;
+      tenantName: string;
+      separateAdmin?: boolean;
+    }) => ({
+      status: 403,
+      json: async () => ({
+        success: false,
+        error: context
+          ? context.separateAdmin
+            ? `This ${context.resourceName} belongs to ${context.tenantName}. Make this change in the ${context.tenantName} admin.`
+            : `This ${context.resourceName} belongs to ${context.tenantName}. Only an administrator assigned to that brand can make this change.`
+          : 'You do not have access to this tenant.',
+      }),
+    }));
+    mockTenantFindOne.mockReturnValue({
+      select: () => ({ lean: async () => ({ name: 'Brand One' }) }),
+    });
     mockFindById.mockReturnValue({ select: () => ({ lean: async () => ({ _id: DESTINATION_ID, tenantId: 'brand-one' }) }) });
     mockFindOne.mockResolvedValue({ _id: DESTINATION_ID, tenantId: 'brand-one', archivedAt: new Date() });
     mockFindOneAndUpdate.mockResolvedValue({ _id: DESTINATION_ID, archivedAt: new Date(), tenantId: 'brand-one' });
@@ -114,6 +142,67 @@ describe('destination Trash route', () => {
     const response = await DELETE(request(undefined, '?tenantId=brand-one'), params);
 
     expect(response.status).toBe(403);
+    expect(mockFindOneAndUpdate).not.toHaveBeenCalled();
+  });
+
+  it('names the owning network brand for a genuinely unassigned admin without mutating', async () => {
+    mockCanAccessTenant.mockReturnValue(false);
+    mockTenantFindOne.mockReturnValue({
+      select: () => ({ lean: async () => ({ name: 'Brand Two' }) }),
+    });
+    mockFindById.mockReturnValue({ select: () => ({ lean: async () => ({ _id: DESTINATION_ID, tenantId: 'brand-two' }) }) });
+    const { DELETE } = await import('@/app/api/admin/destinations/[id]/route');
+    const response = await DELETE(request(), params);
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(body.error).toBe(
+      'This destination belongs to Brand Two. Only an administrator assigned to that brand can make this change.',
+    );
+    expect(mockTenantFindOne).toHaveBeenCalledWith({ tenantId: 'brand-two' });
+    expect(mockFindOneAndUpdate).not.toHaveBeenCalled();
+  });
+
+  it('directs default-site destinations to the separate EEO admin without a lookup or mutation', async () => {
+    mockCanAccessTenant.mockReturnValue(false);
+    mockFindById.mockReturnValue({ select: () => ({ lean: async () => ({ _id: DESTINATION_ID, tenantId: 'default' }) }) });
+    const { DELETE } = await import('@/app/api/admin/destinations/[id]/route');
+    const response = await DELETE(request(), params);
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(body.error).toBe(
+      'This destination belongs to Egypt Excursions Online. Make this change in the Egypt Excursions Online admin.',
+    );
+    expect(mockTenantFindOne).not.toHaveBeenCalled();
+    expect(mockFindOneAndUpdate).not.toHaveBeenCalled();
+  });
+
+  it('keeps the generic 403 and performs no write when brand-name lookup fails', async () => {
+    mockCanAccessTenant.mockReturnValue(false);
+    mockTenantFindOne.mockReturnValue({
+      select: () => ({ lean: async () => { throw new Error('lookup unavailable'); } }),
+    });
+    const { DELETE } = await import('@/app/api/admin/destinations/[id]/route');
+    const response = await DELETE(request(), params);
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(body.error).toBe('You do not have access to this tenant.');
+    expect(mockFindOneAndUpdate).not.toHaveBeenCalled();
+  });
+
+  it('uses the same fail-closed contextual denial before an update write', async () => {
+    mockCanAccessTenant.mockReturnValue(false);
+    mockTenantFindOne.mockReturnValue({
+      select: () => ({ lean: async () => ({ name: 'Brand One' }) }),
+    });
+    const { PUT } = await import('@/app/api/admin/destinations/[id]/route');
+    const response = await PUT(request({ name: 'Cairo', description: 'x' }), params);
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(body.error).toContain('This destination belongs to Brand One.');
     expect(mockFindOneAndUpdate).not.toHaveBeenCalled();
   });
 

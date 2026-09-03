@@ -204,9 +204,25 @@ export function canAccessTenant(auth: AdminAuthContext, tenantId: string): boole
   return auth.tenantIds.includes(tenantId);
 }
 
-export function tenantForbiddenResponse() {
+interface TenantForbiddenContext {
+  resourceName: string;
+  tenantName: string;
+  separateAdmin?: boolean;
+}
+
+export function tenantForbiddenResponse(context?: TenantForbiddenContext) {
+  let error = 'You do not have access to this tenant.';
+  const resourceName = typeof context?.resourceName === 'string' ? context.resourceName.trim() : '';
+  const tenantName = typeof context?.tenantName === 'string' ? context.tenantName.trim() : '';
+
+  if (resourceName && tenantName) {
+    error = context?.separateAdmin
+      ? `This ${resourceName} belongs to ${tenantName}. Make this change in the ${tenantName} admin.`
+      : `This ${resourceName} belongs to ${tenantName}. Only an administrator assigned to that brand can make this change.`;
+  }
+
   return NextResponse.json(
-    { success: false, error: 'You do not have access to this tenant.' },
+    { success: false, error },
     { status: 403 },
   );
 }

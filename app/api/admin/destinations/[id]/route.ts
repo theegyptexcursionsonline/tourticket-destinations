@@ -5,6 +5,7 @@ import { revalidateStorefrontContent } from '@/lib/storefront/revalidateTourStor
 import dbConnect from '@/lib/dbConnect';
 import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 import Destination from '@/lib/models/Destination';
+import Tenant from '@/lib/models/Tenant';
 import Tour from '@/lib/models/Tour';
 import mongoose from 'mongoose';
 import { auditStamp } from '@/lib/admin/auditStamp';
@@ -16,6 +17,32 @@ import { auditStamp } from '@/lib/admin/auditStamp';
 function getTenantScope(request: NextRequest): string | undefined {
   const tenantIdParam = new URL(request.url).searchParams.get('tenantId');
   return tenantIdParam && tenantIdParam !== 'all' ? tenantIdParam : undefined;
+}
+
+async function destinationTenantForbiddenResponse(targetTenantId: string): Promise<NextResponse> {
+  if (targetTenantId === 'default') {
+    return tenantForbiddenResponse({
+      resourceName: 'destination',
+      tenantName: 'Egypt Excursions Online',
+      separateAdmin: true,
+    });
+  }
+
+  try {
+    const tenant = await Tenant.findOne({ tenantId: targetTenantId }).select('name').lean();
+    const tenantName = typeof tenant?.name === 'string'
+      ? tenant.name.replace(/\s+/g, ' ').trim().slice(0, 80)
+      : '';
+
+    if (tenantName) {
+      return tenantForbiddenResponse({ resourceName: 'destination', tenantName });
+    }
+  } catch {
+    // The authorization decision was already made. A best-effort public brand
+    // name lookup must never turn a fail-closed denial into an error or permit.
+  }
+
+  return tenantForbiddenResponse();
 }
 
 async function PUTHandler(
@@ -58,8 +85,8 @@ async function PUTHandler(
       }, { status: 404 });
     }
     const targetTenantId = String(existingDestination.tenantId || 'default');
-    if (!canAccessTenant(auth, targetTenantId)) return tenantForbiddenResponse();
-    if (tenantId && tenantId !== targetTenantId) return tenantForbiddenResponse();
+    if (!canAccessTenant(auth, targetTenantId)) return destinationTenantForbiddenResponse(targetTenantId);
+    if (tenantId && tenantId !== targetTenantId) return destinationTenantForbiddenResponse(targetTenantId);
     
     // Validate required fields - only name and description are required
     // Restore from Trash: bring it back as a draft so an editor re-publishes
@@ -265,9 +292,9 @@ async function DELETEHandler(
     const existingDestination = await Destination.findById(id).select('tenantId').lean();
     if (!existingDestination) return NextResponse.json({ success: false, error: 'Destination not found' }, { status: 404 });
     const targetTenantId = String((existingDestination as any).tenantId || 'default');
-    if (!canAccessTenant(auth, targetTenantId)) return tenantForbiddenResponse();
+    if (!canAccessTenant(auth, targetTenantId)) return destinationTenantForbiddenResponse(targetTenantId);
     const tenantId = getTenantScope(request);
-    if (tenantId && tenantId !== targetTenantId) return tenantForbiddenResponse();
+    if (tenantId && tenantId !== targetTenantId) return destinationTenantForbiddenResponse(targetTenantId);
     const deleteFilter: Record<string, unknown> = { _id: id, tenantId: targetTenantId };
 
     // Trash, not destroy: archive the destination and leave every linked tour

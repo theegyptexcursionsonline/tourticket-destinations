@@ -10,6 +10,89 @@ import { routing } from './i18n/routing';
 // ============================================================================
 const intlMiddleware = createIntlMiddleware(routing);
 
+const CANONICAL_ADMIN_DASHBOARD_HOSTS = new Set([
+  'dashboard.egypt-excursionsonline.com',
+  'dashboard2.egypt-excursionsonline.com',
+  'admin.egypt-excursionsonline.com',
+]);
+const CANONICAL_ADMIN_STOREFRONT_HOSTS = new Set([
+  'egypt-excursionsonline.com',
+  'www.egypt-excursionsonline.com',
+]);
+const LOCAL_ADMIN_DASHBOARD_HOSTS = new Set([
+  'dashboard.localhost',
+  'dashboard2.localhost',
+  'admin.localhost',
+]);
+
+function normalizeHostname(hostname: string): string {
+  return hostname.toLowerCase().replace(/\.$/, '');
+}
+
+interface RequestHost {
+  hostname: string;
+  port: string;
+}
+
+function getRequestHost(request: NextRequest): RequestHost {
+  const hostHeader = request.headers.get('host');
+  if (hostHeader) {
+    try {
+      if (hostHeader !== hostHeader.trim()) return { hostname: '', port: '' };
+      const parsedHost = new URL(`http://${hostHeader}`);
+      if (parsedHost.username || parsedHost.password || parsedHost.pathname !== '/') {
+        return { hostname: '', port: '' };
+      }
+      return {
+        hostname: normalizeHostname(parsedHost.hostname),
+        port: parsedHost.port,
+      };
+    } catch {
+      return { hostname: '', port: '' };
+    }
+  }
+
+  return {
+    hostname: normalizeHostname(request.nextUrl.hostname),
+    port: request.nextUrl.port,
+  };
+}
+
+function isLoopbackHostname(hostname: string): boolean {
+  const normalizedHostname = normalizeHostname(hostname);
+  return normalizedHostname === 'localhost'
+    || normalizedHostname.endsWith('.localhost')
+    || normalizedHostname === '127.0.0.1'
+    || normalizedHostname === '::1'
+    || normalizedHostname === '[::1]';
+}
+
+function isAdminDashboardHostname(hostname: string): boolean {
+  const normalizedHostname = normalizeHostname(hostname);
+  return CANONICAL_ADMIN_DASHBOARD_HOSTS.has(normalizedHostname)
+    || LOCAL_ADMIN_DASHBOARD_HOSTS.has(normalizedHostname);
+}
+
+function resolveAdminRedirect(request: NextRequest, requestHost: RequestHost): URL | null {
+  const adminPath = request.nextUrl.pathname.replace(/^\/admin/, '') || '/';
+
+  if (isLoopbackHostname(requestHost.hostname)) {
+    const localDashboardUrl = request.nextUrl.clone();
+    localDashboardUrl.hostname = 'dashboard.localhost';
+    localDashboardUrl.port = requestHost.port;
+    localDashboardUrl.pathname = adminPath;
+    return localDashboardUrl;
+  }
+
+  if (CANONICAL_ADMIN_STOREFRONT_HOSTS.has(requestHost.hostname)) {
+    const dashboardUrl = new URL(`https://dashboard.egypt-excursionsonline.com${adminPath}`);
+    dashboardUrl.search = request.nextUrl.search;
+    return dashboardUrl;
+  }
+
+  return null;
+}
+
 // ============================================================================
 // WEBSITE STATUS TYPES
 // ============================================================================
@@ -433,12 +516,8 @@ function createTenantResponse(
 export function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const hostname = request.headers.get('host') || 'localhost:3000';
-
-  const cleanHost = hostname.replace(/:\d+$/, '').replace(/^www\./, '');
-  const isDashboardSubdomain =
-    cleanHost.startsWith('dashboard.') ||
-    cleanHost.startsWith('dashboard2.') ||
-    cleanHost.startsWith('admin.');
+  const requestHost = getRequestHost(request);
+  const isDashboardSubdomain = isAdminDashboardHostname(requestHost.hostname);
 
   // Netlify executes this proxy before Next.js config rewrites. Preserve old
   // shared/search links while sending storefront visitors to the canonical
@@ -494,12 +573,17 @@ export function proxy(request: NextRequest) {
   // REDIRECT MAIN DOMAIN /admin TO DASHBOARD SUBDOMAIN
   // ============================================
   if (!isDashboardSubdomain && isAdminPath(pathname)) {
+    const dashboardUrl = resolveAdminRedirect(request, requestHost);
+    if (dashboardUrl) {
+      return NextResponse.redirect(dashboardUrl);
+    }
+
     const ADMIN_ALLOWED_TENANTS = ['default'];
     if (ADMIN_ALLOWED_TENANTS.includes(tenantId)) {
-      const adminPath = pathname.replace(/^\/admin/, '') || '/';
-      const dashboardUrl = new URL(`https://dashboard.egypt-excursionsonline.com${adminPath}`);
-      dashboardUrl.search = request.nextUrl.search;
-      return NextResponse.redirect(dashboardUrl);
+      return NextResponse.json(
+        { error: 'Admin access is not available on this host. Use the configured dashboard host.' },
+        { status: 403 },
+      );
     }
   }
 
