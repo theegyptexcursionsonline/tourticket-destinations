@@ -1129,9 +1129,9 @@ const AddOnCard: React.FC<{
                 <span className="text-base sm:text-lg font-bold text-red-600">
                   {formatPrice(addOn.price)}
                 </span>
-                {addOn.savings && (
+                {Number(addOn.savings) > 0 && (
                   <span className="text-xs text-green-600 font-semibold bg-green-100 px-2 py-1 rounded-full">
-                    {t('price.save')} {formatPrice(addOn.savings)}
+                    {t('price.save')} {formatPrice(addOn.savings ?? 0)}
                   </span>
                 )}
               </div>
@@ -2860,9 +2860,9 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
                         </div>
                         <div className="text-end">
                           <div className="font-bold text-purple-600">{formatPrice(totalPrice)}</div>
-                          {addOn.savings && (
+                          {Number(addOn.savings) > 0 && (
                             <div className="text-xs text-green-600">
-                              {t('price.save')} {formatPrice(addOn.savings * addOnQuantity)}
+                              {t('price.save')} {formatPrice((addOn.savings ?? 0) * addOnQuantity)}
                             </div>
                           )}
                         </div>
