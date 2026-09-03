@@ -46,6 +46,7 @@ import {
 import { meetingPointEmbedUrl, meetingPointMapUrl } from '@/lib/tours/meetingPointMap';
 import { provableRating } from '@/lib/tours/ratingDisplay';
 import { effectiveTourPrice } from '@/lib/pricing/effectivePrice';
+import { enhancementSections, hasGroupSize, hasList, hasText } from '@/lib/tours/enhancementSections';
 
 // Enhanced interfaces for additional tour data
 interface ItineraryItem {
@@ -537,7 +538,9 @@ const PracticalInfoSection = ({ enhancement, sectionRef }: { enhancement: TourEn
       <Backpack size={24} className="text-blue-600" />
       {t('practicalInfo')}
     </h3>
+    {(hasList(enhancement.whatToBring) || hasList(enhancement.whatToWear)) && (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:items-start">
+      {hasList(enhancement.whatToBring) && (
       <div className="bg-slate-50 p-6 rounded-xl">
         <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
           <Backpack size={20} className="text-blue-600" />
@@ -552,7 +555,9 @@ const PracticalInfoSection = ({ enhancement, sectionRef }: { enhancement: TourEn
           ))}
         </ul>
       </div>
+      )}
 
+      {hasList(enhancement.whatToWear) && (
       <div className="bg-slate-50 p-6 rounded-xl">
         <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
           <Sun size={20} className="text-yellow-600" />
@@ -567,9 +572,11 @@ const PracticalInfoSection = ({ enhancement, sectionRef }: { enhancement: TourEn
           ))}
         </ul>
       </div>
+      )}
     </div>
+    )}
 
-    {enhancement.physicalRequirements && (
+    {hasText(enhancement.physicalRequirements) && (
       <div className="bg-blue-50 p-6 rounded-xl border border-blue-200">
         <h4 className="font-bold text-blue-900 mb-3 flex items-center gap-2">
           <Mountain size={20} />
@@ -610,12 +617,12 @@ const PracticalInfoSection = ({ enhancement, sectionRef }: { enhancement: TourEn
       </div>
     ) : null}
 
-    {enhancement.groupSize && (
+    {hasGroupSize(enhancement.groupSize) && (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="text-center p-4 bg-white border border-slate-200 rounded-lg">
           <Users size={24} className="text-slate-600 mx-auto mb-2" />
           <div className="font-bold text-lg text-slate-800">
-            {enhancement.groupSize.min}-{enhancement.groupSize.max}
+            {enhancement.groupSize?.min}-{enhancement.groupSize?.max}
           </div>
           <div className="text-sm text-slate-500">{t('participants')}</div>
         </div>
@@ -644,7 +651,9 @@ const AccessibilitySection = ({ enhancement, sectionRef }: { enhancement: TourEn
       {t('accessibilitySpecialReq')}
     </h3>
 
+    {(hasList(enhancement.accessibilityInfo) || hasList(enhancement.healthSafety)) && (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:items-start">
+      {hasList(enhancement.accessibilityInfo) && (
       <div className="bg-purple-50 p-6 rounded-xl">
         <h4 className="font-bold text-purple-900 mb-4">{t('accessibilityInfo')}</h4>
         <ul className="space-y-3">
@@ -656,7 +665,9 @@ const AccessibilitySection = ({ enhancement, sectionRef }: { enhancement: TourEn
           ))}
         </ul>
       </div>
+      )}
 
+      {hasList(enhancement.healthSafety) && (
       <div className="bg-green-50 p-6 rounded-xl">
         <h4 className="font-bold text-green-900 mb-4">{t('healthSafetyMeasures')}</h4>
         <ul className="space-y-3">
@@ -668,9 +679,11 @@ const AccessibilitySection = ({ enhancement, sectionRef }: { enhancement: TourEn
           ))}
         </ul>
       </div>
+      )}
     </div>
+    )}
 
-    {enhancement.transportationDetails && (
+    {hasText(enhancement.transportationDetails) && (
       <div className="bg-slate-50 p-6 rounded-xl">
         <h4 className="font-bold text-slate-800 mb-3 flex items-center gap-2">
           <Bus size={20} className="text-blue-600" />
@@ -692,6 +705,7 @@ const PoliciesSection = ({ enhancement, sectionRef }: { enhancement: TourEnhance
       {t('policies')}
     </h3>
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:items-start">
+      {hasText(enhancement.weatherPolicy) && (
       <div className="bg-sky-50 p-6 rounded-xl">
         <h4 className="font-bold text-sky-900 mb-3 flex items-center gap-2">
           <Umbrella size={20} className="text-sky-600" />
@@ -699,7 +713,9 @@ const PoliciesSection = ({ enhancement, sectionRef }: { enhancement: TourEnhance
         </h4>
         <p className="text-sky-800 text-sm leading-relaxed">{enhancement.weatherPolicy}</p>
       </div>
+      )}
 
+      {hasText(enhancement.photoPolicy) && (
       <div className="bg-pink-50 p-6 rounded-xl">
         <h4 className="font-bold text-pink-900 mb-3 flex items-center gap-2">
           <Camera size={20} className="text-pink-600" />
@@ -707,7 +723,9 @@ const PoliciesSection = ({ enhancement, sectionRef }: { enhancement: TourEnhance
         </h4>
         <p className="text-pink-800 text-sm leading-relaxed">{enhancement.photoPolicy}</p>
       </div>
+      )}
 
+      {hasText(enhancement.tipPolicy) && (
       <div className="bg-yellow-50 p-6 rounded-xl">
         <h4 className="font-bold text-yellow-900 mb-3 flex items-center gap-2">
           <CreditCard size={20} className="text-yellow-600" />
@@ -715,7 +733,9 @@ const PoliciesSection = ({ enhancement, sectionRef }: { enhancement: TourEnhance
         </h4>
         <p className="text-yellow-800 text-sm leading-relaxed">{enhancement.tipPolicy}</p>
       </div>
+      )}
 
+      {hasText(enhancement.mealInfo) && (
       <div className="bg-orange-50 p-6 rounded-xl">
         <h4 className="font-bold text-orange-900 mb-3 flex items-center gap-2">
           <Utensils size={20} className="text-orange-600" />
@@ -723,6 +743,7 @@ const PoliciesSection = ({ enhancement, sectionRef }: { enhancement: TourEnhance
         </h4>
         <p className="text-orange-800 text-sm leading-relaxed">{enhancement.mealInfo}</p>
       </div>
+      )}
     </div>
   </div>
   );
@@ -737,6 +758,7 @@ const CulturalSection = ({ enhancement, sectionRef }: { enhancement: TourEnhance
       {t('culturalInfo')}
     </h3>
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:items-start">
+      {hasList(enhancement.culturalInfo) && (
       <div className="bg-indigo-50 p-6 rounded-xl">
         <h4 className="font-bold text-indigo-900 mb-4 flex items-center gap-2">
           <Eye size={20} className="text-indigo-600" />
@@ -751,7 +773,9 @@ const CulturalSection = ({ enhancement, sectionRef }: { enhancement: TourEnhance
           ))}
         </ul>
       </div>
+      )}
 
+      {hasList(enhancement.localCustoms) && (
       <div className="bg-teal-50 p-6 rounded-xl">
         <h4 className="font-bold text-teal-900 mb-4 flex items-center gap-2">
           <Heart size={20} className="text-teal-600" />
@@ -766,9 +790,10 @@ const CulturalSection = ({ enhancement, sectionRef }: { enhancement: TourEnhance
           ))}
         </ul>
       </div>
+      )}
     </div>
 
-    {enhancement.seasonalVariations && (
+    {hasText(enhancement.seasonalVariations) && (
       <div className="bg-slate-50 p-6 rounded-xl">
         <h4 className="font-bold text-slate-800 mb-3 flex items-center gap-2">
           <Snowflake size={20} className="text-slate-600" />
@@ -1190,16 +1215,18 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
   );
   const selectedImageSeo = imageMetadataFor(tourImages[selectedImageIndex], tour.imageMetadata, `${tour.title} image ${selectedImageIndex + 1}`);
 
+  // A tab is only offered when its section will actually render.
+  const sections = enhancementSections(enhancement);
   const tabs = [
-    { id: 'overview', label: t('overview'), icon: Eye },
-    { id: 'itinerary', label: t('itinerary'), icon: Clock },
-    { id: 'practical', label: t('whatToKnow'), icon: Backpack },
-    { id: 'accessibility', label: t('accessibility'), icon: Accessibility },
-    { id: 'policies', label: t('policies'), icon: Shield },
-    { id: 'cultural', label: t('culturalInfoTab'), icon: Heart },
-    { id: 'reviews', label: t('reviews'), icon: Star },
-    { id: 'faq', label: t('faq'), icon: MessageCircle }
-  ];
+    { id: 'overview', label: t('overview'), icon: Eye, show: true },
+    { id: 'itinerary', label: t('itinerary'), icon: Clock, show: Boolean(enhancement.itinerary && enhancement.itinerary.length > 0) },
+    { id: 'practical', label: t('whatToKnow'), icon: Backpack, show: sections.practical },
+    { id: 'accessibility', label: t('accessibility'), icon: Accessibility, show: sections.accessibility },
+    { id: 'policies', label: t('policies'), icon: Shield, show: sections.policies },
+    { id: 'cultural', label: t('culturalInfoTab'), icon: Heart, show: sections.cultural },
+    { id: 'reviews', label: t('reviews'), icon: Star, show: true },
+    { id: 'faq', label: t('faq'), icon: MessageCircle, show: true }
+  ].filter((tab) => tab.show);
 
   const openBookingSidebar = () => {
     setBookingSidebarOpen(true);
@@ -1368,10 +1395,11 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
                 />
               )}
               
-              <PracticalInfoSection enhancement={enhancement} sectionRef={practicalRef} />
-              <AccessibilitySection enhancement={enhancement} sectionRef={accessibilityRef} />
-              <PoliciesSection enhancement={enhancement} sectionRef={policiesRef} />
-              <CulturalSection enhancement={enhancement} sectionRef={culturalRef} />
+              {/* Supplementary sections appear only when the backend has content for them. */}
+              {sections.practical && <PracticalInfoSection enhancement={enhancement} sectionRef={practicalRef} />}
+              {sections.accessibility && <AccessibilitySection enhancement={enhancement} sectionRef={accessibilityRef} />}
+              {sections.policies && <PoliciesSection enhancement={enhancement} sectionRef={policiesRef} />}
+              {sections.cultural && <CulturalSection enhancement={enhancement} sectionRef={culturalRef} />}
               
               <ReviewsSection 
                 tour={tour} 

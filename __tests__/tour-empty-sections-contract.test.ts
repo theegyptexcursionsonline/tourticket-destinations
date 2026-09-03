@@ -65,7 +65,9 @@ describe('supplementary tour sections only appear when the backend filled them',
   });
 
   it('renders each section and its tab behind that content check', () => {
-    const source = read('components/TourDetailPage.tsx');
+    // This is the component the /<slug> route actually renders
+    // (page.tsx -> renderContentMatch -> TourDetailContent -> TourDetailClientPage).
+    const source = read('app/[locale]/[slug]/TourDetailClientPage.tsx');
     expect(source).toContain('const sections = enhancementSections(enhancement);');
     expect(source).toContain('{sections.practical && <PracticalInfoSection');
     expect(source).toContain('{sections.accessibility && <AccessibilitySection');
@@ -73,10 +75,18 @@ describe('supplementary tour sections only appear when the backend filled them',
     expect(source).toContain('{sections.cultural && <CulturalSection');
     // The tab strip must not advertise a section that will not render.
     expect(source).toContain('.filter((tab) => tab.show)');
-    expect(source).toContain("{ id: 'policies', label: 'Policies', icon: Shield, show: sections.policies }");
+    expect(source).toContain("show: sections.policies");
     // Individual cards are guarded too, so a half-filled section shows only what exists.
     expect(source).toContain('{hasText(enhancement.weatherPolicy) && (');
+    expect(source).toContain('{hasText(enhancement.photoPolicy) && (');
+    expect(source).toContain('{hasText(enhancement.tipPolicy) && (');
+    expect(source).toContain('{hasText(enhancement.mealInfo) && (');
     expect(source).toContain('{hasList(enhancement.whatToBring) && (');
+    expect(source).toContain('{hasList(enhancement.whatToWear) && (');
+    expect(source).toContain('{hasList(enhancement.accessibilityInfo) && (');
+    expect(source).toContain('{hasList(enhancement.healthSafety) && (');
+    expect(source).toContain('{hasList(enhancement.culturalInfo) && (');
+    expect(source).toContain('{hasList(enhancement.localCustoms) && (');
     expect(source).toContain('{hasGroupSize(enhancement.groupSize) && (');
   });
 });
