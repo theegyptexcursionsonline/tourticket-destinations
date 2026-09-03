@@ -82,28 +82,28 @@ describe('DestinationManager', () => {
   })
 
   it('should render the heading', async () => {
-    render(<DestinationManager initialDestinations={mockDestinations as any} />)
-    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2))
+    render(<DestinationManager />)
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled())
     expect(screen.getByText('Destination Manager')).toBeInTheDocument()
   })
 
   it('should display destinations after loading', async () => {
-    render(<DestinationManager initialDestinations={mockDestinations as any} />)
-    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2))
+    render(<DestinationManager />)
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled())
     expect(screen.getByText('Cairo')).toBeInTheDocument()
   })
 
   it('should display destination description', async () => {
-    render(<DestinationManager initialDestinations={mockDestinations as any} />)
-    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2))
+    render(<DestinationManager />)
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled())
     // Description might be truncated or inside a tooltip
     const descEl = screen.queryByText(/vibrant capital/i)
     expect(descEl || screen.getByText('Cairo')).toBeInTheDocument()
   })
 
   it('should show create button', async () => {
-    render(<DestinationManager initialDestinations={mockDestinations as any} />)
-    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2))
+    render(<DestinationManager />)
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled())
     const buttons = screen.getAllByRole('button')
     const createButton = buttons.find(btn =>
       btn.textContent?.toLowerCase().includes('create') ||
@@ -118,8 +118,8 @@ describe('DestinationManager', () => {
       ok: true,
       json: () => Promise.resolve({ success: true, data: [] }),
     })
-    render(<DestinationManager initialDestinations={[]} />)
-    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2))
+    render(<DestinationManager />)
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled())
     const emptyText = screen.queryByText(/no destinations/i) ||
       screen.queryByText(/create your first/i) ||
       screen.queryByText(/get started/i)
@@ -127,8 +127,8 @@ describe('DestinationManager', () => {
   })
 
   it('filters destinations by author or editor', async () => {
-    render(<DestinationManager initialDestinations={mockDestinations as any} />)
-    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2))
+    render(<DestinationManager />)
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled())
     const input = screen.getByRole('searchbox', { name: 'Filter destinations by author or editor' })
     await userEvent.type(input, 'No matching editor')
     expect(screen.queryByText('Cairo')).not.toBeInTheDocument()
@@ -161,8 +161,8 @@ describe('DestinationManager', () => {
       })
     }) as jest.Mock
 
-    render(<DestinationManager initialDestinations={mockDestinations as any} />)
-    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2))
+    render(<DestinationManager />)
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled())
     const tourRequest = (global.fetch as jest.Mock).mock.calls
       .map((call) => String(call[0]))
       .find((url) => url.includes('/api/admin/tours'))

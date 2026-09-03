@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -104,10 +104,13 @@ interface FormData {
 const generateSlug = (name: string) =>
   name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
 
-export default function DestinationManager({ initialDestinations }: { initialDestinations: IDestination[] }) {
+export default function DestinationManager() {
   const router = useRouter();
   const { selectedTenantId, tenants } = useAdminTenant();
-  const [destinations, setDestinations] = useState<IDestination[]>(initialDestinations);
+  const [destinations, setDestinations] = useState<IDestination[]>([]);
+  const [listLoading, setListLoading] = useState(true);
+  const [listError, setListError] = useState<string | null>(null);
+  const [listView, setListView] = useState<'active' | 'trash'>('active');
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -576,20 +579,71 @@ setTimeout(() => router.refresh(), 0);
   toast.error(error instanceof Error ? error.message : 'Failed to save destination');
 }
 };
-  const handleDelete = (destId: string, destName: string) => {
+  // Destinations come from the guarded API so the admin's tenant scope applies.
+  const loadDestinations = useCallback(async () => {
+    setListLoading(true);
+    setListError(null);
+    try {
+      const params = new URLSearchParams();
+      if (selectedTenantId) params.set('tenantId', selectedTenantId);
+      const response = await fetch(`/api/admin/destinations${params.toString() ? `?${params}` : ''}`);
+      const payload = await response.json().catch(() => ({})) as { success?: boolean; data?: IDestination[]; error?: string };
+      if (!response.ok || payload.success === false) {
+        throw new Error(payload.error || 'Destinations could not be loaded.');
+      }
+      setDestinations(payload.data || []);
+    } catch (error) {
+      // A failed load is not an empty list: say so rather than showing "no destinations".
+      setListError(error instanceof Error ? error.message : 'Destinations could not be loaded.');
+      setDestinations([]);
+    } finally {
+      setListLoading(false);
+    }
+  }, [selectedTenantId]);
+
+  useEffect(() => { void loadDestinations(); }, [loadDestinations]);
+
+  const handleMoveToTrash = (destId: string, destName: string) => {
+    if (!window.confirm(`Move "${destName}" to Trash? It will be unpublished, and linked tours will be preserved.`)) {
+      return;
+    }
     const promise = fetch(`/api/admin/destinations/${destId}`, { method: 'DELETE' })
-      .then(res => {
-        if (!res.ok) throw new Error('Failed to delete.');
-        return res.json();
+      .then(async (res) => {
+        const payload = await res.json().catch(() => ({})) as { success?: boolean; error?: string };
+        if (!res.ok || payload.success === false) throw new Error(payload.error || 'Failed to move to Trash.');
+        return payload;
       });
 
     toast.promise(promise, {
-        loading: `Deleting ${destName}...`,
-        success: () => {
-            router.refresh();
-            return `${destName} deleted successfully.`;
-        },
-        error: `Failed to delete ${destName}.`
+      loading: `Moving ${destName} to Trash...`,
+      success: () => {
+        void loadDestinations();
+        router.refresh();
+        return `${destName} moved to Trash.`;
+      },
+      error: (error: Error) => error.message || `Failed to move ${destName} to Trash.`,
+    });
+  };
+
+  const handleRestore = (destId: string, destName: string) => {
+    const promise = fetch(`/api/admin/destinations/${destId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ restoreFromTrash: true }),
+    }).then(async (res) => {
+      const payload = await res.json().catch(() => ({})) as { success?: boolean; error?: string };
+      if (!res.ok || payload.success === false) throw new Error(payload.error || 'Failed to restore.');
+      return payload;
+    });
+
+    toast.promise(promise, {
+      loading: `Restoring ${destName}...`,
+      success: () => {
+        void loadDestinations();
+        router.refresh();
+        return `${destName} restored as a draft.`;
+      },
+      error: (error: Error) => error.message || `Failed to restore ${destName}.`,
     });
   };
 
@@ -796,9 +850,9 @@ setTimeout(() => router.refresh(), 0);
                     : <Copy size={16} />}
                 </button>
                 <button
-                  onClick={() => handleDelete(String(dest._id), dest.name)}
+                  onClick={() => dest.archivedAt ? handleRestore(String(dest._id), dest.name) : handleMoveToTrash(String(dest._id), dest.name)}
                   className="flex items-center justify-center w-10 h-10 bg-white/90 backdrop-blur-sm rounded-xl text-slate-700 hover:bg-white hover:text-red-600 shadow-lg transition-all duration-200 transform hover:scale-110"
-                  title="Delete destination"
+                  title={dest.archivedAt ? "Restore from Trash" : "Move to Trash"}
                 >
                   <Trash2 size={16} />
                 </button>

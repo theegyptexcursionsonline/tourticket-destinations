@@ -74,6 +74,9 @@ export interface IDestination extends Document {
   // Status & Meta
   featured?: boolean;
   isPublished?: boolean;
+  /** Set when the destination is moved to Trash. Linked tours are preserved. */
+  archivedAt?: Date | null;
+  archivedBy?: string | null;
   createdBy?: AuditActor;
   updatedBy?: AuditActor;
   tourCount?: number;
@@ -323,6 +326,10 @@ currency: {
     default: true,
     index: true,
   },
+  // Trash lifecycle, matching EEO: deleting a destination archives it and
+  // preserves the tours that point at it, instead of refusing the delete.
+  archivedAt: { type: Date, default: null, index: true },
+  archivedBy: { type: String, trim: true, maxlength: 255, default: null },
   createdBy: { type: AuditActorSchema, default: undefined },
   updatedBy: { type: AuditActorSchema, default: undefined },
   tourCount: {

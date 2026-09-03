@@ -30,6 +30,12 @@ async function PUTHandler(
     const data = await request.json();
     delete data.createdBy;
     delete data.updatedBy;
+    // Archive state is owned by the server: only the explicit restore flag
+    // below may change it, never a field posted by the client.
+    const restoreFromTrash = data.restoreFromTrash === true;
+    delete data.restoreFromTrash;
+    delete data.archivedAt;
+    delete data.archivedBy;
     const { id } = await params;
     
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -56,6 +62,25 @@ async function PUTHandler(
     if (tenantId && tenantId !== targetTenantId) return tenantForbiddenResponse();
     
     // Validate required fields - only name and description are required
+    // Restore from Trash: bring it back as a draft so an editor re-publishes
+    // deliberately, and short-circuit the normal field validation.
+    if (restoreFromTrash) {
+      const restored = await Destination.findOneAndUpdate(
+        { _id: id, tenantId: targetTenantId },
+        { $set: { archivedAt: null, archivedBy: null, isPublished: false } },
+        { new: true },
+      );
+      if (!restored) {
+        return NextResponse.json({ success: false, error: 'Destination not found' }, { status: 404 });
+      }
+      revalidateStorefrontContent();
+      return NextResponse.json({
+        success: true,
+        message: 'Destination restored from Trash as a draft.',
+        data: restored,
+      });
+    }
+
     const requiredFields = ['name', 'description'];
     const missingFields = requiredFields.filter(field => {
       if (data[field] !== undefined) {
@@ -228,8 +253,6 @@ async function DELETEHandler(
     await dbConnect();
 
     const { id } = await params;
-    const { searchParams } = new URL(request.url);
-    const force = searchParams.get('force') === 'true';
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json({
@@ -247,25 +270,14 @@ async function DELETEHandler(
     if (tenantId && tenantId !== targetTenantId) return tenantForbiddenResponse();
     const deleteFilter: Record<string, unknown> = { _id: id, tenantId: targetTenantId };
 
-    // Check if destination has tours
-    const tourCount = await Tour.countDocuments({ destination: id, $or: [{ tenantId: targetTenantId }, { tenantIds: targetTenantId }] });
-    if (tourCount > 0) {
-      if (!force) {
-        return NextResponse.json({
-          success: false,
-          error: `Cannot delete destination. It has ${tourCount} tours associated with it. Use force=true to unlink tours and delete.`,
-          tourCount
-        }, { status: 400 });
-      }
-
-      // If force delete, unlink tours from this destination
-      await Tour.updateMany(
-        { destination: id, $or: [{ tenantId: targetTenantId }, { tenantIds: targetTenantId }] },
-        { $unset: { destination: "" } }
-      );
-    }
-
-    const destination = await Destination.findOneAndDelete(deleteFilter);
+    // Trash, not destroy: archive the destination and leave every linked tour
+    // in place. The old handler refused with a 400 whenever tours were linked,
+    // which is why destinations could not be deleted at all from the admin.
+    const destination = await Destination.findOneAndUpdate(
+      deleteFilter,
+      { $set: { isPublished: false, archivedAt: new Date(), archivedBy: auth.userId ?? null } },
+      { new: true },
+    );
 
     if (!destination) {
       return NextResponse.json({
@@ -278,9 +290,8 @@ async function DELETEHandler(
 
     return NextResponse.json({
       success: true,
-      message: force && tourCount > 0
-        ? `Destination deleted successfully. ${tourCount} tours were unlinked.`
-        : 'Destination deleted successfully'
+      message: 'Destination moved to Trash. Linked tours were preserved.',
+      data: { id: destination._id, archivedAt: destination.archivedAt },
     });
 
   } catch (error) {

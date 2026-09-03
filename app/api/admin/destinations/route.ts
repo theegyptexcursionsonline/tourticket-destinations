@@ -2,6 +2,7 @@ import { withAdminAudit } from '@/lib/admin/adminAudit';
 // app/api/admin/destinations/route.ts
 import dbConnect from '@/lib/dbConnect';
 import Destination from '@/lib/models/Destination';
+import Tour from '@/lib/models/Tour';
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidateStorefrontContent } from '@/lib/storefront/revalidateTourStorefront';
 import { MongoError } from 'mongodb';
@@ -23,8 +24,24 @@ export async function GET(request: NextRequest) {
     if (tenantClause !== null) {
       filter.tenantId = tenantClause;
     }
-    const destinations = await Destination.find(filter).sort({ name: 1 });
-    return NextResponse.json({ success: true, data: destinations });
+    const destinations = await Destination.find(filter).sort({ name: 1 }).lean();
+    // Tour counts are computed inside the same tenant clause. The admin page
+    // used to gather these itself with an unscoped Tour.find({}), which showed
+    // every brand's destinations and counts to any manageContent admin.
+    const tourFilter: Record<string, unknown> = {};
+    if (tenantClause !== null) {
+      tourFilter.$or = [{ tenantId: tenantClause }, { tenantIds: tenantClause }];
+    }
+    const counts = await Tour.aggregate([
+      { $match: { ...tourFilter, destination: { $ne: null } } },
+      { $group: { _id: '$destination', count: { $sum: 1 } } },
+    ]);
+    const countByDestination = new Map(counts.map((row) => [String(row._id), row.count as number]));
+    const data = destinations.map((destination) => ({
+      ...destination,
+      tourCount: countByDestination.get(String((destination as { _id: unknown })._id)) || 0,
+    }));
+    return NextResponse.json({ success: true, data });
   } catch (error) {
     return NextResponse.json({ success: false, error: (error as Error).message }, { status: 500 });
   }
