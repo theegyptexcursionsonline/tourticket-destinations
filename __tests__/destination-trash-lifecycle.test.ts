@@ -57,6 +57,13 @@ describe('destination Trash lifecycle', () => {
     expect(manager).not.toContain('const handleDelete =');
   });
 
+  it('keeps unpublished drafts separate from deleted destinations', () => {
+    expect(manager).toContain("useState<'published' | 'draft' | 'trash'>('published')");
+    expect(manager).toContain("listView === 'trash'");
+    expect(manager).toContain("listView === 'published' ? destination.isPublished : !destination.isPublished");
+    expect(manager).toContain("dest.archivedAt ? 'Trash' : dest.isPublished ? 'Published' : 'Draft'");
+  });
+
   it('loads destinations through the tenant-scoped API instead of an unscoped page query', () => {
     // The page used to run Destination.find({}) and Tour.find({}) with no tenant
     // filter, so any manageContent admin saw every brand's destinations.

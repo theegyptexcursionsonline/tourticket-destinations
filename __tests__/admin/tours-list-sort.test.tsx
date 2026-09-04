@@ -17,10 +17,10 @@ jest.mock('react-hot-toast', () => ({
 }));
 
 const tours = [
-  { _id: 't-a', title: 'Tour A', slug: 'tour-a', price: 30, isPublished: true, createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-03-01T00:00:00Z' },
-  { _id: 't-b', title: 'Tour B', slug: 'tour-b', price: 10, isPublished: true, createdAt: '2026-02-01T00:00:00Z', updatedAt: '2026-02-01T00:00:00Z' },
+  { _id: 't-a', title: 'Tour A', slug: 'tour-a', price: 30, isPublished: true, tenantId: 'brand-a', tenantIds: ['brand-a'], createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-03-01T00:00:00Z' },
+  { _id: 't-b', title: 'Tour B', slug: 'tour-b', price: 10, isPublished: true, tenantId: 'brand-b', tenantIds: ['brand-b', 'brand-a'], createdAt: '2026-02-01T00:00:00Z', updatedAt: '2026-02-01T00:00:00Z' },
   // Never edited since creation: falls back to createdAt under Last Modified.
-  { _id: 't-c', title: 'Tour C', slug: 'tour-c', price: 20, isPublished: true, createdAt: '2026-01-15T00:00:00Z' },
+  { _id: 't-c', title: 'Tour C', slug: 'tour-c', price: 20, isPublished: true, tenantId: 'brand-a', tenantIds: ['brand-a'], createdAt: '2026-01-15T00:00:00Z' },
   { _id: 't-d', title: 'Tour D', slug: 'tour-d', price: 5, isPublished: false, createdAt: '2025-12-01T00:00:00Z', updatedAt: '2026-04-01T00:00:00Z', archivedAt: '2026-04-02T00:00:00Z' },
 ];
 
@@ -51,5 +51,12 @@ describe('ToursListClient sorting', () => {
     expect(screen.queryByRole('button', { name: /^Archived/ })).not.toBeInTheDocument();
     fireEvent.click(trashTab);
     expect(visibleOrder()).toEqual(['Tour D']);
+  });
+
+  it('filters the list by ownership and labels assigned tours', () => {
+    render(<ToursListClient tours={tours} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Assigned' }));
+    expect(visibleOrder()).toEqual(['Tour B']);
+    expect(screen.getAllByText('Assigned')).toHaveLength(2);
   });
 });

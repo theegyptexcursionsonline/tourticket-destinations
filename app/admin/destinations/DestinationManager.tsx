@@ -110,7 +110,7 @@ export default function DestinationManager() {
   const [destinations, setDestinations] = useState<IDestination[]>([]);
   const [listLoading, setListLoading] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
-  const [listView, setListView] = useState<'active' | 'trash'>('active');
+  const [listView, setListView] = useState<'published' | 'draft' | 'trash'>('published');
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -717,6 +717,10 @@ setTimeout(() => router.refresh(), 0);
   );
   const normalizedEditorFilter = editorFilter.trim().toLowerCase();
   const visibleDestinations = destinations.filter((destination) => {
+    const matchesLifecycle = listView === 'trash'
+      ? Boolean(destination.archivedAt)
+      : !destination.archivedAt && (listView === 'published' ? destination.isPublished : !destination.isPublished);
+    if (!matchesLifecycle) return false;
     if (!normalizedEditorFilter) return true;
     const actors = [destination.updatedBy, destination.createdBy]
       .flatMap((actor) => actor ? [actor.name, actor.email] : [])
@@ -752,6 +756,22 @@ setTimeout(() => router.refresh(), 0);
             <PlusCircle className="h-5 w-5 group-hover:rotate-90 transition-transform duration-200" />
             Add Destination
           </button>
+        </div>
+
+        <div className="mt-6 flex flex-wrap gap-2" role="group" aria-label="Filter destinations by lifecycle">
+          {(['published', 'draft', 'trash'] as const).map((view) => (
+            <button
+              key={view}
+              type="button"
+              aria-pressed={listView === view}
+              onClick={() => setListView(view)}
+              className={`rounded-xl px-5 py-2.5 text-sm font-semibold transition-colors ${listView === view
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}
+            >
+              {view === 'published' ? 'Published' : view === 'draft' ? 'Draft' : 'Trash'}
+            </button>
+          ))}
         </div>
 
         {/* Stats */}
@@ -867,10 +887,10 @@ setTimeout(() => router.refresh(), 0);
                   </div>
                 )}
                 <div className={`flex items-center gap-1.5 px-3 py-1.5 backdrop-blur-sm rounded-full text-white text-xs font-semibold shadow-lg ${
-                  dest.isPublished ? 'bg-green-500/90' : 'bg-red-500/90'
+                  dest.archivedAt ? 'bg-slate-700/90' : dest.isPublished ? 'bg-green-500/90' : 'bg-amber-500/90'
                 }`}>
                   <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                  {dest.isPublished ? 'Published' : 'Draft'}
+                  {dest.archivedAt ? 'Trash' : dest.isPublished ? 'Published' : 'Draft'}
                 </div>
               </div>
             </div>

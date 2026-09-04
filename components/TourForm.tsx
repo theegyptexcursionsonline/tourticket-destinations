@@ -1692,7 +1692,7 @@ const addItineraryItem = () => {
                                     <div className="space-y-6">
                                         {/* Tenant/Brand Selector — multi-select so one tour can be
                                             assigned to multiple brands at once (Issue #17). The first
-                                            selected brand is the primary owner and is stored in
+                                            selected brand is the owner and is stored in
                                             `tenantId`; the full ticked list is stored in `tenantIds`,
                                             which public queries match against via `buildTenantQuery`. */}
                                         <div className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl">
@@ -1746,7 +1746,7 @@ const addItineraryItem = () => {
                                                                 </div>
                                                                 {isPrimary && isChecked && (
                                                                     <span className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-indigo-600 text-white">
-                                                                        Primary
+                                                                        Owner
                                                                     </span>
                                                                 )}
                                                                 {isChecked && !isPrimary && (
@@ -1758,7 +1758,7 @@ const addItineraryItem = () => {
                                                                         }}
                                                                         className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 hover:bg-indigo-100 hover:text-indigo-700"
                                                                     >
-                                                                        Set primary
+                                                                        Make owner
                                                                     </button>
                                                                 )}
                                                             </label>
@@ -1767,7 +1767,7 @@ const addItineraryItem = () => {
                                                 )}
                                             </div>
                                             <SmallHint className="text-indigo-600">
-                                                Tick every brand this tour should appear on. The brand marked <strong>Primary</strong> owns the tour for admin and reporting purposes.
+                                                Tick every brand this tour should appear on. The brand marked <strong>Owner</strong> owns the tour for admin and reporting purposes.
                                             </SmallHint>
                                         </div>
 

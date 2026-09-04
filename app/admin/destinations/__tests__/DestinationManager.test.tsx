@@ -52,6 +52,14 @@ const mockDestinations = [
     createdBy: { id: 'editor-1', name: 'Sara Editor', email: 'sara@example.com' },
     updatedBy: { id: 'editor-1', name: 'Sara Editor', email: 'sara@example.com' },
   },
+  {
+    _id: '2', name: 'Luxor', slug: 'luxor', country: 'Egypt', image: '/images/luxor.jpg', images: [],
+    description: 'Draft destination', isPublished: false, archivedAt: null, tourCount: 0,
+  },
+  {
+    _id: '3', name: 'Aswan', slug: 'aswan', country: 'Egypt', image: '/images/aswan.jpg', images: [],
+    description: 'Deleted destination', isPublished: false, archivedAt: '2026-09-01T00:00:00.000Z', tourCount: 0,
+  },
 ]
 
 describe('DestinationManager', () => {
@@ -89,16 +97,30 @@ describe('DestinationManager', () => {
 
   it('should display destinations after loading', async () => {
     render(<DestinationManager />)
-    await waitFor(() => expect(global.fetch).toHaveBeenCalled())
-    expect(screen.getByText('Cairo')).toBeInTheDocument()
+    expect(await screen.findByText('Cairo')).toBeInTheDocument()
   })
 
   it('should display destination description', async () => {
     render(<DestinationManager />)
-    await waitFor(() => expect(global.fetch).toHaveBeenCalled())
+    await screen.findByText('Cairo')
     // Description might be truncated or inside a tooltip
     const descEl = screen.queryByText(/vibrant capital/i)
     expect(descEl || screen.getByText('Cairo')).toBeInTheDocument()
+  })
+
+  it('separates published destinations, drafts, and Trash', async () => {
+    render(<DestinationManager />)
+    expect(await screen.findByText('Cairo')).toBeInTheDocument()
+    expect(screen.queryByText('Luxor')).not.toBeInTheDocument()
+    expect(screen.queryByText('Aswan')).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Draft' }))
+    expect(screen.getByText('Luxor')).toBeInTheDocument()
+    expect(screen.queryByText('Cairo')).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Trash' }))
+    expect(screen.getByText('Aswan')).toBeInTheDocument()
+    expect(screen.queryByText('Luxor')).not.toBeInTheDocument()
   })
 
   it('should show create button', async () => {

@@ -31,6 +31,7 @@ import { useAdminTenant } from '@/contexts/AdminTenantContext';
 import toast from 'react-hot-toast';
 import { storefrontPreviewUrl } from '@/lib/admin/storefrontPreviewUrl';
 import { matchesTourAdminSearch } from '@/lib/admin/tourOptionIdentifiers';
+import { filterToursByOwnership, tourRelationship, type TourOwnership } from '@/lib/admin/tourOwnership';
 
 type CategoryRef = { name?: string; title?: string } | null;
 
@@ -51,6 +52,7 @@ type TourType = {
   isPublished?: boolean;
   isFeatured?: boolean;
   tenantId?: string;
+  tenantIds?: string[];
   optionIds?: string[];
   // UI-only field set by ToursPageClient when "All Brands" is selected.
   // Lists every tenantId that has a copy of this slug (German translations + originals).
@@ -201,6 +203,7 @@ export function ToursListClient({
   const [view, setView] = useState<'table' | 'cards'>('table');
   const [sortBy, setSortBy] = useState<'newest' | 'updated' | 'price-asc' | 'price-desc'>('newest');
   const [editorFilter, setEditorFilter] = useState<string>(searchParams.get('editor') || '');
+  const [ownershipFilter, setOwnershipFilter] = useState<TourOwnership>('all');
   const [perPage, setPerPage] = useState(12);
   const [page, setPage] = useState(initialPage);
 
@@ -254,7 +257,12 @@ export function ToursListClient({
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    let list = [...tours];
+    let list = filterToursByOwnership(
+      [...tours],
+      ownershipFilter,
+      selectedTenantId,
+      tenants.map((tenant) => tenant.tenantId)
+    );
 
     // Archived is derived from archivedAt rather than stored as a status, so
     // every existing isPublished query stays correct and nothing needs migrating.
@@ -304,7 +312,7 @@ export function ToursListClient({
       );
 
     return list;
-  }, [tours, query, sortBy, activeTab, editorFilter]);
+  }, [tours, query, sortBy, activeTab, editorFilter, ownershipFilter, selectedTenantId, tenants]);
 
   const total = filtered.length;
   const totalPages = Math.max(1, Math.ceil(total / perPage));
@@ -313,7 +321,7 @@ export function ToursListClient({
   // Reset page when filters change
   useEffect(() => {
     setPage(1);
-  }, [query, sortBy, activeTab, editorFilter]);
+  }, [query, sortBy, activeTab, editorFilter, ownershipFilter]);
 
   // Calculate counts for each tab
   const tabCounts = useMemo(() => {
@@ -348,6 +356,23 @@ export function ToursListClient({
 
   return (
     <div className="space-y-8">
+      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200/60 bg-white p-4 shadow-sm" role="group" aria-label="Filter tours by ownership">
+        {(['all', 'owned', 'assigned'] as const).map((option) => (
+          <button
+            key={option}
+            type="button"
+            aria-pressed={ownershipFilter === option}
+            onClick={() => setOwnershipFilter(option)}
+            className={`rounded-xl px-5 py-2.5 text-sm font-semibold transition-colors ${
+              ownershipFilter === option
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+            }`}
+          >
+            {option === 'all' ? 'All' : option === 'owned' ? 'Owned' : 'Assigned'}
+          </button>
+        ))}
+      </div>
       {/* Tabs Section */}
       <div className="bg-gradient-to-br from-white to-slate-50 backdrop-blur-sm border border-slate-200/60 rounded-2xl shadow-xl shadow-slate-200/40 p-6">
         {countExplanation && (
@@ -595,6 +620,11 @@ export function ToursListClient({
                           >
                             {t.title || t.name}
                           </Link>
+                          <Badge className={tourRelationship(t, selectedTenantId, tenants.map((tenant) => tenant.tenantId)) === 'owned'
+                            ? 'border border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-200'
+                            : 'border border-indigo-300 bg-indigo-50 text-indigo-800 dark:border-indigo-700 dark:bg-indigo-950 dark:text-indigo-200'}>
+                            {tourRelationship(t, selectedTenantId, tenants.map((tenant) => tenant.tenantId)) === 'owned' ? 'Owned' : 'Assigned'}
+                          </Badge>
                           <div className="flex items-center gap-2 text-xs text-slate-500 flex-wrap">
                             <Calendar className="h-3 w-3" />
                             <span>{t.duration}</span>
@@ -729,6 +759,11 @@ export function ToursListClient({
                     >
                       {t.title || t.name}
                     </div>
+                    <Badge className={tourRelationship(t, selectedTenantId, tenants.map((tenant) => tenant.tenantId)) === 'owned'
+                      ? 'mb-2 border border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-200'
+                      : 'mb-2 border border-indigo-300 bg-indigo-50 text-indigo-800 dark:border-indigo-700 dark:bg-indigo-950 dark:text-indigo-200'}>
+                      {tourRelationship(t, selectedTenantId, tenants.map((tenant) => tenant.tenantId)) === 'owned' ? 'Owned' : 'Assigned'}
+                    </Badge>
                     
                     {/* Location and Category */}
                     <div className="space-y-1">
