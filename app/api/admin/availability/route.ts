@@ -95,25 +95,9 @@ export async function GET(request: NextRequest) {
           return tenantForbiddenResponse();
         }
 
-        // Ensure bookingOptions[].id exists (needed for option-level stop-sale)
-        let changed = false;
-        if (Array.isArray(tourDoc.bookingOptions)) {
-          tourDoc.bookingOptions = tourDoc.bookingOptions.map((opt: any) => {
-            if (!opt) return opt;
-            if (!opt.id) {
-              changed = true;
-              return {
-                ...opt,
-                id: globalThis.crypto?.randomUUID?.() || `opt-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-              };
-            }
-            return opt;
-          });
-        }
-        if (changed) await tourDoc.save();
-
+        // Reading availability must not replace legacy identities or write tour data.
         const optionIds: string[] = Array.isArray(tourDoc.bookingOptions)
-          ? tourDoc.bookingOptions.map((o: any) => o?.id).filter(Boolean)
+          ? tourDoc.bookingOptions.map((o: any, index: number) => String(o?.id || o?._id || `option-${index}`))
           : [];
 
         // Initialize all days of month to "none" so UI can rely on presence

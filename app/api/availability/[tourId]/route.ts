@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import StopSale from '@/lib/models/StopSale';
 import Tour from '@/lib/models/Tour';
-import { getTenantFromRequest } from '@/lib/tenant';
+import { buildStrictTenantQuery, getTenantFromRequest } from '@/lib/tenant';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,25 +15,6 @@ function toDateOnly(d: Date) {
 
 function toDateKey(d: Date) {
   return d.toISOString().split('T')[0];
-}
-
-async function ensureTourOptionIds(tourId: string) {
-  const tour = await Tour.findById(tourId);
-  if (!tour) return null;
-
-  let changed = false;
-  if (Array.isArray(tour.bookingOptions)) {
-    tour.bookingOptions = tour.bookingOptions.map((opt: any) => {
-      if (!opt) return opt;
-      if (!opt.id) {
-        changed = true;
-        return { ...opt, id: globalThis.crypto?.randomUUID?.() || `opt-${Date.now()}-${Math.random().toString(16).slice(2)}` };
-      }
-      return opt;
-    });
-  }
-  if (changed) await tour.save();
-  return tour;
 }
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ tourId: string }> }) {
@@ -48,18 +29,17 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const monthParam = searchParams.get('month'); // 1-12
     const yearParam = searchParams.get('year'); // yyyy
 
-    const tour = await ensureTourOptionIds(tourId);
+    const tour = await Tour.findOne(buildStrictTenantQuery({ _id: tourId, isPublished: true, archivedAt: null }, tenantId));
     if (!tour) {
       return NextResponse.json({ success: false, error: 'Tour not found' }, { status: 404 });
     }
 
     const options = Array.isArray(tour.bookingOptions)
       ? tour.bookingOptions
-          .filter((o: any) => o && (o.id || o.label))
-          .map((o: any) => ({
-            id: o.id,
+          .flatMap((o: any, index: number) => o && (o.id || o.label) ? [{
+            id: String(o.id || o._id || `option-${index}`),
             label: o.label || o.type || 'Option',
-          }))
+          }] : [])
       : [];
 
     let rangeStart: Date | null = null;
