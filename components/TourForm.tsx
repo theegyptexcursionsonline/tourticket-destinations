@@ -2733,6 +2733,7 @@ const addItineraryItem = () => {
                                                     {/* Option Header */}
                                                     <button 
                                                         type="button" 
+                                                        aria-expanded={expandedOptionIndex === index}
                                                         onClick={() => toggleBookingOption(index)} 
                                                         className="bg-slate-50 w-full text-start px-6 py-4 border-b border-slate-200 flex items-center justify-between transition-colors hover:bg-slate-100"
                                                     >
@@ -2753,7 +2754,7 @@ const addItineraryItem = () => {
                                                     </button>
                                                     
                                                     {/* Option Configuration */}
-                                                    <div className={`overflow-hidden transition-all duration-300 ${expandedOptionIndex === index ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                                                    <div className={`overflow-hidden transition-all duration-300 ${expandedOptionIndex === index ? 'max-h-none opacity-100' : 'max-h-0 opacity-0'}`}>
                                                         <div className="p-6 space-y-6">
                                                             <div className="flex flex-col gap-3 rounded-xl border border-indigo-100 bg-indigo-50/60 p-4 sm:flex-row sm:items-center">
                                                                 <div className="min-w-0 flex-1">
