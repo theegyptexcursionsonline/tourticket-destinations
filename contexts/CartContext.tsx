@@ -21,6 +21,7 @@ interface CartContextType {
     closeCart: () => void;
     totalItems: number;
     isLoading: boolean;
+    isReady: boolean;
     acceptAuthoritativePriceQuote: (quote: AuthoritativePriceQuote) => Promise<boolean>;
 }
 
@@ -108,7 +109,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     const [hasLoadedGuestCart, setHasLoadedGuestCart] = useState(false);
     const cartRef = useRef<CartItem[]>([]);
 
-    const { token, isAuthenticated } = useAuth();
+    const { token, isAuthenticated, isLoading: isAuthLoading = false } = useAuth();
 
     useEffect(() => {
         cartRef.current = cart;
@@ -177,6 +178,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
     // Load cart from localStorage (for guests or initial load)
     useEffect(() => {
+        if (isAuthLoading) return;
+
         if (!isAuthenticated) {
             try {
                 const storedCart = localStorage.getItem('cart');
@@ -193,7 +196,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         } else {
             setHasLoadedGuestCart(false);
         }
-    }, [isAuthenticated, normalizeCartItem]);
+    }, [isAuthenticated, isAuthLoading, normalizeCartItem]);
 
     // Sync to server helper
     const syncToServer = useCallback(async (items: CartItem[]) => {
@@ -220,7 +223,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     // Sync cart from server when user logs in
     useEffect(() => {
         const syncFromServer = async () => {
-            if (!isAuthenticated || !token || hasSyncedFromServer) return;
+            if (isAuthLoading || !isAuthenticated || !token || hasSyncedFromServer) return;
 
             setIsLoading(true);
             try {
@@ -288,7 +291,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         };
 
         syncFromServer();
-    }, [hasSyncedFromServer, isAuthenticated, normalizeCartItem, syncToServer, token]);
+    }, [hasSyncedFromServer, isAuthenticated, isAuthLoading, normalizeCartItem, syncToServer, token]);
 
     // Save to localStorage (for guests) whenever cart changes
     useEffect(() => {
@@ -407,6 +410,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }, [isAuthenticated, syncToServer, token]);
 
     const totalItems = cart.reduce((sum, item) => sum + (item.quantity || 0) + (item.childQuantity || 0) + (item.infantQuantity || 0), 0);
+    const isReady = !isAuthLoading && (isAuthenticated ? hasSyncedFromServer : hasLoadedGuestCart);
 
     return (
         <CartContext.Provider value={{
@@ -419,6 +423,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             openCart,
             closeCart,
             isLoading,
+            isReady,
             acceptAuthoritativePriceQuote,
         }}>
             {children}

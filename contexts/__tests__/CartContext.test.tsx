@@ -3,11 +3,15 @@ import { render, screen, act } from '@testing-library/react'
 import { CartProvider } from '../CartContext'
 import { useCart } from '@/hooks/useCart'
 
+const readinessHistory: boolean[] = []
+
 function TestComponent() {
-  const { cart, addToCart, clearCart, totalItems } = useCart()
+  const { cart, addToCart, clearCart, totalItems, isReady } = useCart()
+  readinessHistory.push(isReady)
 
   return (
     <div>
+      <div data-testid="cart-ready">{String(isReady)}</div>
       <div data-testid="cart-count">{totalItems}</div>
       <div data-testid="cart-items">{JSON.stringify(cart)}</div>
       <button onClick={() => addToCart({
@@ -40,6 +44,7 @@ Object.defineProperty(window, 'localStorage', { value: localStorageMock })
 describe('CartContext', () => {
   beforeEach(() => {
     localStorageMock.clear()
+    readinessHistory.length = 0
   })
 
   it('should initialize with empty cart', () => {
@@ -125,5 +130,27 @@ describe('CartContext', () => {
     const cart = JSON.parse(screen.getByTestId('cart-items').textContent || '[]')
     expect(cart[0]).toMatchObject({ id: 'legacy-tour', selectedAddOns: { meal: 1 } })
     expect(cart[0]).not.toHaveProperty('addOnQuantityVersion')
+  })
+
+  it('does not declare the guest cart ready until browser storage is restored', async () => {
+    localStorage.setItem('cart', JSON.stringify([{
+      id: 'restored-tour',
+      title: 'Restored Tour',
+      quantity: 1,
+      uniqueId: 'restored-line',
+    }]))
+
+    render(
+      <CartProvider>
+        <TestComponent />
+      </CartProvider>
+    )
+
+    await act(async () => { await Promise.resolve() })
+
+    expect(readinessHistory[0]).toBe(false)
+    expect(readinessHistory[readinessHistory.length - 1]).toBe(true)
+    expect(screen.getByTestId('cart-ready')).toHaveTextContent('true')
+    expect(screen.getByTestId('cart-items')).toHaveTextContent('restored-tour')
   })
 })

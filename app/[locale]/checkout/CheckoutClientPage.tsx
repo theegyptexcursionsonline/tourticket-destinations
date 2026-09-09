@@ -39,6 +39,7 @@ import { useTranslations } from 'next-intl';
 import type { PaymentExperience } from '@/lib/checkout/paymentExperience';
 import { lineAddOnQuantity, lineGuestBreakdown, lineTotal } from '@/lib/checkout/lineTotals';
 import type { AuthoritativePriceQuote } from '@/lib/cart/authoritativeCart';
+import { shouldRedirectEmptyCheckout } from '@/lib/checkout/cartReadiness';
 
 const FormInput = ({ label, name, type = 'text', placeholder, required = true, value, onChange, disabled = false }: any) => (
   <div>
@@ -1142,7 +1143,7 @@ const TrustIndicators = () => {
 };
 
 export default function CheckoutPage() {
-  const { cart, clearCart, acceptAuthoritativePriceQuote } = useCart();
+  const { cart, clearCart, acceptAuthoritativePriceQuote, isReady: isCartReady } = useCart();
   const { formatPrice, selectedCurrency } = useSettings();
   const { user } = useAuth();
   const { tenant } = useTenant();
@@ -1368,10 +1369,14 @@ export default function CheckoutPage() {
   };
 
   useEffect(() => {
-    if (cart && cart.length === 0 && !isConfirmed) {
-      router.push('/');
+    if (shouldRedirectEmptyCheckout({
+      isCartReady,
+      cartLength: cart?.length ?? 0,
+      isConfirmed,
+    })) {
+      router.replace('/');
     }
-  }, [cart, isConfirmed, router]);
+  }, [cart, isCartReady, isConfirmed, router]);
 
   // Scroll to top when thank you page is shown
   useEffect(() => {
@@ -1383,7 +1388,7 @@ export default function CheckoutPage() {
   const showPaymentLauncher = paymentExperience === 'modal';
   const showMobileStickyCTA = !isConfirmed && cart && cart.length > 0 && (customerType === 'guest' || user) && showPaymentLauncher;
 
-  if (!cart) {
+  if (!isCartReady || !cart) {
     return (
       <main className="min-h-screen bg-slate-50 pt-24 pb-16 flex items-center justify-center">
         <div className="text-center p-4">
