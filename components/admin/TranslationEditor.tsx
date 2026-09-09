@@ -69,8 +69,9 @@ export default function TranslationEditor({
   const translationsRef = useRef<Record<string, Record<string, unknown>>>({});
   const failedLocalesRef = useRef<string[]>([]);
   const fatalErrorRef = useRef('');
-  const requestedLocaleRef = useRef(activeLocale);
   const preservedExistingRef = useRef(false);
+  const translatingRef = useRef(false);
+  const settledLocalesRef = useRef<Set<string>>(new Set());
 
   // Keep a stable ref to onChange so the streaming callback always uses the latest version
   const onChangeRef = useRef(onChange);
@@ -127,11 +128,102 @@ export default function TranslationEditor({
   // ── Streaming Auto Translate ──
 
   const completedCount = Object.values(localeStatuses).filter((s) => s === 'done').length;
-  const totalLocales = 1;
+  const totalLocales = translatableLocales.length;
   const progressPercent = isTranslating ? Math.round((completedCount / totalLocales) * 100) : 0;
 
+  const markLocaleFailed = useCallback((locale: string, name?: string) => {
+    setLocaleStatuses((prev) => ({ ...prev, [locale]: 'error' }));
+    settledLocalesRef.current.add(locale);
+    const label = name || localeNames[locale] || locale;
+    if (!failedLocalesRef.current.includes(label)) {
+      failedLocalesRef.current = [...failedLocalesRef.current, label];
+    }
+  }, []);
+
+  function handleSSEEvent(event: string, data: Record<string, unknown>) {
+    switch (event) {
+      case 'translating': {
+        const locale = data.locale as string;
+        setLocaleStatuses((prev) => ({ ...prev, [locale]: 'translating' }));
+        break;
+      }
+      case 'locale_done': {
+        const locale = data.locale as string;
+        const translations = data.translations as Record<string, unknown>;
+        preservedExistingRef.current = preservedExistingRef.current || Boolean(data.preservedExisting);
+        settledLocalesRef.current.add(locale);
+
+        setLocaleStatuses((prev) => ({ ...prev, [locale]: 'done' }));
+
+        if (translations && Object.keys(translations).length > 0) {
+          translationsRef.current = {
+            ...translationsRef.current,
+            [locale]: translations,
+          };
+          onChangeRef.current({ ...translationsRef.current });
+        }
+
+        // Keep the latest committed language visible for review.
+        setActiveLocale(locale as typeof activeLocale);
+        break;
+      }
+      case 'locale_error': {
+        const locale = data.locale as string;
+        markLocaleFailed(locale, data.localeName as string | undefined);
+        break;
+      }
+      case 'error': {
+        const locale = data.locale as string;
+        if (locale) {
+          markLocaleFailed(locale, data.localeName as string | undefined);
+        } else if (data.error) {
+          fatalErrorRef.current = String(data.error);
+        }
+        break;
+      }
+    }
+  }
+
+  const readTranslationStream = async (res: Response) => {
+    const reader = res.body?.getReader();
+    if (!reader) throw new Error('Streaming not supported');
+
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value: chunk } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(chunk, { stream: true });
+
+      // SSE events are separated by a blank line. Keep the (possibly
+      // incomplete) trailing event in the buffer so events split across
+      // network chunks are never dropped.
+      const events = buffer.split('\n\n');
+      buffer = events.pop() || '';
+
+      for (const rawEvent of events) {
+        let eventType = '';
+        let eventData = '';
+        for (const line of rawEvent.split('\n')) {
+          if (line.startsWith('event: ')) eventType = line.slice(7).trim();
+          else if (line.startsWith('data: ')) eventData = line.slice(6).trim();
+        }
+        if (eventType && eventData) {
+          try {
+            handleSSEEvent(eventType, JSON.parse(eventData));
+          } catch {
+            // A malformed progress event does not invalidate a completed
+            // server write. The terminal event still determines the result.
+          }
+        }
+      }
+    }
+  };
+
   const handleAutoTranslate = async () => {
-    if (!canAutoTranslate || !modelType) return;
+    if (!canAutoTranslate || !modelType || translatingRef.current) return;
 
     // Send the form's own English content, reduced to translatable fields. A
     // draft we cannot send safely is reported instead of dropped: falling back
@@ -142,141 +234,117 @@ export default function TranslationEditor({
       return;
     }
 
+    translatingRef.current = true;
     setIsTranslating(true);
     translationsRef.current = { ...value };
-    requestedLocaleRef.current = activeLocale;
     preservedExistingRef.current = false;
+    failedLocalesRef.current = [];
+    fatalErrorRef.current = '';
+    settledLocalesRef.current = new Set();
 
-    // A click is an explicit per-locale commit boundary. Never start a bulk
-    // operation that can replace every language bucket.
-    setLocaleStatuses({ [activeLocale]: 'pending' });
+    // One user action runs every language through the existing per-locale API.
+    // Each language keeps its own atomic save and compare-and-set boundary, so
+    // a provider failure cannot discard languages that already succeeded.
+    setLocaleStatuses(Object.fromEntries(
+      translatableLocales.map((locale) => [locale, 'pending' as LocaleStatus]),
+    ));
 
     try {
-      const localeDraft = value[activeLocale];
-      const ownerDraft = localeDraft && Object.keys(localeDraft).length > 0
-        ? { localeDraft }
-        : {};
-      const res = await fetch('/api/admin/translate/stream', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(
-          Object.keys(draft.draft).length > 0
-            ? { modelType, id: entityId, locale: activeLocale, sourceDraft: draft.draft, ...ownerDraft }
-            : { modelType, id: entityId, locale: activeLocale, ...ownerDraft }
-        ),
-      });
+      for (const locale of translatableLocales) {
+        setLocaleStatuses((prev) => ({ ...prev, [locale]: 'translating' }));
+        const localeDraft = translationsRef.current[locale];
+        const ownerDraft = localeDraft && Object.keys(localeDraft).length > 0
+          ? { localeDraft }
+          : {};
 
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || 'Translation failed');
-      }
-
-      const reader = res.body?.getReader();
-      if (!reader) throw new Error('Streaming not supported');
-
-      const decoder = new TextDecoder();
-      let buffer = '';
-      failedLocalesRef.current = [];
-      fatalErrorRef.current = '';
-
-      while (true) {
-        const { done, value: chunk } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(chunk, { stream: true });
-
-        // SSE events are separated by a blank line. Keep the (possibly
-        // incomplete) trailing event in the buffer so events split across
-        // network chunks are never dropped.
-        const events = buffer.split('\n\n');
-        buffer = events.pop() || '';
-
-        for (const rawEvent of events) {
-          let eventType = '';
-          let eventData = '';
-          for (const line of rawEvent.split('\n')) {
-            if (line.startsWith('event: ')) eventType = line.slice(7).trim();
-            else if (line.startsWith('data: ')) eventData = line.slice(6).trim();
+        let res: Response;
+        try {
+          res = await fetch('/api/admin/translate/stream', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(
+              Object.keys(draft.draft).length > 0
+                ? { modelType, id: entityId, locale, sourceDraft: draft.draft, ...ownerDraft }
+                : { modelType, id: entityId, locale, ...ownerDraft }
+            ),
+          });
+        } catch (error) {
+          fatalErrorRef.current = error instanceof Error ? error.message : 'Translation request failed';
+          markLocaleFailed(locale);
+          for (const remainingLocale of translatableLocales.slice(
+            translatableLocales.indexOf(locale) + 1,
+          )) {
+            markLocaleFailed(remainingLocale);
           }
-          if (eventType && eventData) {
-            try {
-              handleSSEEvent(eventType, JSON.parse(eventData));
-            } catch {
-              // Malformed event payload, skip
-            }
+          break;
+        }
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({})) as { error?: string };
+          fatalErrorRef.current = errData.error || 'Translation failed';
+          markLocaleFailed(locale);
+          for (const remainingLocale of translatableLocales.slice(
+            translatableLocales.indexOf(locale) + 1,
+          )) {
+            markLocaleFailed(remainingLocale);
           }
+          break;
+        }
+
+        try {
+          await readTranslationStream(res);
+        } catch (error) {
+          fatalErrorRef.current = error instanceof Error ? error.message : 'Translation stream failed';
+        }
+        if (fatalErrorRef.current) {
+          markLocaleFailed(locale);
+          for (const remainingLocale of translatableLocales.slice(
+            translatableLocales.indexOf(locale) + 1,
+          )) {
+            markLocaleFailed(remainingLocale);
+          }
+          break;
+        }
+        if (!settledLocalesRef.current.has(locale)) {
+          fatalErrorRef.current = `${localeNames[locale] || locale} did not return a final save status.`;
+          markLocaleFailed(locale);
+          for (const remainingLocale of translatableLocales.slice(
+            translatableLocales.indexOf(locale) + 1,
+          )) {
+            markLocaleFailed(remainingLocale);
+          }
+          break;
         }
       }
 
-      if (fatalErrorRef.current) {
-        throw new Error(fatalErrorRef.current);
-      }
       const failed = failedLocalesRef.current;
       if (failed.length > 0) {
-        toast.error(`${failed.join(', ')} was not saved. Reload the tour and try again.`);
+        const successfulCount = totalLocales - failed.length;
+        if (successfulCount > 0) {
+          toast.error(
+            `${failed.join(', ')} ${failed.length === 1 ? 'was' : 'were'} not saved. ` +
+            `${successfulCount} ${successfulCount === 1 ? 'language was' : 'languages were'} saved; retry to fill the rest.`,
+          );
+        } else {
+          toast.error(fatalErrorRef.current || 'No languages were saved. Please try again.');
+        }
       } else {
-        const localeName = localeNames[requestedLocaleRef.current] || requestedLocaleRef.current;
         toast.success(
           preservedExistingRef.current
-            ? `${localeName} translated and saved. Existing manual text was preserved.`
-            : `${localeName} translated and saved.`,
+            ? `All ${totalLocales} languages translated and saved. Existing manual text was preserved.`
+            : `All ${totalLocales} languages translated and saved.`,
         );
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Auto-translate failed');
     } finally {
       setTimeout(() => {
+        translatingRef.current = false;
         setIsTranslating(false);
         setLocaleStatuses({});
       }, 2000);
     }
   };
-
-  const handleSSEEvent = useCallback((event: string, data: Record<string, unknown>) => {
-    switch (event) {
-      case 'translating': {
-        const locale = data.locale as string;
-        setLocaleStatuses((prev) => ({ ...prev, [locale]: 'translating' }));
-        break;
-      }
-      case 'locale_done': {
-        const locale = data.locale as string;
-        const translations = data.translations as Record<string, unknown>;
-        preservedExistingRef.current = Boolean(data.preservedExisting);
-
-        setLocaleStatuses((prev) => ({ ...prev, [locale]: 'done' }));
-
-        // Update form with this locale's translations in real-time using the ref
-        if (translations && Object.keys(translations).length > 0) {
-          translationsRef.current = {
-            ...translationsRef.current,
-            [locale]: translations,
-          };
-          // Use ref to always call the latest onChange
-          onChangeRef.current({ ...translationsRef.current });
-        }
-
-        // Keep the committed language visible for review.
-        setActiveLocale(locale as typeof activeLocale);
-        break;
-      }
-      case 'locale_error': {
-        const locale = data.locale as string;
-        setLocaleStatuses((prev) => ({ ...prev, [locale]: 'error' }));
-        failedLocalesRef.current = [...failedLocalesRef.current, (data.localeName as string) || locale];
-        break;
-      }
-      case 'error': {
-        const locale = data.locale as string;
-        if (locale) {
-          setLocaleStatuses((prev) => ({ ...prev, [locale]: 'error' }));
-        } else if (data.error) {
-          fatalErrorRef.current = String(data.error);
-        }
-        break;
-      }
-    }
-  }, []);
 
   // ── Render ──
 
@@ -302,17 +370,17 @@ export default function TranslationEditor({
               <Sparkles className="h-4 w-4" />
             )}
             {isTranslating
-              ? `Translating ${localeNames[requestedLocaleRef.current] || requestedLocaleRef.current}...`
-              : `Translate & save ${localeNames[activeLocale] || activeLocale}`}
+              ? `Translating ${completedCount}/${totalLocales}...`
+              : 'Translate & save all languages'}
           </button>
         )}
       </div>
 
       {canAutoTranslate && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          <p className="font-semibold">One language is saved at a time.</p>
+          <p className="font-semibold">Translate every language with one click.</p>
           <p className="mt-1 text-xs leading-5 text-amber-800">
-            Auto-translate fills empty {localeNames[activeLocale] || activeLocale} fields and preserves every non-empty manual value. Clear and save a field first only when you intentionally want it regenerated.
+            All {totalLocales} languages are saved independently. Existing manual text is preserved and only empty fields are filled.
           </p>
         </div>
       )}
@@ -323,7 +391,7 @@ export default function TranslationEditor({
           {/* Overall progress bar */}
           <div className="flex items-center justify-between text-sm">
             <span className="font-medium text-indigo-700">
-              Translating {completedCount}/{totalLocales} language...
+              Translating {completedCount}/{totalLocales} languages...
             </span>
             <span className="text-indigo-500 font-semibold">{progressPercent}%</span>
           </div>
@@ -404,6 +472,7 @@ export default function TranslationEditor({
                 field={field}
                 items={getArrayValue(field.key)}
                 rtl={rtl}
+                disabled={isTranslating}
                 onAdd={() => addArrayItem(field.key)}
                 onRemove={(i) => removeArrayItem(field.key, i)}
                 onUpdate={(i, v) => updateArrayItem(field.key, i, v)}
@@ -422,6 +491,7 @@ export default function TranslationEditor({
                   onChange={(e) => updateField(field.key, e.target.value)}
                   rows={field.rows || 3}
                   maxLength={field.maxLength}
+                  disabled={isTranslating}
                   className={`${textareaStyles}${rtl ? ' text-right' : ''}`}
                   placeholder={`${field.label} in ${localeNames[activeLocale] || activeLocale}`}
                 />
@@ -441,6 +511,7 @@ export default function TranslationEditor({
                 value={val}
                 onChange={(e) => updateField(field.key, e.target.value)}
                 maxLength={field.maxLength}
+                disabled={isTranslating}
                 className={`${inputStyles}${rtl ? ' text-right' : ''}`}
                 placeholder={`${field.label} in ${localeNames[activeLocale] || activeLocale}`}
               />
@@ -479,6 +550,7 @@ function ArrayField({
   field,
   items,
   rtl,
+  disabled,
   onAdd,
   onRemove,
   onUpdate,
@@ -486,6 +558,7 @@ function ArrayField({
   field: TranslationFieldDef;
   items: string[];
   rtl: boolean;
+  disabled: boolean;
   onAdd: () => void;
   onRemove: (index: number) => void;
   onUpdate: (index: number, value: string) => void;
@@ -497,7 +570,8 @@ function ArrayField({
         <button
           type="button"
           onClick={onAdd}
-          className="flex items-center gap-1 px-3 py-1 text-xs text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+          disabled={disabled}
+          className="flex items-center gap-1 px-3 py-1 text-xs text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Plus className="h-3 w-3" />
           Add
@@ -516,13 +590,15 @@ function ArrayField({
               value={item}
               onChange={(e) => onUpdate(index, e.target.value)}
               maxLength={field.maxLength}
+              disabled={disabled}
               className={`${inputStyles}${rtl ? ' text-right' : ''}`}
               placeholder={`${field.label} item ${index + 1}`}
             />
             <button
               type="button"
               onClick={() => onRemove(index)}
-              className="flex items-center justify-center w-10 h-10 text-red-500 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0"
+              disabled={disabled}
+              className="flex items-center justify-center w-10 h-10 text-red-500 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Minus className="h-4 w-4" />
             </button>
