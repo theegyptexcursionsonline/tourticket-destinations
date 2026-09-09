@@ -111,20 +111,25 @@ test.describe('Booking flow (guest checkout)', () => {
     }
   });
 
-  test('checkout page loads with form fields', async ({ page }) => {
+  test('checkout resolves to the form or the empty-cart redirect', async ({ page }) => {
     await page.goto('/checkout', { waitUntil: 'domcontentloaded', timeout: 30_000 });
 
-    // Checkout should have either a form or "cart is empty" message
+    // Cart restoration is asynchronous. A stored cart stays on checkout and
+    // renders the form; a hydrated empty cart redirects home. Fail if checkout
+    // remains stranded on its loading state instead of reaching either result.
     const guestForm = page.locator('input[type="email"], input[name="email"]');
     const emptyCart = page.locator('text=/empty|no items|cart is empty/i');
 
-    const hasForm = (await guestForm.count()) > 0;
-    const isEmpty = (await emptyCart.count()) > 0;
+    await expect.poll(async () => {
+      if (!page.url().includes('/checkout')) {
+        return page.locator('main').first().isVisible().catch(() => false);
+      }
 
-    expect(
-      hasForm || isEmpty,
-      'Checkout should show form or empty cart message',
-    ).toBeTruthy();
+      return (await guestForm.count()) > 0 || (await emptyCart.count()) > 0;
+    }, {
+      message: 'Checkout should show its form or complete the empty-cart redirect',
+      timeout: 10_000,
+    }).toBeTruthy();
   });
 
   test('checkout form validates required fields', async ({ page }) => {
