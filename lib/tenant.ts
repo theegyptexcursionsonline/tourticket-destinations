@@ -5,6 +5,7 @@ import { headers, cookies } from 'next/headers';
 import dbConnect from './dbConnect';
 import Tenant, { ITenant } from './models/Tenant';
 import { resolveTenantBranding } from './tenantBranding';
+import { resolveTenantEmailWebsite } from './email/tenantWebsite';
 import { getTenantPresentationSourceTenantId, resolveTenantPresentation } from './tenantPresentation';
 import { resolveExecutablePaymentMethods } from './payments/paymentProviderPolicy';
 import { paymentExperienceOrDefault, type PaymentExperience } from './checkout/paymentExperience';
@@ -718,10 +719,7 @@ export function getTenantEmailBranding(tenantConfig: ITenant | null, baseUrl?: s
   if (!tenantConfig) return undefined;
 
   const branding = resolveTenantBranding(tenantConfig);
-  const tenantWebsite = tenantConfig.domain
-    ? tenantConfig.domain.replace(/^https?:\/\//, '')
-    : '';
-  const website = tenantWebsite ? `https://${tenantWebsite}` : baseUrl;
+  const website = resolveTenantEmailWebsite(tenantConfig.domain, baseUrl);
 
   return {
     tenantId: tenantConfig.tenantId,

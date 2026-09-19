@@ -27,6 +27,7 @@ import { getTenantConfigCached } from '@/lib/tenant';
 import { ITenant } from '@/lib/models/Tenant';
 import { EmailService } from '@/lib/email/emailService';
 import { TenantEmailBranding } from '@/lib/email/type';
+import { resolveTenantEmailWebsite } from '@/lib/email/tenantWebsite';
 import {
   getBestOffer,
   isOfferApplicableToTour,
@@ -64,7 +65,7 @@ function getTenantEmailBranding(tenantConfig: ITenant | null, baseUrl: string): 
     accentColor: tenantConfig.branding?.accentColor || '#F4A261',
     contactEmail: tenantConfig.contact?.email || 'info@tours.com',
     contactPhone: tenantConfig.contact?.phone || '+20 000 000 0000',
-    website: baseUrl || tenantConfig.domain,
+    website: resolveTenantEmailWebsite(tenantConfig.domain, baseUrl),
     supportEmail: tenantConfig.contact?.supportEmail || tenantConfig.contact?.email,
     socialLinks: {
       facebook: tenantConfig.socialLinks?.facebook,

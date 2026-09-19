@@ -67,7 +67,12 @@ jest.mock('@/lib/models/StopSale', () => ({
   default: { exists: () => ({ session: async () => null }) },
 }));
 jest.mock('@/lib/tenant', () => ({
-  getTenantConfigCached: async () => ({ name: 'Brand One', payments: { currencySymbol: '$' }, contact: { email: 'ops@example.com' } }),
+  getTenantConfigCached: async () => ({
+    name: 'Brand One',
+    domain: 'brand-one.example.com',
+    payments: { currencySymbol: '$' },
+    contact: { email: 'ops@example.com' },
+  }),
 }));
 jest.mock('@/lib/email/emailService', () => ({
   EmailService: {
@@ -218,6 +223,7 @@ describe('Stripe webhook — guest prices on the recorded booking', () => {
     expect(Math.round(recorded().totalPrice * 100)).toBe(paymentIntent.amount);
     // The confirmation email carries the recorded unit prices.
     expect(mockSendConfirmation.mock.calls[0][0].orderedItems[0].guestPrices).toEqual({ adult: 100, child: 70, infant: 15 });
+    expect(mockSendAdminAlert.mock.calls[0][0].tenantBranding.website).toBe('https://brand-one.example.com');
   });
 
   it('per-departure override: the 14:00 departure prices children at 80 and infants free', async () => {
