@@ -316,6 +316,32 @@ describe('POST /api/checkout/create-checkout-session', () => {
     expect(mockSessionCreate).not.toHaveBeenCalled();
   });
 
+  it('treats a page Stripe already expired on its own as closed, even when its expiry event never arrived', async () => {
+    mockQuoteFind.mockReturnValue({ lean: jest.fn().mockResolvedValue([storedQuote()]) });
+    mockSessionRetrieve.mockResolvedValue({
+      id: 'cs_test_hosted_previous_1',
+      status: 'expired',
+      payment_status: 'unpaid',
+      amount_total: 10_800,
+      currency: 'usd',
+      url: null,
+      expires_at: nowSeconds() - 60,
+    });
+    mockSessionExpire.mockRejectedValue(Object.assign(
+      new Error('This Checkout Session is not in an expirable state.'),
+      { type: 'StripeInvalidRequestError' },
+    ));
+
+    const response = await POST(request());
+
+    expect(response.status).toBe(200);
+    expect(mockQuoteUpdateOne).toHaveBeenCalledWith(
+      expect.anything(),
+      { $set: { checkoutClosedAt: expect.any(Date) } },
+    );
+    expect(mockSessionCreate).toHaveBeenCalledTimes(1);
+  });
+
   it('opens no page when closing the old one fails for any other reason', async () => {
     mockQuoteFind.mockReturnValue({ lean: jest.fn().mockResolvedValue([storedQuote()]) });
     mockSessionRetrieve.mockResolvedValue({
@@ -367,6 +393,8 @@ describe('POST /api/checkout/create-checkout-session', () => {
     // is still able to charge the guest — and the next request would open a
     // second one beside it.
     mockQuoteFind.mockReturnValue({ lean: jest.fn().mockResolvedValue([storedQuote()]) });
+    // The page is still open at Stripe; only the close call failed.
+    mockSessionRetrieve.mockResolvedValue({ id: 'cs_test_hosted_previous_1', status: 'open', payment_status: 'unpaid' });
     mockSessionExpire.mockRejectedValue(Object.assign(new Error('Stripe is down'), { type: 'StripeAPIError' }));
 
     const response = await POST(request());

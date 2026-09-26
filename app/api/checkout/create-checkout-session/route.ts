@@ -184,9 +184,12 @@ export async function POST(request: Request) {
           if (pageWasPaid(page)) {
             throw new HostedCheckoutConflict('CHECKOUT_ALREADY_PAID', ALREADY_PAID_MESSAGE, quote.checkoutSessionId);
           }
+          // Stripe also refuses to expire a page that already expired on its
+          // own (its expiry event may be late or missing): that page is closed.
           // Anything else: fail closed. The page keeps no closed marker, so the
           // next request lists it again and tries to close it once more.
-          throw error;
+          if (page?.status !== 'expired') throw error;
+          retired = page;
         }
         if (pageWasPaid(retired)) {
           throw new HostedCheckoutConflict('CHECKOUT_ALREADY_PAID', ALREADY_PAID_MESSAGE, quote.checkoutSessionId);
