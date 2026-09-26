@@ -4,6 +4,7 @@ import Stripe from 'stripe';
 import CheckoutPaymentQuote from '@/lib/models/CheckoutPaymentQuote';
 import {
   acquireCheckoutAttemptLease,
+  holdsCheckoutAttemptLease,
   releaseCheckoutAttemptLease,
 } from '@/lib/checkout/checkoutAttemptLease';
 import {
@@ -41,14 +42,16 @@ const REFUNDED_MESSAGE = 'The payment for this cart was refunded. Please start a
 
 /** A designed refusal: the guest is told what to do and no page is opened. */
 class HostedCheckoutConflict extends Error {
-  constructor(public code: string, message: string) {
+  constructor(public code: string, message: string, public sessionId?: string) {
     super(message);
     this.name = 'HostedCheckoutConflict';
   }
 }
 
-const conflict = (code: string, message: string) => NextResponse.json(
-  { success: false, code, message },
+// `sessionId` lets the browser send an already-paid guest to their confirmation
+// instead of showing them an error about a payment that actually succeeded.
+const conflict = (code: string, message: string, sessionId?: string) => NextResponse.json(
+  { success: false, code, message, ...(sessionId ? { sessionId } : {}) },
   { status: 409, headers: { 'Cache-Control': 'no-store' } },
 );
 
@@ -67,7 +70,20 @@ type StoredQuote = {
   quoteBinding: string;
   checkoutSessionId: string;
   status: string;
+  checkoutClosedAt?: Date | null;
 };
+
+/**
+ * A page we have not seen Stripe confirm as closed. Intending to close a page is
+ * not closing it: if this invocation dies in between (Stripe timing out, or the
+ * platform's 26s function limit), the page is still able to charge the guest, so
+ * it must stay in the next request's sights to be retried — or recognised as
+ * paid — rather than quietly disappearing while a second page is opened.
+ */
+const stillPayable = (quote: StoredQuote): boolean =>
+  (quote.status === 'open' || quote.status === 'superseded')
+  && !quote.checkoutClosedAt
+  && Boolean(quote.checkoutSessionId);
 
 export async function POST(request: Request) {
   let prepared: PreparedStripeCheckout | undefined;
@@ -95,8 +111,9 @@ export async function POST(request: Request) {
 
       // Paid is terminal. Opening another page here would invite a second charge
       // for an order the webhook has already booked.
-      if (quotes.some((quote) => quote.status === 'paid')) {
-        throw new HostedCheckoutConflict('CHECKOUT_ALREADY_PAID', ALREADY_PAID_MESSAGE);
+      const paidQuote = quotes.find((quote) => quote.status === 'paid');
+      if (paidQuote) {
+        throw new HostedCheckoutConflict('CHECKOUT_ALREADY_PAID', ALREADY_PAID_MESSAGE, paidQuote.checkoutSessionId);
       }
 
       // A refunded cart cannot be re-pointed at a new page without losing the
@@ -108,17 +125,23 @@ export async function POST(request: Request) {
         throw new HostedCheckoutConflict(
           thisCart.status === 'refunded' ? 'CHECKOUT_REFUNDED' : 'CHECKOUT_ALREADY_PAID',
           thisCart.status === 'refunded' ? REFUNDED_MESSAGE : ALREADY_PAID_MESSAGE,
+          thisCart.status === 'refunded' ? undefined : thisCart.checkoutSessionId,
         );
       }
 
-      const openQuotes = quotes.filter((quote) => quote.status === 'open' && Boolean(quote.checkoutSessionId));
+      const payablePages = quotes.filter(stillPayable);
 
       // Reuse: the guest backed out of Stripe and pressed Pay again on the same
-      // cart. The page they left is still the right page.
-      const sameCart = openQuotes.find((quote) => quote.quoteBinding === prepared!.quoteBinding);
+      // cart. The page they left is still the right page. Only a page we never
+      // set out to replace is handed back — one already marked gets retired.
+      const sameCart = payablePages.find(
+        (quote) => quote.status === 'open' && quote.quoteBinding === prepared!.quoteBinding,
+      );
       if (sameCart) {
         const page = await stripe.checkout.sessions.retrieve(sameCart.checkoutSessionId).catch(() => null);
-        if (pageWasPaid(page)) throw new HostedCheckoutConflict('CHECKOUT_ALREADY_PAID', ALREADY_PAID_MESSAGE);
+        if (pageWasPaid(page)) {
+          throw new HostedCheckoutConflict('CHECKOUT_ALREADY_PAID', ALREADY_PAID_MESSAGE, sameCart.checkoutSessionId);
+        }
         const usable = page
           && page.status === 'open'
           && page.amount_total === prepared.amountMinor
@@ -136,13 +159,19 @@ export async function POST(request: Request) {
         }
       }
 
-      // Retire: anything else still payable for this attempt is closed first, so
-      // the guest is never holding two pages that can both charge them.
-      for (const quote of openQuotes) {
-        // Recorded before Stripe is asked, so a crash in between leaves a page we
-        // still know about rather than an untracked payable one.
+      // Retire: every page of this attempt that could still charge the guest is
+      // closed first, so they are never holding two payable pages.
+      for (const quote of payablePages) {
+        // Marked before Stripe is asked, so a payment that slips through on this
+        // page is recognised by the webhook as belonging to a replaced page. The
+        // mark does NOT say the page is closed — only Stripe's answer does, below.
         await CheckoutPaymentQuote.updateOne(
-          { _id: quote._id, tenantId: prepared.tenantId, status: 'open' },
+          {
+            _id: quote._id,
+            tenantId: prepared.tenantId,
+            status: { $in: ['open', 'superseded'] },
+            checkoutClosedAt: { $exists: false },
+          },
           { $set: { status: 'superseded' }, $addToSet: { supersededSessionIds: quote.checkoutSessionId } },
         );
         let retired: Stripe.Checkout.Session | null = null;
@@ -152,13 +181,31 @@ export async function POST(request: Request) {
           const page = await stripe.checkout.sessions.retrieve(quote.checkoutSessionId).catch(() => null);
           // Stripe refuses to expire a page that has been paid. That payment is
           // the order; the webhook books it.
-          if (pageWasPaid(page)) throw new HostedCheckoutConflict('CHECKOUT_ALREADY_PAID', ALREADY_PAID_MESSAGE);
-          // Anything else: fail closed rather than open a second payable page.
+          if (pageWasPaid(page)) {
+            throw new HostedCheckoutConflict('CHECKOUT_ALREADY_PAID', ALREADY_PAID_MESSAGE, quote.checkoutSessionId);
+          }
+          // Anything else: fail closed. The page keeps no closed marker, so the
+          // next request lists it again and tries to close it once more.
           throw error;
         }
         if (pageWasPaid(retired)) {
-          throw new HostedCheckoutConflict('CHECKOUT_ALREADY_PAID', ALREADY_PAID_MESSAGE);
+          throw new HostedCheckoutConflict('CHECKOUT_ALREADY_PAID', ALREADY_PAID_MESSAGE, quote.checkoutSessionId);
         }
+        if (retired?.status !== 'expired') {
+          throw new Error(`Stripe did not confirm the previous checkout page closed (${retired?.status || 'unknown'}).`);
+        }
+        // Only now is the page provably unable to take money.
+        await CheckoutPaymentQuote.updateOne(
+          { _id: quote._id, tenantId: prepared.tenantId },
+          { $set: { checkoutClosedAt: new Date() } },
+        );
+      }
+
+      // Closing pages can take longer than the lease. Re-fence before opening a
+      // payable page: if this request no longer holds the claim, another one does,
+      // and only one of us may open a page.
+      if (!await holdsCheckoutAttemptLease(prepared.tenantId, prepared.checkoutAttemptId, leaseToken)) {
+        throw new HostedCheckoutConflict('CHECKOUT_PREPARING', PREPARING_MESSAGE);
       }
 
       // A fresh nonce per page. The old key was fixed per (tenant, attempt,
@@ -218,6 +265,8 @@ export async function POST(request: Request) {
             checkoutExpiresAt,
             expiresAt: new Date(checkoutExpiresAt.getTime() + QUOTE_RETENTION_MS),
           },
+          // The new page is open, so the record must not claim it is closed.
+          $unset: { checkoutClosedAt: '' },
           $setOnInsert: {
             paymentExperience: 'hosted',
             customer: prepared.customer,
@@ -246,7 +295,7 @@ export async function POST(request: Request) {
       pricing: prepared.pricing,
     }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error: unknown) {
-    if (error instanceof HostedCheckoutConflict) return conflict(error.code, error.message);
+    if (error instanceof HostedCheckoutConflict) return conflict(error.code, error.message, error.sessionId);
     if (isDuplicateKeyError(error)) {
       // The record for this cart is in a state we refuse to re-point at a new
       // page (settled, or refunded). Either way no page is left payable.

@@ -5,11 +5,13 @@
  */
 const mockFindOneAndUpdate = jest.fn();
 const mockDeleteOne = jest.fn();
+const mockFindOne = jest.fn();
 
 jest.mock('@/lib/models/CheckoutAttemptLease', () => ({
   __esModule: true,
   default: {
     findOneAndUpdate: (...args: unknown[]) => mockFindOneAndUpdate(...args),
+    findOne: (...args: unknown[]) => mockFindOne(...args),
     deleteOne: (...args: unknown[]) => mockDeleteOne(...args),
   },
 }));
@@ -17,6 +19,7 @@ jest.mock('@/lib/models/CheckoutAttemptLease', () => ({
 import {
   CHECKOUT_ATTEMPT_LEASE_MS,
   acquireCheckoutAttemptLease,
+  holdsCheckoutAttemptLease,
   releaseCheckoutAttemptLease,
 } from '@/lib/checkout/checkoutAttemptLease';
 
@@ -27,6 +30,7 @@ describe('checkout attempt lease', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockDeleteOne.mockResolvedValue({ deletedCount: 1 });
+    mockFindOne.mockReturnValue({ lean: async () => ({ _id: 'lease-1' }) });
   });
 
   it('claims a lapsed or absent lease and returns its own token', async () => {
@@ -67,6 +71,29 @@ describe('checkout attempt lease', () => {
       lean: async () => { throw new Error('connection reset'); },
     }));
     await expect(acquireCheckoutAttemptLease(TENANT, ATTEMPT)).rejects.toThrow('connection reset');
+  });
+
+  it('is short enough to expire before the platform kills the function', async () => {
+    // Netlify stops these functions at 26s (netlify.toml). A lease longer than
+    // that locks a guest out of paying long after they saw an error.
+    expect(CHECKOUT_ATTEMPT_LEASE_MS).toBeLessThanOrEqual(20_000);
+  });
+
+  it('confirms the claim is still ours and still live', async () => {
+    await expect(holdsCheckoutAttemptLease(TENANT, ATTEMPT, 'token-1')).resolves.toBe(true);
+    const [filter] = mockFindOne.mock.calls[0] as [Record<string, any>];
+    expect(filter).toMatchObject({ tenantId: TENANT, checkoutAttemptId: ATTEMPT, leaseToken: 'token-1' });
+    expect(filter.leaseExpiresAt.$gt).toBeInstanceOf(Date);
+  });
+
+  it('reports the claim as lost when the record is gone or taken over', async () => {
+    mockFindOne.mockReturnValue({ lean: async () => null });
+    await expect(holdsCheckoutAttemptLease(TENANT, ATTEMPT, 'token-1')).resolves.toBe(false);
+  });
+
+  it('reports the claim as lost when the lease cannot be read', async () => {
+    mockFindOne.mockReturnValue({ lean: async () => { throw new Error('connection reset'); } });
+    await expect(holdsCheckoutAttemptLease(TENANT, ATTEMPT, 'token-1')).resolves.toBe(false);
   });
 
   it('releases only its own claim', async () => {

@@ -1,7 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import CheckoutAttemptLease from '@/lib/models/CheckoutAttemptLease';
 
-export const CHECKOUT_ATTEMPT_LEASE_MS = 60 * 1000;
+/**
+ * Deliberately shorter than the platform's function limit (26s, netlify.toml).
+ * A lease that outlives the invocation holding it locks the guest out of paying
+ * long after they were shown an error, and leaves a zombie request able to act
+ * on a claim it no longer owns.
+ */
+export const CHECKOUT_ATTEMPT_LEASE_MS = 20 * 1000;
 
 const isDuplicateKeyError = (error: unknown): boolean =>
   Boolean(error) && (error as { code?: number }).code === 11000;
@@ -35,6 +41,32 @@ export async function acquireCheckoutAttemptLease(
   } catch (error) {
     if (isDuplicateKeyError(error)) return null;
     throw error;
+  }
+}
+
+/**
+ * Is this claim still ours, and still live?
+ *
+ * Checked again immediately before anything that opens a payable page, because
+ * the close work before it can outlast the lease. Without this fence a request
+ * that ran past its deadline races the request that took over and both open a
+ * page. A lease that cannot be read counts as lost: fail closed.
+ */
+export async function holdsCheckoutAttemptLease(
+  tenantId: string,
+  checkoutAttemptId: string,
+  leaseToken: string,
+): Promise<boolean> {
+  try {
+    const lease = await CheckoutAttemptLease.findOne({
+      tenantId,
+      checkoutAttemptId,
+      leaseToken,
+      leaseExpiresAt: { $gt: new Date() },
+    }).lean<{ _id?: unknown } | null>();
+    return Boolean(lease);
+  } catch {
+    return false;
   }
 }
 

@@ -6,6 +6,7 @@ import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-
 import { loadStripe } from '@stripe/stripe-js';
 import { AlertCircle, ArrowRight, CheckCircle2, CreditCard, Loader2, Lock, ShieldCheck, X } from 'lucide-react';
 import { clearCheckoutAttemptId, getOrCreateCheckoutAttemptId } from '@/lib/checkout/checkoutAttempt';
+import { alreadyPaidReturnPath } from '@/lib/checkout/checkoutConflictRedirect';
 import type { PaymentExperience } from '@/lib/checkout/paymentExperience';
 import { isAllowedStripeCheckoutUrl } from '@/lib/checkout/stripeCheckoutDestination';
 import { useStorefrontTheme } from '@/contexts/StorefrontThemeContext';
@@ -338,11 +339,18 @@ function HostedLauncher({ amount, currency, customer, cart, pricing, discountCod
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ customer, cart, pricing, discountCode, checkoutAttemptId, locale }),
       });
-      const payload = await response.json() as { success?: boolean; url?: unknown; code?: string; message?: string; quote?: unknown };
+      const payload = await response.json() as { success?: boolean; url?: unknown; code?: string; message?: string; quote?: unknown; sessionId?: unknown };
       if (response.status === 409 && payload.code === 'PRICE_CHANGED' && isAuthoritativePriceQuote(payload.quote)) {
         setPendingPriceChange(payload.quote);
         setPriceChangeError('');
         setRedirecting(false);
+        return;
+      }
+      // Already paid: the money is taken and the booking is being written, so show
+      // the confirmation rather than an error the guest can do nothing about.
+      const paidReturn = alreadyPaidReturnPath(payload, locale);
+      if (paidReturn) {
+        window.location.assign(paidReturn);
         return;
       }
       if (!response.ok || payload.success !== true || !isAllowedStripeCheckoutUrl(payload.url)) {

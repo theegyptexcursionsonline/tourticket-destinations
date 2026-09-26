@@ -24,6 +24,9 @@ describe('per-tenant checkout presentation contract', () => {
     expect(form).toContain('data-testid="inline-payment-experience"');
     expect(form).toContain('data-testid="modal-payment-experience"');
     expect(form).toContain('data-testid="hosted-payment-experience"');
+    // An already-paid cart sends the guest to their confirmation, and the page it
+    // builds comes from the checked helper rather than the raw response.
+    expect(form).toContain('alreadyPaidReturnPath');
     expect(form).not.toContain('<span>Apple Pay</span>');
   });
 

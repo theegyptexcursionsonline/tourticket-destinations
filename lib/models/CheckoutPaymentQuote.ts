@@ -23,6 +23,12 @@ export interface ICheckoutPaymentQuote extends Document {
   status: 'open' | 'paid' | 'expired' | 'refunded' | 'superseded';
   /** When the current Stripe Checkout page stops being payable. */
   checkoutExpiresAt?: Date;
+  /**
+   * Set only once Stripe has confirmed the page is expired. Its absence is what
+   * keeps an unclosed page in the next request's sights, so intending to close a
+   * page can never hide one that is still able to charge the guest.
+   */
+  checkoutClosedAt?: Date;
   /** Earlier pages of the same attempt; still reachable from a return link. */
   supersededSessionIds?: string[];
   /** Retention deadline for the record itself, well after the page expires. */
@@ -63,6 +69,7 @@ const CheckoutPaymentQuoteSchema = new Schema<ICheckoutPaymentQuote>({
     default: 'open',
   },
   checkoutExpiresAt: { type: Date },
+  checkoutClosedAt: { type: Date },
   supersededSessionIds: { type: [String], default: undefined },
   // Retention, not the payment deadline: the page dies long before the record.
   expiresAt: { type: Date, required: true },

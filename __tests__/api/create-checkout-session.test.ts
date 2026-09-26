@@ -15,6 +15,7 @@ const mockQuoteUpdateOne = jest.fn();
 const mockGuard = jest.fn();
 const mockAcquireLease = jest.fn();
 const mockReleaseLease = jest.fn();
+const mockHoldsLease = jest.fn();
 
 jest.mock('next/server', () => ({
   NextResponse: {
@@ -48,6 +49,7 @@ jest.mock('@/lib/checkout/prepareStripeCheckout', () => ({
 jest.mock('@/lib/checkout/checkoutAttemptLease', () => ({
   acquireCheckoutAttemptLease: (...args: unknown[]) => mockAcquireLease(...args),
   releaseCheckoutAttemptLease: (...args: unknown[]) => mockReleaseLease(...args),
+  holdsCheckoutAttemptLease: (...args: unknown[]) => mockHoldsLease(...args),
 }));
 jest.mock('@/lib/models/CheckoutPaymentQuote', () => ({
   __esModule: true,
@@ -108,6 +110,7 @@ describe('POST /api/checkout/create-checkout-session', () => {
     mockPrepare.mockResolvedValue(prepared);
     mockAcquireLease.mockResolvedValue('lease-token-1');
     mockReleaseLease.mockResolvedValue(undefined);
+    mockHoldsLease.mockResolvedValue(true);
     mockQuoteFind.mockReturnValue({ lean: jest.fn().mockResolvedValue([]) });
     mockQuoteUpdateOne.mockResolvedValue({ matchedCount: 1, modifiedCount: 1 });
     mockSessionCreate.mockResolvedValue({
@@ -239,7 +242,12 @@ describe('POST /api/checkout/create-checkout-session', () => {
     const expireCall = mockSessionExpire.mock.invocationCallOrder[0];
     expect(supersedeCall).toBeLessThan(expireCall);
     expect(mockQuoteUpdateOne).toHaveBeenCalledWith(
-      { _id: 'quote-1', tenantId: prepared.tenantId, status: 'open' },
+      {
+        _id: 'quote-1',
+        tenantId: prepared.tenantId,
+        status: { $in: ['open', 'superseded'] },
+        checkoutClosedAt: { $exists: false },
+      },
       expect.objectContaining({ $set: { status: 'superseded' } }),
     );
   });
@@ -324,6 +332,141 @@ describe('POST /api/checkout/create-checkout-session', () => {
     const response = await POST(request());
 
     expect(response.status).toBe(500);
+    expect(mockSessionCreate).not.toHaveBeenCalled();
+  });
+
+  it('records a page as closed only once Stripe confirms it expired', async () => {
+    mockQuoteFind.mockReturnValue({ lean: jest.fn().mockResolvedValue([storedQuote()]) });
+    mockSessionRetrieve.mockResolvedValue({
+      id: 'cs_test_hosted_previous_1',
+      status: 'open',
+      payment_status: 'unpaid',
+      amount_total: 10_800,
+      currency: 'usd',
+      url: 'https://checkout.stripe.com/c/pay/cs_test_hosted_previous_1',
+      expires_at: nowSeconds() + 120,
+    });
+
+    const response = await POST(request());
+
+    expect(response.status).toBe(200);
+    const closeWrite = mockQuoteUpdateOne.mock.calls.find(
+      (call) => (call[1] as { $set?: Record<string, unknown> })?.$set?.checkoutClosedAt !== undefined,
+    );
+    expect(closeWrite?.[0]).toMatchObject({ _id: 'quote-1', tenantId: prepared.tenantId });
+    // Written after Stripe answered, never before it was asked.
+    const closeWriteOrder = mockQuoteUpdateOne.mock.invocationCallOrder[
+      mockQuoteUpdateOne.mock.calls.indexOf(closeWrite as unknown[])
+    ];
+    expect(mockSessionExpire.mock.invocationCallOrder[0]).toBeLessThan(closeWriteOrder);
+  });
+
+  it('leaves a page it could not close listed, so the next request tries again', async () => {
+    // Netlify kills this function at 26s. If a page were treated as closed the
+    // moment we intended to close it, a dead invocation would hide a page that
+    // is still able to charge the guest — and the next request would open a
+    // second one beside it.
+    mockQuoteFind.mockReturnValue({ lean: jest.fn().mockResolvedValue([storedQuote()]) });
+    mockSessionExpire.mockRejectedValue(Object.assign(new Error('Stripe is down'), { type: 'StripeAPIError' }));
+
+    const response = await POST(request());
+
+    expect(response.status).toBe(500);
+    expect(mockSessionCreate).not.toHaveBeenCalled();
+    const closeWrite = mockQuoteUpdateOne.mock.calls.find(
+      (call) => (call[1] as { $set?: Record<string, unknown> })?.$set?.checkoutClosedAt !== undefined,
+    );
+    expect(closeWrite).toBeUndefined();
+  });
+
+  it('closes a page an earlier request marked but failed to close', async () => {
+    mockQuoteFind.mockReturnValue({
+      lean: jest.fn().mockResolvedValue([storedQuote({ status: 'superseded', checkoutClosedAt: undefined })]),
+    });
+
+    const response = await POST(request());
+
+    expect(response.status).toBe(200);
+    expect(mockSessionExpire).toHaveBeenCalledWith('cs_test_hosted_previous_1');
+    expect(mockSessionExpire.mock.invocationCallOrder[0])
+      .toBeLessThan(mockSessionCreate.mock.invocationCallOrder[0]);
+  });
+
+  it('finds the payment taken on a page an earlier request failed to close', async () => {
+    mockQuoteFind.mockReturnValue({
+      lean: jest.fn().mockResolvedValue([storedQuote({ status: 'superseded', checkoutClosedAt: undefined })]),
+    });
+    mockSessionExpire.mockRejectedValue(Object.assign(
+      new Error('You cannot expire a Checkout Session that is already complete.'),
+      { type: 'StripeInvalidRequestError' },
+    ));
+    mockSessionRetrieve.mockResolvedValue({
+      id: 'cs_test_hosted_previous_1',
+      status: 'complete',
+      payment_status: 'paid',
+      amount_total: 10_800,
+      currency: 'usd',
+      url: 'https://checkout.stripe.com/c/pay/cs_test_hosted_previous_1',
+    });
+
+    const response = await POST(request());
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toMatchObject({
+      code: 'CHECKOUT_ALREADY_PAID',
+      sessionId: 'cs_test_hosted_previous_1',
+    });
+    expect(mockSessionCreate).not.toHaveBeenCalled();
+  });
+
+  it('ignores a page Stripe has confirmed closed', async () => {
+    mockQuoteFind.mockReturnValue({
+      lean: jest.fn().mockResolvedValue([storedQuote({ status: 'superseded', checkoutClosedAt: new Date() })]),
+    });
+
+    const response = await POST(request());
+
+    expect(response.status).toBe(200);
+    expect(mockSessionExpire).not.toHaveBeenCalled();
+    expect(mockSessionCreate).toHaveBeenCalledTimes(1);
+  });
+
+  it('names the paid page so the guest can be sent to their confirmation', async () => {
+    mockQuoteFind.mockReturnValue({
+      lean: jest.fn().mockResolvedValue([storedQuote({ status: 'paid', checkoutSessionId: 'cs_test_hosted_paid_1' })]),
+    });
+
+    const response = await POST(request());
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toMatchObject({
+      code: 'CHECKOUT_ALREADY_PAID',
+      sessionId: 'cs_test_hosted_paid_1',
+    });
+  });
+
+  it('checks the lease again immediately before opening the page', async () => {
+    mockQuoteFind.mockReturnValue({ lean: jest.fn().mockResolvedValue([storedQuote()]) });
+
+    await POST(request());
+
+    expect(mockHoldsLease).toHaveBeenCalledWith(prepared.tenantId, prepared.checkoutAttemptId, 'lease-token-1');
+    // After the close work, before the new page: closing can outlast the lease.
+    expect(mockSessionExpire.mock.invocationCallOrder[0])
+      .toBeLessThan(mockHoldsLease.mock.invocationCallOrder[0]);
+    expect(mockHoldsLease.mock.invocationCallOrder[0])
+      .toBeLessThan(mockSessionCreate.mock.invocationCallOrder[0]);
+  });
+
+  it('opens no page once its own lease has lapsed', async () => {
+    // Without this fence a request that outlived its lease races the request
+    // that took over, and both open a payable page.
+    mockHoldsLease.mockResolvedValue(false);
+
+    const response = await POST(request());
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toMatchObject({ code: 'CHECKOUT_PREPARING' });
     expect(mockSessionCreate).not.toHaveBeenCalled();
   });
 
