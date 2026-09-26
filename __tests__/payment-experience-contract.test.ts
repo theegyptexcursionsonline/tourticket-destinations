@@ -36,7 +36,10 @@ describe('per-tenant checkout presentation contract', () => {
 
     expect(preparation).toContain("'PAYMENT_EXPERIENCE_MISMATCH'");
     expect(preparation).toContain("endpoint === 'hosted'");
-    expect(sessionStatus).toContain('findOne({ tenantId, checkoutSessionId: sessionId })');
+    // Tenant-scoped, and matching the earlier pages of the same attempt too, so a
+    // guest who paid on a page we replaced still reaches their confirmation.
+    expect(sessionStatus).toContain('$or: [{ checkoutSessionId: sessionId }, { supersededSessionIds: sessionId }]');
+    expect(sessionStatus).toContain('tenantId,');
     expect(webhook).toContain('checkoutItemKey: `${bookingTenantId}:${paymentId}:${cartIndex}`');
     expect(webhook).toContain('paymentItemIndex: cartIndex');
     expect(checkout).toContain('paymentItemIndex: i');

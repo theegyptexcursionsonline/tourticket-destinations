@@ -238,8 +238,15 @@ async function processSuccessfulPayment(paymentIntent: Stripe.PaymentIntent) {
       metadata: { reason, tenant_id: tenantId },
     }, { idempotencyKey: `network-hosted-refund-${paymentId}` });
     if (hostedQuote?._id) {
+      // A shopping attempt can produce more than one payment (a page we replaced
+      // while the guest was paying). Refunding the extra payment must never
+      // relabel the quote the winning payment legitimately paid.
       await CheckoutPaymentQuote.updateOne(
-        { _id: hostedQuote._id, tenantId },
+        {
+          _id: hostedQuote._id,
+          tenantId,
+          $or: [{ status: { $ne: 'paid' } }, { paymentIntentId: paymentId }],
+        },
         { $set: { status: 'refunded', paymentIntentId: paymentId } },
       );
     }
@@ -254,14 +261,54 @@ async function processSuccessfulPayment(paymentIntent: Stripe.PaymentIntent) {
       await refundHostedPayment('hosted_quote_invalid');
       return { created: false, reason: 'hosted_quote_refunded' };
     }
+    // One shopping attempt settles once. Hosted checkout can have more than one
+    // page per attempt — one we replaced and closed too late, or one for a cart
+    // the guest edited — and a payment on the loser must be refunded, never
+    // turned into a second booking for the same order.
+    const settledElsewhere: any = metadata.checkout_attempt_id
+      ? await CheckoutPaymentQuote.findOne({
+        tenantId,
+        checkoutAttemptId: metadata.checkout_attempt_id,
+        status: 'paid',
+        paymentIntentId: { $nin: [null, paymentId] },
+      }).lean()
+      : null;
+    if (settledElsewhere) {
+      console.error(`[Webhook] Attempt ${metadata.checkout_attempt_id} was already paid by ${settledElsewhere.paymentIntentId}; refunding ${paymentId}`);
+      await refundHostedPayment('hosted_attempt_already_paid');
+      return { created: false, reason: 'hosted_duplicate_refunded' };
+    }
+
     // The persisted, server-created quote is immutable after Stripe charges
     // it. A later operator price change must not turn a valid paid order into
     // an automatic refund; live inventory is still rechecked transactionally
     // before the booking is written below.
-    await CheckoutPaymentQuote.updateOne(
-      { _id: hostedQuote._id, tenantId },
+    //
+    // Guarded, not blind: a payment taken on a page we superseded still settles
+    // the quote, but a quote already paid by a different PaymentIntent is never
+    // reassigned. Matched (not modified) is the signal — a retry of the same
+    // event writes identical values and modifies nothing.
+    const claim = await CheckoutPaymentQuote.updateOne(
+      {
+        _id: hostedQuote._id,
+        tenantId,
+        $or: [
+          { status: { $in: ['open', 'expired', 'superseded'] } },
+          { status: 'paid', paymentIntentId: paymentId },
+        ],
+      },
       { $set: { status: 'paid', paymentIntentId: paymentId } },
     );
+    if (!Number((claim as { matchedCount?: number } | undefined)?.matchedCount ?? 0)) {
+      const current: any = await CheckoutPaymentQuote.findOne({ _id: hostedQuote._id, tenantId }).lean();
+      if (current?.status === 'paid' && current.paymentIntentId !== paymentId) {
+        console.error(`[Webhook] Quote for ${paymentId} is already paid by ${current.paymentIntentId}; refunding`);
+        await refundHostedPayment('hosted_quote_already_paid');
+        return { created: false, reason: 'hosted_duplicate_refunded' };
+      }
+      console.error(`[Webhook] Hosted quote for ${paymentId} could not be claimed (status ${current?.status || 'missing'})`);
+      return { created: false, reason: 'hosted_quote_unclaimable' };
+    }
   }
 
   // ── Check if booking already exists (created by checkout endpoint) ───────

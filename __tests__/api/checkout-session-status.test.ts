@@ -52,7 +52,15 @@ describe('GET /api/checkout/session-status', () => {
     mockQuoteFindOne.mockReturnValue({ select: () => ({ lean: async () => null }) });
     const response = await GET(request('cs_test_1234567890'));
     expect(response.status).toBe(404);
-    expect(mockQuoteFindOne).toHaveBeenCalledWith({ tenantId: 'brand-one', checkoutSessionId: 'cs_test_1234567890' });
+    // Earlier pages of the same attempt are matched too, so a guest who paid on
+    // a page we replaced still sees their confirmation — still tenant-scoped.
+    expect(mockQuoteFindOne).toHaveBeenCalledWith({
+      tenantId: 'brand-one',
+      $or: [
+        { checkoutSessionId: 'cs_test_1234567890' },
+        { supersededSessionIds: 'cs_test_1234567890' },
+      ],
+    });
     expect(mockSessionRetrieve).not.toHaveBeenCalled();
   });
 

@@ -20,7 +20,12 @@ export interface ICheckoutPaymentQuote extends Document {
     currency: string;
   };
   discountCode?: string;
-  status: 'open' | 'paid' | 'expired' | 'refunded';
+  status: 'open' | 'paid' | 'expired' | 'refunded' | 'superseded';
+  /** When the current Stripe Checkout page stops being payable. */
+  checkoutExpiresAt?: Date;
+  /** Earlier pages of the same attempt; still reachable from a return link. */
+  supersededSessionIds?: string[];
+  /** Retention deadline for the record itself, well after the page expires. */
   expiresAt: Date;
 }
 
@@ -48,7 +53,18 @@ const CheckoutPaymentQuoteSchema = new Schema<ICheckoutPaymentQuote>({
     currency: { type: String, required: true },
   },
   discountCode: { type: String },
-  status: { type: String, enum: ['open', 'paid', 'expired', 'refunded'], required: true, default: 'open' },
+  status: {
+    type: String,
+    // `superseded` is a page we closed to open a replacement. It is not a
+    // terminal state: a payment taken on that page before Stripe closed it
+    // still settles the quote, so the webhook can move it to paid.
+    enum: ['open', 'paid', 'expired', 'refunded', 'superseded'],
+    required: true,
+    default: 'open',
+  },
+  checkoutExpiresAt: { type: Date },
+  supersededSessionIds: { type: [String], default: undefined },
+  // Retention, not the payment deadline: the page dies long before the record.
   expiresAt: { type: Date, required: true },
 }, { timestamps: true, minimize: false });
 
@@ -57,6 +73,14 @@ CheckoutPaymentQuoteSchema.index(
   { unique: true, name: 'tenant_checkout_quote_unique' },
 );
 CheckoutPaymentQuoteSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+CheckoutPaymentQuoteSchema.index(
+  { tenantId: 1, checkoutAttemptId: 1, status: 1 },
+  { name: 'tenant_attempt_status' },
+);
+CheckoutPaymentQuoteSchema.index(
+  { supersededSessionIds: 1 },
+  { sparse: true, name: 'superseded_session_lookup' },
+);
 
 // The network shares infrastructure with the flagship, whose checkout quote
 // has a different lifecycle. Keep the collections distinct so either app can

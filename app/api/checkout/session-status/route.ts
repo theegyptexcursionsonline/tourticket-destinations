@@ -30,7 +30,13 @@ export async function GET(request: NextRequest) {
   try {
     await dbConnect();
     const tenantId = await getTenantFromRequest();
-    const quote = await CheckoutPaymentQuote.findOne({ tenantId, checkoutSessionId: sessionId })
+    // A guest can land here from a page we replaced while they were paying, so
+    // the record is also matched by the earlier page ids it has carried.
+    // Otherwise a real, reconciled payment would show as an unavailable link.
+    const quote = await CheckoutPaymentQuote.findOne({
+      tenantId,
+      $or: [{ checkoutSessionId: sessionId }, { supersededSessionIds: sessionId }],
+    })
       .select('quoteBinding status paymentIntentId -_id')
       .lean<{ quoteBinding: string; status: string; paymentIntentId?: string } | null>();
     if (!quote) {
