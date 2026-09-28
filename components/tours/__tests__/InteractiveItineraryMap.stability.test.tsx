@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import InteractiveItineraryMap, { type InteractiveItineraryItem } from '../InteractiveItineraryMap';
 
 const MAP_LOAD_TIMEOUT_MS = 15000;
@@ -41,7 +41,16 @@ const mapStats = {
   setDataCalls: 0,
   fitBoundsCalls: 0,
   stallNextBuilds: 0,
+  throwOnRemove: false,
 };
+
+// jsdom has no WebGL; the map only builds where a WebGL context exists, so
+// model that explicitly rather than depending on the environment.
+const webgl = { supported: true };
+jest.mock('@/lib/maps/webglSupport', () => ({
+  supportsWebGL2: () => webgl.supported,
+  canRenderMapLibre: () => webgl.supported,
+}));
 
 jest.mock('maplibre-gl', () => {
   class FakeSource {
@@ -77,7 +86,11 @@ jest.mock('maplibre-gl', () => {
     jumpTo() { /* no-op */ }
     easeTo() { /* no-op */ }
     fitBounds() { mapStats.fitBoundsCalls += 1; }
-    remove() { mapStats.removed += 1; }
+    remove() {
+      mapStats.removed += 1;
+      // A map that never finished building (no WebGL context) crashes on removal.
+      if (mapStats.throwOnRemove) throw new TypeError("Cannot read properties of undefined (reading 'destroy')");
+    }
   }
 
   class FakeMarker {
@@ -190,6 +203,8 @@ describe('InteractiveItineraryMap recovery from a stalled tile host', () => {
     mapStats.setDataCalls = 0;
     mapStats.fitBoundsCalls = 0;
     mapStats.stallNextBuilds = 0;
+    mapStats.throwOnRemove = false;
+    webgl.supported = true;
   });
 
   it('offers a working retry instead of stranding the customer with a dead map', async () => {
@@ -229,6 +244,8 @@ describe('InteractiveItineraryMap stability under parent re-renders', () => {
     mapStats.setDataCalls = 0;
     mapStats.fitBoundsCalls = 0;
     mapStats.stallNextBuilds = 0;
+    mapStats.throwOnRemove = false;
+    webgl.supported = true;
   });
 
   it('builds the map once and never rebuilds it when the parent re-renders with equal data', async () => {
@@ -301,5 +318,53 @@ describe('InteractiveItineraryMap stability under parent re-renders', () => {
     expect(mapStats.constructed).toBe(1);
     expect(mapStats.removed).toBe(0);
     expect(mapStats.fitBoundsCalls).toBe(2);
+  });
+});
+
+describe('InteractiveItineraryMap without a WebGL context', () => {
+  beforeEach(() => {
+    mapStats.constructed = 0;
+    mapStats.removed = 0;
+    mapStats.markersCreated = 0;
+    mapStats.stallNextBuilds = 0;
+    mapStats.throwOnRemove = false;
+    webgl.supported = true;
+  });
+
+  it('shows the designed fallback at once and never builds a map it cannot render', async () => {
+    webgl.supported = false;
+    render(<ScrollingParent />);
+    await flushStyleLoad();
+
+    expect(screen.getByText('The route map is temporarily unavailable.')).toBeInTheDocument();
+    expect(screen.queryByText('Loading route map\u2026')).not.toBeInTheDocument();
+    const fallback = screen.getByText('The route map is temporarily unavailable.').parentElement as HTMLElement;
+    expect(within(fallback).getByRole('link', { name: /open route/i })).toHaveAttribute('href', 'https://maps.example.test/route');
+    expect(mapStats.constructed).toBe(0);
+  });
+
+  it('reaches the fallback even when removing a half-built map throws', async () => {
+    jest.useFakeTimers();
+    try {
+      mapStats.stallNextBuilds = 1;
+      mapStats.throwOnRemove = true;
+      render(<ScrollingParent />);
+      await act(async () => { await Promise.resolve(); });
+      await act(async () => { jest.advanceTimersByTime(MAP_LOAD_TIMEOUT_MS + 100); });
+
+      expect(mapStats.removed).toBe(1);
+      expect(screen.getByText('The route map is temporarily unavailable.')).toBeInTheDocument();
+      expect(screen.queryByText('Loading route map\u2026')).not.toBeInTheDocument();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('unmounting after a failed build does not crash the page', async () => {
+    mapStats.stallNextBuilds = 1;
+    mapStats.throwOnRemove = true;
+    const view = render(<ScrollingParent />);
+    await flushStyleLoad();
+    expect(() => view.unmount()).not.toThrow();
   });
 });
