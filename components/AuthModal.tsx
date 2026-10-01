@@ -6,6 +6,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Mail, Lock, User, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import toast from 'react-hot-toast';
+import { AccountsUnavailableDialog } from '@/components/auth/AccountsUnavailableNotice';
+import { customerAccountsEnabled } from '@/lib/auth/customerAccounts';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -131,6 +133,9 @@ const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   if (!isOpen) return null;
+
+  // Customer accounts are paused on this network (lib/auth/customerAccounts).
+  if (!customerAccountsEnabled()) return <AccountsUnavailableDialog onClose={onClose} />;
 
   return (
     <AnimatePresence>

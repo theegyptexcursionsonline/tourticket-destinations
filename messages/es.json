@@ -549,7 +549,27 @@
     "accountCreated": "¡Cuenta creada exitosamente!",
     "emailAlreadyExists": "Ya existe una cuenta con este correo electrónico",
     "sendResetLink": "Enviar Enlace de Restablecimiento",
-    "backToLogin": "Volver a Iniciar Sesión"
+    "backToLogin": "Volver a Iniciar Sesión",
+    "accountsPaused": {
+      "title": "El inicio de sesión no está disponible temporalmente",
+      "intro": "Tus reservas no se ven afectadas y el correo de confirmación incluye todo lo que necesitas para tu excursión.",
+      "findTitle": "Encuentra tu reserva",
+      "referenceLabel": "Referencia de la reserva",
+      "referenceHelp": "Aparece junto a «Booking», en la parte superior de tu correo de confirmación.",
+      "referenceRequired": "Introduce la referencia de la reserva que aparece en tu correo de confirmación.",
+      "referenceInvalid": "Eso no parece una referencia de reserva. Cópiala de tu correo de confirmación.",
+      "viewBooking": "Ver reserva",
+      "changeTitle": "¿Necesitas cambiar o cancelar?",
+      "changeBody": "Nuestro equipo te ayuda encantado: escríbenos.",
+      "whatsapp": "WhatsApp",
+      "email": "Escríbenos por correo",
+      "contact": "Contáctanos",
+      "guestTitle": "¿Planeas otra excursión?",
+      "guest": "Puedes reservar cualquier excursión como invitado, sin necesidad de cuenta.",
+      "browse": "Ver excursiones",
+      "close": "Cerrar",
+      "checkoutNote": "El inicio de sesión no está disponible temporalmente, así que reservas como invitado. Tu correo de confirmación incluirá todo lo que necesitas."
+    }
   },
   "checkout": {
     "title": "Pago",

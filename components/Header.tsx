@@ -65,6 +65,7 @@ import { contentPath } from '@/lib/content/contentUrl';
 import ThemeToggle from '@/components/ThemeToggle';
 import { isRTL } from '@/i18n/config';
 import { tourSearchHref } from '@/lib/search/tourSearchHref';
+import { customerAccountsEnabled } from '@/lib/auth/customerAccounts';
 
 // =================================================================
 // --- ALGOLIA CONFIGURATION ---
@@ -1384,7 +1385,8 @@ const MobileMenu: FC<{
                 </button>
               </div>
 
-              {user ? (
+              {/* Account entry points are hidden while customer accounts are paused (lib/auth/customerAccounts). */}
+              {customerAccountsEnabled() && (user ? (
                 <div className="p-6 border-b">
                   <div className="flex items-center gap-3 mb-4">
                     {userImage ? (
@@ -1414,7 +1416,7 @@ const MobileMenu: FC<{
                     <Link href="/signup" className="block w-full border text-center py-3 rounded-lg transition-colors border-[var(--primary-color)] text-[var(--primary-color)] hover:bg-slate-50">{t('header.signup')}</Link>
                   </div>
                 </div>
-              )}
+              ))}
 
               <div className="flex-1 overflow-y-auto p-6 space-y-6">
                 <button onClick={() => { onOpenSearch(); onClose(); }} className="w-full flex items-center gap-3 p-4 rounded-lg text-start bg-slate-100">
@@ -1633,14 +1635,15 @@ export default function Header({
           <Search size={22} className="group-hover:text-[var(--primary-color)]" />
         </button>
 
-        {user ? (
+        {/* Account entry points are hidden while customer accounts are paused (lib/auth/customerAccounts). */}
+        {customerAccountsEnabled() && (user ? (
           <UserMenu user={user} onLogout={logout} />
         ) : (
           <div className="hidden md:flex items-center gap-3">
             <Link href="/login" className={`${headerText} ${linkHoverColor} font-semibold text-sm`}>{t('header.login')}</Link>
             <Link href="/signup" className="text-white px-4 py-2 rounded-full font-semibold text-sm transition-colors hover:opacity-90" style={{ backgroundColor: 'var(--primary-color)' }}>{t('header.signup')}</Link>
           </div>
-        )}
+        ))}
 
         <button onClick={handleMobileMenuOpen} className="md:hidden p-2" aria-label="Open menu">
           <Menu size={24} className={`${headerText} ${linkHoverColor}`} />

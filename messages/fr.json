@@ -549,7 +549,27 @@
     "accountCreated": "Compte créé avec succès!",
     "emailAlreadyExists": "Un compte avec cet email existe déjà",
     "sendResetLink": "Envoyer le Lien de Réinitialisation",
-    "backToLogin": "Retour à la Connexion"
+    "backToLogin": "Retour à la Connexion",
+    "accountsPaused": {
+      "title": "La connexion est temporairement indisponible",
+      "intro": "Vos réservations ne sont pas concernées, et votre e-mail de confirmation contient tout ce dont vous avez besoin pour votre excursion.",
+      "findTitle": "Retrouver votre réservation",
+      "referenceLabel": "Référence de réservation",
+      "referenceHelp": "Elle figure à côté de « Booking », en haut de votre e-mail de confirmation.",
+      "referenceRequired": "Saisissez la référence de réservation indiquée dans votre e-mail de confirmation.",
+      "referenceInvalid": "Cela ne ressemble pas à une référence de réservation. Copiez-la depuis votre e-mail de confirmation.",
+      "viewBooking": "Voir la réservation",
+      "changeTitle": "Besoin de modifier ou d’annuler ?",
+      "changeBody": "Notre équipe vous aide volontiers : contactez-nous.",
+      "whatsapp": "WhatsApp",
+      "email": "Nous écrire",
+      "contact": "Nous contacter",
+      "guestTitle": "Vous préparez une autre excursion ?",
+      "guest": "Vous pouvez réserver n’importe quelle excursion en tant qu’invité, sans créer de compte.",
+      "browse": "Voir les excursions",
+      "close": "Fermer",
+      "checkoutNote": "La connexion est temporairement indisponible : vous réservez donc en tant qu’invité. Votre e-mail de confirmation contiendra tout ce dont vous avez besoin."
+    }
   },
   "checkout": {
     "title": "Paiement",

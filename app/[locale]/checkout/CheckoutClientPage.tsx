@@ -40,6 +40,8 @@ import type { PaymentExperience } from '@/lib/checkout/paymentExperience';
 import { lineAddOnQuantity, lineGuestBreakdown, lineTotal } from '@/lib/checkout/lineTotals';
 import type { AuthoritativePriceQuote } from '@/lib/cart/authoritativeCart';
 import { shouldRedirectEmptyCheckout } from '@/lib/checkout/cartReadiness';
+import { AccountsUnavailableCheckoutNote } from '@/components/auth/AccountsUnavailableNotice';
+import { customerAccountsEnabled } from '@/lib/auth/customerAccounts';
 
 const FormInput = ({ label, name, type = 'text', placeholder, required = true, value, onChange, disabled = false }: any) => (
   <div>
@@ -62,7 +64,7 @@ const FormInput = ({ label, name, type = 'text', placeholder, required = true, v
 );
 
 // Customer Type Selection Component
-const CustomerTypeSelector = ({
+export const CustomerTypeSelector = ({
   customerType,
   setCustomerType,
   onLoginClick,
@@ -111,6 +113,10 @@ const CustomerTypeSelector = ({
           </div>
         </motion.button>
 
+        {/* Signing in or creating an account is unavailable while customer accounts are
+            paused (lib/auth/customerAccounts); guest checkout above keeps working. */}
+        {customerAccountsEnabled() ? (
+          <>
         {/* Sign In */}
         <motion.button
           type="button"
@@ -150,6 +156,10 @@ const CustomerTypeSelector = ({
             <div className="text-green-500 text-xs sm:text-sm font-medium flex-shrink-0 hidden xs:block">{t('auth.signup')} →</div>
           </div>
         </motion.button>
+          </>
+        ) : (
+          <AccountsUnavailableCheckoutNote />
+        )}
       </div>
 
       <div className="flex items-center gap-2 text-xs text-slate-500 bg-slate-50 p-3 rounded-lg">

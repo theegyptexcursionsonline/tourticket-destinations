@@ -549,7 +549,27 @@
     "accountCreated": "Account created successfully!",
     "emailAlreadyExists": "An account with this email already exists",
     "sendResetLink": "Send Reset Link",
-    "backToLogin": "Back to Login"
+    "backToLogin": "Back to Login",
+    "accountsPaused": {
+      "title": "Sign-in is temporarily unavailable",
+      "intro": "Your bookings are not affected, and your confirmation e-mail has everything you need for your trip.",
+      "findTitle": "Find your booking",
+      "referenceLabel": "Booking reference",
+      "referenceHelp": "You’ll find it next to “Booking” at the top of your confirmation e-mail.",
+      "referenceRequired": "Enter the booking reference from your confirmation e-mail.",
+      "referenceInvalid": "That doesn’t look like a booking reference. Please copy it from your confirmation e-mail.",
+      "viewBooking": "View booking",
+      "changeTitle": "Need to change or cancel?",
+      "changeBody": "Our team is happy to help – just get in touch.",
+      "whatsapp": "WhatsApp",
+      "email": "E-mail us",
+      "contact": "Contact us",
+      "guestTitle": "Planning another trip?",
+      "guest": "You can book any tour as a guest – no account needed.",
+      "browse": "Browse tours",
+      "close": "Close",
+      "checkoutNote": "Sign-in is temporarily unavailable, so you’re booking as a guest. Your confirmation e-mail will have everything you need."
+    }
   },
   "checkout": {
     "title": "Checkout",

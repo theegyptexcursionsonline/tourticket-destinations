@@ -549,7 +549,27 @@
     "accountCreated": "Konto erfolgreich erstellt!",
     "emailAlreadyExists": "Ein Konto mit dieser E-Mail existiert bereits",
     "sendResetLink": "Link senden",
-    "backToLogin": "Zurück zur Anmeldung"
+    "backToLogin": "Zurück zur Anmeldung",
+    "accountsPaused": {
+      "title": "Die Anmeldung ist vorübergehend nicht möglich",
+      "intro": "Ihre Buchungen sind davon nicht betroffen, und Ihre Bestätigungs-E-Mail enthält alles, was Sie für Ihren Ausflug brauchen.",
+      "findTitle": "Buchung finden",
+      "referenceLabel": "Buchungsnummer",
+      "referenceHelp": "Sie steht oben in Ihrer Bestätigungs-E-Mail, neben „Booking“.",
+      "referenceRequired": "Bitte geben Sie die Buchungsnummer aus Ihrer Bestätigungs-E-Mail ein.",
+      "referenceInvalid": "Das sieht nicht nach einer Buchungsnummer aus. Bitte kopieren Sie sie aus Ihrer Bestätigungs-E-Mail.",
+      "viewBooking": "Buchung anzeigen",
+      "changeTitle": "Möchten Sie etwas ändern oder stornieren?",
+      "changeBody": "Unser Team hilft Ihnen gern – melden Sie sich einfach.",
+      "whatsapp": "WhatsApp",
+      "email": "E-Mail schreiben",
+      "contact": "Kontakt aufnehmen",
+      "guestTitle": "Sie planen schon den nächsten Ausflug?",
+      "guest": "Sie können jeden Ausflug als Gast buchen – ganz ohne Kundenkonto.",
+      "browse": "Ausflüge entdecken",
+      "close": "Schließen",
+      "checkoutNote": "Die Anmeldung ist vorübergehend nicht möglich, deshalb buchen Sie als Gast. Ihre Bestätigung per E-Mail enthält alles, was Sie brauchen."
+    }
   },
   "checkout": {
     "title": "Kasse",

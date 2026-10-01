@@ -25,6 +25,7 @@ import { useLocale } from 'next-intl';
 import { liteClient as algoliasearch } from 'algoliasearch/lite';
 import { InstantSearch, Index, useSearchBox, useHits, Configure } from 'react-instantsearch';
 import 'instantsearch.css/themes/satellite.css';
+import { customerAccountsEnabled } from '@/lib/auth/customerAccounts';
 
 // =================================================================
 // --- ALGOLIA CONFIGURATION ---
@@ -300,7 +301,8 @@ const MobileMenu: FC<{ isOpen: boolean; onClose: () => void; onOpenSearch: () =>
                 </button>
               </div>
 
-              {user ? (
+              {/* Account entry points are hidden while customer accounts are paused (lib/auth/customerAccounts). */}
+              {customerAccountsEnabled() && (user ? (
                 <div className="p-6 border-b">
                   <div className="flex items-center gap-3 mb-4">
                     {user.picture ? (
@@ -362,7 +364,7 @@ const MobileMenu: FC<{ isOpen: boolean; onClose: () => void; onOpenSearch: () =>
   </div>
 </div>
 
-              )}
+              ))}
 
               <div className="flex-1 overflow-y-auto p-6 space-y-6">
                 <button
@@ -800,7 +802,8 @@ const linkHoverColor = 'hover:text-red-500';
                         <Search size={22} className="group-hover:text-red-500" />
                     </button>
 
-                   {user ? (
+                   {/* Account entry points are hidden while customer accounts are paused (lib/auth/customerAccounts). */}
+                   {customerAccountsEnabled() && (user ? (
                       <UserMenu user={user} onLogout={logout} />
                     ) : (
                       <div className="hidden md:flex items-center gap-3">
@@ -817,7 +820,7 @@ const linkHoverColor = 'hover:text-red-500';
                           Sign Up
                         </Link>
                       </div>
-                    )}
+                    ))}
 
                     <button onClick={handleMobileMenuOpen} className="md:hidden p-2" aria-label="Open menu">
                         <Menu size={24} className={`${headerText} ${linkHoverColor}`} />
