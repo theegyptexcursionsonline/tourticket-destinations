@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import Image from 'next/image';
@@ -282,10 +281,24 @@ function RichTextEditor({
 }
 
 /* -------------------- Main BlogManager (full file) -------------------- */
-export default function BlogManager({ initialBlogs }: { initialBlogs: IBlog[] }) {
-  const router = useRouter();
+type BlogListStatus = 'loading' | 'ready' | 'failed';
+
+function blogListFailureMessage(status: number): string {
+  if (status === 401) return 'Your session has ended. Sign in again to load the blog posts.';
+  if (status === 403) return 'You do not have access to the blog posts of this brand.';
+  return 'We could not load the blog posts. Nothing was changed.';
+}
+
+export default function BlogManager() {
   const { selectedTenantId } = useAdminTenant();
-  const [blogs, setBlogs] = useState<IBlog[]>(initialBlogs);
+  // Posts come only from /api/admin/blog, which enforces the admin's session
+  // and brand scope. Nothing is server-rendered into this page.
+  const [blogs, setBlogs] = useState<IBlog[]>([]);
+  const [reloadToken, setReloadToken] = useState(0);
+  const requestKey = `${selectedTenantId || 'all'}#${reloadToken}`;
+  const [listResult, setListResult] = useState<{ key: string; status: Exclude<BlogListStatus, 'loading'>; message?: string } | null>(null);
+  const listStatus: BlogListStatus = listResult?.key === requestKey ? listResult.status : 'loading';
+  const reloadBlogs = () => setReloadToken((token) => token + 1);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -294,25 +307,36 @@ export default function BlogManager({ initialBlogs }: { initialBlogs: IBlog[] })
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
 
-  // Re-fetch blogs when selected brand changes
+  // Load the selected brand's posts; a newer request always wins.
   useEffect(() => {
-    const fetchBlogs = async () => {
+    const controller = new AbortController();
+    const loadBlogs = async () => {
       try {
         const params = new URLSearchParams();
         if (selectedTenantId && selectedTenantId !== 'all') {
           params.set('tenantId', selectedTenantId);
         }
-        const response = await fetch(`/api/admin/blog?${params.toString()}`);
-        const data = await response.json();
-        if (data.success) {
-          setBlogs(data.data);
+        const response = await fetch(`/api/admin/blog?${params.toString()}`, {
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+        const data = await response.json().catch(() => null);
+        if (controller.signal.aborted) return;
+        if (!response.ok || !data?.success || !Array.isArray(data.data)) {
+          setListResult({ key: requestKey, status: 'failed', message: blogListFailureMessage(response.status) });
+          return;
         }
+        setBlogs(data.data);
+        setListResult({ key: requestKey, status: 'ready' });
       } catch (error) {
+        if (controller.signal.aborted) return;
         console.error('Error fetching blogs:', error);
+        setListResult({ key: requestKey, status: 'failed', message: blogListFailureMessage(0) });
       }
     };
-    fetchBlogs();
-  }, [selectedTenantId]);
+    void loadBlogs();
+    return () => controller.abort();
+  }, [selectedTenantId, requestKey]);
   const [filterStatus, setFilterStatus] = useState('');
 
   const [formData, setFormData] = useState<FormData>({
@@ -587,7 +611,7 @@ export default function BlogManager({ initialBlogs }: { initialBlogs: IBlog[] })
       loading: action === 'publish' ? 'Publishing blog post...' : 'Saving blog post...',
       success: () => {
         setIsPanelOpen(false);
-        router.refresh();
+        reloadBlogs();
         return action === 'publish' ? 'Blog post published successfully!' : 'Blog post saved successfully!';
       },
       error: (err) => (err as any).message || 'Failed to save blog post.',
@@ -606,7 +630,7 @@ export default function BlogManager({ initialBlogs }: { initialBlogs: IBlog[] })
     toast.promise(promise, {
       loading: `Deleting ${blogTitle}...`,
       success: () => {
-        router.refresh();
+        reloadBlogs();
         return `${blogTitle} deleted successfully.`;
       },
       error: `Failed to delete ${blogTitle}.`
@@ -667,8 +691,14 @@ export default function BlogManager({ initialBlogs }: { initialBlogs: IBlog[] })
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-2 text-sm text-slate-600">
               <FileText className="h-4 w-4 text-indigo-500" />
-              <span className="font-medium">{filteredBlogs.length}</span>
-              <span>blog post{filteredBlogs.length !== 1 ? 's' : ''}</span>
+              {listStatus === 'ready' ? (
+                <>
+                  <span className="font-medium">{filteredBlogs.length}</span>
+                  <span>blog post{filteredBlogs.length !== 1 ? 's' : ''}</span>
+                </>
+              ) : (
+                <span>{listStatus === 'loading' ? 'Loading posts…' : 'Posts unavailable'}</span>
+              )}
             </div>
 
             {/* Search and Filters */}
@@ -711,6 +741,37 @@ export default function BlogManager({ initialBlogs }: { initialBlogs: IBlog[] })
       </div>
 
       {/* Blog Posts Grid */}
+      {listStatus === 'loading' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" role="status" aria-label="Loading blog posts">
+          {[0, 1, 2].map((slot) => (
+            <div key={slot} className="overflow-hidden rounded-2xl border border-slate-200/60 bg-white shadow-lg">
+              <div className="h-48 animate-pulse bg-slate-200" />
+              <div className="space-y-3 p-6">
+                <div className="h-4 w-1/3 animate-pulse rounded bg-slate-200" />
+                <div className="h-5 w-4/5 animate-pulse rounded bg-slate-200" />
+                <div className="h-4 w-full animate-pulse rounded bg-slate-100" />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {listStatus === 'failed' && (
+        <div role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 px-6 py-10 text-center">
+          <AlertCircle className="mx-auto mb-4 h-10 w-10 text-amber-500" />
+          <h3 className="mb-2 text-lg font-bold text-slate-800">Blog posts could not be loaded</h3>
+          <p className="mx-auto mb-6 max-w-md text-slate-600">{listResult?.message}</p>
+          <button
+            type="button"
+            onClick={reloadBlogs}
+            className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+          >
+            Try again
+          </button>
+        </div>
+      )}
+
+      {listStatus === 'ready' && (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredBlogs.map((blog, index) => (
           <motion.div
@@ -844,6 +905,7 @@ export default function BlogManager({ initialBlogs }: { initialBlogs: IBlog[] })
           </div>
         )}
       </div>
+      )}
 
       {/* Backdrop Overlay */}
       <AnimatePresence>

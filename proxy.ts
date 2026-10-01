@@ -4,6 +4,13 @@
 import { NextResponse, NextRequest } from 'next/server';
 import createIntlMiddleware from 'next-intl/middleware';
 import { routing } from './i18n/routing';
+import {
+  ADMIN_SESSION_COOKIE,
+  ADMIN_SIGN_IN_PATH,
+  hasPlausibleAdminSession,
+  isAdminPagePath,
+  isAdminSignInPath,
+} from './lib/routing/adminSessionGate';
 
 // ============================================================================
 // NEXT-INTL LOCALE MIDDLEWARE
@@ -91,6 +98,26 @@ function resolveAdminRedirect(request: NextRequest, requestHost: RequestHost): U
   }
 
   return null;
+}
+
+// Admin pages are only rendered for requests that carry a plausible admin
+// session; everything else gets the data-free sign-in screen. The admin APIs
+// remain the authority (see lib/routing/adminSessionGate.ts).
+function shouldRenderAdminPage(request: NextRequest, adminPathname: string): boolean {
+  return (
+    isAdminSignInPath(adminPathname)
+    || hasPlausibleAdminSession(request.cookies.get(ADMIN_SESSION_COOKIE)?.value)
+  );
+}
+
+function adminSignInRewrite(request: NextRequest): NextResponse {
+  const url = request.nextUrl.clone();
+  url.pathname = ADMIN_SIGN_IN_PATH;
+  const response = NextResponse.rewrite(url);
+  // The same URL renders the sign-in screen or the page depending on the
+  // session, so no shared cache may keep either answer.
+  response.headers.set('Cache-Control', 'private, no-store');
+  return response;
 }
 
 // ============================================================================
@@ -564,6 +591,9 @@ export function proxy(request: NextRequest) {
     if (!isInvitationAcceptPath(pathname) && !pathname.startsWith('/admin') && !pathname.startsWith('/api') && !pathname.startsWith('/_next') && !isStaticFile(pathname)) {
       const url = request.nextUrl.clone();
       url.pathname = pathname === '/' ? '/admin' : `/admin${pathname}`;
+      if (!shouldRenderAdminPage(request, url.pathname)) {
+        return applyTenantToResponse(adminSignInRewrite(request), tenantId, hostname, isPreviewMode);
+      }
       const response = NextResponse.rewrite(url);
       return applyTenantToResponse(response, tenantId, hostname, isPreviewMode);
     }
@@ -598,6 +628,11 @@ export function proxy(request: NextRequest) {
       url.search = '';
       return NextResponse.redirect(url);
     }
+  }
+
+  // Admin pages served directly at /admin/* get the same session gate.
+  if (isAdminPagePath(pathname) && !shouldRenderAdminPage(request, pathname)) {
+    return applyTenantToResponse(adminSignInRewrite(request), tenantId, hostname, isPreviewMode);
   }
 
   // ============================================

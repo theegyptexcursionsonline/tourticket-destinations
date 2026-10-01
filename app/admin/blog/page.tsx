@@ -1,27 +1,13 @@
 import React from 'react';
-import dbConnect from '@/lib/dbConnect';
-import Blog from '@/lib/models/Blog';
-import { IBlog } from '@/lib/models/Blog';
 import BlogManager from './BlogManager';
 
-async function getBlogs(): Promise<IBlog[]> {
-  try {
-    await dbConnect();
-    const blogs = await Blog.find({})
-      .sort({ createdAt: -1 })
-      .populate('relatedDestinations', 'name slug')
-      .populate('relatedTours', 'title slug')
-      .lean();
-    return JSON.parse(JSON.stringify(blogs));
-  } catch (error) {
-    console.error('Error fetching blogs:', error);
-    return [];
-  }
-}
-
-export default async function AdminBlogPage() {
-  const blogs = await getBlogs();
-
+/**
+ * The manager loads posts from /api/admin/blog, which enforces the admin's
+ * session and brand scope. This page used to run Blog.find({}) itself while
+ * rendering, so every brand's posts — drafts included — were streamed to
+ * anyone who requested it, signed in or not.
+ */
+export default function AdminBlogPage() {
   return (
     <div className="space-y-6">
       <div>
@@ -30,8 +16,8 @@ export default async function AdminBlogPage() {
           Create and manage your travel blog content.
         </p>
       </div>
-      
-      <BlogManager initialBlogs={blogs} />
+
+      <BlogManager />
     </div>
   );
 }

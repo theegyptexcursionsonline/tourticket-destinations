@@ -1,21 +1,16 @@
-// app/categories/[slug]/page.tsx
-import { notFound } from 'next/navigation';
-import dbConnect from '@/lib/dbConnect';
-import Category from '@/lib/models/Category';
+import { redirect } from 'next/navigation';
 
-export default async function CategoryPage({ params }: { params: Promise<{ id: string }> }) {
+/**
+ * A category is managed in its editor. This route used to render a bare
+ * heading from an unauthenticated lookup that ignored the brand, so any
+ * visitor could read any brand's category name by id. It now reads nothing and
+ * sends the admin to the editor, which loads through the guarded API.
+ */
+export default async function AdminCategoryRoute({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const { id } = await params;
-  await dbConnect();
-  
-  const category = await Category.findById(id);
-  if (!category) {
-    notFound();
-  }
-
-  return (
-    <div>
-      <h1>{category.name} Tours</h1>
-      {/* Render tours */}
-    </div>
-  );
+  redirect(`/admin/categories/${encodeURIComponent(id)}/edit`);
 }
