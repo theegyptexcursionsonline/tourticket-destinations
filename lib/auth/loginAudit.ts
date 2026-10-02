@@ -1,4 +1,5 @@
 import type { LoginAuditOutcome } from '@/lib/auth/loginAuditOutcomes';
+import { requestVisitor } from '@/lib/security/requestVisitor';
 
 export interface HeaderReader {
   get(name: string): string | null;
@@ -7,15 +8,14 @@ export interface HeaderReader {
 const MAX_USER_AGENT_LENGTH = 256;
 const MAX_EMAIL_LENGTH = 254;
 
-// Netlify exposes the real client address on x-nf-client-connection-ip;
-// x-forwarded-for is the general fallback (first hop = client).
+// The visitor's address as the site's edge vouched for it (behind the edge, the
+// route's own x-nf-client-connection-ip is the edge). Never x-forwarded-for: its
+// first entry is whatever the client wrote. See lib/security/visitorAddress.ts.
 export function extractClientInfo(headers: HeaderReader): { ip: string; userAgent: string } {
-  const netlifyIp = headers.get('x-nf-client-connection-ip')?.trim();
-  const forwardedIp = headers.get('x-forwarded-for')?.split(',')[0]?.trim();
   const userAgent = headers.get('user-agent')?.trim();
 
   return {
-    ip: netlifyIp || forwardedIp || 'unknown',
+    ip: requestVisitor(headers)?.address || 'unknown',
     userAgent: userAgent ? userAgent.slice(0, MAX_USER_AGENT_LENGTH) : 'unknown',
   };
 }

@@ -1,6 +1,7 @@
 import { createHmac } from 'crypto';
-import { isIP } from 'net';
 import AbuseRateLimit from '@/lib/models/AbuseRateLimit';
+import { requestVisitor } from '@/lib/security/requestVisitor';
+import { limitKeyFor } from '@/lib/security/visitorAddress';
 
 const TEST_ONLY_SECRET = 'test-only-public-action-hash-secret-32-bytes';
 
@@ -78,11 +79,11 @@ export function hashPrivacyKey(value: string, purpose: string, secret = getAbuse
 }
 
 export function extractTrustedClientAddress(request: Request): string | null {
-  // TourTicket is hosted behind Netlify. Unlike X-Forwarded-For, this header is
-  // written by the hosting edge and cannot be selected by an application client.
-  // We deliberately do not trust x-forwarded-for or x-real-ip here.
-  const candidate = request.headers.get('x-nf-client-connection-ip')?.trim();
-  return candidate && isIP(candidate) ? candidate : null;
+  // Behind the site's edge function (proxy.ts) a route's own x-nf-client-connection-ip
+  // is the edge's address, shared by every visitor it serves; the visitor's address
+  // arrives as the edge's signed word (lib/security/visitorAddress.ts). We deliberately
+  // never trust x-forwarded-for or x-real-ip: a client writes them.
+  return requestVisitor(request.headers)?.address ?? null;
 }
 
 function normalizedUserAgent(request: Request): string {
@@ -90,8 +91,9 @@ function normalizedUserAgent(request: Request): string {
 }
 
 export function publicRequestIdentity(request: Request): string {
-  const address = extractTrustedClientAddress(request) || 'unavailable';
-  return `network:${address}|agent:${normalizedUserAgent(request)}`;
+  // An IPv6 visitor counts by their /64 (one connection can send from any address in it).
+  const network = limitKeyFor(extractTrustedClientAddress(request)) || 'unavailable';
+  return `network:${network}|agent:${normalizedUserAgent(request)}`;
 }
 
 export async function consumeAbuseLimit(

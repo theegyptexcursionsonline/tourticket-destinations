@@ -5,6 +5,13 @@ import { NextResponse, NextRequest } from 'next/server';
 import createIntlMiddleware from 'next-intl/middleware';
 import { routing } from './i18n/routing';
 import {
+  EDGE_VISITOR_HEADER,
+  edgeConnectionAddress,
+  runsOnNetlifyEdge,
+  visitorSigningSecret,
+  vouchForVisitor,
+} from './lib/security/visitorAddress';
+import {
   ADMIN_SESSION_COOKIE,
   ADMIN_SIGN_IN_PATH,
   hasPlausibleAdminSession,
@@ -110,10 +117,57 @@ function shouldRenderAdminPage(request: NextRequest, adminPathname: string): boo
   );
 }
 
-function adminSignInRewrite(request: NextRequest): NextResponse {
+// ============================================================================
+// THE VISITOR'S ADDRESS
+// ============================================================================
+// This proxy runs as Netlify's edge function: the only place that still sees the
+// visitor's connection. The server functions behind it see the edge as their client, so
+// every request it passes on carries the edge's signed word for the visitor
+// (lib/security/visitorAddress.ts), and never a copy the request arrived with.
+async function edgeVisitor(request: NextRequest): Promise<string | null> {
+  const secret = visitorSigningSecret();
+  const connection = edgeConnectionAddress();
+  const vouched = await vouchForVisitor(request.headers, secret, connection).catch(() => null);
+  if (!vouched && runsOnNetlifyEdge()) {
+    warnUnvouchedVisitors(
+      !secret
+        ? 'no signing secret (ABUSE_LIMIT_HASH_SECRET or JWT_SECRET) is available to it'
+        : !connection
+          ? 'Netlify gave it no connection address'
+          : 'it could not read or sign the connection address',
+    );
+  }
+  return vouched;
+}
+
+let unvouchedVisitorsWarned = false;
+
+/** Once per edge instance: without the edge's word, request limits and audit rows count
+ *  every visitor as the edge itself. */
+function warnUnvouchedVisitors(reason: string) {
+  if (unvouchedVisitorsWarned) return;
+  unvouchedVisitorsWarned = true;
+  console.error(
+    `[visitor-address] The site's edge cannot vouch for visitors' addresses (${reason}): `
+    + 'request limits and audit rows count every visitor as the edge.',
+  );
+}
+
+/** Set (or, without a word, drop) the edge's word on headers being passed on. */
+function withVisitor(headers: Headers, visitor: string | null): Headers {
+  headers.delete(EDGE_VISITOR_HEADER);
+  if (visitor) headers.set(EDGE_VISITOR_HEADER, visitor);
+  return headers;
+}
+
+function forwardedHeaders(request: NextRequest, visitor: string | null): Headers {
+  return withVisitor(new Headers(request.headers), visitor);
+}
+
+function adminSignInRewrite(request: NextRequest, visitor: string | null): NextResponse {
   const url = request.nextUrl.clone();
   url.pathname = ADMIN_SIGN_IN_PATH;
-  const response = NextResponse.rewrite(url);
+  const response = NextResponse.rewrite(url, { request: { headers: forwardedHeaders(request, visitor) } });
   // The same URL renders the sign-in screen or the page depending on the
   // session, so no shared cache may keep either answer.
   response.headers.set('Cache-Control', 'private, no-store');
@@ -520,9 +574,10 @@ function createTenantResponse(
   request: NextRequest,
   tenantId: string,
   hostname: string,
-  isPreviewMode: boolean
+  isPreviewMode: boolean,
+  visitor: string | null,
 ): NextResponse {
-  const requestHeaders = new Headers(request.headers);
+  const requestHeaders = forwardedHeaders(request, visitor);
   requestHeaders.set('x-tenant-id', tenantId);
   requestHeaders.set('x-tenant-domain', hostname);
   if (isPreviewMode) {
@@ -540,8 +595,9 @@ function createTenantResponse(
 // MAIN MIDDLEWARE
 // ============================================
 
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+  const visitor = await edgeVisitor(request);
   const hostname = request.headers.get('host') || 'localhost:3000';
   const requestHost = getRequestHost(request);
   const isDashboardSubdomain = isAdminDashboardHostname(requestHost.hostname);
@@ -559,7 +615,7 @@ export function proxy(request: NextRequest) {
 
   // Skip middleware for static files
   if (isStaticFile(pathname)) {
-    return NextResponse.next();
+    return NextResponse.next({ request: { headers: forwardedHeaders(request, visitor) } });
   }
 
   // Detect tenant
@@ -578,7 +634,7 @@ export function proxy(request: NextRequest) {
         return NextResponse.json({ error: 'Admin access not available on this domain' }, { status: 403 });
       }
     }
-    return createTenantResponse(request, tenantId, hostname, isPreviewMode);
+    return createTenantResponse(request, tenantId, hostname, isPreviewMode, visitor);
   }
 
   // ============================================
@@ -592,9 +648,9 @@ export function proxy(request: NextRequest) {
       const url = request.nextUrl.clone();
       url.pathname = pathname === '/' ? '/admin' : `/admin${pathname}`;
       if (!shouldRenderAdminPage(request, url.pathname)) {
-        return applyTenantToResponse(adminSignInRewrite(request), tenantId, hostname, isPreviewMode);
+        return applyTenantToResponse(adminSignInRewrite(request, visitor), tenantId, hostname, isPreviewMode);
       }
-      const response = NextResponse.rewrite(url);
+      const response = NextResponse.rewrite(url, { request: { headers: forwardedHeaders(request, visitor) } });
       return applyTenantToResponse(response, tenantId, hostname, isPreviewMode);
     }
   }
@@ -632,7 +688,7 @@ export function proxy(request: NextRequest) {
 
   // Admin pages served directly at /admin/* get the same session gate.
   if (isAdminPagePath(pathname) && !shouldRenderAdminPage(request, pathname)) {
-    return applyTenantToResponse(adminSignInRewrite(request), tenantId, hostname, isPreviewMode);
+    return applyTenantToResponse(adminSignInRewrite(request, visitor), tenantId, hostname, isPreviewMode);
   }
 
   // ============================================
@@ -643,14 +699,14 @@ export function proxy(request: NextRequest) {
   if (websiteStatus !== 'active') {
     // Always allow admin paths
     if (isAdminPath(pathname)) {
-      const response = createTenantResponse(request, tenantId, hostname, isPreviewMode);
+      const response = createTenantResponse(request, tenantId, hostname, isPreviewMode, visitor);
       response.headers.set('x-website-status', websiteStatus);
       return response;
     }
 
     // Allow specific paths
     if (isAllowedInComingSoonMode(pathname)) {
-      return createTenantResponse(request, tenantId, hostname, isPreviewMode);
+      return createTenantResponse(request, tenantId, hostname, isPreviewMode, visitor);
     }
 
     // Determine redirect destination
@@ -660,7 +716,7 @@ export function proxy(request: NextRequest) {
 
     // Don't redirect if already on the status page
     if (pathname === redirectPath) {
-      return createTenantResponse(request, tenantId, hostname, isPreviewMode);
+      return createTenantResponse(request, tenantId, hostname, isPreviewMode, visitor);
     }
 
     // Redirect to status page
@@ -677,7 +733,7 @@ export function proxy(request: NextRequest) {
   // ADMIN ROUTES — bypass locale middleware (admin is English-only)
   // ============================================
   if (isAdminPath(pathname)) {
-    return createTenantResponse(request, tenantId, hostname, isPreviewMode);
+    return createTenantResponse(request, tenantId, hostname, isPreviewMode, visitor);
   }
 
   // ============================================
@@ -720,6 +776,14 @@ export function proxy(request: NextRequest) {
     ];
     if (isPreviewMode) {
       tenantHeaders.push(['x-tenant-preview', 'true']);
+    }
+    // The edge's word for the visitor replaces any copy next-intl passed on from the
+    // request; without a word, the copy is dropped.
+    if (visitor) {
+      tenantHeaders.push([EDGE_VISITOR_HEADER, visitor]);
+    } else if (overrides.includes(EDGE_VISITOR_HEADER)) {
+      overrides.splice(overrides.indexOf(EDGE_VISITOR_HEADER), 1);
+      intlResponse.headers.delete(`x-middleware-request-${EDGE_VISITOR_HEADER}`);
     }
 
     for (const [name, value] of tenantHeaders) {

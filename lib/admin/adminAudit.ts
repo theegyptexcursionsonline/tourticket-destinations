@@ -6,6 +6,7 @@ import type {
   AdminAuditOutcome,
   AdminAuditChange,
 } from '@/lib/models/AdminMutationAudit';
+import { requestVisitor } from '@/lib/security/requestVisitor';
 
 const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 const EXECUTE_HINTS = new Set([
@@ -261,8 +262,9 @@ async function targetTenantIds(
 }
 
 function clientMetadata(request: NextRequest): { clientIp?: string; userAgent?: string; requestId?: string } {
-  const forwarded = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim();
-  const clientIp = request.headers.get('x-nf-client-connection-ip')?.trim() || forwarded || undefined;
+  // The admin's address as the site's edge vouched for it, never a forwarding header
+  // the client wrote (lib/security/visitorAddress.ts).
+  const clientIp = requestVisitor(request.headers)?.address;
   const userAgent = request.headers.get('user-agent')?.trim().slice(0, 400) || undefined;
   const requestId = request.headers.get('x-request-id')?.trim().slice(0, 160) || undefined;
   return {

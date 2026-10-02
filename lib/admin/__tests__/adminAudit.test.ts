@@ -1,3 +1,6 @@
+/**
+ * @jest-environment node
+ */
 const mockCreate = jest.fn();
 jest.mock('@/lib/dbConnect', () => jest.fn().mockResolvedValue(undefined));
 jest.mock('@/lib/models/AdminMutationAudit', () => ({
@@ -13,6 +16,7 @@ import {
   registerAdminAuditDetail,
   withAdminAudit,
 } from '@/lib/admin/adminAudit';
+import { EDGE_VISITOR_HEADER, vouchForVisitor } from '@/lib/security/visitorAddress';
 
 function makeRequest(url: string, init: { method?: string; body?: Record<string, unknown> } = {}) {
   const parsed = new URL(url);
@@ -90,6 +94,35 @@ describe('automatic admin mutation capture', () => {
     }));
     expect(JSON.stringify(mockCreate.mock.calls[0][0])).not.toContain('never-log');
     expect(mockCreate.mock.calls[0][0].changedFields).not.toContain('password');
+  });
+
+  it('records the address of the admin the edge vouched for, not the edge or a forwarded header', async () => {
+    process.env.ABUSE_LIMIT_HASH_SECRET = 'unit-test-admin-audit-secret-at-least-32-chars';
+    try {
+      const word = await vouchForVisitor(new Headers(), process.env.ABUSE_LIMIT_HASH_SECRET, '41.32.10.5');
+      const request = makeRequest('https://dashboard.example.com/api/admin/tours', {
+        method: 'POST',
+        body: { tenantId: 'brand-a', title: 'Private itinerary' },
+      });
+      // Behind the site's edge function, the route sees the edge as its client.
+      const values = new Map<string, string>([
+        ['content-type', 'application/json'],
+        ['x-nf-client-connection-ip', '192.0.2.10'],
+        ['x-forwarded-for', '198.51.100.66'],
+        [EDGE_VISITOR_HEADER, word as string],
+      ]);
+      request.headers = { get: (name: string) => values.get(name.toLowerCase()) || null };
+      await recordAdminMutation(request, {
+        userId: 'admin-1',
+        role: 'operations',
+        permissions: ['manageTours'],
+        tenantIds: ['brand-a'],
+      });
+
+      expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({ clientIp: '41.32.10.5' }));
+    } finally {
+      delete process.env.ABUSE_LIMIT_HASH_SECRET;
+    }
   });
 
   it('never retains a two-factor code as a changed field or safe value', async () => {

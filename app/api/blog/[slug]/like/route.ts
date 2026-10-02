@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Blog from '@/lib/models/Blog';
 import { buildStrictTenantQuery, getTenantFromRequest } from '@/lib/tenant';
+import { requestVisitor } from '@/lib/security/requestVisitor';
+import { limitKeyFor } from '@/lib/security/visitorAddress';
 
 // Simple in-memory rate limiter to prevent like abuse
 // Key: IP address, Value: { count, resetTime }
@@ -33,9 +35,9 @@ export async function POST(
   try {
     const tenantId = await getTenantFromRequest();
     // Rate limit by IP
-    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-               request.headers.get('x-real-ip') ||
-               'unknown';
+    // The visitor as the site's edge vouched for it (lib/security/visitorAddress.ts),
+    // never a forwarding header the client wrote; an IPv6 visitor counts by their /64.
+    const ip = limitKeyFor(requestVisitor(request.headers)?.address) || 'unknown';
 
     if (isRateLimited(`${tenantId}:${ip}`)) {
       return NextResponse.json({

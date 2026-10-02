@@ -1,5 +1,7 @@
 // app/api/contact/route.ts
 import { NextResponse } from 'next/server';
+import { requestVisitor } from '@/lib/security/requestVisitor';
+import { limitKeyFor } from '@/lib/security/visitorAddress';
 import { sendContactFormEmail } from '@/lib/mailgun';
 
 // In-memory rate limiting (consider Redis for production)
@@ -32,20 +34,10 @@ async function verifyRecaptcha(token: string): Promise<boolean> {
   }
 }
 
-// Get client IP address
+// The visitor's address as the site's edge vouched for it (lib/security/visitorAddress.ts),
+// never a forwarding header the client wrote; an IPv6 visitor counts by their /64.
 function getClientIP(request: Request): string {
-  const forwarded = request.headers.get('x-forwarded-for');
-  const realIP = request.headers.get('x-real-ip');
-
-  if (forwarded) {
-    return forwarded.split(',')[0].trim();
-  }
-
-  if (realIP) {
-    return realIP;
-  }
-
-  return 'unknown';
+  return limitKeyFor(requestVisitor(request.headers)?.address) || 'unknown';
 }
 
 // Check rate limit
@@ -103,7 +95,7 @@ export async function POST(request: Request) {
     // --- Rate Limiting ---
     const clientIP = getClientIP(request);
     if (!checkRateLimit(clientIP)) {
-      console.log(`Rate limit exceeded for IP: ${clientIP}`);
+      console.log('Contact form rate limit exceeded');
       return NextResponse.json(
         { error: 'Too many submissions. Please try again later.' },
         { status: 429 }
