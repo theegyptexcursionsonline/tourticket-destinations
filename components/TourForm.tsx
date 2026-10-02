@@ -1329,13 +1329,17 @@ const addItineraryItem = () => {
         }));
     };
 
+    const isCutoffOnlyChange = Boolean(tourToEdit && loadedForm.current &&
+        formData.bookingCutoffMinutes !== loadedForm.current.bookingCutoffMinutes &&
+        JSON.stringify({ ...formData, bookingCutoffMinutes: 0 }) === JSON.stringify({ ...loadedForm.current, bookingCutoffMinutes: 0 }));
+
    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
 
         if (!isValidBookingCutoff(formData.bookingCutoffMinutes)) {
             toast.error('Enter a valid booking cutoff, up to 30 days.');
-            setActiveTab('settings');
+            setActiveTab('pricing');
             setIsSubmitting(false);
             return;
         }
@@ -1348,7 +1352,8 @@ const addItineraryItem = () => {
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.error || 'Could not save the booking cutoff.');
                 toast.success('Booking cutoff updated.');
-                setIsPanelOpen(false);
+                loadedForm.current = { ...formData };
+                if (!fullPage) setIsPanelOpen(false);
                 if (onSave) onSave();
                 router.refresh();
             } catch (error) {
@@ -1534,7 +1539,8 @@ const addItineraryItem = () => {
 
             if (response.ok) {
                 toast.success(`Tour ${tourToEdit ? 'updated' : 'created'} successfully!`);
-                setIsPanelOpen(false);
+                loadedForm.current = { ...formData };
+                if (!fullPage) setIsPanelOpen(false);
                 if (onSave) onSave();
                 router.refresh();
             } else {
@@ -3432,12 +3438,12 @@ const addItineraryItem = () => {
                                     disabled={
                                         isSubmitting || 
                                         isUploading || 
-                                        !formData.title?.trim() ||
+                                        (!isCutoffOnlyChange && (!formData.title?.trim() ||
                                         !formData.description?.trim() ||
                                         !formData.duration?.trim() ||
                                         !formData.discountPrice ||
                                         !formData.destination ||
-                                        !formData.category?.length
+                                        !formData.category?.length))
                                     }
                                     className="flex-1 inline-flex justify-center items-center gap-3 px-6 py-3 text-white font-bold bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 active:scale-95 disabled:transform-none"
                                 >
@@ -3456,7 +3462,7 @@ const addItineraryItem = () => {
                             </div>
                             
                             {/* Validation Message */}
-                            {(!formData.title?.trim() || !formData.description?.trim() || !formData.duration?.trim() || !formData.discountPrice || !formData.destination || !formData.category?.length) && (
+                            {!isCutoffOnlyChange && (!formData.title?.trim() || !formData.description?.trim() || !formData.duration?.trim() || !formData.discountPrice || !formData.destination || !formData.category?.length) && (
                                 <div className="flex items-start gap-2 mt-4 p-3 bg-amber-50 border border-amber-200 rounded-xl">
                                     <HelpCircle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
                                     <div>
