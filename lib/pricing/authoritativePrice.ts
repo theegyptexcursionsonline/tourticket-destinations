@@ -55,7 +55,10 @@ export function authoritativeBasePrice(
       ? options.find((candidate) => String(candidate.id ?? candidate._id ?? '') === String(requestedOptionId))
       : undefined);
 
-  if ((requestedPricingKey || requestedOptionId) && !option) {
+  const standardSelection = options.length === 0
+    && (!requestedPricingKey || requestedPricingKey === 'standard')
+    && (!requestedOptionId || ['standard-default', 'standard-tour', 'standard'].includes(requestedOptionId));
+  if ((requestedPricingKey || requestedOptionId) && !option && !standardSelection) {
     throw new AuthoritativePriceError('Pricing option unavailable');
   }
 

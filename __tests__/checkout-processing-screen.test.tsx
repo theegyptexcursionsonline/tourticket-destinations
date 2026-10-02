@@ -1,0 +1,37 @@
+import React from 'react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import CheckoutPage from '@/app/[locale]/checkout/CheckoutClientPage';
+const mockClearCart = jest.fn();
+const mockConfirm = jest.fn();
+const mockInfo = jest.fn();
+const mockSuccess = jest.fn();
+const mockPush = jest.fn();
+const mockCart = [{ id: 'tour-one', title: 'Owned tour', price: 100, quantity: 1, selectedDate: '2026-12-01', selectedTime: '09:00', image: '/tour.jpg' }];
+jest.mock('@/lib/checkout/confirmPaidCheckout', () => ({ confirmPaidCheckout: (...args: unknown[]) => mockConfirm(...args) }));
+jest.mock('@/hooks/useCart', () => ({ useCart: () => ({ cart: mockCart, clearCart: mockClearCart, acceptAuthoritativePriceQuote: jest.fn(), isReady: true, removeFromCart: jest.fn() }) }));
+jest.mock('@/hooks/useSettings', () => ({ useSettings: () => ({ formatPrice: (n: number) => `$${n}`, selectedCurrency: { code: 'USD', symbol: '$' } }) }));
+jest.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: null }) }));
+jest.mock('@/i18n/navigation', () => ({ useRouter: () => ({ push: mockPush }) }));
+jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }));
+jest.mock('@/components/AuthModal', () => ({ __esModule: true, default: () => null }));
+jest.mock('@/components/HotelPickupMap', () => ({ __esModule: true, default: () => null }));
+jest.mock('@/components/StripePaymentForm', () => ({ __esModule: true, default: ({ onSuccess }: { onSuccess: (id: string) => void }) => <button type="button" onClick={() => onSuccess('pi_owned')}>Confirm paid intent</button> }));
+jest.mock('react-hot-toast', () => ({ __esModule: true, default: Object.assign((...args: unknown[]) => mockInfo(...args), { success: (...args: unknown[]) => mockSuccess(...args), error: jest.fn() }) }));
+describe('rendered checkout canonical processing', () => {
+  it('keeps cart and checkout visible and retries the same paid intent without showing confirmation', async () => {
+    mockConfirm.mockResolvedValue({ response: { status: 202, ok: true }, result: { code: 'PAYMENT_CONFIRMATION_PROCESSING', message: 'Payment is being checked' } });
+    render(<CheckoutPage />);
+    for (const [label, value] of [['checkout.firstName', 'QA'], ['checkout.lastName', 'Customer'], ['checkout.email', 'qa@example.invalid'], ['checkout.phone', '0000000000']]) fireEvent.change(screen.getByLabelText(new RegExp(label)), { target: { value } });
+    fireEvent.click(screen.getByText('Confirm paid intent'));
+    await waitFor(() => expect(mockInfo).toHaveBeenCalledWith('Payment is being checked'));
+    expect(mockClearCart).not.toHaveBeenCalled(); expect(mockPush).not.toHaveBeenCalled();
+    expect(mockSuccess).not.toHaveBeenCalledWith('Booking confirmed! Check your email for details.', expect.anything());
+    expect(screen.queryByText('Confirm paid intent')).not.toBeInTheDocument();
+    expect(screen.getByText('Your payment is being checked')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Retry confirmation' }));
+    await waitFor(() => expect(mockConfirm).toHaveBeenCalledTimes(2));
+    expect(mockConfirm.mock.calls[0][0]).toEqual(mockConfirm.mock.calls[1][0]);
+    expect(mockConfirm.mock.calls[1][0].paymentDetails.paymentIntentId).toBe('pi_owned');
+    expect(mockClearCart).not.toHaveBeenCalled();
+  });
+});

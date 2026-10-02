@@ -1,3 +1,4 @@
+import { recheckPreparedDepartures } from '@/lib/bookings/departureAdmission';
 import { randomUUID } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
@@ -149,6 +150,7 @@ export async function POST(request: Request) {
           && Number(page.expires_at || 0) - Math.floor(Date.now() / 1000) > REUSE_MARGIN_SECONDS
           && isAllowedStripeCheckoutUrl(page.url);
         if (usable) {
+          await recheckPreparedDepartures(prepared.cart, prepared.tenantId, prepared.metadata);
           return NextResponse.json({
             success: true,
             sessionId: page.id,
@@ -215,6 +217,7 @@ export async function POST(request: Request) {
       // cart), so every return to checkout hit Stripe's idempotency_error for
       // 24 hours and the guest simply could not pay.
       const pageNonce = randomUUID().replace(/-/g, '').slice(0, 16);
+      await recheckPreparedDepartures(prepared.cart, prepared.tenantId, prepared.metadata);
       session = await stripe.checkout.sessions.create({
         mode: 'payment',
         ui_mode: 'hosted',

@@ -1,3 +1,5 @@
+import { futureCatalogueTimes, DepartureConfigurationError } from '@/lib/bookings/departureAdmission';
+import { buildStrictTenantQuery, getTenantFromRequest, getTenantConfigCached } from '@/lib/tenant';
 // app/api/tours/[tourId]/availability/route.ts
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
@@ -18,7 +20,10 @@ export async function GET(
       return NextResponse.json({ message: 'Month parameter is required' }, { status: 400 });
     }
 
-    const tour = await Tour.findById(tourId).select('availability');
+    const tenantId = await getTenantFromRequest();
+    const tenant = await getTenantConfigCached(tenantId);
+    if (!tenant?.localization?.defaultTimezone) return NextResponse.json({ message: 'Booking timezone unavailable' }, { status: 503 });
+    const tour = await Tour.findOne(buildStrictTenantQuery({ _id: tourId, isPublished: true, archivedAt: null }, tenantId)).select('availability bookingOptions');
     if (!tour || !tour.availability) {
       return NextResponse.json({ message: 'Tour or availability rules not found' }, { status: 404 });
     }
@@ -31,6 +36,7 @@ export async function GET(
     // --- Get all bookings for the tour in the given month ---
     const existingBookings = await Booking.find({
       tour: tourId,
+      tenantId,
       date: { $gte: startDate, $lte: endDate },
     }).select('date time guests');
 
@@ -61,7 +67,9 @@ export async function GET(
             const timeSlotsForDay = [];
             let allSlotsFull = true;
 
+            const future = new Set(Object.values(futureCatalogueTimes(tour, dateString, tenant.localization.defaultTimezone)).flat());
             for (const slot of slots) {
+                if (!future.has(slot.time)) continue;
                 const bookedGuests = bookingsMap.get(dateString)?.get(slot.time) || 0;
                 const remainingCapacity = slot.capacity - bookedGuests;
                 
@@ -84,6 +92,7 @@ export async function GET(
     return NextResponse.json({ availableSlotsByDate, fullyBookedDates });
 
   } catch (error) {
+    if (error instanceof DepartureConfigurationError) return NextResponse.json({ success: false, error: error.message }, { status: 503 });
     console.error('Failed to get availability:', error);
     return NextResponse.json({ message: 'Failed to get availability', error: (error as Error).message }, { status: 500 });
   }

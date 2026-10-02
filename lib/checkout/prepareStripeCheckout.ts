@@ -1,3 +1,4 @@
+import { assertCheckoutDepartures, DepartureAdmissionError, DepartureConfigurationError } from '@/lib/bookings/departureAdmission';
 import { createHash } from 'node:crypto';
 import dbConnect from '@/lib/dbConnect';
 import { CartMetadataTooLargeError, packCartMetadata } from '@/lib/checkout/cartMetadata';
@@ -176,10 +177,15 @@ export async function prepareStripeCheckout(
     );
   }
 
+  let departureDeadlines: number[];
   let validated: Awaited<ReturnType<typeof calculateCheckoutPricing>>;
   try {
+    if (!Array.isArray(submittedCart)) throw new StripeCheckoutInputError(400, 'INVALID_CART', 'Invalid cart');
+    departureDeadlines = await assertCheckoutDepartures(submittedCart, tenantId);
     validated = await calculateCheckoutPricing(submittedCart, tenantId, discountCode);
   } catch (error) {
+    if (error instanceof DepartureConfigurationError) throw new StripeCheckoutInputError(503, error.code, error.message);
+    if (error instanceof DepartureAdmissionError) throw new StripeCheckoutInputError(409, error.code, error.message);
     if (error instanceof CheckoutPriceChangedError) {
       throw new StripeCheckoutInputError(409, error.code, error.message, { quote: error.quote });
     }
@@ -248,6 +254,7 @@ export async function prepareStripeCheckout(
     amountMinor,
     currency,
     discountCode: discountCode || '',
+    departureDeadlines,
   })).digest('hex');
   const locale = typeof body.locale === 'string' && ['en', 'de', 'es', 'fr', 'ru'].includes(body.locale)
     ? body.locale
@@ -270,6 +277,7 @@ export async function prepareStripeCheckout(
     currency,
     metadata: {
       has_booking_data: 'true',
+      departure_deadlines_utc: JSON.stringify(departureDeadlines),
       tenant_id: tenantId,
       checkout_fingerprint: fingerprint,
       customer_ref: customerRef,
@@ -293,6 +301,12 @@ export async function prepareStripeCheckout(
 }
 
 export function checkoutInputErrorResponse(error: unknown): Response | null {
+  if (error instanceof DepartureConfigurationError) {
+    return Response.json({ success: false, code: error.code, message: error.message }, { status: 503, headers: { 'Cache-Control': 'no-store' } });
+  }
+  if (error instanceof DepartureAdmissionError) {
+    return Response.json({ success: false, code: error.code, message: error.message }, { status: 409, headers: { 'Cache-Control': 'no-store' } });
+  }
   if (!(error instanceof StripeCheckoutInputError)) return null;
   return Response.json(
     { success: false, code: error.code, message: error.message, ...(error.details || {}) },

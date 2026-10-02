@@ -158,6 +158,7 @@ function metadataFor(lines: Line[], pricing: { subtotal: number; total: number; 
     discount_code: 'none',
     checkout_experience: 'inline',
     tour_count: String(lines.length),
+    departure_deadlines_utc: JSON.stringify(lines.map(() => Date.parse('2099-05-01T06:00:00Z'))),
   };
 }
 
@@ -173,7 +174,7 @@ async function fire(lines: Line[], subtotal: number, amountMinor?: number, disco
     currency: 'usd',
     metadata: metadataFor(lines, { subtotal, total, discount }),
   };
-  mockConstructEvent.mockReturnValue({ type: 'payment_intent.succeeded', data: { object: paymentIntent } });
+  mockConstructEvent.mockReturnValue({ created: Math.floor(Date.parse('2026-10-02T08:00:00Z') / 1000), type: 'payment_intent.succeeded', data: { object: paymentIntent } });
   const response = await POST({ text: async () => '{}' } as unknown as Request);
   return { response, paymentIntent };
 }
@@ -200,6 +201,34 @@ describe('Stripe webhook — guest prices on the recorded booking', () => {
   });
 
   const recorded = () => mockBookingCreate.mock.calls[0][0][0] as Record<string, any>;
+
+  it('does not promote a partial/Pending existing order or send confirmation from the secondary endpoint', async () => {
+    const save = jest.fn();
+    mockBookingFind.mockResolvedValue([{ tour: TOUR_ID, dateString: '2099-05-01', time: '09:00', adultGuests: 1, selectedBookingOption: { id: 'legacy' }, status: 'Pending', paymentStatus: 'pending', totalPrice: 108, amountPaid: 0, save }]);
+    const { response } = await fire([{ bo: 'legacy', a: 1, c: 0, n: 0 }], 100);
+    expect(response.status).toBe(503); expect(save).not.toHaveBeenCalled(); expect(mockBookingCreate).not.toHaveBeenCalled(); expect(mockUserFindOne).not.toHaveBeenCalled(); expect(mockSendConfirmation).not.toHaveBeenCalled(); expect(mockRefundCreate).not.toHaveBeenCalled();
+  });
+  it('accepts a delayed webhook using provider success time rather than delivery time', async () => {
+    jest.useFakeTimers().setSystemTime(Date.parse('2100-01-01T00:00:00Z'));
+    try {
+      const { response } = await fire([{ bo: 'legacy', a: 1, c: 0, n: 0 }], 100);
+      expect(response.status).toBe(200);
+      expect(mockBookingCreate).toHaveBeenCalledTimes(1);
+    } finally { jest.useRealTimers(); }
+  });
+  it('refuses a signed late payment before user, inventory, booking or email effects', async () => {
+    const metadata = metadataFor([{ bo: 'legacy', a: 1, c: 0, n: 0 }], { subtotal: 100, total: 108 });
+    const deadline = Date.parse('2026-10-02T08:00:00Z');
+    metadata.departure_deadlines_utc = JSON.stringify([deadline]);
+    mockConstructEvent.mockReturnValue({ created: deadline / 1000, type: 'payment_intent.succeeded', data: { object: { id: 'pi_test_late', status: 'succeeded', amount: 10800, currency: 'usd', metadata } } });
+    const response = await POST({ text: async () => '{}' } as unknown as Request);
+    expect(response.status).toBe(503);
+    expect(mockUserFindOne).not.toHaveBeenCalled();
+    expect(mockBookingCreate).not.toHaveBeenCalled();
+    expect(mockSession.startTransaction).not.toHaveBeenCalled();
+    expect(mockSendConfirmation).not.toHaveBeenCalled();
+    expect(mockRefundCreate).not.toHaveBeenCalled();
+  });
 
   it('legacy tour: child half, infant free — the previous numbers, now recorded with unit prices', async () => {
     const legacySubtotal = optionSubtotal(tour.bookingOptions[0], 100, 2, 1, 1); // 250

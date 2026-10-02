@@ -1788,18 +1788,22 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
           const status = stopJson.data?.stopSaleStatus as 'none' | 'partial' | 'full';
           const stoppedIds = new Set<string>(stopJson.data?.stoppedOptionIds || []);
           const reasons = (stopJson.data?.reasons || {}) as Record<string, string>;
+          const futureTimes = stopJson.data?.availableTimesByOption as Record<string, string[]> | undefined;
 
           tourOptions = tourOptions.map((opt) => {
             const isStopped = status === 'full' ? true : stoppedIds.has(opt.id);
             return {
               ...opt,
+              timeSlots: futureTimes ? (opt.timeSlots || []).filter(slot => (futureTimes[opt.id] || []).includes(slot.time)) : opt.timeSlots,
               isStopSale: isStopped,
               stopSaleReason: status === 'full' ? reasons.all : reasons[opt.id],
             };
           });
+        } else {
+          throw new Error('Availability could not be checked.');
         }
       } catch {
-        // If stop-sale lookup fails, we fall back to showing all options
+        tourOptions = tourOptions.map(opt => ({ ...opt, timeSlots: [], isStopSale: true, stopSaleReason: 'Availability could not be checked. Please try again.' }));
       }
 
       // Use pre-fetched addOns from tour prop (SSR) if available

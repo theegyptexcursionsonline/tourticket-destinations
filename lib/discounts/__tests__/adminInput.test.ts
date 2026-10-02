@@ -14,7 +14,7 @@ it('accepts an explicit status-only patch and removal of optional limits', () =>
 it('returns a useful conflict for a duplicate race and hides database internals', async () => {
   const duplicate=discountMutationError({code:11000,message:'private database detail'});
   expect(duplicate.status).toBe(409);
-  expect(await duplicate.json()).toEqual({success:false,error:'This discount code already exists. Choose a different code.'});
+  expect(await duplicate.json()).toEqual({success:false,error:'This discount code already exists. Please use a different code.'});
   const failed=discountMutationError(new Error('private database detail'));
   expect(failed.status).toBe(503);
   expect(JSON.stringify(await failed.json())).not.toContain('private');

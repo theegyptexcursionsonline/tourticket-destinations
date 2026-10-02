@@ -136,6 +136,7 @@ const hostedMetadata = (binding = BINDING) => ({
   checkout_attempt_id: ATTEMPT_ID,
   quote_binding: binding,
   tour_count: '1',
+  departure_deadlines_utc: JSON.stringify([Date.parse('2026-12-01T08:00:00Z')]),
 });
 
 const quote = (overrides: Record<string, unknown> = {}) => ({
@@ -159,7 +160,7 @@ const firePaymentIntent = async (id: string, binding = BINDING) => {
     currency: 'usd',
     metadata: hostedMetadata(binding),
   };
-  mockConstructEvent.mockReturnValue({ type: 'payment_intent.succeeded', data: { object: paymentIntent } });
+  mockConstructEvent.mockReturnValue({ created: Math.floor(Date.parse('2026-10-02T08:00:00Z') / 1000), type: 'payment_intent.succeeded', data: { object: paymentIntent } });
   const response = await POST({ text: async () => '{}' } as unknown as Request);
   return { response, paymentIntent };
 };

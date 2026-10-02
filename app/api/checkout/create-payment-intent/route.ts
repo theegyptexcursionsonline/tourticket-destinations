@@ -1,3 +1,4 @@
+import { recheckPreparedDepartures } from '@/lib/bookings/departureAdmission';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import {
@@ -27,6 +28,7 @@ export async function POST(request: Request) {
     // enforced inside the shared preparation used by both Stripe surfaces.
     void resolveExecutablePaymentMethods;
     const prepared = await prepareStripeCheckout(request, 'payment-element');
+    await recheckPreparedDepartures(prepared.cart, prepared.tenantId, prepared.metadata);
     const paymentIntent = await getStripe().paymentIntents.create({
       amount: prepared.amountMinor,
       currency: prepared.currency,

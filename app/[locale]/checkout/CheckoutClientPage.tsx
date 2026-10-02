@@ -1,5 +1,7 @@
 'use client';
 
+import { confirmPaidCheckout } from '@/lib/checkout/confirmPaidCheckout';
+
 import React, { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from '@/i18n/navigation';
@@ -579,7 +581,14 @@ const CheckoutFormStep = ({
         <section>
           <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 mb-4">{t('checkout.paymentDetails')}</h2>
 
-          {supportedPaymentMethods.length === 0 ? (
+          {paymentIntentId && <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-amber-950" role="status">
+            <p className="font-semibold">Your payment is being checked</p>
+            <p className="mt-1 text-sm">Keep this page open. Confirmation checks the same payment; it does not charge again.</p>
+            <button type="button" onClick={onPaymentProcess} disabled={isProcessing} className="mt-4 min-h-12 rounded-xl bg-red-600 px-5 py-3 font-bold text-white disabled:opacity-50">
+              {isProcessing ? 'Checking confirmation…' : 'Retry confirmation'}
+            </button>
+          </div>}
+          {!paymentIntentId && (supportedPaymentMethods.length === 0 ? (
             <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-amber-950" role="status">
               <p className="font-semibold">Online payment is temporarily unavailable</p>
               <p className="mt-1 text-sm text-amber-800">Please contact this website&apos;s support team before confirming your booking.</p>
@@ -601,9 +610,9 @@ const CheckoutFormStep = ({
             )}
 
           </div>
-          )}
+          ))}
 
-          {supportedPaymentMethods.length > 0 && <AnimatePresence mode="wait">
+          {!paymentIntentId && supportedPaymentMethods.length > 0 && <AnimatePresence mode="wait">
             <motion.div
               key={paymentMethod}
               initial={{ opacity: 0, y: 8 }}
@@ -1337,13 +1346,12 @@ export default function CheckoutPage() {
       };
 
       // Call the checkout API
-      const response = await fetch('/api/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(bookingPayload),
-      });
+      const { response, result } = await confirmPaidCheckout(bookingPayload);
 
-      const result = await response.json();
+      if (response.status === 202 && result.code === 'PAYMENT_CONFIRMATION_PROCESSING') {
+        toast(result.message || 'Your payment is being checked. Try confirmation again shortly.');
+        return;
+      }
 
       if (response.ok && result.success) {
         // Success - show thank you page
@@ -1395,7 +1403,7 @@ export default function CheckoutPage() {
     }
   }, [isConfirmed]);
 
-  const showPaymentLauncher = paymentExperience === 'modal';
+  const showPaymentLauncher = paymentExperience === 'modal' && !paymentIntentId;
   const showMobileStickyCTA = !isConfirmed && cart && cart.length > 0 && (customerType === 'guest' || user) && showPaymentLauncher;
 
   if (!isCartReady || !cart) {

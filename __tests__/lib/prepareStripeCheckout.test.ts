@@ -1,3 +1,8 @@
+const mockDepartures = jest.fn();
+jest.mock('@/lib/bookings/departureAdmission', () => ({
+  ...jest.requireActual('@/lib/bookings/departureAdmission'),
+  assertCheckoutDepartures: (...args: unknown[]) => mockDepartures(...args),
+}));
 const mockDbConnect = jest.fn();
 const mockGetTenant = jest.fn();
 const mockGetTenantConfig = jest.fn();
@@ -18,6 +23,7 @@ jest.mock('@/lib/security/checkoutPricing', () => ({
   checkoutCustomerRef: jest.fn(() => 'c'.repeat(64)),
 }));
 
+import { DepartureAdmissionError } from '@/lib/bookings/departureAdmission';
 import { prepareStripeCheckout, StripeCheckoutInputError } from '@/lib/checkout/prepareStripeCheckout';
 
 const checkoutAttemptId = '123e4567-e89b-42d3-a456-426614174000';
@@ -35,6 +41,7 @@ const request = (value: unknown) => ({
 describe('prepareStripeCheckout', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockDepartures.mockResolvedValue([Date.parse('2027-02-01T10:00:00Z')]);
     mockGetTenant.mockResolvedValue('brand-one');
     mockGetTenantConfig.mockResolvedValue({
       name: 'Brand One', domain: 'brand-one.example',
@@ -47,6 +54,18 @@ describe('prepareStripeCheckout', () => {
     });
   });
 
+  it('changes the payment quote identity when the authoritative departure deadline changes', async () => {
+    const first = await prepareStripeCheckout(request(body), 'hosted');
+    mockDepartures.mockResolvedValueOnce([Date.parse('2027-02-01T11:00:00Z')]);
+    const changed = await prepareStripeCheckout(request(body), 'hosted');
+    expect(changed.quoteBinding).not.toBe(first.quoteBinding);
+    expect(changed.metadata.departure_deadlines_utc).not.toBe(first.metadata.departure_deadlines_utc);
+  });
+  it('refuses a departed selection before pricing or payment preparation', async () => {
+    mockDepartures.mockRejectedValueOnce(new DepartureAdmissionError());
+    await expect(prepareStripeCheckout(request(body), 'hosted')).rejects.toMatchObject({ status: 409, code: 'DEPARTURE_UNAVAILABLE' });
+    expect(mockCalculatePricing).not.toHaveBeenCalled();
+  });
   it('ignores client totals and binds the hosted request to the authoritative tenant quote', async () => {
     const prepared = await prepareStripeCheckout(request(body), 'hosted');
     expect(mockCalculatePricing).toHaveBeenCalledWith(body.cart, 'brand-one', undefined);

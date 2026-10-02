@@ -1,3 +1,5 @@
+import { completePaidReplay } from '@/lib/checkout/completePaidReplay';
+import { readDepartureSnapshot, resolveCheckoutDepartureDeadlines, assertFutureDeparture } from '@/lib/bookings/departureAdmission';
 // app/api/webhooks/stripe/route.ts
 // Multi-tenant Stripe webhook handler - adapted from EEO project
 import { NextResponse } from 'next/server';
@@ -198,7 +200,7 @@ async function generateUniqueBookingReference(tenantId: string, tenantConfig?: I
 // ────────────────────────────────────────────────────────────────────────────
 // PROCESS SUCCESSFUL PAYMENT
 // ────────────────────────────────────────────────────────────────────────────
-async function processSuccessfulPayment(paymentIntent: Stripe.PaymentIntent) {
+async function processSuccessfulPayment(paymentIntent: Stripe.PaymentIntent, succeededAtSeconds: number) {
   const paymentId = paymentIntent.id;
   const metadata = paymentIntent.metadata;
 
@@ -315,137 +317,17 @@ async function processSuccessfulPayment(paymentIntent: Stripe.PaymentIntent) {
   const existingBookings = await Booking.find({ tenantId, paymentId });
 
   const expectedBookingCount = Number(metadata.tour_count || hostedQuote?.cartSummary?.length || 1);
-  if (existingBookings.length >= expectedBookingCount) {
-    const firstBooking = existingBookings[0];
-    console.log(`[Webhook] Booking(s) exist for payment ${paymentId}, status: ${firstBooking.status}`);
-
-    // If booking is still "Pending", update to "Confirmed" and send customer email
-    if (firstBooking.status === 'Pending') {
-      console.log(`[Webhook] Updating ${existingBookings.length} booking(s) from Pending to Confirmed`);
-
-      // Update all bookings for this payment to Confirmed
-      for (const booking of existingBookings) {
-        if (booking.status === 'Pending') {
-          booking.status = 'Confirmed';
-          await booking.save();
-        }
-      }
-
-      // Send customer confirmation email for the confirmed booking(s)
-      try {
-        const mainBooking = existingBookings[0];
-        const tour = await Tour.findById(mainBooking.tour);
-        const user = await User.findById(mainBooking.user);
-
-        if (tour && user) {
-          const bookingDate = formatBookingDate(mainBooking.date);
-          const hotelPickupLocation = mainBooking.hotelPickupLocation || null;
-          const hotelPickupMapImage = hotelPickupLocation ? buildStaticMapImageUrl(hotelPickupLocation) : undefined;
-          const hotelPickupMapLink = hotelPickupLocation ? buildGoogleMapsLink(hotelPickupLocation) : undefined;
-          const dateBadge = buildDateBadge(mainBooking.date);
-          const timeUntilTour = computeTimeUntilTour(mainBooking.date, mainBooking.time);
-
-          // Build ordered items for email
-          const orderedItems = await Promise.all(existingBookings.map(async (b: any) => {
-            const t = await Tour.findById(b.tour);
-            return {
-              title: t?.title || 'Tour',
-              image: t?.image,
-              adults: b.adultGuests || 1,
-              children: b.childGuests || 0,
-              infants: b.infantGuests || 0,
-              bookingOption: b.selectedBookingOption?.title,
-              totalPrice: formatMoney(b.totalPrice || 0),
-              quantity: b.adultGuests || 1,
-              childQuantity: b.childGuests || 0,
-              infantQuantity: b.infantGuests || 0,
-              price: b.selectedBookingOption?.price || 0,
-              selectedBookingOption: b.selectedBookingOption || undefined,
-            };
-          }));
-
-          // Get pricing from metadata or approximate
-          const pricingTotal = existingBookings.reduce((sum: number, b: any) => sum + (b.totalPrice || 0), 0);
-          const pricingSubtotal = parseFloat(metadata.pricing_subtotal) || pricingTotal / 1.08;
-          const pricingServiceFee = parseFloat(metadata.pricing_service_fee) || pricingSubtotal * 0.03;
-          const pricingTax = parseFloat(metadata.pricing_tax) || pricingSubtotal * 0.05;
-          const pricingDiscount = parseFloat(metadata.pricing_discount) || 0;
-
-          const bookingId = existingBookings.length === 1
-            ? mainBooking.bookingReference
-            : `MULTI-${Date.now()}`;
-
-          await EmailService.sendBookingConfirmation({
-            customerName: `${user.firstName} ${user.lastName}`,
-            customerEmail: user.email,
-            customerPhone: metadata.customer_phone || '',
-            tourTitle: existingBookings.length === 1
-              ? tour.title || 'Tour'
-              : `${existingBookings.length} Tours`,
-            bookingDate,
-            bookingTime: mainBooking.time,
-            participants: `${mainBooking.guests} participant${mainBooking.guests !== 1 ? 's' : ''}`,
-            totalPrice: formatMoney(pricingTotal),
-            bookingId,
-            bookingOption: mainBooking.selectedBookingOption?.title,
-            meetingPoint: tour.meetingPoint || 'Meeting point will be confirmed 24 hours before tour',
-            contactNumber,
-            tourImage: tour.image,
-            baseUrl,
-            hotelPickupDetails: mainBooking.hotelPickupDetails || undefined,
-            hotelPickupLocation: hotelPickupLocation || undefined,
-            hotelPickupMapImage: hotelPickupMapImage || undefined,
-            hotelPickupMapLink: hotelPickupMapLink || undefined,
-            specialRequests: mainBooking.specialRequests || undefined,
-            orderedItems,
-            pricingDetails: {
-              subtotal: formatMoney(pricingSubtotal),
-              serviceFee: formatMoney(pricingServiceFee),
-              tax: formatMoney(pricingTax),
-              discount: pricingDiscount > 0 ? formatMoney(pricingDiscount) : undefined,
-              total: formatMoney(pricingTotal),
-              currencySymbol,
-            },
-            pricingRaw: {
-              subtotal: pricingSubtotal,
-              serviceFee: pricingServiceFee,
-              tax: pricingTax,
-              discount: pricingDiscount,
-              total: pricingTotal,
-              symbol: currencySymbol,
-            },
-            timeUntil: timeUntilTour,
-            dateBadge,
-            discountCode: (mainBooking as any).discountCode || undefined,
-            tenantBranding,
-          });
-
-          console.log(`[Webhook] Sent customer confirmation for updated booking(s) - tenant: ${tenantId}`);
-          await Booking.updateMany(
-            { _id: { $in: existingBookings.map((booking: any) => booking._id) } },
-            { $set: { confirmationSentAt: new Date() }, $unset: { confirmationEmailFailedAt: 1, confirmationEmailFailureCode: 1 } },
-          ).catch(() => undefined);
-        }
-      } catch (emailError) {
-        console.error(`[Webhook] Failed to send customer email for updated booking:`, emailError);
-        const failureCode = (emailError instanceof Error ? emailError.message : 'unknown_error').slice(0, 200);
-        await Booking.updateMany(
-          { _id: { $in: existingBookings.map((booking: any) => booking._id) } },
-          { $set: { confirmationEmailFailedAt: new Date(), confirmationEmailFailureCode: failureCode } },
-        ).catch(() => undefined);
-      }
-
-      return {
-        created: false,
-        updated: true,
-        reason: 'updated_to_confirmed',
-        bookingId: firstBooking.bookingReference,
-      };
+  if (existingBookings.length > 0) {
+    const replayItems = hostedQuote?.cartSummary?.length ? hostedQuote.cartSummary : JSON.parse(unpackCartMetadata(metadata));
+    const replayCart = replayItems.map((item: any) => ({ id: item.t, selectedDate: item.d, selectedTime: item.tm,
+      quantity: item.a, childQuantity: item.c, infantQuantity: item.n,
+      selectedBookingOption: { id: item.bo, pricingKey: item.ok } }));
+    if (completePaidReplay(existingBookings, replayCart, paymentIntent.amount / 100)) {
+      return { created: false, reason: 'already_confirmed', bookingId: existingBookings[0].bookingReference };
     }
-
-    // Booking exists and is already Confirmed
-    console.log(`[Webhook] Booking ${firstBooking.bookingReference} already confirmed, skipping`);
-    return { created: false, reason: 'already_confirmed', bookingId: firstBooking.bookingReference };
+    // Partial/unpaid rows belong to canonical reconciliation; this secondary
+    // endpoint must not promote them or emit confirmation independently.
+    throw new Error('Canonical payment reconciliation required');
   }
 
   // ── FALLBACK: Create booking if it doesn't exist ─────────────────────────
@@ -491,6 +373,15 @@ async function processSuccessfulPayment(paymentIntent: Stripe.PaymentIntent) {
   }
 
   // Find or create user
+  // This route is not the live global Stripe endpoint. It may recover only
+  // a provably on-time payment; late or unproven orders stay for canonical EEO
+  // reconciliation rather than opening a second refund/financial writer here.
+  const timingCart = cartData.map((item: any) => ({ id: item.t, selectedDate: item.d, selectedTime: item.tm, selectedBookingOption: { id: item.bo, pricingKey: item.ok } }));
+  const deadlines = readDepartureSnapshot(metadata, timingCart.length)
+    || await resolveCheckoutDepartureDeadlines(timingCart, tenantId);
+  if (!Number.isSafeInteger(succeededAtSeconds) || succeededAtSeconds <= 0) throw new Error('Trusted payment completion time unavailable');
+  deadlines.forEach((deadline) => assertFutureDeparture(deadline, succeededAtSeconds * 1000));
+
   let user = await User.findOne({ email: customerEmail });
   if (!user) {
     try {
@@ -1017,7 +908,7 @@ export async function POST(request: Request) {
         // CRITICAL: Create booking if it doesn't exist yet
         // This ensures bookings are created even if the frontend callback fails
         try {
-          const result = await processSuccessfulPayment(paymentIntent);
+          const result = await processSuccessfulPayment(paymentIntent, event.created);
           console.log(`[Webhook] Process result for ${paymentIntent.id}:`, result);
           if (result && result.created === false && ['missing_customer_data', 'invalid_cart_data', 'price_unresolvable', 'price_mismatch'].includes(String(result.reason))) {
             throw new Error(`Payment recovery data is invalid: ${result.reason}`);

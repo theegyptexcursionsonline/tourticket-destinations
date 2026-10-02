@@ -1,3 +1,5 @@
+const mockDepartures = jest.fn();
+jest.mock('@/lib/bookings/departureAdmission', () => ({ recheckPreparedDepartures: (...args: unknown[]) => mockDepartures(...args) }));
 /**
  * Hosted Checkout lifecycle. A guest who backs out of Stripe and clicks Pay
  * again, or who edits the cart in the same tab, must get exactly one payable
@@ -105,6 +107,7 @@ describe('POST /api/checkout/create-checkout-session', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockDepartures.mockResolvedValue([]);
     mockGuard.mockResolvedValue(null);
     process.env.STRIPE_SECRET_KEY = 'sk_test_unit';
     mockPrepare.mockResolvedValue(prepared);
@@ -131,6 +134,13 @@ describe('POST /api/checkout/create-checkout-session', () => {
     jest.restoreAllMocks();
   });
 
+  it('rechecks departure after awaited lease preparation before opening a Stripe page', async () => {
+    mockDepartures.mockRejectedValueOnce(new Error('departure elapsed'));
+    const response = await POST(request());
+    expect(response.status).toBe(500);
+    expect(mockSessionCreate).not.toHaveBeenCalled();
+    expect(mockReleaseLease).toHaveBeenCalled();
+  });
   it('uses the server-authoritative amount, exact tenant return URL, and durable quote', async () => {
     const response = await POST(request());
     expect(response.status).toBe(200);

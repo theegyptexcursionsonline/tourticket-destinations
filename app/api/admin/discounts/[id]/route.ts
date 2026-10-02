@@ -31,7 +31,7 @@ async function PUTHandler(request: NextRequest, { params }: { params: Promise<{ 
     if (body.tenantId !== undefined && body.tenantId !== existing.tenantId) return tenantForbiddenResponse();
     if ((values.discountType ?? existing.discountType) === 'percentage' && (values.value ?? existing.value) > 100) throw new DiscountInputError('A percentage discount cannot exceed 100%.');
 
-    const filter: Record<string, unknown> = { _id: id, tenantId: existing.tenantId };
+    const filter: Record<string, unknown> = { _id: id, tenantId: existing.tenantId, discountType: existing.discountType, value: existing.value };
     const tenantId = getTenantScope(request);
     if (tenantId && tenantId !== existing.tenantId) return tenantForbiddenResponse();
 
@@ -41,7 +41,7 @@ async function PUTHandler(request: NextRequest, { params }: { params: Promise<{ 
     });
 
     if (!updatedDiscount) {
-      return NextResponse.json({ success: false, error: 'Discount not found' }, { status: 404 });
+      return NextResponse.json({ success: false, error: 'This discount changed while you were editing it. Refresh and try again.' }, { status: 409 });
     }
 
     return NextResponse.json({ success: true, data: updatedDiscount });

@@ -1,3 +1,5 @@
+import { completePaidReplay } from '@/lib/checkout/completePaidReplay';
+import { readDepartureSnapshot, resolveCheckoutDepartureDeadlines, assertFutureDeparture, DepartureAdmissionError } from '@/lib/bookings/departureAdmission';
 // app/api/checkout/route.ts (With booking reference generation)
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
@@ -332,6 +334,20 @@ export async function POST(request: Request) {
       : null;
     const appliedDiscountCode = metadataDiscount || (paidMetadata.discount_code ? null : discountCode);
 
+    // A verified succeeded payment observed before departure is necessarily
+    // on time. Once already past departure, only the canonical signed success
+    // event can establish its completion time; PI.created is never evidence.
+    const successObservedAt = Date.now();
+    let needsCanonicalConfirmation = false;
+    try {
+      const deadlines = readDepartureSnapshot(paidMetadata, cart.length)
+        || await resolveCheckoutDepartureDeadlines(cart, tenantId);
+      deadlines.forEach((deadline) => assertFutureDeparture(deadline, successObservedAt));
+    } catch (error) {
+      if (!(error instanceof DepartureAdmissionError)) throw error;
+      needsCanonicalConfirmation = true;
+    }
+
     let validatedCheckout: Awaited<ReturnType<typeof calculateCheckoutPricing>>;
     try {
       validatedCheckout = await calculateCheckoutPricing(cart, tenantId, appliedDiscountCode);
@@ -362,6 +378,54 @@ export async function POST(request: Request) {
       amount: paymentIntent.amount / 100,
       currency: paymentIntent.currency.toUpperCase(),
     };
+
+    // Idempotency guard for Stripe payments to avoid duplicate bookings/emails
+    if (paymentResult?.paymentId) {
+      const existingBookings = await Booking.find({
+        tenantId,
+        paymentId: paymentResult.paymentId,
+      }).lean();
+
+      const completePaidOrder = completePaidReplay(existingBookings, cart, pricing.total);
+      if (completePaidOrder) {
+        const duplicateOrderId = existingBookings.length === 1
+          ? existingBookings[0].bookingReference
+          : `MULTI-${String(paymentResult.paymentId).replace(/[^a-zA-Z0-9_-]/g, '').slice(-40)}`;
+        const receiptToken = await signToken({
+          scope: 'receipt',
+          tenantId,
+          orderId: duplicateOrderId,
+          bookingIds: existingBookings.map((booking) => String(booking._id)),
+          pricing: {
+            subtotal: pricing.subtotal,
+            serviceFee: pricing.serviceFee,
+            tax: pricing.tax,
+            discount: pricing.discount,
+            total: pricing.total,
+            currency: pricing.currency,
+            symbol: pricing.symbol,
+          },
+        }, { expiresIn: '24h' });
+        return NextResponse.json({
+          success: true,
+          message: 'Booking already processed for this payment.',
+          bookingId: duplicateOrderId,
+          bookings: existingBookings.map(booking => booking._id),
+          paymentId: paymentResult.paymentId,
+          customer: {
+            name: `${customer.firstName} ${customer.lastName}`,
+            email: customer.email,
+          },
+          duplicate: true,
+          receiptToken,
+        });
+      }
+      if (existingBookings.length > 0) needsCanonicalConfirmation = true;
+    }
+
+    if (needsCanonicalConfirmation) {
+      return NextResponse.json({ status: 'processing', code: 'PAYMENT_CONFIRMATION_PROCESSING', message: 'Your payment is being checked. Keep your booking details and try confirmation again shortly.' }, { status: 202, headers: { 'Cache-Control': 'no-store' } });
+    }
 
     let user = null;
 
@@ -440,48 +504,6 @@ export async function POST(request: Request) {
         { success: false, message: 'Unable to process user information' },
         { status: 400 }
       );
-    }
-
-    // Idempotency guard for Stripe payments to avoid duplicate bookings/emails
-    if (paymentResult?.paymentId) {
-      const existingBookings = await Booking.find({
-        tenantId,
-        paymentId: paymentResult.paymentId,
-      }).lean();
-
-      if (existingBookings.length > 0) {
-        const duplicateOrderId = existingBookings.length === 1
-          ? existingBookings[0].bookingReference
-          : `MULTI-${String(paymentResult.paymentId).replace(/[^a-zA-Z0-9_-]/g, '').slice(-40)}`;
-        const receiptToken = await signToken({
-          scope: 'receipt',
-          tenantId,
-          orderId: duplicateOrderId,
-          bookingIds: existingBookings.map((booking) => String(booking._id)),
-          pricing: {
-            subtotal: pricing.subtotal,
-            serviceFee: pricing.serviceFee,
-            tax: pricing.tax,
-            discount: pricing.discount,
-            total: pricing.total,
-            currency: pricing.currency,
-            symbol: pricing.symbol,
-          },
-        }, { expiresIn: '24h' });
-        return NextResponse.json({
-          success: true,
-          message: 'Booking already processed for this payment.',
-          bookingId: duplicateOrderId,
-          bookings: existingBookings.map(booking => booking._id),
-          paymentId: paymentResult.paymentId,
-          customer: {
-            name: `${customer.firstName} ${customer.lastName}`,
-            email: customer.email,
-          },
-          duplicate: true,
-          receiptToken,
-        });
-      }
     }
 
     // Create every item atomically. A paid multi-item order must never leave a
@@ -594,7 +616,7 @@ export async function POST(request: Request) {
             paymentId: paymentResult.paymentId,
             paymentItemIndex: i,
           }).session(bookingSession);
-          if (existing) {
+          if (existing && completePaidReplay([{ ...existing.toObject(), paymentItemIndex: 0 }], [cartItem], chargedLineTotals[i])) {
             createdBookings.push(existing);
             continue;
           }

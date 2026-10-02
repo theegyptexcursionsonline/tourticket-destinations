@@ -1,3 +1,4 @@
+import { assertCheckoutDepartures, DepartureAdmissionError, DepartureConfigurationError } from '@/lib/bookings/departureAdmission';
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import { resolveEffectivePrice } from '@/lib/revenue/pricingResolver';
@@ -19,10 +20,11 @@ export async function GET(request: NextRequest, context: { params: Promise<{ tou
       return NextResponse.json({ error: { code: 'INVALID_QUOTE_TARGET', message: 'date and time are required.' } }, { status: 400 });
     }
     const quote = await resolveEffectivePrice({ tourId, date, time, optionKey, tenantId });
+    await assertCheckoutDepartures([{ id: tourId, selectedDate: date, selectedTime: time, selectedBookingOption: { pricingKey: optionKey } }], tenantId);
     return NextResponse.json({ quote }, { headers: { 'Cache-Control': 'no-store, private' } });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unable to resolve price';
-    const status = /Invalid|required/.test(message) ? 400 : /unavailable/i.test(message) ? 404 : 500;
+    const status = error instanceof DepartureConfigurationError ? 503 : error instanceof DepartureAdmissionError ? 409 : /Invalid|required/.test(message) ? 400 : /unavailable/i.test(message) ? 404 : 500;
     return NextResponse.json({ error: { code: 'QUOTE_UNAVAILABLE', message } }, { status });
   }
 }

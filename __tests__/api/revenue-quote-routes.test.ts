@@ -1,5 +1,7 @@
 export {};
 
+const mockDepartureAdmission = jest.fn();
+jest.mock('@/lib/bookings/departureAdmission', () => ({ ...jest.requireActual('@/lib/bookings/departureAdmission'), assertCheckoutDepartures: (...args: unknown[]) => mockDepartureAdmission(...args) }));
 const mockDbConnect = jest.fn();
 const mockRequireAdminAuth = jest.fn();
 const mockCanAccessTenant = jest.fn();
@@ -71,6 +73,7 @@ const request = (path: string) => ({
 describe('Revenue-aware quote route boundaries', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockDepartureAdmission.mockResolvedValue([]);
     mockDbConnect.mockResolvedValue(undefined);
     mockRequireAdminAuth.mockResolvedValue({ userId: 'admin-1', tenantIds: ['mountain-tours'] });
     mockCanAccessTenant.mockReturnValue(true);
@@ -173,5 +176,16 @@ describe('Revenue-aware quote route boundaries', () => {
     const accepted = await GET(request('/api/cron/pricing-summaries'));
     await expect(accepted.json()).resolves.toEqual({ success: true, refreshed: 2, projectionAttempts: 1, results: [] });
     expect(mockRefreshExpiredPricingSummaries).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('public quote departure boundary', () => {
+  it('does not advertise a price once the requested departure has elapsed', async () => {
+    const { DepartureAdmissionError } = await import('@/lib/bookings/departureAdmission');
+    mockDepartureAdmission.mockRejectedValueOnce(new DepartureAdmissionError());
+    const { GET } = await import('@/app/api/tours/[tourId]/quote/route');
+    const result = await GET(request('/api/tours/tour-1/quote?date=2026-09-12&time=06%3A30'), { params: Promise.resolve({ tourId: 'tour-1' }) });
+    expect(result.status).toBe(409);
+    expect((await result.json()).quote).toBeUndefined();
   });
 });
