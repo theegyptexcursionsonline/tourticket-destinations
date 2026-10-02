@@ -137,7 +137,7 @@ const DiscountsPage = () => {
   // --- Toggle Active Status ---
   const handleToggle = async (id: string, currentStatus: boolean) => {
     try {
-      const response = await fetch(`/api/admin/discounts/${id}`, {
+      const response = await fetch(`/api/admin/discounts/${id}?${new URLSearchParams({ tenantId: selectedTenantId || 'all' })}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isActive: !currentStatus }),
@@ -159,7 +159,7 @@ const DiscountsPage = () => {
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this discount code? This action cannot be undone.')) return;
     try {
-      const response = await fetch(`/api/admin/discounts/${id}`, {
+      const response = await fetch(`/api/admin/discounts/${id}?${new URLSearchParams({ tenantId: selectedTenantId || 'all' })}`, {
         method: 'DELETE',
       });
        const data = await response.json();

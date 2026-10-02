@@ -2,6 +2,7 @@ import { withAdminAudit } from '@/lib/admin/adminAudit';
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Discount from '@/lib/models/Discount';
+import { DiscountInputError, discountMutationError, parseDiscountInput } from '@/lib/discounts/adminInput';
 import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from '@/lib/auth/adminAuth';
 import { canViewAllBrands, listTenantClause } from '@/lib/admin/tenantListScope';
 
@@ -41,9 +42,10 @@ async function POSTHandler(request: NextRequest) {
 
   try {
     const body = await request.json();
+    const values = parseDiscountInput(body);
     
     // Ensure tenantId is provided for new discounts
-    if (!body.tenantId) {
+    if (typeof body.tenantId !== 'string' || !body.tenantId.trim() || body.tenantId === 'all') {
       return NextResponse.json(
         { success: false, error: 'tenantId is required for creating discounts' },
         { status: 400 }
@@ -51,11 +53,11 @@ async function POSTHandler(request: NextRequest) {
     }
     if (!canAccessTenant(auth, body.tenantId)) return tenantForbiddenResponse();
     
-    const newDiscount = await Discount.create(body);
+    if (body.tenantId !== body.tenantId.trim()) throw new DiscountInputError('Select a valid brand.');
+    const newDiscount = await Discount.create({ ...values, tenantId: body.tenantId });
     return NextResponse.json({ success: true, data: newDiscount }, { status: 201 });
   } catch (error) {
-    console.error('Failed to create discount:', error);
-    return NextResponse.json({ success: false, error: 'Server Error' }, { status: 500 });
+    return discountMutationError(error);
   }
 }
 
