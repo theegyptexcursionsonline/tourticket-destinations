@@ -77,3 +77,13 @@ describe('Tour guest-price schema', () => {
     expect(errorPaths(baseTour({ bookingOptions: [{ type: 'Per Person', label: 'Private', price: 150 }] }))).toEqual([]);
   });
 });
+
+describe('Tour booking cutoff schema', () => {
+  it('defaults old tours to zero and stores an explicit duration', () => {
+    expect(new Tour(baseTour()).bookingCutoffMinutes).toBe(0);
+    expect(new Tour(baseTour({ bookingCutoffMinutes: 120 })).bookingCutoffMinutes).toBe(120);
+  });
+  it.each([-1, 0.5, 43201, Infinity, null])('rejects invalid cutoff %s', bookingCutoffMinutes => {
+    expect(errorPaths(baseTour({ bookingCutoffMinutes }))).toContain('bookingCutoffMinutes');
+  });
+});

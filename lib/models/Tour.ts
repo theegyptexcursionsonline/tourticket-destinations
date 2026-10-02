@@ -1,3 +1,4 @@
+import { isValidBookingCutoff } from '@/lib/bookings/bookingCutoff';
 // lib/models/Tour.ts
  
 import mongoose, { Document, Schema, Model } from 'mongoose';
@@ -182,6 +183,7 @@ export interface ITour extends Document {
 
   // Relationships
   reviews?: mongoose.Schema.Types.ObjectId[];
+  bookingCutoffMinutes?: number;
   availability: IAvailability;
   /** Per-tenant listing summaries; a shared tour may have different live prices on each brand. */
   pricingSummaries?: Array<{ tenantId: string; fromPrice: number; currency: string; version: number; validThrough?: Date }>;
@@ -901,6 +903,7 @@ const TourSchema: Schema<ITour> = new Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Review'
   }],
+  bookingCutoffMinutes: { type: Number, default: 0, validate: { validator: isValidBookingCutoff, message: "Invalid booking cutoff" } },
   availability: {
     type: AvailabilitySchema,
     required: true,

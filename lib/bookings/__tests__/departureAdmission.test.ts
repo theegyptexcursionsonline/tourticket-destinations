@@ -3,7 +3,7 @@ const mockTenant = jest.fn();
 jest.mock('@/lib/models/Tour', () => ({ __esModule: true, default: { findOne: jest.fn(() => ({ select: () => ({ lean: mockLean }) })) } }));
 jest.mock('@/lib/tenant', () => ({ buildStrictTenantQuery: (query: object, tenantId: string) => ({ ...query, tenantId }), getTenantConfigCached: (...args: unknown[]) => mockTenant(...args) }));
 import Tour from '@/lib/models/Tour';
-import { assertCheckoutDepartures, assertFutureDeparture, departureDeadline, futureCatalogueTimes, readDepartureSnapshot, recheckPreparedDepartures } from '../departureAdmission';
+import { resolveCheckoutDepartureDeadlines, assertCheckoutDepartures, assertFutureDeparture, departureDeadline, futureCatalogueTimes, readDepartureSnapshot, recheckPreparedDepartures } from '../departureAdmission';
 const scheduled = { availability: { type: 'daily', slots: [{ time: '09:00' }, { time: '14:00' }] } };
 const day = '2026-07-15';
 const deadline = Date.parse('2026-07-15T06:00:00Z');
@@ -68,5 +68,31 @@ describe('authoritative departure admission', () => {
     mockLean.mockImplementation(async () => { jest.setSystemTime(deadline); return scheduled; });
     await expect(assertCheckoutDepartures([{ id: 'tour-one', selectedDate: day, selectedTime: '09:00' }], 'brand-one')).rejects.toThrow();
     expect(Tour.findOne).toHaveBeenCalledWith({ _id: 'tour-one', isPublished: true, archivedAt: null, tenantId: 'brand-one' });
+  });
+});
+
+describe('configured booking close time', () => {
+  afterEach(() => { jest.useRealTimers(); jest.clearAllMocks(); });
+  it('closes precisely at cutoff and retains later departures', () => {
+    const tour = { ...scheduled, bookingCutoffMinutes: 120 };
+    const close = departureDeadline(tour, { date: day, time: '09:00' }, 'Africa/Cairo');
+    expect(close).toBe(deadline - 7200000);
+    expect(() => assertFutureDeparture(close, close - 1)).not.toThrow();
+    expect(() => assertFutureDeparture(close, close)).toThrow();
+    expect(futureCatalogueTimes(tour, day, 'Africa/Cairo', close)).toEqual({ 'standard-default': ['14:00'] });
+  });
+  it('subtracts elapsed duration across midnight and DST', () => {
+    expect(departureDeadline({ ...scheduled, bookingCutoffMinutes: 720 }, { date: day, time: '09:00' }, 'Africa/Cairo')).toBe(Date.parse('2026-07-14T18:00:00Z'));
+    expect(departureDeadline({ availability: { type: 'daily', slots: [{ time: '01:30' }] }, bookingCutoffMinutes: 120 }, { date: '2026-10-25', time: '01:30' }, 'Europe/London')).toBe(Date.parse('2026-10-24T22:30:00Z'));
+  });
+  it('rereads setting and rejects stale prepared payment without trusting cart cutoff', async () => {
+    jest.useFakeTimers().setSystemTime(deadline - 24 * 3600000);
+    mockTenant.mockResolvedValue({ localization: { defaultTimezone: 'Africa/Cairo' } });
+    mockLean.mockResolvedValue({ ...scheduled, bookingCutoffMinutes: 120 });
+    const cart = [{ id: 'tour-one', selectedDate: day, selectedTime: '09:00', bookingCutoffMinutes: 0 }];
+    await expect(assertCheckoutDepartures(cart, 'brand-one')).resolves.toEqual([deadline - 7200000]);
+    await expect(recheckPreparedDepartures(cart, 'brand-one', { departure_deadlines_utc: JSON.stringify([deadline]) })).rejects.toThrow('schedule changed');
+    expect(readDepartureSnapshot({ departure_deadlines_utc: JSON.stringify([deadline]) }, 1)).toEqual([deadline]);
+    await expect(resolveCheckoutDepartureDeadlines(cart, 'brand-one', true)).resolves.toEqual([deadline]);
   });
 });

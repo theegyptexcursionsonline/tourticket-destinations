@@ -1,3 +1,4 @@
+import { bookingCutoffPayloadError, cutoffScheduleError } from '@/lib/bookings/bookingCutoff';
 import { withAdminAudit } from '@/lib/admin/adminAudit';
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/dbConnect";
@@ -193,6 +194,10 @@ async function PUTHandler(
         await dbConnect();
         const { id } = await params;
         const body = await request.json();
+        if (!body || typeof body !== "object" || Array.isArray(body)) return NextResponse.json({ success: false, error: "A tour update object is required." }, { status: 400 });
+        const cutoffOnly = Object.keys(body).length === 1 && Object.prototype.hasOwnProperty.call(body, "bookingCutoffMinutes");
+    const cutoffError = bookingCutoffPayloadError(body);
+    if (cutoffError) return NextResponse.json({ success: false, error: cutoffError }, { status: 400 });
         const guestPriceError = guestPricePayloadError(body);
         if (guestPriceError) {
             return NextResponse.json({ success: false, error: guestPriceError }, { status: 400 });
@@ -231,6 +236,26 @@ async function PUTHandler(
         if (!currentTenantIds.some((tenantId) => canAccessTenant(auth, tenantId))) return tenantForbiddenResponse();
         if (effectiveTenantId && !canAccessTenant(auth, effectiveTenantId)) return tenantForbiddenResponse();
         if (body.tenantId && body.tenantId !== currentTour.tenantId && auth.role !== 'super_admin') return tenantForbiddenResponse();
+
+        const cutoffScheduleProblem = cutoffScheduleError({
+            bookingCutoffMinutes: body.bookingCutoffMinutes ?? currentTour.bookingCutoffMinutes,
+            availability: Object.prototype.hasOwnProperty.call(body, "availability") ? body.availability : currentTour.availability,
+            bookingOptions: Object.prototype.hasOwnProperty.call(body, "bookingOptions") ? body.bookingOptions : currentTour.bookingOptions,
+        });
+        if (cutoffScheduleProblem) return NextResponse.json({ success: false, error: cutoffScheduleProblem }, { status: 400 });
+
+        if (cutoffOnly) {
+            if (effectiveTenantId && !currentTenantIds.includes(effectiveTenantId)) return tenantForbiddenResponse();
+            const scope = effectiveTenantId || currentTenantIds.find(tenantId => canAccessTenant(auth, tenantId));
+            const saved = await Tour.findOneAndUpdate({ _id: currentTour._id,
+                $or: [{ tenantId: scope }, { tenantIds: scope }] },
+                { $set: { bookingCutoffMinutes: body.bookingCutoffMinutes,
+                    updatedBy: auditStamp({ id: auth.userId, name: auth.name, email: auth.email }) } },
+                { new: true, runValidators: true });
+            if (!saved) return NextResponse.json({ success: false, error: 'Tour not found' }, { status: 404 });
+            revalidateTourStorefront();
+            return NextResponse.json({ success: true, data: saved });
+        }
 
         console.log('Updating tour with ID:', id);
         console.log('Validated tour update request');

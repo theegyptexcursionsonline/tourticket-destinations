@@ -150,6 +150,46 @@ describe('admin tour update keeps guest prices', () => {
       Promise.resolve({ ...currentTour, ...update.$set, isPublished: false }));
   });
 
+  it.each([null, [], 'invalid'])('rejects malformed update body %s', async body => {
+    expect((await PUT(putRequest(body), params)).status).toBe(400);
+    expect(Tour.findOneAndUpdate).not.toHaveBeenCalled();
+  });
+  it('rejects a positive cutoff without an authored departure', async () => {
+    Tour.findById.mockResolvedValue({ ...currentTour, availability: { slots: [] } });
+    expect((await PUT(putRequest({ bookingCutoffMinutes: 120 }), params)).status).toBe(400);
+    expect(Tour.findOneAndUpdate).not.toHaveBeenCalled();
+  });
+  it.each([null, { slots: {} }, { slots: [] }])('rejects clearing positive cutoff schedule %s', async availability => {
+    expect((await PUT(putRequest({ bookingCutoffMinutes: 120, availability }), params)).status).toBe(400);
+    expect(Tour.findOneAndUpdate).not.toHaveBeenCalled();
+  });
+  it('saves cutoff alone without unrelated providers or schedule replacement', async () => {
+    const response = await PUT(putRequest({ bookingCutoffMinutes: 120 }), params);
+    expect(response.status).toBe(200);
+    const [filter, update] = Tour.findOneAndUpdate.mock.calls[0];
+    expect(filter).toEqual({ _id: id, $or: [{ tenantId: 'brand-a' }, { tenantIds: 'brand-a' }] });
+    expect(update.$set.bookingCutoffMinutes).toBe(120);
+    expect(update.$set.availability).toBeUndefined();
+    expect(jest.requireMock('@/lib/translation/translateService').translateTourInBackground).not.toHaveBeenCalled();
+    expect(jest.requireMock('@/lib/algolia').deleteTourFromAlgolia).not.toHaveBeenCalled();
+    expect(jest.requireMock('@/lib/revenue/pricingSummary').refreshTourPricingSummaries).not.toHaveBeenCalled();
+  });
+  it.each([-1, 1.5, 43201, null, '120'])('rejects invalid cutoff %s before update', async value => {
+    const response = await PUT(putRequest({ bookingCutoffMinutes: value }), params);
+    expect(response.status).toBe(400);
+    expect(Tour.findOneAndUpdate).not.toHaveBeenCalled();
+  });
+  it('forbids cutoff write outside tenant ownership', async () => {
+    authModule.canAccessTenant.mockReturnValue(false);
+    const response = await PUT(putRequest({ bookingCutoffMinutes: 120 }), params);
+    expect(response.status).toBe(403);
+    expect(Tour.findOneAndUpdate).not.toHaveBeenCalled();
+  });
+  it('does not inject cutoff into older update payloads', async () => {
+    await PUT(putRequest(fullBody()), params);
+    expect(Tour.findOneAndUpdate.mock.calls[0][1].$set).not.toHaveProperty('bookingCutoffMinutes');
+  });
+
   it('stores the tour set, the option set and cleaned per-slot overrides, tenant-scoped', async () => {
     const response = await PUT(putRequest(fullBody()), params);
 

@@ -378,7 +378,7 @@ async function processSuccessfulPayment(paymentIntent: Stripe.PaymentIntent, suc
   // reconciliation rather than opening a second refund/financial writer here.
   const timingCart = cartData.map((item: any) => ({ id: item.t, selectedDate: item.d, selectedTime: item.tm, selectedBookingOption: { id: item.bo, pricingKey: item.ok } }));
   const deadlines = readDepartureSnapshot(metadata, timingCart.length)
-    || await resolveCheckoutDepartureDeadlines(timingCart, tenantId);
+    || await resolveCheckoutDepartureDeadlines(timingCart, tenantId, true);
   if (!Number.isSafeInteger(succeededAtSeconds) || succeededAtSeconds <= 0) throw new Error('Trusted payment completion time unavailable');
   deadlines.forEach((deadline) => assertFutureDeparture(deadline, succeededAtSeconds * 1000));
 

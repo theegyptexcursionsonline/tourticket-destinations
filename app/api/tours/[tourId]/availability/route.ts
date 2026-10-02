@@ -23,7 +23,7 @@ export async function GET(
     const tenantId = await getTenantFromRequest();
     const tenant = await getTenantConfigCached(tenantId);
     if (!tenant?.localization?.defaultTimezone) return NextResponse.json({ message: 'Booking timezone unavailable' }, { status: 503 });
-    const tour = await Tour.findOne(buildStrictTenantQuery({ _id: tourId, isPublished: true, archivedAt: null }, tenantId)).select('availability bookingOptions');
+    const tour = await Tour.findOne(buildStrictTenantQuery({ _id: tourId, isPublished: true, archivedAt: null }, tenantId)).select('availability bookingOptions bookingCutoffMinutes');
     if (!tour || !tour.availability) {
       return NextResponse.json({ message: 'Tour or availability rules not found' }, { status: 404 });
     }

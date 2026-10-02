@@ -341,7 +341,7 @@ export async function POST(request: Request) {
     let needsCanonicalConfirmation = false;
     try {
       const deadlines = readDepartureSnapshot(paidMetadata, cart.length)
-        || await resolveCheckoutDepartureDeadlines(cart, tenantId);
+        || await resolveCheckoutDepartureDeadlines(cart, tenantId, true);
       deadlines.forEach((deadline) => assertFutureDeparture(deadline, successObservedAt));
     } catch (error) {
       if (!(error instanceof DepartureAdmissionError)) throw error;

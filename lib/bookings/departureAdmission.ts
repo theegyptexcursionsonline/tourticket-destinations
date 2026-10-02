@@ -1,3 +1,4 @@
+import { resolveBookingCutoff } from './bookingCutoff';
 import { buildStrictTenantQuery, getTenantConfigCached } from '@/lib/tenant';
 import { isTourScheduled, localDepartureToUtc, parseIsoDateOnly } from '@/lib/revenue/departureSchedule';
 
@@ -24,6 +25,7 @@ export function assertBookingTimeZone(timeZone: string): void {
 type Slot = { time?: string };
 type Option = { id?: unknown; _id?: unknown; pricingKey?: string; timeSlots?: Slot[] };
 export type DepartureCatalogue = {
+  bookingCutoffMinutes?: number;
   bookingOptions?: Option[];
   availability?: Parameters<typeof isTourScheduled>[0]['availability'] & { slots?: Slot[] };
 };
@@ -66,7 +68,7 @@ export function departureDeadline(
         return desired - (wallClock(sample) - sample);
       }).filter(candidate => wallClock(candidate) === desired);
       if (!candidates.length) throw new DepartureAdmissionError('The local departure time does not exist.');
-      return Math.min(...candidates);
+      return Math.min(...candidates) - resolveBookingCutoff(tour.bookingCutoffMinutes) * 60_000;
     }
     throw new DepartureAdmissionError('A configured departure time is required.');
   } catch (error) {
@@ -79,7 +81,7 @@ export function assertFutureDeparture(deadline: number, now = Date.now()): void 
   if (!Number.isFinite(deadline) || deadline <= now) throw new DepartureAdmissionError();
 }
 
-export async function resolveCheckoutDepartureDeadlines(cart: Array<Record<string, any>>, tenantId: string): Promise<number[]> {
+export async function resolveCheckoutDepartureDeadlines(cart: Array<Record<string, any>>, tenantId: string, legacyPayment = false): Promise<number[]> {
   const { default: Tour } = await import('@/lib/models/Tour');
   const tenant = await getTenantConfigCached(tenantId);
   if (!tenant || tenant.isActive === false) throw new DepartureAdmissionError('This website is unavailable for booking.');
@@ -87,9 +89,9 @@ export async function resolveCheckoutDepartureDeadlines(cart: Array<Record<strin
   const deadlines: number[] = [];
   for (const item of cart) {
     const tour = await Tour.findOne(buildStrictTenantQuery({ _id: item._id || item.id, isPublished: true, archivedAt: null }, tenantId))
-      .select('availability bookingOptions').lean<DepartureCatalogue | null>();
+      .select('availability bookingOptions bookingCutoffMinutes').lean<DepartureCatalogue | null>();
     if (!tour) throw new DepartureAdmissionError('The selected tour is unavailable.');
-    deadlines.push(departureDeadline(tour, {
+    deadlines.push(departureDeadline(legacyPayment ? { ...tour, bookingCutoffMinutes: 0 } : tour, {
       date: String(item.selectedDate || ''), time: item.selectedTime,
       optionId: item.selectedBookingOption?.id, optionKey: item.selectedBookingOption?.pricingKey,
     }, timeZone));

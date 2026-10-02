@@ -1,3 +1,4 @@
+import { bookingCutoffPayloadError, cutoffScheduleError } from '@/lib/bookings/bookingCutoff';
 import { withAdminAudit } from '@/lib/admin/adminAudit';
 // app/api/admin/tours/route.ts
 import dbConnect from '@/lib/dbConnect';
@@ -235,10 +236,15 @@ async function POSTHandler(request: NextRequest) {
 
   try {
     const body = await request.json();
+        if (!body || typeof body !== "object" || Array.isArray(body)) return NextResponse.json({ success: false, error: "A tour update object is required." }, { status: 400 });
+    const cutoffError = bookingCutoffPayloadError(body);
+    if (cutoffError) return NextResponse.json({ success: false, error: cutoffError }, { status: 400 });
     const guestPriceError = guestPricePayloadError(body);
     if (guestPriceError) {
       return NextResponse.json({ success: false, error: guestPriceError }, { status: 400 });
     }
+    const cutoffScheduleProblem = cutoffScheduleError(body);
+    if (cutoffScheduleProblem) return NextResponse.json({ success: false, error: cutoffScheduleProblem }, { status: 400 });
     const tourId = new mongoose.Types.ObjectId();
     body._id = tourId;
     delete body.pricingSummaries;

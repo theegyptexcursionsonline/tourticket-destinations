@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { cutoffAwareTourPayload, isValidBookingCutoff } from '@/lib/bookings/bookingCutoff';
+import BookingCutoffFields from '@/components/admin/BookingCutoffFields';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -207,6 +209,7 @@ interface TourFormData {
     itinerary: ItineraryItem[];
     faqs: FAQ[];
     bookingOptions: BookingOption[];
+    bookingCutoffMinutes: number;
     availability: Availability;
     addOns: AddOn[];
     attractions?: string[];
@@ -552,6 +555,7 @@ export default function TourForm({ tourToEdit, onSave, fullPage = false }: { tou
         return '';
     }, [isAllTenantsSelected, selectedTenantId]);
 
+    const loadedForm = useRef<TourFormData | null>(null);
     const [formData, setFormData] = useState<TourFormData>(() => {
         const initial = getDefaultTenantId();
         return {
@@ -603,6 +607,7 @@ export default function TourForm({ tourToEdit, onSave, fullPage = false }: { tou
         isPublished: false,
         difficulty: '',
         maxGroupSize: 10,
+        bookingCutoffMinutes: 0,
         availability: {
             type: 'daily',
             availableDays: [0, 1, 2, 3, 4, 5, 6],
@@ -647,6 +652,7 @@ export default function TourForm({ tourToEdit, onSave, fullPage = false }: { tou
                 parentPage: tourToEdit.parentPage || null,
                 description: tourToEdit.description || '',
                 longDescription: tourToEdit.longDescription || '',
+                bookingCutoffMinutes: tourToEdit.bookingCutoffMinutes ?? 0,
                 duration: tourToEdit.duration || '',
                 discountPrice: tourToEdit.discountPrice || tourToEdit.price || '',
                 discountPercent: tourToEdit.discountPercent ?? '',
@@ -796,6 +802,7 @@ export default function TourForm({ tourToEdit, onSave, fullPage = false }: { tou
             console.log('Loading tour with interests:', interestIds);
             console.log('Attraction IDs types:', attractionIds.map(id => typeof id));
 
+            loadedForm.current = initialData as TourFormData;
             setFormData(initialData as TourFormData);
             
             // On edit, expand the first item in each collapsible section if they exist
@@ -907,6 +914,7 @@ export default function TourForm({ tourToEdit, onSave, fullPage = false }: { tou
         isPublished: false,
         difficulty: '',
         maxGroupSize: 10,
+        bookingCutoffMinutes: 0,
         availability: {
             type: 'daily',
             availableDays: [0, 1, 2, 3, 4, 5, 6],
@@ -1325,6 +1333,29 @@ const addItineraryItem = () => {
         e.preventDefault();
         setIsSubmitting(true);
 
+        if (!isValidBookingCutoff(formData.bookingCutoffMinutes)) {
+            toast.error('Enter a valid booking cutoff, up to 30 days.');
+            setActiveTab('settings');
+            setIsSubmitting(false);
+            return;
+        }
+        const narrowPayload = cutoffAwareTourPayload({ ...formData }, { ...formData }, tourToEdit && loadedForm.current ? { ...loadedForm.current } : null);
+        if (tourToEdit && Object.keys(narrowPayload).length === 1 && 'bookingCutoffMinutes' in narrowPayload) {
+            try {
+                const response = await fetch(`/api/admin/tours/${tourToEdit._id}`, {
+                    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(narrowPayload),
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Could not save the booking cutoff.');
+                toast.success('Booking cutoff updated.');
+                setIsPanelOpen(false);
+                if (onSave) onSave();
+                router.refresh();
+            } catch (error) {
+                toast.error(error instanceof Error ? error.message : 'Could not save the booking cutoff.');
+            } finally { setIsSubmitting(false); }
+            return;
+        }
         // Enhanced validation
         if (
             !formData.title?.trim() ||
@@ -1398,6 +1429,7 @@ const addItineraryItem = () => {
                 parentPage: cleanedData.parentPage,
                 description: cleanedData.description.trim(),
                 duration: cleanedData.duration.trim(),
+                bookingCutoffMinutes: cleanedData.bookingCutoffMinutes,
                 price: parseFloat(String(cleanedData.discountPrice)) || 0,
                 discountPrice: parseFloat(String(cleanedData.discountPrice)) || 0,
                 // Blank means "no percentage discount", not zero-priced.
@@ -1493,7 +1525,8 @@ const addItineraryItem = () => {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(payload),
+                body: JSON.stringify(cutoffAwareTourPayload(payload,
+                    { ...formData }, tourToEdit && loadedForm.current ? { ...loadedForm.current } : null)),
             });
 
             const responseData = await response.json();
@@ -2064,6 +2097,7 @@ const addItineraryItem = () => {
                                                     Set operating days and universal time slots here. Each booking option can use all or only some slots and may override a slot price.
                                                 </p>
                                             </div>
+                                            <BookingCutoffFields value={formData.bookingCutoffMinutes} onChange={bookingCutoffMinutes => setFormData(prev => ({ ...prev, bookingCutoffMinutes }))} />
                                             {formData.availability && (
                                             <AvailabilityManager
                                                 availability={formData.availability}
