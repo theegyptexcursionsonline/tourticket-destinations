@@ -67,5 +67,23 @@ it('binds writes to the original record tenant and enforces the merged percentag
   db.findById.mockReturnValue({select:jest.fn().mockReturnValue({lean:jest.fn().mockResolvedValue({tenantId:'brand-a',discountType:'percentage',value:20})})});
   expect((await PUT(request({value:101},'brand-a'),ctx)).status).toBe(400);
   expect((await PUT(request({isActive:false},'brand-a'),ctx)).status).toBe(200);
-  expect(db.findOneAndUpdate).toHaveBeenCalledWith({_id:id,tenantId:'brand-a'},{$set:{isActive:false}},expect.objectContaining({runValidators:true}));
+  expect(db.findOneAndUpdate).toHaveBeenCalledWith({_id:id,tenantId:'brand-a',discountType:'percentage',value:20},{$set:{isActive:false}},expect.objectContaining({runValidators:true}));
+});
+
+it('serializes concurrent type/value edits against the same validated prior state',async()=>{
+  const state:Record<string,unknown>={_id:id,tenantId:'brand-a',discountType:'fixed',value:50};
+  let reads=0; let release!:()=>void;
+  const barrier=new Promise<void>(resolve=>{release=resolve;});
+  db.findById.mockImplementation(()=>({select:()=>({lean:async()=>{
+    const snapshot={...state}; reads++; if(reads===2)release(); await barrier; return snapshot;
+  }})}));
+  db.findOneAndUpdate.mockImplementation(async(filter,update)=>{
+    if(!Object.entries(filter).every(([key,value])=>state[key]===value))return null;
+    Object.assign(state,update.$set); return {...state};
+  });
+  const responses=await Promise.all([PUT(request({discountType:'percentage'},'brand-a'),ctx),PUT(request({value:150},'brand-a'),ctx)]);
+  expect(responses.map(response=>response.status).sort()).toEqual([200,409]);
+  expect(state.discountType==='percentage' && Number(state.value)>100).toBe(false);
+  expect(db.findOneAndUpdate).toHaveBeenCalledTimes(2);
+  for(const [filter] of db.findOneAndUpdate.mock.calls)expect(filter).toMatchObject({tenantId:'brand-a',discountType:'fixed',value:50});
 });

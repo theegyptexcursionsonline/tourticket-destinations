@@ -58,7 +58,7 @@ export function discountMutationError(error: unknown) {
     return NextResponse.json({ success: false, error: error instanceof SyntaxError ? 'Enter valid discount details.' : error.message }, { status: 400 });
   }
   if (error && typeof error === 'object' && 'code' in error && error.code === 11000) {
-    return NextResponse.json({ success: false, error: 'This discount code already exists. Choose a different code.' }, { status: 409 });
+    return NextResponse.json({ success: false, error: 'This discount code already exists. Please use a different code.' }, { status: 409 });
   }
   return NextResponse.json({ success: false, error: 'Discounts are temporarily unavailable. Please try again.' }, { status: 503 });
 }
