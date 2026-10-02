@@ -18,7 +18,7 @@ import toast from 'react-hot-toast';
 import { useTranslations } from 'next-intl';
 import { useCart } from '@/hooks/useCart';
 import { useSettings } from '@/hooks/useSettings';
-import { toDateOnlyString } from '@/utils/date';
+import { toDateOnlyString, parseLocalDate } from '@/utils/date';
 import { loadCurrentBookingOptions } from '@/lib/bookings/liveBookingOptions';
 import { ADD_ON_QUANTITY_VERSION, isPerPersonAddOn } from '@/lib/checkout/addOnPricing';
 import { isAddOnAvailableForOption, normalizedBookingOptionKeys } from '@/lib/bookings/addOnAvailability';
@@ -396,7 +396,7 @@ const CalendarWidget: React.FC<{
       const isToday = currentDate.toDateString() === today.toDateString();
       const isSelected = selectedDate && currentDate.toDateString() === selectedDate.toDateString();
       const isPast = currentDate < today && !isToday;
-      const dateKey = currentDate.toISOString().split('T')[0];
+      const dateKey = toDateOnlyString(currentDate);
       const availability = availabilityData[dateKey];
       const isFull = availability === 'full';
 
@@ -1542,6 +1542,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
 
     // Generate dates for the next 6 months
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
     const sixMonthsLater = new Date();
     sixMonthsLater.setMonth(sixMonthsLater.getMonth() + 6);
 
@@ -1556,8 +1557,10 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
     // For specific_dates type, only those dates are available
     if (type === 'specific_dates' && specificDates.length > 0) {
       specificDates.forEach(d => {
-        const date = new Date(d);
-        const dateKey = date.toISOString().split('T')[0];
+        // Catalogue dates are stored as UTC date values; keep that authored
+        // civil key, then compare civil days in the browser calendar.
+        const dateKey = new Date(d).toISOString().split('T')[0];
+        const date = parseLocalDate(dateKey)!;
         if (!blockedSet.has(dateKey) && date >= today) {
           availabilityMap[dateKey] = 'high';
         }
@@ -1566,12 +1569,12 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
     }
 
     // For date_range type, check if date falls within range
-    const rangeStart = startDate ? new Date(startDate) : today;
-    const rangeEnd = endDate ? new Date(endDate) : sixMonthsLater;
+    const rangeStart = startDate ? parseLocalDate(new Date(startDate).toISOString().slice(0, 10))! : today;
+    const rangeEnd = endDate ? parseLocalDate(new Date(endDate).toISOString().slice(0, 10))! : sixMonthsLater;
 
     // Iterate through each day
     for (let d = new Date(today); d <= sixMonthsLater; d.setDate(d.getDate() + 1)) {
-      const dateKey = d.toISOString().split('T')[0];
+      const dateKey = toDateOnlyString(d);
       const dayOfWeek = d.getDay(); // 0 = Sunday, 6 = Saturday
 
       // Check if blocked
@@ -1781,7 +1784,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
 
       // Apply option-level stop-sale (if any) for the selected date
       try {
-        const dateKey = date.toISOString().split('T')[0];
+        const dateKey = toDateOnlyString(date);
         const stopRes = await fetch(`/api/availability/${tourId}?date=${encodeURIComponent(dateKey)}`);
         const stopJson = await stopRes.json();
         if (stopJson?.success) {
@@ -1838,7 +1841,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
       }
 
       const newAvailabilityData: AvailabilityData = {
-        date: date.toISOString().split('T')[0],
+        date: toDateOnlyString(date),
         timeSlots: [],
         addOns: addOnsToUse,
         tourOptions: tourOptions,
@@ -2112,7 +2115,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
     setAvailability(null);
     setCurrentStep(1);
 
-    const dateKey = date.toISOString().split('T')[0];
+    const dateKey = toDateOnlyString(date);
     const dayAvailability = calendarAvailability[dateKey];
 
     if (dayAvailability === 'full') {
