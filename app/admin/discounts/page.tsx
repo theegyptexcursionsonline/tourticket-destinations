@@ -342,10 +342,10 @@ const DiscountsPage = () => {
             </div>
 
             {/* Submit Button */}
-            <div className="flex items-center justify-between pt-6 border-t border-slate-200/60">
+            <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-center sm:justify-between pt-6 border-t border-slate-200/60">
               {formError && (
-                <div className="flex items-center gap-2 text-red-600">
-                  <AlertCircle className="h-4 w-4" />
+                <div role="alert" className="flex w-full min-w-0 items-start gap-2 text-red-600 sm:flex-1">
+                  <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
                   <span className="text-sm">{formError}</span>
                 </div>
               )}
@@ -353,7 +353,7 @@ const DiscountsPage = () => {
               <button 
                 type="submit" 
                 disabled={isSubmitting || !code || value === ''} 
-                className="ms-auto inline-flex items-center gap-3 px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 active:scale-95"
+                className="inline-flex w-full justify-center items-center gap-3 sm:ms-auto sm:w-auto sm:shrink-0 px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 active:scale-95"
               >
                 {isSubmitting ? (
                   <>

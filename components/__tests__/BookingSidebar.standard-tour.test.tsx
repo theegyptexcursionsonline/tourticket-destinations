@@ -54,3 +54,25 @@ describe('rendered civil-date request consistency', () => {
     expect(new URL(quoteUrl!, 'https://example.test').searchParams.get('time')).toBe('09:00');
   });
 });
+
+
+describe('rendered departure availability state', () => {
+  it.each([false, true])('shows explicit closed-date feedback only when no future slot remains (%s)', async (future) => {
+    global.fetch = mockFetch;
+    HTMLElement.prototype.scrollTo = jest.fn(); HTMLElement.prototype.scrollIntoView = jest.fn();
+    mockFetch.mockImplementation(async (url: string) => ({ ok: true, json: async () => url.endsWith('/options') ? [] : { success: true, data: { days: {}, stopSaleStatus: 'none', stoppedOptionIds: [], availableTimesByOption: { 'standard-default': future ? ['09:00'] : [] } } } }));
+    render(<BookingSidebar isOpen onClose={jest.fn()} initialStopSaleDates={{}} tour={{ id: 'tour-one', title: 'Standard catalogue tour', image: '/tour.jpg', discountPrice: 100, bookingOptions: [], availability: { type: 'daily', slots: [{ time: '09:00', capacity: 20, price: 100 }] } } as any} />);
+    fireEvent.click(screen.getByRole('button', { name: 'booking.selectDate' }));
+    fireEvent.click(screen.getByRole('button', { name: String(new Date().getDate()) }));
+    fireEvent.click(screen.getByRole('button', { name: 'booking.checkAvailability' }));
+    await screen.findByText('Standard Tour Experience');
+    const message = 'No departures are available for this date. Please choose another date.';
+    if (future) {
+      expect(screen.queryByText(message)).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /09:00/ })).toBeEnabled();
+    } else {
+      expect(screen.getByRole('status')).toHaveTextContent(message);
+      expect(screen.queryByRole('button', { name: /09:00/ })).not.toBeInTheDocument();
+    }
+  });
+});
