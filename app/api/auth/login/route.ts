@@ -25,7 +25,9 @@ export async function POST(request: NextRequest) {
     const user = await User.findOne({ email: normalizedEmail })
       .select('+password +failedLoginAttempts +loginLockedUntil');
 
-    if (!user || !user.password) {
+    // Storefront sign-in is for customers. Staff sign in to the admin portal,
+    // which requires a second factor; a password alone never opens a session.
+    if (!user || !user.password || user.role !== 'customer') {
       await bcrypt.compare(password, '$2b$10$C6UzMDM.H6dfI/f/IKcEe.3u5W4WcXHfsvhQ4FZ9DqI7I7M.JxH1K');
       return invalidCredentials();
     }
@@ -90,6 +92,7 @@ export async function POST(request: NextRequest) {
       iat: Math.floor(Date.now() / 1000),
       role: effectiveRole,
       permissions: assignedPermissions,
+      scope: 'customer',
     });
 
     // --- Success Response ---

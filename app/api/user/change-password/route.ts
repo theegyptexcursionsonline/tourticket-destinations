@@ -1,60 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import User from '@/lib/models/user';
-import { verifyToken } from '@/lib/jwt';
-import { verifyFirebaseToken } from '@/lib/firebase/admin';
+import { authenticateCustomerSession } from '@/lib/auth/customerSession';
 import bcrypt from 'bcryptjs';
 
 export async function POST(request: NextRequest) {
   try {
     await dbConnect();
 
-    // Verify authentication - Try Firebase first, fallback to JWT
-    const authHeader = request.headers.get('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Not authenticated: No token provided' }, { status: 401 });
+    // Only a customer session for an active customer account may change it
+    const authentication = await authenticateCustomerSession(request);
+    if (!authentication.success) {
+      return NextResponse.json({ error: authentication.error }, { status: authentication.statusCode });
+    }
+    const userId = String(authentication.user._id);
+
+    // Firebase users should change password through Firebase, not here
+    if (authentication.user.authProvider === 'firebase' || authentication.user.authProvider === 'google') {
+      return NextResponse.json({
+        error: 'Password changes for Firebase/Google users must be done through Firebase. Please use the "Forgot Password" option on the login page.',
+        firebaseUser: true
+      }, { status: 400 });
     }
 
-    const token = authHeader.split(' ')[1];
-    let userId: string;
-    let user;
+    // Find user with password field (it's excluded by default)
+    const user = await User.findById(userId).select('+password');
 
-    // Try Firebase authentication first
-    const firebaseResult = await verifyFirebaseToken(token);
-
-    if (firebaseResult.success && firebaseResult.uid) {
-      // Find user by Firebase UID
-      user = await User.findOne({ firebaseUid: firebaseResult.uid }).select('+password');
-
-      if (!user) {
-        return NextResponse.json({ error: 'User not found' }, { status: 404 });
-      }
-
-      userId = (user._id as any).toString();
-
-      // Firebase users should change password through Firebase, not here
-      if (user.authProvider === 'firebase' || user.authProvider === 'google') {
-        return NextResponse.json({
-          error: 'Password changes for Firebase/Google users must be done through Firebase. Please use the "Forgot Password" option on the login page.',
-          firebaseUser: true
-        }, { status: 400 });
-      }
-    } else {
-      // Fallback to JWT (for backwards compatibility)
-      const decodedPayload = await verifyToken(token);
-
-      if (!decodedPayload || !decodedPayload.sub) {
-        return NextResponse.json({ error: 'Not authenticated: Invalid token' }, { status: 401 });
-      }
-
-      userId = decodedPayload.sub as string;
-
-      // Find user with password field (it's excluded by default)
-      user = await User.findById(userId).select('+password');
-
-      if (!user) {
-        return NextResponse.json({ error: 'User not found' }, { status: 404 });
-      }
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     // Parse request body

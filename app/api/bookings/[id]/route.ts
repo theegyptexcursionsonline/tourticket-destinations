@@ -4,8 +4,7 @@ import dbConnect from '@/lib/dbConnect';
 import Booking from '@/lib/models/Booking';
 import Tour from '@/lib/models/Tour';
 import User from '@/lib/models/user';
-import { verifyToken } from '@/lib/jwt';
-import { verifyFirebaseToken } from '@/lib/firebase/admin';
+import { authenticateCustomerSession } from '@/lib/auth/customerSession';
 
 // GET - Fetch a single booking by ID (user must own the booking)
 export async function GET(
@@ -15,46 +14,15 @@ export async function GET(
   await dbConnect();
 
   try {
-    // Verify user authentication - Try Firebase first, fallback to JWT
-    const authHeader = request.headers.get('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    // Only a customer session for an active customer account reads a booking
+    const authentication = await authenticateCustomerSession(request);
+    if (!authentication.success) {
       return NextResponse.json(
-        { success: false, message: 'Authentication required' },
-        { status: 401 }
+        { success: false, message: authentication.error },
+        { status: authentication.statusCode }
       );
     }
-
-    const token = authHeader.split(' ')[1];
-    let userId: string;
-
-    // Try Firebase authentication first
-    const firebaseResult = await verifyFirebaseToken(token);
-
-    if (firebaseResult.success && firebaseResult.uid) {
-      // Find user by Firebase UID
-      const user = await User.findOne({ firebaseUid: firebaseResult.uid });
-
-      if (!user) {
-        return NextResponse.json(
-          { success: false, message: 'User not found' },
-          { status: 404 }
-        );
-      }
-
-      userId = (user._id as any).toString();
-    } else {
-      // Fallback to JWT (for backwards compatibility)
-      const payload = await verifyToken(token);
-
-      if (!payload || !payload.sub) {
-        return NextResponse.json(
-          { success: false, message: 'Invalid or expired token' },
-          { status: 401 }
-        );
-      }
-
-      userId = payload.sub as string;
-    }
+    const userId = String(authentication.user._id);
 
     const { id } = await params;
 

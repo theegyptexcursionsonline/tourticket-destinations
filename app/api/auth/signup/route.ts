@@ -74,6 +74,7 @@ export async function POST(request: NextRequest) {
       iat: Math.floor(Date.now() / 1000),
       role: effectiveRole,
       permissions: assignedPermissions,
+      scope: 'customer',
     });
 
     // 🆕 Send Welcome Email with real recommended tours

@@ -5,8 +5,7 @@ import dbConnect from '@/lib/dbConnect';
 import Booking from '@/lib/models/Booking';
 import Tour from '@/lib/models/Tour';
 import User from '@/lib/models/user';
-import { verifyToken } from '@/lib/jwt';
-import { verifyFirebaseToken } from '@/lib/firebase/admin';
+import { authenticateCustomerSession } from '@/lib/auth/customerSession';
 import { EmailService } from '@/lib/email/emailService';
 import Tenant from '@/lib/models/Tenant';
 import { getTenantEmailBranding } from '@/lib/tenant';
@@ -45,35 +44,12 @@ export async function POST(
   try {
     await dbConnect();
 
-    // Verify user authentication (Firebase or JWT)
-    const authHeader = request.headers.get('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    // Only a customer session for an active customer account may cancel
+    const authentication = await authenticateCustomerSession(request);
+    if (!authentication.success) {
+      return NextResponse.json({ error: authentication.error }, { status: authentication.statusCode });
     }
-
-    const token = authHeader.split(' ')[1];
-    let authenticatedUserId: string | undefined;
-
-    // Try Firebase authentication first
-    const firebaseResult = await verifyFirebaseToken(token);
-    if (firebaseResult.success && firebaseResult.uid) {
-      const user = await User.findOne({ firebaseUid: firebaseResult.uid });
-      if (user) {
-        authenticatedUserId = (user._id as any).toString();
-      }
-    }
-
-    // Fallback to JWT
-    if (!authenticatedUserId) {
-      const payload = await verifyToken(token);
-      if (payload && payload.sub) {
-        authenticatedUserId = payload.sub as string;
-      }
-    }
-
-    if (!authenticatedUserId) {
-      return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
-    }
+    const authenticatedUserId = String(authentication.user._id);
 
     const { id: bookingId } = await params;
 

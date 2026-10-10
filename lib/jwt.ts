@@ -29,7 +29,22 @@ function getSecretBuffer() {
   return secret;
 }
 
-export async function signToken(payload: Record<string, unknown>, options?: { expiresIn?: string }) {
+/**
+ * What a token is for. Every kind is signed with the same secret, so a valid
+ * signature alone never says which kind a token is: each verifier checks
+ * `scope` (customer routes: lib/auth/customerSession.ts; admin routes:
+ * lib/auth/adminAuth.ts; receipts: app/api/checkout/receipt/route.ts).
+ */
+export const TOKEN_SCOPES = ['customer', 'admin', 'admin-2fa-enrollment', 'receipt'] as const;
+export type TokenScope = (typeof TOKEN_SCOPES)[number];
+
+export async function signToken(
+  payload: Record<string, unknown> & { scope: TokenScope },
+  options?: { expiresIn?: string },
+) {
+  if (!(TOKEN_SCOPES as readonly unknown[]).includes(payload.scope)) {
+    throw new Error('Refusing to sign a token without a known scope.');
+  }
   const expiresAt = options?.expiresIn || '2h';
   const secretBuffer = getSecretBuffer();
 
