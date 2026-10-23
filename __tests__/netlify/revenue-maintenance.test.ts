@@ -36,6 +36,8 @@ function runMaintenance({
   });
   const resultLine = output.split(/\r?\n/).find((line) => line.startsWith('RESULT:'));
   if (!resultLine) throw new Error('Scheduled function did not emit a test result.');
+  const firstLine = output.split(/\r?\n/)[0];
+  expect(firstLine).toBe('[node-runtime] ' + JSON.stringify({ function: 'revenue-maintenance', node: process.version }));
   return JSON.parse(resultLine.slice('RESULT:'.length));
 }
 

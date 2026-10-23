@@ -1,3 +1,5 @@
+import { logNodeRuntime } from '../lib/node-runtime.mjs';
+
 // Revenue pricing summaries are an authoritative recovery path, not a
 // browser-driven task. Keep this schedule authenticated, bounded, and
 // independent of RevenuePilot's write switches.
@@ -16,6 +18,7 @@ const configuredOrigin = () => {
 };
 
 const revenueMaintenance = async () => {
+  logNodeRuntime('revenue-maintenance');
   const secret = process.env.CRON_SECRET?.trim();
   const baseUrl = configuredOrigin();
   if (!secret || !baseUrl) {

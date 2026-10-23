@@ -3,10 +3,9 @@
   publish = ".next"
 
 [build.environment]
-  # Functions run on the AWS Lambda runtime of this Node.js line. Node 20 is
-  # end of life (no security fixes); Lambda patches nodejs22.x in place, and
-  # the main storefront already builds on 22.
-  NODE_VERSION = "22"
+  # Pin the patched build runtime. Functions select managed Node.js 22;
+  # their exact patch is reported by the executing function, not this setting.
+  NODE_VERSION = "22.23.4"
   PNPM_FLAGS = "--shamefully-hoist"
   # Skip the prebuild Jest run on Netlify. The deploy cache can contain
   # generated .netlify function package files, which collide with Jest's

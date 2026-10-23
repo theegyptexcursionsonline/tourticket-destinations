@@ -1,3 +1,5 @@
+import { logNodeRuntime } from '../lib/node-runtime.mjs';
+
 // Scheduled keep-warm ping. Netlify tears the Next.js server function down
 // after idling, so the first admin visitor pays a multi-second cold start
 // (function boot + MongoDB connection). Touching one no-DB route and one
@@ -9,6 +11,7 @@ const TARGETS = [
 ];
 
 const keepWarm = async () => {
+  logNodeRuntime('keep-warm');
   const results = await Promise.allSettled(
     TARGETS.map(async (url) => {
       const started = Date.now();

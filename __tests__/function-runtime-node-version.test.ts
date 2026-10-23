@@ -11,9 +11,17 @@ import { join } from 'node:path';
 describe('function runtime Node.js line', () => {
   const netlifyToml = readFileSync(join(process.cwd(), 'netlify.toml'), 'utf8');
 
-  it('builds on a maintained Node.js line', () => {
+  it('builds on a patched, maintained Node.js line', () => {
     const match = netlifyToml.match(/^\s*NODE_VERSION\s*=\s*"(\d+)(?:\.\d+){0,2}"/m);
     expect(match).not.toBeNull();
     expect([22, 24]).toContain(Number(match![1]));
+    expect(netlifyToml).toMatch(/^\s*NODE_VERSION\s*=\s*"22\.23\.4"/m);
+  });
+
+  it('keeps CI and the read-only production check on the patched runtime', () => {
+    const ci = readFileSync(join(process.cwd(), '.github/workflows/ci.yml'), 'utf8');
+    const production = readFileSync(join(process.cwd(), '.github/workflows/revenue-production-readonly.yml'), 'utf8');
+    expect(ci).toMatch(/^\s*NODE_VERSION:\s*'22\.23\.4'/m);
+    expect(production).toMatch(/^\s*node-version:\s*'22\.23\.4'/m);
   });
 });
