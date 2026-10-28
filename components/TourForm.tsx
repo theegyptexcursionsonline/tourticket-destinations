@@ -1,6 +1,7 @@
 'use client';
 
 import { normalizeTourDifficulty, TOUR_DIFFICULTIES } from '@/lib/admin/tourDifficulty';
+import { isMissingMainImage, MAIN_IMAGE_REQUIRED_MESSAGE } from '@/lib/admin/tourMainImage';
 import { cutoffAwareTourPayload, isValidBookingCutoff } from '@/lib/bookings/bookingCutoff';
 import BookingCutoffFields from '@/components/admin/BookingCutoffFields';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -1375,6 +1376,14 @@ const addItineraryItem = () => {
             setIsSubmitting(false);
             return;
         }
+        // A removed main image must be replaced before saving; there is no
+        // fallback picture to save in its place.
+        if (isMissingMainImage(formData.image)) {
+            toast.error(MAIN_IMAGE_REQUIRED_MESSAGE);
+            setActiveTab('media');
+            setIsSubmitting(false);
+            return;
+        }
         if (hasPartialGuestPrices(formData.revenueGuestPrices) || formData.bookingOptions.some((option) => hasPartialGuestPrices(option.guestPrices))) {
             toast.error('Each price set must include both child and infant prices, or leave both blank.');
             setActiveTab(hasPartialGuestPrices(formData.revenueGuestPrices) ? 'pricing' : 'booking');
@@ -1451,7 +1460,7 @@ const addItineraryItem = () => {
                 maxGroupSize: parseInt(String(cleanedData.maxGroupSize)) || 10,
                 isPublished: Boolean(cleanedData.isPublished),
                 isFeatured: Boolean(cleanedData.isFeatured),
-                image: cleanedData.image || '/images/placeholder.png', // Provide fallback
+                image: cleanedData.image,
                 images: Array.isArray(cleanedData.images) ? cleanedData.images : [],
                 imageMetadata: ensureImageMetadata(
                     cleanedData.imageMetadata,

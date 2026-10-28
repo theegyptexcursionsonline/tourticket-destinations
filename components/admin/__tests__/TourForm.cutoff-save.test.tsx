@@ -14,7 +14,7 @@ jest.mock('@/components/admin/ImageSeoFields',()=>()=>null);
 jest.mock('@/components/admin/ContentNavigationFields',()=>()=>null);
 jest.mock('react-hot-toast',()=>({__esModule:true,default:{success:jest.fn(),error:jest.fn()}}));
 import TourForm from '@/components/TourForm';
-const tour:any={_id:'tour-one',tenantId:'brand-a',tenantIds:['brand-a'],title:'Tour',description:'Description',duration:'2 hours',discountPrice:20,destination:'destination-one',category:['category-one'],bookingCutoffMinutes:0,availability:{type:'daily',slots:[{time:'10:00',capacity:10}]}};
+const tour:any={_id:'tour-one',tenantId:'brand-a',tenantIds:['brand-a'],title:'Tour',description:'Description',duration:'2 hours',discountPrice:20,destination:'destination-one',category:['category-one'],image:'https://res.cloudinary.com/demo/image/upload/v1/tours/tour.webp',bookingCutoffMinutes:0,availability:{type:'daily',slots:[{time:'10:00',capacity:10}]}};
 beforeEach(()=>{jest.clearAllMocks();global.fetch=jest.fn(async(_url:any,options:any)=>({ok:true,json:async()=> options?.method==='PUT'?{success:true}: {success:true,data:[],destinations:[],categories:[],attractions:[],interests:[]}})) as any;});
 async function settings(){fireEvent.click(screen.getByRole('button',{name:'Pricing & Details'}));await screen.findByLabelText('Cutoff hours');}
 it('keeps full-page editor open and saves repeated 0 to 120 to 0 as field-only changes',async()=>{

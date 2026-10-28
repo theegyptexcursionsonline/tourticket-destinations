@@ -10,6 +10,7 @@ import { deleteTourFromAlgolia } from "@/lib/algolia";
 import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from "@/lib/auth/adminAuth";
 import { auditStamp } from '@/lib/admin/auditStamp';
 import { normalizeTourDifficulty } from '@/lib/admin/tourDifficulty';
+import { isMissingMainImage, MAIN_IMAGE_REQUIRED_MESSAGE } from '@/lib/admin/tourMainImage';
 import { translateTourInBackground } from '@/lib/translation/translateService';
 import { revalidateTourStorefront } from '@/lib/storefront/revalidateTourStorefront';
 import { finalizeAddOnAssignments, stripBookingOptionClientKeys } from '@/lib/admin/addOnAssignments';
@@ -274,6 +275,12 @@ async function PUTHandler(
 
         if (body.difficulty !== undefined) {
             body.difficulty = normalizeTourDifficulty(body.difficulty);
+        }
+
+        // An update that sets the main image must set a real one; a partial
+        // update that leaves the image alone is unaffected.
+        if (body.image !== undefined && isMissingMainImage(body.image)) {
+            return NextResponse.json({ success: false, error: MAIN_IMAGE_REQUIRED_MESSAGE }, { status: 400 });
         }
 
         // Clean booking options to remove invalid enum values

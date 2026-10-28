@@ -11,6 +11,7 @@ import { revalidateTourStorefront } from '@/lib/storefront/revalidateTourStorefr
 import { collectTourOptionIds } from '@/lib/admin/tourOptionIdentifiers';
 import { auditStamp } from '@/lib/admin/auditStamp';
 import { normalizeTourDifficulty } from '@/lib/admin/tourDifficulty';
+import { isMissingMainImage, MAIN_IMAGE_REQUIRED_MESSAGE } from '@/lib/admin/tourMainImage';
 import { finalizeAddOnAssignments, stripBookingOptionClientKeys } from '@/lib/admin/addOnAssignments';
 import { applyBookingOptionCapacityDefaults, bookingOptionCapacityError } from '@/lib/admin/bookingOptionCapacity';
 import {
@@ -309,6 +310,12 @@ async function POSTHandler(request: NextRequest) {
 
     if (body.difficulty !== undefined) {
       body.difficulty = normalizeTourDifficulty(body.difficulty);
+    }
+
+    // A main image that is blank or the never-existing placeholder is refused;
+    // the schema already requires one, so there is no fallback to save.
+    if (body.image !== undefined && isMissingMainImage(body.image)) {
+      return NextResponse.json({ success: false, error: MAIN_IMAGE_REQUIRED_MESSAGE }, { status: 400 });
     }
 
     // Clean booking options to remove invalid enum values
