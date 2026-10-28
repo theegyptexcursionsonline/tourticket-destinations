@@ -9,6 +9,7 @@ import mongoose from "mongoose";
 import { deleteTourFromAlgolia } from "@/lib/algolia";
 import { canAccessTenant, requireAdminAuth, tenantForbiddenResponse } from "@/lib/auth/adminAuth";
 import { auditStamp } from '@/lib/admin/auditStamp';
+import { normalizeTourDifficulty } from '@/lib/admin/tourDifficulty';
 import { translateTourInBackground } from '@/lib/translation/translateService';
 import { revalidateTourStorefront } from '@/lib/storefront/revalidateTourStorefront';
 import { finalizeAddOnAssignments, stripBookingOptionClientKeys } from '@/lib/admin/addOnAssignments';
@@ -269,6 +270,10 @@ async function PUTHandler(
         if (body.faqs) {
             body.faq = body.faqs;
             delete body.faqs;
+        }
+
+        if (body.difficulty !== undefined) {
+            body.difficulty = normalizeTourDifficulty(body.difficulty);
         }
 
         // Clean booking options to remove invalid enum values

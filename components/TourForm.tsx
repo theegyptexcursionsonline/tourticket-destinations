@@ -1,5 +1,6 @@
 'use client';
 
+import { normalizeTourDifficulty, TOUR_DIFFICULTIES } from '@/lib/admin/tourDifficulty';
 import { cutoffAwareTourPayload, isValidBookingCutoff } from '@/lib/bookings/bookingCutoff';
 import BookingCutoffFields from '@/components/admin/BookingCutoffFields';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -760,7 +761,7 @@ export default function TourForm({ tourToEdit, onSave, fullPage = false }: { tou
                     }))
                     : [],
              isPublished: tourToEdit.isPublished || false,
-                difficulty: tourToEdit.difficulty || '',
+                difficulty: normalizeTourDifficulty(tourToEdit.difficulty),
                 maxGroupSize: tourToEdit.maxGroupSize || 10,
                 metaTitle: tourToEdit.metaTitle || '',
                 metaDescription: tourToEdit.metaDescription || '',
@@ -1446,7 +1447,7 @@ const addItineraryItem = () => {
                 longDescription: cleanedData.longDescription?.trim() || cleanedData.description.trim(),
                 destination: cleanedData.destination,
                 category: cleanedData.category,
-                difficulty: cleanedData.difficulty || 'Easy',
+                difficulty: normalizeTourDifficulty(cleanedData.difficulty),
                 maxGroupSize: parseInt(String(cleanedData.maxGroupSize)) || 10,
                 isPublished: Boolean(cleanedData.isPublished),
                 isFeatured: Boolean(cleanedData.isFeatured),
@@ -2059,13 +2060,17 @@ const addItineraryItem = () => {
                                             </div>
                                             <div className="space-y-3">
                                                 <FormLabel icon={Mountain}>Difficulty</FormLabel>
-                                                <input 
-                                                    name="difficulty" 
-                                                    value={formData.difficulty} 
-                                                    onChange={handleChange} 
-                                                    className={inputBase} 
-                                                    placeholder="e.g., Easy, Moderate" 
-                                                />
+                                                <div className="relative">
+                                                    <select
+                                                        name="difficulty"
+                                                        value={normalizeTourDifficulty(formData.difficulty)}
+                                                        onChange={handleChange}
+                                                        className={`${inputBase} appearance-none cursor-pointer`}
+                                                    >
+                                                        {TOUR_DIFFICULTIES.map(level => <option key={level} value={level}>{level}</option>)}
+                                                    </select>
+                                                    <ChevronDown className="absolute end-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+                                                </div>
                                             </div>
                                             <div className="space-y-3">
                                                 <FormLabel icon={Users}>Max Group Size</FormLabel>

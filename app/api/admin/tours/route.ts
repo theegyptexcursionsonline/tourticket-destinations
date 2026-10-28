@@ -10,6 +10,7 @@ import { translateTourInBackground } from '@/lib/translation/translateService';
 import { revalidateTourStorefront } from '@/lib/storefront/revalidateTourStorefront';
 import { collectTourOptionIds } from '@/lib/admin/tourOptionIdentifiers';
 import { auditStamp } from '@/lib/admin/auditStamp';
+import { normalizeTourDifficulty } from '@/lib/admin/tourDifficulty';
 import { finalizeAddOnAssignments, stripBookingOptionClientKeys } from '@/lib/admin/addOnAssignments';
 import { applyBookingOptionCapacityDefaults, bookingOptionCapacityError } from '@/lib/admin/bookingOptionCapacity';
 import {
@@ -304,6 +305,10 @@ async function POSTHandler(request: NextRequest) {
     if (body.faqs) {
       body.faq = body.faqs;
       delete body.faqs;
+    }
+
+    if (body.difficulty !== undefined) {
+      body.difficulty = normalizeTourDifficulty(body.difficulty);
     }
 
     // Clean booking options to remove invalid enum values
