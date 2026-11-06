@@ -12,6 +12,7 @@ import {
 } from '@/lib/blogAuthors';
 import { getTenantFromRequest, getTenantPublicConfig } from '@/lib/tenant';
 import { getTenantAuthorBlogPage } from '@/lib/content/blogReader';
+import { PublicBlogListValidationError } from '@/lib/content/publicBlogListing';
 import { Calendar, Clock, Eye, Heart, Sparkles, Tag, User } from 'lucide-react';
 import { getLocale } from 'next-intl/server';
 
@@ -59,7 +60,15 @@ async function getAuthorPosts(
   locale: string,
   cursor?: string | null,
 ) {
-  const page = await getTenantAuthorBlogPage(tenantId, locale, authorSlug, cursor);
+  let page: Awaited<ReturnType<typeof getTenantAuthorBlogPage>>;
+  try {
+    page = await getTenantAuthorBlogPage(tenantId, locale, authorSlug, cursor);
+  } catch (error) {
+    // A malformed author slug or pagination cursor in the URL is a page that
+    // does not exist, not a server failure: answer 404 instead of a 500.
+    if (error instanceof PublicBlogListValidationError) return null;
+    throw error;
+  }
   if (page.posts.length === 0) return null;
 
   const serialized = page.posts as unknown as AuthorPost[];
