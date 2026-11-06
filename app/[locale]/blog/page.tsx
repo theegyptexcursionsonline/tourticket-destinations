@@ -75,16 +75,22 @@ async function getBlogsWithCategoryCounts(tenantId: string, locale: string): Pro
     listPublicBlogPosts({ tenantId, locale, featuredOnly: true, limit: 3 }),
   ]);
 
-  // Get category counts
-  const categoryCounts = await Promise.all(
-    categories.map(async (category) => {
-      const count = await Blog.countDocuments(buildStrictTenantQuery({
-        status: 'published', 
-        category: category.value 
-      }, tenantId));
-      return { ...category, count };
-    })
-  );
+  // One grouped query for every category count. A countDocuments per
+  // category sent 14 database round trips on each blog page render.
+  const grouped = await Blog.aggregate<{ _id: string; count: number }>([
+    {
+      $match: buildStrictTenantQuery({
+        status: 'published',
+        category: { $in: categories.map((category) => category.value) },
+      }, tenantId),
+    },
+    { $group: { _id: '$category', count: { $sum: 1 } } },
+  ]);
+  const countByCategory = new Map(grouped.map((row) => [row._id, row.count]));
+  const categoryCounts = categories.map((category) => ({
+    ...category,
+    count: countByCategory.get(category.value) ?? 0,
+  }));
 
   return {
     blogs: blogPage.posts,
