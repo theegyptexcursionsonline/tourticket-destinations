@@ -18,7 +18,7 @@ export default async function NotFoundPage() {
     <main className="flex flex-col items-center justify-center min-h-screen bg-gray-50 text-gray-800 px-4 md:px-0">
       <div className="text-center p-8 max-w-lg mx-auto">
         {/* Custom Travel-Themed SVG Icon: A Compass */}
-        <div className="inline-block mb-6 text-primary opacity-50">
+        <div className="inline-block mb-6 text-[var(--primary-color,#dc2626)] opacity-50">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             className="h-28 w-28"
@@ -47,7 +47,7 @@ export default async function NotFoundPage() {
           </svg>
         </div>
 
-        <h1 className="text-8xl font-black text-primary tracking-tighter">
+        <h1 className="text-8xl font-black text-[var(--primary-color,#dc2626)] tracking-tighter">
           404
         </h1>
         <p className="text-2xl md:text-3xl font-bold mt-4">
@@ -63,13 +63,13 @@ export default async function NotFoundPage() {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <Link
             href="/"
-            className="w-full sm:w-auto inline-block px-8 py-3 text-lg font-semibold text-white bg-primary rounded-md shadow-lg transform hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all duration-300 ease-in-out"
+            className="w-full sm:w-auto inline-block px-8 py-3 text-lg font-semibold text-white bg-[var(--primary-color,#dc2626)] rounded-md shadow-lg transform hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--primary-color,#dc2626)] transition-all duration-300 ease-in-out"
           >
             Back to Homepage
           </Link>
           <Link
             href="/tours"
-            className="w-full sm:w-auto inline-block px-8 py-3 text-lg font-semibold text-primary bg-transparent border-2 border-primary rounded-md transform hover:scale-105 hover:bg-primary/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all duration-300 ease-in-out"
+            className="w-full sm:w-auto inline-block px-8 py-3 text-lg font-semibold text-[var(--primary-color,#dc2626)] bg-transparent border-2 border-[var(--primary-color,#dc2626)] rounded-md transform hover:scale-105 hover:bg-black/5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--primary-color,#dc2626)] transition-all duration-300 ease-in-out"
           >
             Explore All Tours
           </Link>
