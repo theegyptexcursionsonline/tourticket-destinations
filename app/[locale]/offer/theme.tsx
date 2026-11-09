@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { STOREFRONT_THEME_STORAGE_KEY } from '@/lib/storefrontTheme';
+import { safeLocalStorage } from '@/lib/browserStorage';
 
 /**
  * Offer pages are art-directed with fixed per-city palettes (light paper,
@@ -22,7 +23,7 @@ export default function OfferThemePin() {
     return () => {
       delete root.dataset.storefrontThemePin;
       try {
-        const saved = localStorage.getItem(STOREFRONT_THEME_STORAGE_KEY);
+        const saved = safeLocalStorage.getItem(STOREFRONT_THEME_STORAGE_KEY);
         const dark =
           saved === 'dark' ||
           (saved !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);

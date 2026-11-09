@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { safeSessionStorage } from '@/lib/browserStorage';
 
 /** One place to ask whether motion is welcome. */
 function usePrefersReducedMotion(): boolean {
@@ -320,11 +321,11 @@ export function ExitRescue({
   const closeRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     const key = `offer-exit-shown:${code}`;
-    if (window.sessionStorage.getItem(key)) return;
+    if (safeSessionStorage.getItem(key)) return;
     if (!window.matchMedia('(pointer: fine)').matches) return;
     const onOut = (event: MouseEvent) => {
       if (event.clientY > 0 || event.relatedTarget) return;
-      window.sessionStorage.setItem(key, '1');
+      safeSessionStorage.setItem(key, '1');
       setOpen(true);
       window.removeEventListener('mouseout', onOut);
     };

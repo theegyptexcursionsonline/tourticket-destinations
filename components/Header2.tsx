@@ -31,6 +31,7 @@ import { liteClient as algoliasearch } from 'algoliasearch/lite';
 import { InstantSearch, Index, useSearchBox, useHits, Configure } from 'react-instantsearch';
 import 'instantsearch.css/themes/satellite.css';
 import { contentPath } from '@/lib/content/contentUrl';
+import { safeLocalStorage } from '@/lib/browserStorage';
 
 // =================================================================
 // --- ALGOLIA CONFIGURATION ---
@@ -48,7 +49,7 @@ const useRecentSearches = (storageKey = 'recentTravelSearches') => {
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   useEffect(() => {
     try {
-      const storedItems = window.localStorage.getItem(storageKey);
+      const storedItems = safeLocalStorage.getItem(storageKey);
       if (storedItems) setRecentSearches(JSON.parse(storedItems));
     } catch (error) {
       console.error('Failed to load recent searches', error);
@@ -61,7 +62,7 @@ const useRecentSearches = (storageKey = 'recentTravelSearches') => {
     setRecentSearches(prev => {
       const newSearches = [trimmed, ...prev.filter(s => s.toLowerCase() !== trimmed.toLowerCase())].slice(0, 5);
       try {
-        window.localStorage.setItem(storageKey, JSON.stringify(newSearches));
+        safeLocalStorage.setItem(storageKey, JSON.stringify(newSearches));
       } catch (error) {
         console.error('Failed to save recent searches', error);
       }
@@ -73,7 +74,7 @@ const useRecentSearches = (storageKey = 'recentTravelSearches') => {
     setRecentSearches(prev => {
       const newSearches = prev.filter(s => s.toLowerCase() !== term.toLowerCase());
       try {
-        window.localStorage.setItem(storageKey, JSON.stringify(newSearches));
+        safeLocalStorage.setItem(storageKey, JSON.stringify(newSearches));
       } catch (error) {
         console.error('Failed to save recent searches', error);
       }

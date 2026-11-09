@@ -2,6 +2,7 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { isStorefrontTheme, resolveStorefrontTheme, STOREFRONT_THEME_STORAGE_KEY, type StorefrontTheme } from '@/lib/storefrontTheme';
+import { safeLocalStorage } from '@/lib/browserStorage';
 
 interface StorefrontThemeContextValue {
   mounted: boolean;
@@ -37,7 +38,7 @@ export function StorefrontThemeProvider({ children }: { children: React.ReactNod
 
   useEffect(() => {
     const media = window.matchMedia('(prefers-color-scheme: dark)');
-    const savedTheme = window.localStorage.getItem(STOREFRONT_THEME_STORAGE_KEY);
+    const savedTheme = safeLocalStorage.getItem(STOREFRONT_THEME_STORAGE_KEY);
     const initialTheme = resolveStorefrontTheme(savedTheme, media.matches);
     applyTheme(initialTheme);
     const mountFrame = window.requestAnimationFrame(() => {
@@ -45,7 +46,7 @@ export function StorefrontThemeProvider({ children }: { children: React.ReactNod
       setMounted(true);
     });
     const onSystemThemeChange = (event: MediaQueryListEvent) => {
-      const currentSavedTheme = window.localStorage.getItem(STOREFRONT_THEME_STORAGE_KEY);
+      const currentSavedTheme = safeLocalStorage.getItem(STOREFRONT_THEME_STORAGE_KEY);
       if (!isStorefrontTheme(currentSavedTheme)) {
         const nextTheme: StorefrontTheme = event.matches ? 'dark' : 'light';
         setResolvedTheme(nextTheme);
@@ -60,7 +61,7 @@ export function StorefrontThemeProvider({ children }: { children: React.ReactNod
   }, []);
 
   const setTheme = useCallback((theme: StorefrontTheme) => {
-    window.localStorage.setItem(STOREFRONT_THEME_STORAGE_KEY, theme);
+    safeLocalStorage.setItem(STOREFRONT_THEME_STORAGE_KEY, theme);
     setResolvedTheme(theme);
     applyTheme(theme);
   }, []);

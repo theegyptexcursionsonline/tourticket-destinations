@@ -3,6 +3,7 @@
 import { createContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { Currency, Language } from '@/types';
 import { currencies, languages } from '@/utils/localization';
+import { safeLocalStorage } from '@/lib/browserStorage';
 
 const FALLBACK_EXCHANGE_RATES: { [key: string]: number } = {
   EUR: 1,
@@ -68,7 +69,7 @@ const usePersistentState = <T,>(key: string, defaultValue: T): [T, (value: T) =>
   
   useEffect(() => {
     try {
-      const item = window.localStorage.getItem(key);
+      const item = safeLocalStorage.getItem(key);
       if (item) {
         // Try to parse as JSON first
         try {
@@ -100,7 +101,7 @@ const usePersistentState = <T,>(key: string, defaultValue: T): [T, (value: T) =>
       console.error(`Error loading ${key} from localStorage:`, _error);
       // Clear corrupted data
       try {
-        window.localStorage.removeItem(key);
+        safeLocalStorage.removeItem(key);
       } catch (clearError) {
         console.error(`Error clearing corrupted ${key} from localStorage:`, clearError);
       }
@@ -113,7 +114,7 @@ const usePersistentState = <T,>(key: string, defaultValue: T): [T, (value: T) =>
     try {
       setState(value);
       if (isLoaded) {
-        window.localStorage.setItem(key, JSON.stringify(value));
+        safeLocalStorage.setItem(key, JSON.stringify(value));
       }
     } catch (_error) {
       console.error(`Error saving ${key} to localStorage:`, _error);
@@ -130,7 +131,7 @@ const fetchExchangeRates = async (): Promise<{ [key: string]: number }> => {
   
   try {
     // Check cached rates first
-    const cached = localStorage.getItem(CACHE_KEY);
+    const cached = safeLocalStorage.getItem(CACHE_KEY);
     if (cached) {
       const { rates, timestamp } = JSON.parse(cached);
       if (Date.now() - timestamp < CACHE_DURATION) {
@@ -170,7 +171,7 @@ const fetchExchangeRates = async (): Promise<{ [key: string]: number }> => {
           
           // Cache the successful response
           try {
-            localStorage.setItem(CACHE_KEY, JSON.stringify({
+            safeLocalStorage.setItem(CACHE_KEY, JSON.stringify({
               rates,
               timestamp: Date.now(),
             }));

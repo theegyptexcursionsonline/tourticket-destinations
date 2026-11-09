@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { Tour } from '@/types';
 import { useAuth } from './AuthContext';
+import { safeLocalStorage } from '@/lib/browserStorage';
 
 // Define the shape of the context
 interface WishlistContextType {
@@ -32,7 +33,7 @@ export const WishlistProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (!isAuthenticated) {
       try {
-        const storedWishlist = localStorage.getItem('wishlist');
+        const storedWishlist = safeLocalStorage.getItem('wishlist');
         if (storedWishlist) {
           setWishlist(JSON.parse(storedWishlist));
         }
@@ -78,7 +79,7 @@ export const WishlistProvider = ({ children }: { children: ReactNode }) => {
           const data = await response.json();
           if (data.success && data.wishlist) {
             // Merge server wishlist with local wishlist
-            const localWishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
+            const localWishlist = JSON.parse(safeLocalStorage.getItem('wishlist') || '[]');
             const serverIds = new Set(data.wishlist.map((t: Tour) => t._id));
             const _localIds = new Set(localWishlist.map((t: Tour) => t._id));
 
@@ -98,7 +99,7 @@ export const WishlistProvider = ({ children }: { children: ReactNode }) => {
             }
 
             // Clear local storage since we're now using server
-            localStorage.removeItem('wishlist');
+            safeLocalStorage.removeItem('wishlist');
           }
         }
       } catch (error) {
@@ -115,7 +116,7 @@ export const WishlistProvider = ({ children }: { children: ReactNode }) => {
   // Save to localStorage (for guests) whenever wishlist changes
   useEffect(() => {
     if (!isAuthenticated && wishlist.length >= 0) {
-      localStorage.setItem('wishlist', JSON.stringify(wishlist));
+      safeLocalStorage.setItem('wishlist', JSON.stringify(wishlist));
     }
   }, [wishlist, isAuthenticated]);
 

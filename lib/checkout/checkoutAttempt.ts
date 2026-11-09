@@ -1,3 +1,4 @@
+import { safeSessionStorage } from '@/lib/browserStorage';
 const CHECKOUT_ATTEMPT_KEY = 'network-checkout-attempt-v1';
 
 function validAttemptId(value: unknown): value is string {
@@ -10,13 +11,13 @@ export function normalizeCheckoutAttemptId(value: unknown): string | null {
 }
 
 export function getOrCreateCheckoutAttemptId(): string {
-  const existing = window.sessionStorage.getItem(CHECKOUT_ATTEMPT_KEY);
+  const existing = safeSessionStorage.getItem(CHECKOUT_ATTEMPT_KEY);
   if (validAttemptId(existing)) return existing.toLowerCase();
   const value = window.crypto.randomUUID();
-  window.sessionStorage.setItem(CHECKOUT_ATTEMPT_KEY, value);
+  safeSessionStorage.setItem(CHECKOUT_ATTEMPT_KEY, value);
   return value;
 }
 
 export function clearCheckoutAttemptId(): void {
-  window.sessionStorage.removeItem(CHECKOUT_ATTEMPT_KEY);
+  safeSessionStorage.removeItem(CHECKOUT_ATTEMPT_KEY);
 }
