@@ -218,7 +218,7 @@ describe('shimmer + exit intent', () => {
   });
 
   it('fires the exit rescue once per session, desktop pointers only', () => {
-    expect(luxe).toContain("sessionStorage.getItem(key)");
+    expect(luxe).toContain("safeSessionStorage.getItem(key)");
     expect(luxe).toContain("matchMedia('(pointer: fine)')");
     expect(luxe).toContain('event.clientY > 0 || event.relatedTarget');
   });
