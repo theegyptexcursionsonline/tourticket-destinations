@@ -180,16 +180,19 @@ describe('DestinationPageClient', () => {
       expect(screen.getAllByText(/2\+ Tours/i)[0]).toBeInTheDocument()
     })
 
-    it('should display rating', () => {
-      render(<DestinationPageClient {...defaultProps} />)
+    // These were fixed numbers printed on every destination, backed by no data.
+    it('shows no fixed rating in the hero', () => {
+      const { container } = render(<DestinationPageClient {...defaultProps} />)
 
-      expect(screen.getByText('4.8/5 Rating')).toBeInTheDocument()
+      expect(screen.queryByText('4.8/5 Rating')).not.toBeInTheDocument()
+      expect(container.textContent).not.toMatch(/4[.,]8\/5/)
     })
 
-    it('should display traveler count', () => {
-      render(<DestinationPageClient {...defaultProps} />)
+    it('shows no fixed traveller count in the hero', () => {
+      const { container } = render(<DestinationPageClient {...defaultProps} />)
 
-      expect(screen.getByText('50K+ Travelers')).toBeInTheDocument()
+      expect(screen.queryByText('50K+ Travelers')).not.toBeInTheDocument()
+      expect(container.textContent).not.toMatch(/50K\+|50[.,]000\+/)
     })
 
     it('should open search modal when search bar is clicked', async () => {
@@ -217,8 +220,10 @@ describe('DestinationPageClient', () => {
       render(<DestinationPageClient {...defaultProps} />)
 
       expect(screen.getAllByText(/2\+ Tours/i)[0]).toBeInTheDocument()
-      expect(screen.getByText('50K+')).toBeInTheDocument()
-      expect(screen.getByText('Happy Travelers')).toBeInTheDocument()
+      // Only the real trip count; the happy-traveller, rating and support tiles are gone.
+      expect(screen.queryByText('50K+')).not.toBeInTheDocument()
+      expect(screen.queryByText('Happy Travelers')).not.toBeInTheDocument()
+      expect(screen.queryByText('24/7')).not.toBeInTheDocument()
     })
   })
 

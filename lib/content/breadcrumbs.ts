@@ -11,14 +11,17 @@ export function buildContentBreadcrumbs({
   parentPage,
   rootLabel,
   rootHref,
+  homeLabel = "Home",
 }: {
   currentTitle: string;
   breadcrumbLabel?: string;
   parentPage?: ParentPageValue | null;
   rootLabel?: string;
   rootHref?: string;
+  /** The first crumb in the visitor's language; English when a caller does not pass one. */
+  homeLabel?: string;
 }): BreadcrumbItem[] {
-  const items: BreadcrumbItem[] = [{ label: "Home", href: "/" }];
+  const items: BreadcrumbItem[] = [{ label: homeLabel, href: "/" }];
   if (parentPage?.slug && parentPage.label) {
     items.push({
       label: parentPage.label,

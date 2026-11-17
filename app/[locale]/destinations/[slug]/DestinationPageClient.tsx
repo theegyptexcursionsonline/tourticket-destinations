@@ -77,8 +77,16 @@ type DestinationPageCopy = {
   thingsToDoIn: (destination: string) => string;
   bestToursIn: (destination: string) => string;
   toursCount: (count: number) => string;
-  ratingStat: string;
-  travelersStat: string;
+  home: string;
+  destinationsRoot: string;
+  galleryTitle: string;
+  practicalTitle: string;
+  practicalClimate: string;
+  practicalVisa: string;
+  practicalLanguages: string;
+  practicalEmergency: string;
+  practicalSummer: string;
+  practicalWinter: string;
   scrollLeft: string;
   scrollRight: string;
   bookNow: string;
@@ -133,7 +141,7 @@ type DestinationPageCopy = {
   faqMeetingQ: string;
   faqMeetingA: string;
   reviewsTitle: (destination: string) => string;
-  reviewsSummary: string;
+  reviewsSummary: (average: number, count: number) => string;
   verifiedTraveler: string;
   readAllReviews: string;
   relatedDestinationsTitle: string;
@@ -190,8 +198,16 @@ const destinationPageCopy: Record<'en' | 'ar', DestinationPageCopy> = {
     thingsToDoIn: (destination: string) => `Things to do in ${destination}`,
     bestToursIn: (destination: string) => `Best tours in ${destination}`,
     toursCount: (count: number) => `${count}+ Tours`,
-    ratingStat: '4.8/5 Rating',
-    travelersStat: '50K+ Travelers',
+    home: 'Home',
+    destinationsRoot: 'Destinations',
+    galleryTitle: 'Destination gallery',
+    practicalTitle: 'Practical information',
+    practicalClimate: 'Climate',
+    practicalVisa: 'Visa requirements',
+    practicalLanguages: 'Languages',
+    practicalEmergency: 'Emergency number',
+    practicalSummer: 'Summer temperature',
+    practicalWinter: 'Winter temperature',
     scrollLeft: 'Scroll left',
     scrollRight: 'Scroll right',
     bookNow: 'Book now',
@@ -260,7 +276,8 @@ const destinationPageCopy: Record<'en' | 'ar', DestinationPageCopy> = {
     faqMeetingA:
       `All tour confirmations include detailed meeting point information with maps and directions. Most meeting points are at central, easy-to-reach locations with good public transport access. Our team is available 24/7 if you need assistance.`,
     reviewsTitle: (destination: string) => `What Travelers Say About ${destination}`,
-    reviewsSummary: '4.8/5 from 1,000+ reviews',
+    reviewsSummary: (average: number, count: number) =>
+      `${average.toFixed(1)}/5 from ${count} ${count === 1 ? 'review' : 'reviews'}`,
     verifiedTraveler: 'Verified traveler',
     readAllReviews: 'Read All Reviews',
     relatedDestinationsTitle: 'Explore More Destinations',
@@ -270,7 +287,7 @@ const destinationPageCopy: Record<'en' | 'ar', DestinationPageCopy> = {
     newsletterSubtitle: 'Subscribe to our newsletter and receive special offers, travel tips, and insider guides',
     newsletterEmailPlaceholder: 'Enter your email',
     newsletterSubscribe: 'Subscribe Now',
-    newsletterFootnote: 'Join 50,000+ travelers getting exclusive deals. Unsubscribe anytime.',
+    newsletterFootnote: 'Receive destination deals by email. Unsubscribe anytime.',
     infoBestTime: 'Best Time to Visit',
     infoCurrency: 'Currency',
     infoTimeZone: 'Time Zone',
@@ -315,8 +332,16 @@ const destinationPageCopy: Record<'en' | 'ar', DestinationPageCopy> = {
     thingsToDoIn: (destination: string) => `أفضل الأنشطة في ${destination}`,
     bestToursIn: (destination: string) => `أفضل الجولات في ${destination}`,
     toursCount: (count: number) => `${count}+ جولة`,
-    ratingStat: 'تقييم 4.8/5',
-    travelersStat: '+50 ألف مسافر',
+    home: 'الرئيسية',
+    destinationsRoot: 'الوجهات',
+    galleryTitle: 'معرض صور الوجهة',
+    practicalTitle: 'معلومات عملية',
+    practicalClimate: 'المناخ',
+    practicalVisa: 'متطلبات التأشيرة',
+    practicalLanguages: 'اللغات',
+    practicalEmergency: 'رقم الطوارئ',
+    practicalSummer: 'درجة الحرارة في الصيف',
+    practicalWinter: 'درجة الحرارة في الشتاء',
     scrollLeft: 'التمرير لليسار',
     scrollRight: 'التمرير لليمين',
     bookNow: 'احجز الآن',
@@ -385,7 +410,8 @@ const destinationPageCopy: Record<'en' | 'ar', DestinationPageCopy> = {
     faqMeetingA:
       `ستتضمن رسالة التأكيد كل تفاصيل نقطة الالتقاء مع الخرائط والاتجاهات، وغالبًا تكون في مواقع مركزية يسهل الوصول إليها.`,
     reviewsTitle: (destination: string) => `ماذا يقول المسافرون عن ${destination}`,
-    reviewsSummary: 'تقييم 4.8/5 من أكثر من 1000 مراجعة',
+    reviewsSummary: (average: number, count: number) =>
+      `تقييم ${average.toFixed(1)}/5 من ${count} ${count === 1 ? 'مراجعة' : 'مراجعات'}`,
     verifiedTraveler: 'مسافر موثق',
     readAllReviews: 'قراءة جميع المراجعات',
     relatedDestinationsTitle: 'استكشف المزيد من الوجهات',
@@ -395,7 +421,7 @@ const destinationPageCopy: Record<'en' | 'ar', DestinationPageCopy> = {
     newsletterSubtitle: 'اشترك في نشرتنا البريدية واحصل على عروض خاصة ونصائح سفر وأدلة مميزة',
     newsletterEmailPlaceholder: 'أدخل بريدك الإلكتروني',
     newsletterSubscribe: 'اشترك الآن',
-    newsletterFootnote: 'انضم إلى أكثر من 50,000 مسافر يحصلون على عروض حصرية. يمكنك إلغاء الاشتراك في أي وقت.',
+    newsletterFootnote: 'استقبل عروض الوجهات عبر البريد الإلكتروني. يمكنك إلغاء الاشتراك في أي وقت.',
     infoBestTime: 'أفضل وقت للزيارة',
     infoCurrency: 'العملة',
     infoTimeZone: 'المنطقة الزمنية',
@@ -1790,22 +1816,26 @@ const DestinationHeroSection = ({
     currentTitle: destination.name,
     breadcrumbLabel: destination.breadcrumbLabel,
     parentPage: destination.parentPage,
-    rootLabel: 'Destinations',
+    rootLabel: copy.destinationsRoot,
     rootHref: '/destinations',
+    homeLabel: copy.home,
   });
 
+  // Phones and tablets: the hero is sized by its content so the copy and the
+  // trip search sit under the header instead of floating in a fixed 70vh
+  // picture. The full-height hero is a large-screen treatment only.
   return (
-    <section className="relative w-full min-h-[500px] h-[70vh] sm:h-[75vh] md:h-[80vh] lg:h-screen max-h-[900px]">
+    <section data-destination-hero className="relative w-full lg:h-screen lg:max-h-[900px]">
       {/* Background */}
       <BackgroundSlideshow slides={slides} delay={6000} fadeMs={900} autoplay={true} />
 
       {/* Content */}
-      <div className="relative z-20 h-full flex items-center justify-center text-white px-4 sm:px-6 lg:px-8 pt-20 md:pt-0" dir={rtl ? 'rtl' : 'ltr'}>
-        <div className="w-full max-w-7xl mx-auto text-center md:text-start pt-20 md:pt-0">
+      <div className="relative z-20 h-full flex items-center justify-center text-white px-4 sm:px-6 lg:px-8 pt-24 pb-8 sm:pt-28 sm:pb-10 lg:py-0" dir={rtl ? 'rtl' : 'ltr'}>
+        <div className="w-full max-w-7xl mx-auto text-center md:text-start">
           <div className="mb-5 flex justify-center md:justify-start">
             <ContentBreadcrumbs items={breadcrumbs} tone="dark" />
           </div>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold uppercase leading-tight tracking-wide mb-3 sm:mb-4">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold uppercase leading-tight tracking-wide mb-3 sm:mb-4 [overflow-wrap:anywhere]">
             {copy.discover}
             <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">
@@ -1831,11 +1861,8 @@ const DestinationHeroSection = ({
               <Tag size={14} className="sm:w-4 sm:h-4" />
               <span className="font-semibold">{copy.toursCount(tourCount)}</span>
             </span>
-            <span className="flex items-center gap-1.5 sm:gap-2">
-              <Star size={14} className="sm:w-4 sm:h-4 fill-current text-yellow-400" />
-              <span className="font-semibold">{copy.ratingStat}</span>
-            </span>
-            <span className="font-semibold">{copy.travelersStat}</span>
+            {/* A fixed rating and a fixed traveller count used to sit here on
+                every destination; no data backs either figure, so they are gone. */}
           </div>
         </div>
       </div>
@@ -1844,15 +1871,17 @@ const DestinationHeroSection = ({
 };
 
 const DestinationGallerySection = ({ destination }: { destination: Destination }) => {
+  const { copy } = useDestinationPageLocale();
   const images = Array.from(new Set([destination.image, ...(destination.images || [])].filter(Boolean)));
   if (images.length <= 1) return null;
-  return <section className="bg-white py-12"><div className="container mx-auto max-w-6xl px-4"><h2 className="mb-6 text-3xl font-extrabold text-slate-900">Destination gallery</h2><div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{images.map((src, index) => { const seo = imageMetadataFor(src, destination.imageMetadata, `${destination.name} ${index + 1}`); return <div key={`${src}-${index}`} className={`relative overflow-hidden rounded-2xl ${index === 0 ? 'col-span-2 row-span-2 min-h-72' : 'min-h-36'}`}><Image src={src} alt={seo.alt} title={seo.title} fill className="object-cover" sizes="(max-width: 1024px) 50vw, 25vw" /></div>; })}</div></div></section>;
+  return <section className="bg-white py-12"><div className="container mx-auto max-w-6xl px-4"><h2 className="mb-6 text-3xl font-extrabold text-slate-900">{copy.galleryTitle}</h2><div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{images.map((src, index) => { const seo = imageMetadataFor(src, destination.imageMetadata, `${destination.name} ${index + 1}`); return <div key={`${src}-${index}`} className={`relative overflow-hidden rounded-2xl ${index === 0 ? 'col-span-2 row-span-2 min-h-72' : 'min-h-36'}`}><Image src={src} alt={seo.alt} title={seo.title} fill className="object-cover" sizes="(max-width: 1024px) 50vw, 25vw" /></div>; })}</div></div></section>;
 };
 
 const DestinationPracticalSection = ({ destination }: { destination: Destination }) => {
-  const details = [destination.climate && ['Climate', destination.climate], destination.visaRequirements && ['Visa requirements', destination.visaRequirements], destination.languagesSpoken?.length && ['Languages', destination.languagesSpoken.join(', ')], destination.emergencyNumber && ['Emergency number', destination.emergencyNumber], destination.averageTemperature?.summer && ['Summer temperature', destination.averageTemperature.summer], destination.averageTemperature?.winter && ['Winter temperature', destination.averageTemperature.winter]].filter(Boolean) as Array<[string, string]>;
+  const { copy } = useDestinationPageLocale();
+  const details = [destination.climate && [copy.practicalClimate, destination.climate], destination.visaRequirements && [copy.practicalVisa, destination.visaRequirements], destination.languagesSpoken?.length && [copy.practicalLanguages, destination.languagesSpoken.join(', ')], destination.emergencyNumber && [copy.practicalEmergency, destination.emergencyNumber], destination.averageTemperature?.summer && [copy.practicalSummer, destination.averageTemperature.summer], destination.averageTemperature?.winter && [copy.practicalWinter, destination.averageTemperature.winter]].filter(Boolean) as Array<[string, string]>;
   if (details.length === 0 && !destination.thingsToDo?.length && !destination.localCustoms?.length && !destination.weatherWarnings?.length) return null;
-  return <section className="bg-slate-50 py-12 sm:py-20"><div className="container mx-auto max-w-6xl px-4"><h2 className="mb-6 text-3xl font-extrabold text-slate-900">Practical information</h2><div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">{details.map(([title, value]) => <article key={title} className="rounded-2xl border border-slate-200 bg-white p-5"><h3 className="font-bold text-slate-900">{title}</h3><p className="mt-2 text-sm leading-relaxed text-slate-600">{value}</p></article>)}</div></div></section>;
+  return <section className="bg-slate-50 py-12 sm:py-20"><div className="container mx-auto max-w-6xl px-4"><h2 className="mb-6 text-3xl font-extrabold text-slate-900">{copy.practicalTitle}</h2><div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">{details.map(([title, value]) => <article key={title} className="rounded-2xl border border-slate-200 bg-white p-5"><h3 className="font-bold text-slate-900">{title}</h3><p className="mt-2 text-sm leading-relaxed text-slate-600">{value}</p></article>)}</div></div></section>;
 };
 
 // --- Card Components ---
@@ -1868,14 +1897,14 @@ const Top10Card = ({ tour, index, onAddToCartClick }: { tour: Tour, index: numbe
   };
 
   return (
-    <Link href={`/${tour.slug}`} className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-6 p-3 sm:p-4 bg-white hover:bg-slate-50 transition-colors duration-200 group rounded-lg border border-transparent hover:border-slate-200 hover:shadow-lg">
+    <Link href={`/${tour.slug}`} className="min-w-0 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-6 p-3 sm:p-4 bg-white hover:bg-slate-50 transition-colors duration-200 group rounded-lg border border-transparent hover:border-slate-200 hover:shadow-lg">
       <span className="hidden sm:block text-3xl md:text-4xl font-extrabold text-slate-200 group-hover:text-red-500 transition-colors duration-200">{index + 1}.</span>
       <div className="relative w-full sm:w-20 md:w-24 h-32 sm:h-20 md:h-24 flex-shrink-0 rounded-md overflow-hidden">
         <Image src={tour.image} alt={tour.title} fill className="object-cover" />
         <span className="sm:hidden absolute top-2 start-2 bg-red-500 text-white font-bold text-lg px-3 py-1 rounded-full">{index + 1}</span>
       </div>
-      <div className="flex-1 w-full">
-        <h3 className="text-base sm:text-lg font-semibold text-slate-800 group-hover:text-red-600 transition-colors duration-200 line-clamp-2">{tour.title}</h3>
+      <div className="flex-1 w-full min-w-0">
+        <h3 className="text-base sm:text-lg font-semibold text-slate-800 group-hover:text-red-600 transition-colors duration-200 line-clamp-2 [overflow-wrap:anywhere]">{tour.title}</h3>
         <div className="flex items-center gap-2 mt-1 text-xs sm:text-sm text-slate-500">
           <Clock size={14} />
           <span>{tour.duration}</span>
@@ -1887,7 +1916,7 @@ const Top10Card = ({ tour, index, onAddToCartClick }: { tour: Tour, index: numbe
           <span className="text-red-600 font-bold text-lg sm:text-xl">{formatPrice(tour.discountPrice)}</span>
         </div>
       </div>
-      <div className="flex sm:flex-col items-center gap-2 ms-auto sm:ms-0">
+      <div className="flex sm:flex-col flex-shrink-0 items-center gap-2 ms-auto sm:ms-0">
         <button
           onClick={handleAddToCart}
           aria-label={copy.bookNow}
@@ -1943,7 +1972,7 @@ const CombiDealCard = ({ tour, onAddToCartClick }: { tour: Tour, onAddToCartClic
           <span className="flex items-center gap-1">
             <Star size={14} fill="currentColor" className="text-yellow-500" />{tour.rating}
           </span>
-          <span>{tour.bookings} {copy.bookings}</span>
+          {(tour.bookings || 0) > 0 && <span>{tour.bookings} {copy.bookings}</span>}
         </div>
         <div className="flex items-end justify-end mt-3 sm:mt-4">
           {tour.originalPrice && tour.originalPrice > tour.discountPrice && <span className="text-slate-500 line-through me-2 text-sm">{formatPrice(tour.originalPrice)}</span>}
@@ -1958,16 +1987,15 @@ const CombiDealCard = ({ tour, onAddToCartClick }: { tour: Tour, onAddToCartClic
 const StatsSection = ({ destinationTours }: { destinationTours: Tour[] }) => {
   const { copy } = useDestinationPageLocale();
   const stats = [
-    { value: `${destinationTours.length}+`, label: copy.statsToursAvailable, icon: <Calendar /> },
-    { value: '50K+', label: copy.statsHappyTravelers, icon: <Users /> },
-    { value: '4.8/5', label: copy.statsAverageRating, icon: <Star /> },
-    { value: '24/7', label: copy.statsCustomerSupport, icon: <Shield /> }
+    { value: String(destinationTours.length), label: copy.statsToursAvailable, icon: <Calendar /> },
   ];
 
   return (
     <section className="bg-slate-900 py-12 sm:py-16">
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
+        {/* Only the trip count is real here: the happy-traveller, rating and
+            support tiles were fixed numbers shown on every destination. */}
+        <div className="mx-auto max-w-sm text-center">
           {stats.map((stat, index) => (
             <div key={index} className="text-center">
               <div className="flex justify-center mb-2 sm:mb-3 text-red-500">
@@ -2211,6 +2239,8 @@ const FAQSection = ({ destination }: { destination: Destination }) => {
 const ReviewsSection = ({ reviews, destinationName }: { reviews: Review[], destinationName: string }) => {
   const { copy } = useDestinationPageLocale();
   if (!reviews || reviews.length === 0) return null;
+  const averageRating = reviews.reduce((total, review) => total + (Number(review.rating) || 0), 0) / reviews.length;
+  const roundedRating = Math.round(averageRating);
 
   return (
     <section className="bg-slate-50 py-12 sm:py-20">
@@ -2221,9 +2251,9 @@ const ReviewsSection = ({ reviews, destinationName }: { reviews: Review[], desti
           </h2>
           <div className="flex items-center justify-center gap-2 text-yellow-500">
             {[...Array(5)].map((_, i) => (
-              <Star key={i} className="w-4 h-4 sm:w-6 sm:h-6 fill-current" />
+              <Star key={i} className={`w-4 h-4 sm:w-6 sm:h-6 ${i < roundedRating ? 'fill-current' : 'text-slate-300'}`} />
             ))}
-            <span className="ms-2 text-slate-600 font-bold text-sm sm:text-base">{copy.reviewsSummary}</span>
+            <span className="ms-2 text-slate-600 font-bold text-sm sm:text-base">{copy.reviewsSummary(averageRating, reviews.length)}</span>
           </div>
         </div>
 
@@ -2356,6 +2386,18 @@ const NewsletterSection = ({ destinationName }: { destinationName: string }) => 
   );
 };
 
+// Below lg the page main is a flex column: the hero and then the first trip list
+// (Best deals, or the Top 10 when a destination has no deals) carry this class,
+// so on a phone the trips follow the hero instead of the stats strip and the
+// gallery. Equal order keeps the hero ahead of the trips (source order breaks
+// the tie). Large screens keep the authored section order.
+const PHONE_FIRST = 'order-first lg:order-none';
+
+// Top 10 rows are a horizontal card (rank, photo, text, cart button). Two
+// columns only from lg: at 768 a half-width track left the text no room and the
+// cart buttons stuck out past the edge (the page scrolled sideways).
+const TOP_TOURS_GRID = 'grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8 max-w-6xl mx-auto';
+
 // --- MAIN COMPONENT ---
 export default function DestinationPageClient({
   tenantId = 'default',
@@ -2405,16 +2447,18 @@ export default function DestinationPageClient({
   return (
     <>
       <Header />
-      <main className="min-h-screen bg-white" dir={rtl ? 'rtl' : 'ltr'}>
-        
-        <DestinationHeroSection
-          tenantId={tenantId}
-          destination={destination}
-          tourCount={destinationTours.length}
-          destinationTours={destinationTours}
-          relatedDestinations={relatedDestinations}
-          allCategories={allCategories}
-        />
+      {/* Phones: the first trip list follows the hero (flex order); large screens keep the authored section order. */}
+      <main className="flex min-h-screen flex-col lg:block bg-white" dir={rtl ? 'rtl' : 'ltr'}>
+        <div className={PHONE_FIRST}>
+          <DestinationHeroSection
+            tenantId={tenantId}
+            destination={destination}
+            tourCount={destinationTours.length}
+            destinationTours={destinationTours}
+            relatedDestinations={relatedDestinations}
+            allCategories={allCategories}
+          />
+        </div>
 
         <StatsSection destinationTours={destinationTours} />
         
@@ -2444,7 +2488,7 @@ export default function DestinationPageClient({
         <DestinationGallerySection destination={destination} />
         
         {featuredTours.length > 0 && (
-          <section className="py-12 sm:py-20 bg-white overflow-hidden">
+          <section data-destination-best-deals className={`py-12 sm:py-20 bg-white overflow-hidden ${PHONE_FIRST}`}>
             <div className="container mx-auto">
                 <div className="px-4 mb-6 sm:mb-10">
                     <h2 className="text-2xl sm:text-4xl font-extrabold text-slate-900">{copy.featuredSectionTitle(destination.name)}</h2>
@@ -2474,7 +2518,7 @@ export default function DestinationPageClient({
         )}
         
         {top10Tours.length > 0 && (
-          <section className="py-12 sm:py-20 bg-slate-50">
+          <section data-destination-top-tours className={`py-12 sm:py-20 bg-slate-50 ${featuredTours.length === 0 ? PHONE_FIRST : ''}`}>
             <div className="container mx-auto px-4">
               <h2 className="text-2xl sm:text-4xl font-extrabold text-slate-900 text-center mb-3 sm:mb-4">
                 {copy.topToursTitle(destination.name)}
@@ -2482,7 +2526,7 @@ export default function DestinationPageClient({
               <p className="text-center text-base sm:text-lg text-slate-600 mb-8 sm:mb-12">
                 {copy.topToursSubtitle}
               </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-8 max-w-6xl mx-auto">
+              <div data-top-tours-grid className={TOP_TOURS_GRID}>
                 {top10Tours.map((tour, index) => (
                   <Top10Card key={tour._id} tour={tour} index={index} onAddToCartClick={handleAddToCartClick} />
                 ))}

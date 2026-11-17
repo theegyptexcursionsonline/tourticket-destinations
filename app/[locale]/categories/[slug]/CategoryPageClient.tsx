@@ -72,6 +72,10 @@ type CategoryPageCopy = {
   learnMore: string;
   topPicks: string;
   handpickedTours: string;
+  home: string;
+  categoriesRoot: string;
+  experienceGallery: string;
+  travelTips: string;
 };
 
 const CATEGORY_PAGE_COPY: Record<'en' | 'ar', CategoryPageCopy> = {
@@ -126,6 +130,10 @@ const CATEGORY_PAGE_COPY: Record<'en' | 'ar', CategoryPageCopy> = {
     learnMore: 'Learn More',
     topPicks: 'Top Picks In This Category',
     handpickedTours: 'Handpicked tours worth shortlisting first',
+    home: 'Home',
+    categoriesRoot: 'Categories',
+    experienceGallery: 'Experience gallery',
+    travelTips: 'Travel tips',
   },
   ar: {
     searchToursPlaceholder: 'ابحث عن الجولات...',
@@ -177,6 +185,10 @@ const CATEGORY_PAGE_COPY: Record<'en' | 'ar', CategoryPageCopy> = {
     learnMore: 'اعرف المزيد',
     topPicks: 'أفضل الاختيارات في هذه الفئة',
     handpickedTours: 'جولات مختارة تستحق أن تبدأ بها',
+    home: 'الرئيسية',
+    categoriesRoot: 'الفئات',
+    experienceGallery: 'معرض صور التجربة',
+    travelTips: 'نصائح السفر',
   },
 };
 
@@ -575,16 +587,18 @@ const CategoryFaqSection = ({
 const TopPicksSection = ({
   tours,
   copy,
+  className = '',
 }: {
   tours: Tour[];
   copy: CategoryPageCopy;
+  className?: string;
 }) => {
   if (tours.length === 0) {
     return null;
   }
 
   return (
-    <section className="py-12 bg-white border-y border-slate-100">
+    <section className={`py-12 bg-white border-y border-slate-100 ${className}`}>
       <div className="container mx-auto px-4">
         <div className="max-w-7xl mx-auto">
           <div className="mb-8">
@@ -638,14 +652,14 @@ const TopPicksSection = ({
   );
 };
 
-const CategoryGallerySection = ({ category }: { category: Category }) => {
+const CategoryGallerySection = ({ category, copy }: { category: Category; copy: CategoryPageCopy }) => {
   if (!category.images || category.images.length === 0) return null;
 
   return (
     <section className="py-12 bg-white">
       <div className="container mx-auto px-4">
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-3xl font-bold text-slate-900 mb-6">Experience gallery</h2>
+          <h2 className="text-3xl font-bold text-slate-900 mb-6">{copy.experienceGallery}</h2>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {category.images.map((image, index) => {
               const seo = imageMetadataFor(image, category.imageMetadata, `${category.name} experience ${index + 1}`);
@@ -662,14 +676,14 @@ const CategoryGallerySection = ({ category }: { category: Category }) => {
   );
 };
 
-const CategoryTravelTipsSection = ({ category }: { category: Category }) => {
+const CategoryTravelTipsSection = ({ category, copy }: { category: Category; copy: CategoryPageCopy }) => {
   if (!category.travelTips || category.travelTips.length === 0) return null;
 
   return (
     <section className="py-12 bg-slate-50">
       <div className="container mx-auto px-4">
         <div className="max-w-5xl mx-auto">
-          <h2 className="text-3xl font-bold text-slate-900 mb-6">Travel tips</h2>
+          <h2 className="text-3xl font-bold text-slate-900 mb-6">{copy.travelTips}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {category.travelTips.map((tip, index) => (
               <article key={`${tip.title}-${index}`} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -686,6 +700,20 @@ const CategoryTravelTipsSection = ({ category }: { category: Category }) => {
 
 
 // --- Hero Section Component ---
+// Large screens only: a fixed full-screen hero. On phones it filled the first
+// screen with empty picture and pushed the trips several screens down; below
+// lg the hero is sized by its content.
+const CATEGORY_HERO_HEIGHT: Record<PageTemplate, string> = {
+  immersive: 'lg:min-h-[760px] lg:h-screen lg:max-h-[980px]',
+  editorial: 'lg:min-h-[600px] lg:h-[72vh] lg:max-h-[760px]',
+  classic: 'lg:h-screen lg:max-h-[900px]',
+};
+const CATEGORY_HERO_CONTENT_SPACING = 'pt-24 pb-8 sm:pt-28 sm:pb-10 lg:py-0';
+// Below lg the page main is a flex column and the first trip list (Top picks,
+// or the full list when a category has too few tours for Top picks) moves up to
+// follow the hero. Large screens keep the authored section order.
+const PHONE_TRIPS_FIRST = 'order-first lg:order-none';
+
 const CategoryHeroSection = ({
   category,
   tourCount,
@@ -705,12 +733,13 @@ const CategoryHeroSection = ({
     currentTitle: category.name,
     breadcrumbLabel: category.breadcrumbLabel,
     parentPage: category.parentPage,
-    rootLabel: 'Categories',
+    rootLabel: copy.categoriesRoot,
     rootHref: '/categories',
+    homeLabel: copy.home,
   });
 
   return (
-    <section className={`relative w-full ${pageTemplate === 'immersive' ? 'min-h-[760px] h-screen max-h-[980px]' : pageTemplate === 'editorial' ? 'min-h-[600px] h-[72vh] max-h-[760px]' : 'h-[70vh] sm:h-[75vh] md:h-[80vh] lg:h-screen max-h-[900px]'}`}>
+    <section data-category-hero className={`relative w-full ${CATEGORY_HERO_HEIGHT[pageTemplate]}`}>
       {/* Background Image */}
       <div className="absolute inset-0 z-0">
         <Image
@@ -726,12 +755,12 @@ const CategoryHeroSection = ({
       </div>
 
       {/* Content */}
-      <div className="relative z-20 h-full flex items-center justify-center text-white px-4 sm:px-6 lg:px-8" dir={rtl ? 'rtl' : 'ltr'}>
-        <div className={`w-full max-w-7xl mx-auto text-center md:text-start pt-20 md:pt-0 ${pageTemplate === 'editorial' ? 'md:max-w-3xl md:mx-0 md:rounded-[2rem] md:border md:border-white/15 md:bg-slate-950/80 md:p-10 md:shadow-2xl md:backdrop-blur-md' : pageTemplate === 'immersive' ? 'self-end pb-10 md:pb-20' : ''}`}>
+      <div className={`relative z-20 h-full flex items-center justify-center text-white px-4 sm:px-6 lg:px-8 ${CATEGORY_HERO_CONTENT_SPACING}`} dir={rtl ? 'rtl' : 'ltr'}>
+        <div className={`w-full max-w-7xl mx-auto text-center md:text-start ${pageTemplate === 'editorial' ? 'md:max-w-3xl md:mx-0 md:rounded-[2rem] md:border md:border-white/15 md:bg-slate-950/80 md:p-10 md:shadow-2xl md:backdrop-blur-md' : pageTemplate === 'immersive' ? 'lg:self-end lg:pb-20' : ''}`}>
           <div className="mb-5 flex justify-center md:justify-start">
             <ContentBreadcrumbs items={breadcrumbs} tone="dark" />
           </div>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold uppercase leading-tight tracking-wide mb-3 sm:mb-4">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold uppercase leading-tight tracking-wide mb-3 sm:mb-4 [overflow-wrap:anywhere]">
             {copy.discover}
             <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-orange-300">
@@ -1040,21 +1069,22 @@ export default function CategoryPageClient({
             {/* Hero Section */}
             <CategoryHeroSection category={category} tourCount={categoryTours.length} copy={copy} rtl={rtl} pageTemplate={pageTemplate} />
 
-            <main data-page-template={pageTemplate} className={`min-h-screen ${pageTemplate === 'editorial' ? 'bg-[#f7f4ee]' : pageTemplate === 'immersive' ? 'bg-slate-950' : 'bg-slate-50'}`} dir={rtl ? 'rtl' : 'ltr'}>
+            {/* Phones: the first trips follow the hero (flex order); large screens keep the authored section order. */}
+            <main data-page-template={pageTemplate} className={`flex min-h-screen flex-col lg:block ${pageTemplate === 'editorial' ? 'bg-[#f7f4ee]' : pageTemplate === 'immersive' ? 'bg-slate-950' : 'bg-slate-50'}`} dir={rtl ? 'rtl' : 'ltr'}>
                 {/* Stats Section */}
                 <StatsSection tours={categoryTours} copy={copy} />
 
                 {/* About Section */}
                 <AboutSection category={category} copy={copy} insights={categoryInsights} />
 
-                <CategoryGallerySection category={category} />
+                <CategoryGallerySection category={category} copy={copy} />
 
-                <TopPicksSection tours={topPicks} copy={copy} />
+                <TopPicksSection tours={topPicks} copy={copy} className={PHONE_TRIPS_FIRST} />
 
 
-                <CategoryTravelTipsSection category={category} />
+                <CategoryTravelTipsSection category={category} copy={copy} />
 
-                <div className="container mx-auto px-4 py-8">
+                <div className={`container mx-auto px-4 py-8 ${topPicks.length === 0 ? PHONE_TRIPS_FIRST : ''}`}>
                     <div className="max-w-7xl mx-auto">
                         {/* Search and Filter */}
                         {categoryTours.length > 0 && (
