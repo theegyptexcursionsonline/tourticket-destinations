@@ -90,7 +90,7 @@ type DestinationPageCopy = {
   scrollLeft: string;
   scrollRight: string;
   bookNow: string;
-  bookings: string;
+  bookings: (count: number) => string;
   statsToursAvailable: string;
   statsHappyTravelers: string;
   statsAverageRating: string;
@@ -168,7 +168,18 @@ type DestinationPageCopy = {
   whyVisitTitle: (destination: string) => string;
 };
 
-const destinationPageCopy: Record<'en' | 'ar', DestinationPageCopy> = {
+// Russian counts take three noun forms: one (1, 21, 31...), few (2-4, 22-24...)
+// and many (0, 5-20, 25-30...). Counters in the Russian copy below pick a form
+// through this helper so a label never reads as broken grammar.
+const ruPlural = (count: number, one: string, few: string, many: string): string => {
+  const mod100 = Math.abs(count) % 100;
+  const mod10 = mod100 % 10;
+  if (mod10 === 1 && mod100 !== 11) return one;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
+  return many;
+};
+
+const destinationPageCopy: Record<'en' | 'ar' | 'de' | 'fr' | 'es' | 'ru', DestinationPageCopy> = {
   en: {
     featured: 'Featured',
     tours: 'Tours',
@@ -211,7 +222,7 @@ const destinationPageCopy: Record<'en' | 'ar', DestinationPageCopy> = {
     scrollLeft: 'Scroll left',
     scrollRight: 'Scroll right',
     bookNow: 'Book now',
-    bookings: 'bookings',
+    bookings: (count: number) => `${count} ${count === 1 ? 'booking' : 'bookings'}`,
     statsToursAvailable: 'Tours Available',
     statsHappyTravelers: 'Happy Travelers',
     statsAverageRating: 'Average Rating',
@@ -345,7 +356,7 @@ const destinationPageCopy: Record<'en' | 'ar', DestinationPageCopy> = {
     scrollLeft: 'التمرير لليسار',
     scrollRight: 'التمرير لليمين',
     bookNow: 'احجز الآن',
-    bookings: 'حجوزات',
+    bookings: (count: number) => `${count} حجوزات`,
     statsToursAvailable: 'جولات متاحة',
     statsHappyTravelers: 'مسافرون سعداء',
     statsAverageRating: 'متوسط التقييم',
@@ -437,12 +448,562 @@ const destinationPageCopy: Record<'en' | 'ar', DestinationPageCopy> = {
     interestsSubtitle: 'اعثر على التجربة المناسبة لك سواء كنت مهتمًا بالثقافة أو المغامرة أو الطعام.',
     whyVisitTitle: (destination: string) => `لماذا تزور ${destination}؟`,
   },
+  de: {
+    featured: 'Empfohlen',
+    tours: 'Touren',
+    destinations: 'Reiseziele',
+    categories: 'Kategorien',
+    untitledTour: 'Tour ohne Titel',
+    untitledDestination: 'Reiseziel ohne Titel',
+    untitledCategory: 'Kategorie ohne Titel',
+    hereAreTours: 'Hier sind einige Touren, die ich für Sie gefunden habe:',
+    hereAreDestinations: 'Hier sind einige Reiseziele, die ich für Sie gefunden habe:',
+    askAiAnything: 'Fragen Sie die KI alles über dieses Reiseziel ...',
+    clearSearch: 'Suche zurücksetzen',
+    stop: 'Stopp',
+    send: 'Senden',
+    openAiAssistant: 'KI-Assistenten öffnen',
+    aiDestinationAssistant: 'KI-Reiseassistent',
+    searchResults: 'Suchergebnisse',
+    popularSearches: 'Beliebte Suchanfragen',
+    noTenantResultsTitle: 'Keine passenden Ergebnisse gefunden',
+    noTenantResultsBody: (destination) =>
+      `Versuchen Sie eine andere Suche zu ${destination} oder stöbern Sie in den Touren und Reisezielen auf dieser Website.`,
+    newChat: 'Neuer Chat',
+    askDestinationPrompt: 'Fragen Sie mich alles über dieses Reiseziel!',
+    trendingTours: 'Beliebte Touren',
+    discover: 'ENTDECKEN',
+    exploreDestination: (destination: string) => `${destination} entdecken`,
+    thingsToDoIn: (destination: string) => `Aktivitäten in ${destination}`,
+    bestToursIn: (destination: string) => `Die besten Touren in ${destination}`,
+    toursCount: (count: number) => `${count}+ Touren`,
+    home: 'Startseite',
+    destinationsRoot: 'Reiseziele',
+    galleryTitle: 'Bildergalerie des Reiseziels',
+    practicalTitle: 'Praktische Informationen',
+    practicalClimate: 'Klima',
+    practicalVisa: 'Visabestimmungen',
+    practicalLanguages: 'Sprachen',
+    practicalEmergency: 'Notrufnummer',
+    practicalSummer: 'Temperatur im Sommer',
+    practicalWinter: 'Temperatur im Winter',
+    scrollLeft: 'Nach links scrollen',
+    scrollRight: 'Nach rechts scrollen',
+    bookNow: 'Jetzt buchen',
+    bookings: (count: number) => `${count} ${count === 1 ? 'Buchung' : 'Buchungen'}`,
+    statsToursAvailable: 'Verfügbare Touren',
+    statsHappyTravelers: 'Zufriedene Reisende',
+    statsAverageRating: 'Durchschnittliche Bewertung',
+    statsCustomerSupport: 'Kundenservice',
+    travelTipsTitle: 'Reisetipps & wichtige Infos',
+    travelTipsSubtitle: 'Alles, was Sie vor der Reise wissen müssen',
+    travelTipBestTime: 'Beste Reisezeit',
+    travelTipCurrency: 'Währung',
+    travelTipLanguages: 'Sprachen',
+    travelTipEmergency: 'Notfall',
+    travelTipDefaultBestTime: 'Ganzjähriges Reiseziel mit angenehmem Wetter',
+    travelTipDefaultCurrency: 'Landeswährung wird akzeptiert',
+    travelTipDefaultLanguages: 'Englisch ist weit verbreitet',
+    travelTipDefaultEmergency: 'Örtliche Notdienste',
+    aboutTitle: (destination: string) => `Ihr Guide vor Ort in ${destination}`,
+    aboutFallback: (destination: string) =>
+      `Entdecken Sie die schönsten Seiten von ${destination} mit unseren erfahrenen Guides vor Ort. Wir zeigen Ihnen verborgene Schätze, erzählen faszinierende Geschichten und schaffen unvergessliche Erinnerungen, die ein Leben lang bleiben.`,
+    learnMoreAboutUs: 'Mehr über uns erfahren',
+    aboutExpertGuidesTitle: 'Erfahrene Guides vor Ort',
+    aboutExpertGuidesBody: (destination: string) =>
+      `Unsere erfahrenen Guides vor Ort kennen alle verborgenen Schätze und Geschichten von ${destination}.`,
+    aboutQualityTitle: 'Erlebnisse mit Qualität',
+    aboutQualityBody: (destination: string) =>
+      `Wir bieten Ihnen die besten Erlebnisse in ${destination}, handverlesen von unseren Experten.`,
+    aboutSafeTitle: 'Sicher & zuverlässig',
+    aboutSafeBody: 'Ihre Sicherheit hat Vorrang. Alle Touren werden sorgfältig geprüft und sind versichert.',
+    aboutPriceTitle: 'Bestpreis-Garantie',
+    aboutPriceBody: (destination: string) =>
+      `Günstigeren Preis gefunden? Wir ziehen mit. Freuen Sie sich auf die besten Angebote für ${destination}.`,
+    faqTitle: 'HÄUFIG GESTELLTE FRAGEN',
+    faqSubtitle: (destination: string) => `Alles, was Sie über einen Besuch in ${destination} wissen müssen`,
+    faqViewAll: 'ALLE FAQs ANSEHEN',
+    faqViewAllAria: 'Alle FAQs ansehen',
+    faqBestTimeQ: (destination: string) => `Wann ist die beste Zeit für einen Besuch in ${destination}?`,
+    faqBestTimeA: (destination: string) =>
+      `Die beste Zeit für einen Besuch in ${destination} sind die kühleren Monate von Oktober bis April, wenn die Temperaturen angenehm für Besichtigungen und Aktivitäten im Freien sind. Das Wetter ist dann ideal, um Sehenswürdigkeiten zu erkunden und an Touren teilzunehmen.`,
+    faqDaysQ: (destination: string) => `Wie viele Tage sollte ich in ${destination} einplanen?`,
+    faqDaysA: (_destination: string) =>
+      `Wir empfehlen mindestens 3 bis 5 Tage, um die wichtigsten Sehenswürdigkeiten in Ruhe zu erleben. Eine Woche oder mehr erlaubt jedoch ein ruhigeres Tempo und die Entdeckung verborgener Schätze, lokaler Viertel und Tagesausflüge in die Umgebung.`,
+    faqSafeQ: (destination: string) => `Ist ${destination} sicher für Touristen?`,
+    faqSafeA: (destination: string) =>
+      `Ja, ${destination} ist für Touristen im Allgemeinen sicher. Wie an jedem Reiseziel gilt: achten Sie auf Ihre Umgebung, bewahren Sie Wertsachen sicher auf und folgen Sie den Hinweisen vor Ort. Bei unseren Touren steht Ihre Sicherheit mit professionellen Guides im Vordergrund.`,
+    faqPackQ: (destination: string) => `Was sollte ich für ${destination} einpacken?`,
+    faqPackA:
+      'Packen Sie bequeme Schuhe zum Gehen, leichte luftige Kleidung für den Tag, eine leichte Jacke für den Abend oder klimatisierte Räume, Sonnencreme, Sonnenbrille, einen Hut und alle nötigen Medikamente ein. Vergessen Sie Ihre Kamera nicht, um die beeindruckenden Ausblicke festzuhalten!',
+    faqGuideQ: (destination: string) => `Brauche ich für Touren in ${destination} einen Guide?`,
+    faqGuideA:
+      'Ein Guide ist nicht vorgeschrieben, bereichert Ihr Erlebnis aber deutlich. Guides geben Insiderwissen und historische Zusammenhänge weiter, helfen Ihnen zügig durch den Andrang und sorgen dafür, dass Sie keine wichtigen Details der Sehenswürdigkeiten verpassen.',
+    faqDressQ: 'Gibt es Kleiderordnungen, die ich beachten sollte?',
+    faqDressA:
+      'Für religiöse Stätten und bestimmte Sehenswürdigkeiten ist dezente Kleidung vorgeschrieben (Schultern und Knie bedeckt). Am besten haben Sie einen leichten Schal oder ein Tuch dabei. Die meisten Restaurants und Hotels haben keine besondere Kleiderordnung, legere Eleganz wird aber geschätzt.',
+    faqLastMinuteQ: 'Kann ich Touren kurzfristig buchen?',
+    faqLastMinuteA:
+      'Für beliebte Touren empfehlen wir eine Buchung im Voraus, viele Erlebnisse lassen sich je nach Verfügbarkeit aber auch kurzfristig buchen. Touren ohne Warteschlange und besondere Erlebnisse sind jedoch oft ausverkauft, eine frühe Buchung ist daher ratsam.',
+    faqCancelQ: 'Wie lauten Ihre Stornierungsbedingungen?',
+    faqCancelA:
+      'Die meisten Touren lassen sich bis 24 Stunden vor Beginn kostenlos stornieren, mit vollständiger Rückerstattung. Für einzelne besondere Veranstaltungen können andere Bedingungen gelten. Die genauen Stornierungsbedingungen finden Sie in den Details der jeweiligen Tour.',
+    faqMealsQ: 'Sind Mahlzeiten in den Touren enthalten?',
+    faqMealsA:
+      'Das ist von Tour zu Tour unterschiedlich. Manche Touren enthalten Mahlzeiten oder Snacks, andere nicht. In jeder Tourbeschreibung steht klar, was enthalten ist. Bei kulinarischen Touren sind mehrere Kostproben naturgemäß Teil des Erlebnisses.',
+    faqMeetingQ: 'Wie komme ich zu den Treffpunkten?',
+    faqMeetingA:
+      'Jede Tourbestätigung enthält ausführliche Angaben zum Treffpunkt mit Karten und Anfahrt. Die meisten Treffpunkte liegen zentral und sind mit guter Anbindung an den öffentlichen Verkehr leicht zu erreichen. Unser Team ist rund um die Uhr erreichbar, wenn Sie Hilfe brauchen.',
+    reviewsTitle: (destination: string) => `Was Reisende über ${destination} sagen`,
+    reviewsSummary: (average: number, count: number) =>
+      `${average.toFixed(1)}/5 aus ${count} ${count === 1 ? 'Bewertung' : 'Bewertungen'}`,
+    verifiedTraveler: 'Verifizierter Reisender',
+    readAllReviews: 'Alle Bewertungen lesen',
+    relatedDestinationsTitle: 'Weitere Reiseziele entdecken',
+    relatedDestinationsSubtitle: 'Entdecken Sie weitere traumhafte Orte, die Ihnen gefallen könnten',
+    toursAvailable: (count: number) => `${count} ${count === 1 ? 'Tour verfügbar' : 'Touren verfügbar'}`,
+    newsletterTitle: (destination: string) => `Exklusive Reiseangebote für ${destination} erhalten`,
+    newsletterSubtitle: 'Abonnieren Sie unseren Newsletter und erhalten Sie Sonderangebote, Reisetipps und Insider-Guides',
+    newsletterEmailPlaceholder: 'E-Mail-Adresse eingeben',
+    newsletterSubscribe: 'Jetzt abonnieren',
+    newsletterFootnote: 'Erhalten Sie Angebote für Reiseziele per E-Mail. Abmeldung jederzeit möglich.',
+    infoBestTime: 'Beste Reisezeit',
+    infoCurrency: 'Währung',
+    infoTimeZone: 'Zeitzone',
+    infoAvailableTours: 'Verfügbare Touren',
+    infoYearRound: 'Ganzjährig',
+    infoTimezoneFallback: 'Mitteleuropäische Zeit',
+    infoAvailableExperiences: (count: number) => `${count} ${count === 1 ? 'Erlebnis' : 'Erlebnisse'}`,
+    featuredSectionTitle: (destination: string) => `Die besten Angebote in ${destination}`,
+    featuredSectionSubtitle: 'Handverlesene Erlebnisse zu unschlagbaren Preisen',
+    topToursTitle: (destination: string) => `DIE TOP 10 TOUREN IN ${destination.toUpperCase()}`,
+    topToursSubtitle: 'Unsere beliebtesten Touren und Erlebnisse, zusammengestellt von Experten vor Ort',
+    interestsTitle: (destination: string) => `${destination} nach Interesse entdecken`,
+    interestsSubtitle: 'Finden Sie das passende Erlebnis für sich, ob Sie sich für Kultur, Abenteuer oder Kulinarik begeistern.',
+    whyVisitTitle: (destination: string) => `Warum ${destination} besuchen?`,
+  },
+  fr: {
+    featured: 'À la une',
+    tours: 'Excursions',
+    destinations: 'Destinations',
+    categories: 'Catégories',
+    untitledTour: 'Excursion sans titre',
+    untitledDestination: 'Destination sans titre',
+    untitledCategory: 'Catégorie sans titre',
+    hereAreTours: "Voici quelques excursions que j'ai trouvées pour vous :",
+    hereAreDestinations: "Voici quelques destinations que j'ai trouvées pour vous :",
+    askAiAnything: "Posez à l'IA toutes vos questions sur cette destination...",
+    clearSearch: 'Effacer la recherche',
+    stop: 'Arrêter',
+    send: 'Envoyer',
+    openAiAssistant: "Ouvrir l'assistant IA",
+    aiDestinationAssistant: 'Assistant IA de destination',
+    searchResults: 'Résultats de recherche',
+    popularSearches: 'Recherches populaires',
+    noTenantResultsTitle: 'Aucun résultat correspondant',
+    noTenantResultsBody: (destination) =>
+      `Essayez une autre recherche liée à ${destination}, ou parcourez les excursions et les destinations proposées sur ce site.`,
+    newChat: 'Nouvelle conversation',
+    askDestinationPrompt: 'Posez-moi toutes vos questions sur cette destination !',
+    trendingTours: 'Excursions les plus demandées',
+    discover: 'DÉCOUVRIR',
+    exploreDestination: (destination: string) => `Explorer ${destination}`,
+    thingsToDoIn: (destination: string) => `Que faire à ${destination}`,
+    bestToursIn: (destination: string) => `Les meilleures excursions à ${destination}`,
+    toursCount: (count: number) => `${count}+ ${count === 1 ? 'excursion' : 'excursions'}`,
+    home: 'Accueil',
+    destinationsRoot: 'Destinations',
+    galleryTitle: 'Galerie de la destination',
+    practicalTitle: 'Informations pratiques',
+    practicalClimate: 'Climat',
+    practicalVisa: 'Formalités de visa',
+    practicalLanguages: 'Langues',
+    practicalEmergency: "Numéro d'urgence",
+    practicalSummer: 'Températures en été',
+    practicalWinter: 'Températures en hiver',
+    scrollLeft: 'Faire défiler vers la gauche',
+    scrollRight: 'Faire défiler vers la droite',
+    bookNow: 'Réserver',
+    bookings: (count: number) => `${count} ${count === 1 ? 'réservation' : 'réservations'}`,
+    statsToursAvailable: 'Excursions disponibles',
+    statsHappyTravelers: 'Voyageurs satisfaits',
+    statsAverageRating: 'Note moyenne',
+    statsCustomerSupport: 'Service client',
+    travelTipsTitle: 'Conseils de voyage et infos essentielles',
+    travelTipsSubtitle: "Tout ce qu'il faut savoir avant de partir",
+    travelTipBestTime: 'Meilleure période pour partir',
+    travelTipCurrency: 'Monnaie',
+    travelTipLanguages: 'Langues',
+    travelTipEmergency: 'Urgences',
+    travelTipDefaultBestTime: "Destination agréable toute l'année",
+    travelTipDefaultCurrency: 'Monnaie locale acceptée',
+    travelTipDefaultLanguages: 'Anglais largement parlé',
+    travelTipDefaultEmergency: "Services d'urgence locaux",
+    aboutTitle: (destination: string) => `Votre guide local à ${destination}`,
+    aboutFallback: (destination: string) =>
+      `Découvrez le meilleur de ${destination} avec nos guides locaux expérimentés. Nous vous emmenons vers des trésors cachés, partageons des histoires passionnantes et créons des souvenirs inoubliables qui vous suivront toute votre vie.`,
+    learnMoreAboutUs: 'En savoir plus sur nous',
+    aboutExpertGuidesTitle: 'Guides locaux expérimentés',
+    aboutExpertGuidesBody: (destination: string) =>
+      `Nos guides locaux expérimentés connaissent tous les trésors cachés et toutes les histoires de ${destination}.`,
+    aboutQualityTitle: 'Des expériences de qualité',
+    aboutQualityBody: (destination: string) =>
+      `Nous vous proposons les meilleures expériences à ${destination}, sélectionnées par nos experts.`,
+    aboutSafeTitle: 'Sûr et fiable',
+    aboutSafeBody: 'Votre sécurité est notre priorité. Toutes les excursions sont soigneusement vérifiées et assurées.',
+    aboutPriceTitle: 'Garantie du meilleur prix',
+    aboutPriceBody: (destination: string) =>
+      `Vous avez trouvé moins cher ? Nous nous alignons. Profitez des meilleures offres pour ${destination}.`,
+    faqTitle: 'QUESTIONS FRÉQUENTES',
+    faqSubtitle: (destination: string) => `Tout ce qu'il faut savoir pour visiter ${destination}`,
+    faqViewAll: 'VOIR TOUTES LES QUESTIONS',
+    faqViewAllAria: 'Voir toutes les questions fréquentes',
+    faqBestTimeQ: (destination: string) => `Quelle est la meilleure période pour visiter ${destination} ?`,
+    faqBestTimeA: (destination: string) =>
+      `La meilleure période pour visiter ${destination} correspond aux mois les plus frais, d'octobre à avril, lorsque les températures sont agréables pour les visites et les activités en plein air. La météo est alors idéale pour explorer les sites et participer aux excursions.`,
+    faqDaysQ: (destination: string) => `Combien de jours faut-il passer à ${destination} ?`,
+    faqDaysA: (_destination: string) =>
+      `Nous recommandons au moins 3 à 5 jours pour découvrir tranquillement les principaux sites. Une semaine ou plus permet toutefois un rythme plus détendu et la découverte de trésors cachés, de quartiers authentiques et d'excursions à la journée dans les environs.`,
+    faqSafeQ: (destination: string) => `${destination} est-elle sûre pour les touristes ?`,
+    faqSafeA: (destination: string) =>
+      `Oui, ${destination} est globalement sûre pour les touristes. Comme partout ailleurs, prenez les précautions habituelles : restez attentif à ce qui vous entoure, gardez vos objets de valeur en sécurité et suivez les consignes locales. Nos excursions donnent la priorité à votre sécurité, avec des guides professionnels.`,
+    faqPackQ: (destination: string) => `Que faut-il emporter pour ${destination} ?`,
+    faqPackA:
+      `Prévoyez de bonnes chaussures de marche, des vêtements légers et respirants pour la journée, une veste légère pour le soir ou les espaces climatisés, de la crème solaire, des lunettes de soleil, un chapeau et les médicaments dont vous avez besoin. Et n'oubliez pas votre appareil photo pour immortaliser ces paysages magnifiques !`,
+    faqGuideQ: (destination: string) => `Ai-je besoin d'un guide pour les excursions à ${destination} ?`,
+    faqGuideA:
+      `Ce n'est pas obligatoire, mais un guide local enrichit nettement votre expérience. Il vous apporte son regard d'initié et le contexte historique, vous aide à avancer efficacement malgré la foule et veille à ce que vous ne manquiez aucun détail important des sites visités.`,
+    faqDressQ: 'Y a-t-il une tenue particulière à respecter ?',
+    faqDressA:
+      `Pour les sites religieux et certains monuments, une tenue couvrante est exigée (épaules et genoux couverts). Mieux vaut emporter un foulard ou un châle léger. La plupart des restaurants et hôtels n'imposent aucune tenue précise, mais une allure soignée est appréciée.`,
+    faqLastMinuteQ: 'Peut-on réserver une excursion à la dernière minute ?',
+    faqLastMinuteA:
+      `Nous conseillons de réserver à l'avance pour les excursions très demandées, mais beaucoup d'expériences restent réservables à la dernière minute, selon les disponibilités. Les visites coupe-file et les expériences spéciales partent toutefois vite : mieux vaut réserver tôt.`,
+    faqCancelQ: "Quelle est votre politique d'annulation ?",
+    faqCancelA:
+      `La plupart des excursions sont annulables gratuitement jusqu'à 24 heures avant le départ, avec remboursement intégral. Certains événements spéciaux peuvent suivre d'autres conditions. Consultez la fiche de l'excursion concernée pour connaître les conditions d'annulation exactes.`,
+    faqMealsQ: 'Les repas sont-ils inclus dans les excursions ?',
+    faqMealsA:
+      `Cela dépend de l'excursion. Certaines incluent des repas ou des collations, d'autres non. Chaque description indique clairement ce qui est compris. Les excursions gastronomiques comprennent naturellement plusieurs dégustations dans le cadre de l'expérience.`,
+    faqMeetingQ: 'Comment rejoindre les points de rendez-vous ?',
+    faqMeetingA:
+      `Chaque confirmation d'excursion contient toutes les informations sur le point de rendez-vous, avec cartes et itinéraires. La plupart se trouvent à des endroits centraux, faciles d'accès et bien desservis par les transports en commun. Notre équipe est disponible 24h/24 et 7j/7 si vous avez besoin d'aide.`,
+    reviewsTitle: (destination: string) => `Ce que les voyageurs disent de ${destination}`,
+    reviewsSummary: (average: number, count: number) =>
+      `${average.toFixed(1)}/5 sur ${count} avis`,
+    verifiedTraveler: 'Voyageur vérifié',
+    readAllReviews: 'Lire tous les avis',
+    relatedDestinationsTitle: "Explorer d'autres destinations",
+    relatedDestinationsSubtitle: "Découvrez d'autres lieux magnifiques qui pourraient vous plaire",
+    toursAvailable: (count: number) =>
+      `${count} ${count === 1 ? 'excursion disponible' : 'excursions disponibles'}`,
+    newsletterTitle: (destination: string) => `Recevez des offres de voyage exclusives pour ${destination}`,
+    newsletterSubtitle: 'Abonnez-vous à notre newsletter pour recevoir des offres spéciales, des conseils de voyage et des guides exclusifs',
+    newsletterEmailPlaceholder: 'Saisissez votre e-mail',
+    newsletterSubscribe: "Je m'abonne",
+    newsletterFootnote: 'Recevez les offres de destinations par e-mail. Désabonnement à tout moment.',
+    infoBestTime: 'Meilleure période pour partir',
+    infoCurrency: 'Monnaie',
+    infoTimeZone: 'Fuseau horaire',
+    infoAvailableTours: 'Excursions disponibles',
+    infoYearRound: "Toute l'année",
+    infoTimezoneFallback: "Heure d'Europe centrale",
+    infoAvailableExperiences: (count: number) => `${count} ${count === 1 ? 'expérience' : 'expériences'}`,
+    featuredSectionTitle: (destination: string) => `Les meilleures offres à ${destination}`,
+    featuredSectionSubtitle: 'Des expériences sélectionnées à des prix imbattables',
+    topToursTitle: (destination: string) => `TOP 10 DES EXCURSIONS À ${destination.toUpperCase()}`,
+    topToursSubtitle: 'Nos excursions et expériences les plus vendues, sélectionnées par des experts locaux',
+    interestsTitle: (destination: string) => `Découvrir ${destination} selon vos envies`,
+    interestsSubtitle: "Trouvez l'expérience qui vous correspond, que vous soyez attiré par la culture, l'aventure ou la gastronomie.",
+    whyVisitTitle: (destination: string) => `Pourquoi visiter ${destination} ?`,
+  },
+  es: {
+    featured: 'Destacado',
+    tours: 'Excursiones',
+    destinations: 'Destinos',
+    categories: 'Categorías',
+    untitledTour: 'Excursión sin título',
+    untitledDestination: 'Destino sin título',
+    untitledCategory: 'Categoría sin título',
+    hereAreTours: 'Estas son algunas excursiones que he encontrado para ti:',
+    hereAreDestinations: 'Estos son algunos destinos que he encontrado para ti:',
+    askAiAnything: 'Pregunta a la IA lo que quieras sobre este destino...',
+    clearSearch: 'Borrar búsqueda',
+    stop: 'Detener',
+    send: 'Enviar',
+    openAiAssistant: 'Abrir el asistente de IA',
+    aiDestinationAssistant: 'Asistente de destinos con IA',
+    searchResults: 'Resultados de búsqueda',
+    popularSearches: 'Búsquedas populares',
+    noTenantResultsTitle: 'No se han encontrado resultados',
+    noTenantResultsBody: (destination) =>
+      `Prueba otra búsqueda relacionada con ${destination} o explora las excursiones y los destinos disponibles en esta web.`,
+    newChat: 'Nueva conversación',
+    askDestinationPrompt: '¡Pregúntame lo que quieras sobre este destino!',
+    trendingTours: 'Excursiones más populares',
+    discover: 'DESCUBRE',
+    exploreDestination: (destination: string) => `Descubre ${destination}`,
+    thingsToDoIn: (destination: string) => `Qué hacer en ${destination}`,
+    bestToursIn: (destination: string) => `Las mejores excursiones en ${destination}`,
+    toursCount: (count: number) => `${count}+ ${count === 1 ? 'excursión' : 'excursiones'}`,
+    home: 'Inicio',
+    destinationsRoot: 'Destinos',
+    galleryTitle: 'Galería del destino',
+    practicalTitle: 'Información práctica',
+    practicalClimate: 'Clima',
+    practicalVisa: 'Requisitos de visado',
+    practicalLanguages: 'Idiomas',
+    practicalEmergency: 'Número de emergencias',
+    practicalSummer: 'Temperatura en verano',
+    practicalWinter: 'Temperatura en invierno',
+    scrollLeft: 'Desplazar a la izquierda',
+    scrollRight: 'Desplazar a la derecha',
+    bookNow: 'Reservar ahora',
+    bookings: (count: number) => `${count} ${count === 1 ? 'reserva' : 'reservas'}`,
+    statsToursAvailable: 'Excursiones disponibles',
+    statsHappyTravelers: 'Viajeros satisfechos',
+    statsAverageRating: 'Valoración media',
+    statsCustomerSupport: 'Atención al cliente',
+    travelTipsTitle: 'Consejos de viaje e información esencial',
+    travelTipsSubtitle: 'Todo lo que necesitas saber antes de viajar',
+    travelTipBestTime: 'Mejor época para visitar',
+    travelTipCurrency: 'Moneda',
+    travelTipLanguages: 'Idiomas',
+    travelTipEmergency: 'Emergencias',
+    travelTipDefaultBestTime: 'Destino para todo el año con un clima agradable',
+    travelTipDefaultCurrency: 'Se acepta la moneda local',
+    travelTipDefaultLanguages: 'El inglés se habla ampliamente',
+    travelTipDefaultEmergency: 'Servicios de emergencia locales',
+    aboutTitle: (destination: string) => `Tu guía local en ${destination}`,
+    aboutFallback: (destination: string) =>
+      `Descubre lo mejor de ${destination} con nuestros guías locales expertos. Te mostraremos rincones escondidos, te contaremos historias fascinantes y crearemos recuerdos inolvidables que te acompañarán toda la vida.`,
+    learnMoreAboutUs: 'Conoce más sobre nosotros',
+    aboutExpertGuidesTitle: 'Guías locales expertos',
+    aboutExpertGuidesBody: (destination: string) =>
+      `Nuestros guías locales con experiencia conocen todos los rincones escondidos y las historias de ${destination}.`,
+    aboutQualityTitle: 'Experiencias de calidad',
+    aboutQualityBody: (destination: string) =>
+      `Te ofrecemos las mejores experiencias en ${destination}, seleccionadas por nuestros expertos.`,
+    aboutSafeTitle: 'Seguro y fiable',
+    aboutSafeBody: 'Tu seguridad es nuestra prioridad. Todas las excursiones están cuidadosamente revisadas y aseguradas.',
+    aboutPriceTitle: 'Garantía del mejor precio',
+    aboutPriceBody: (destination: string) =>
+      `¿Has encontrado un precio más bajo? Lo igualamos. Disfruta de las mejores ofertas para ${destination}.`,
+    faqTitle: 'PREGUNTAS FRECUENTES',
+    faqSubtitle: (destination: string) => `Todo lo que necesitas saber para visitar ${destination}`,
+    faqViewAll: 'VER TODAS LAS PREGUNTAS',
+    faqViewAllAria: 'Ver todas las preguntas frecuentes',
+    faqBestTimeQ: (destination: string) => `¿Cuál es la mejor época para visitar ${destination}?`,
+    faqBestTimeA: (destination: string) =>
+      `La mejor época para visitar ${destination} son los meses más frescos, de octubre a abril, cuando las temperaturas resultan agradables para las visitas y las actividades al aire libre. El tiempo es ideal para recorrer los lugares de interés y participar en excursiones.`,
+    faqDaysQ: (destination: string) => `¿Cuántos días conviene pasar en ${destination}?`,
+    faqDaysA: (_destination: string) =>
+      `Recomendamos dedicar al menos 3 a 5 días para disfrutar con calma de los principales lugares de interés. Sin embargo, con una semana o más el ritmo es más relajado y da tiempo a descubrir rincones escondidos, barrios locales y excursiones de un día por los alrededores.`,
+    faqSafeQ: (destination: string) => `¿Es ${destination} un destino seguro para los turistas?`,
+    faqSafeA: (destination: string) =>
+      `Sí, ${destination} es en general un destino seguro para los turistas. Como en cualquier destino, conviene tomar las precauciones habituales: estar atento al entorno, guardar bien los objetos de valor y seguir las indicaciones locales. En nuestras excursiones tu seguridad es lo primero, con guías profesionales.`,
+    faqPackQ: (destination: string) => `¿Qué debo llevar a ${destination}?`,
+    faqPackA:
+      'Lleva calzado cómodo para caminar, ropa ligera y transpirable para el día, una chaqueta fina para la noche o los espacios con aire acondicionado, protector solar, gafas de sol, un sombrero y los medicamentos que necesites. ¡Y no olvides la cámara para capturar estos paisajes increíbles!',
+    faqGuideQ: (destination: string) => `¿Necesito un guía para las excursiones en ${destination}?`,
+    faqGuideA:
+      'No es obligatorio, pero contar con un guía local mejora mucho la experiencia. Los guías aportan información de primera mano y contexto histórico, ayudan a moverse con agilidad entre la gente y se aseguran de que no te pierdas ningún detalle importante de los lugares que visitas.',
+    faqDressQ: '¿Hay alguna norma de vestimenta que deba tener en cuenta?',
+    faqDressA:
+      'En los lugares religiosos y en algunos monumentos se exige ropa discreta (hombros y rodillas cubiertos). Lo mejor es llevar un pañuelo o un chal ligero. La mayoría de los restaurantes y hoteles no tienen una norma concreta, aunque se agradece un estilo informal cuidado.',
+    faqLastMinuteQ: '¿Puedo reservar excursiones a última hora?',
+    faqLastMinuteA:
+      'Para las excursiones más populares recomendamos reservar con antelación, aunque muchas experiencias pueden reservarse a última hora según la disponibilidad. Las visitas sin colas y las experiencias especiales suelen agotarse, así que conviene reservar pronto.',
+    faqCancelQ: '¿Cuál es vuestra política de cancelación?',
+    faqCancelA:
+      'La mayoría de las excursiones permiten la cancelación gratuita hasta 24 horas antes de la hora de inicio, con reembolso completo. Algunos eventos especiales pueden tener condiciones distintas. Consulta los detalles de cada excursión para conocer las condiciones exactas de cancelación.',
+    faqMealsQ: '¿Las comidas están incluidas en las excursiones?',
+    faqMealsA:
+      'Depende de la excursión. Algunas incluyen comidas o tentempiés y otras no. En la descripción de cada excursión se indica claramente qué está incluido. Las rutas gastronómicas incluyen, por supuesto, varias degustaciones como parte de la experiencia.',
+    faqMeetingQ: '¿Cómo llego a los puntos de encuentro?',
+    faqMeetingA:
+      'Todas las confirmaciones de excursión incluyen información detallada del punto de encuentro, con mapas e indicaciones. La mayoría de los puntos de encuentro están en lugares céntricos y de fácil acceso, con buena conexión de transporte público. Nuestro equipo está disponible 24 horas al día, 7 días a la semana, si necesitas ayuda.',
+    reviewsTitle: (destination: string) => `Lo que dicen los viajeros sobre ${destination}`,
+    reviewsSummary: (average: number, count: number) =>
+      `${average.toFixed(1)}/5 de ${count} ${count === 1 ? 'opinión' : 'opiniones'}`,
+    verifiedTraveler: 'Viajero verificado',
+    readAllReviews: 'Leer todas las opiniones',
+    relatedDestinationsTitle: 'Descubre más destinos',
+    relatedDestinationsSubtitle: 'Descubre otros lugares increíbles que podrían encantarte',
+    toursAvailable: (count: number) =>
+      `${count} ${count === 1 ? 'excursión disponible' : 'excursiones disponibles'}`,
+    newsletterTitle: (destination: string) => `Recibe ofertas de viaje exclusivas para ${destination}`,
+    newsletterSubtitle: 'Suscríbete a nuestra newsletter y recibe ofertas especiales, consejos de viaje y guías exclusivas',
+    newsletterEmailPlaceholder: 'Introduce tu correo electrónico',
+    newsletterSubscribe: 'Suscribirme',
+    newsletterFootnote: 'Recibe ofertas de destinos por correo electrónico. Puedes darte de baja cuando quieras.',
+    infoBestTime: 'Mejor época para visitar',
+    infoCurrency: 'Moneda',
+    infoTimeZone: 'Zona horaria',
+    infoAvailableTours: 'Excursiones disponibles',
+    infoYearRound: 'Todo el año',
+    infoTimezoneFallback: 'Hora de Europa Central',
+    infoAvailableExperiences: (count: number) => `${count} ${count === 1 ? 'experiencia' : 'experiencias'}`,
+    featuredSectionTitle: (destination: string) => `Las mejores ofertas en ${destination}`,
+    featuredSectionSubtitle: 'Experiencias seleccionadas a precios inmejorables',
+    topToursTitle: (destination: string) => `LAS 10 MEJORES EXCURSIONES EN ${destination.toUpperCase()}`,
+    topToursSubtitle: 'Nuestras excursiones y experiencias más vendidas, seleccionadas por expertos locales',
+    interestsTitle: (destination: string) => `Descubre ${destination} según tus intereses`,
+    interestsSubtitle: 'Encuentra la experiencia perfecta para ti, ya te interese la cultura, la aventura o la gastronomía.',
+    whyVisitTitle: (destination: string) => `¿Por qué visitar ${destination}?`,
+  },
+  ru: {
+    featured: 'Рекомендуем',
+    tours: 'Экскурсии',
+    destinations: 'Направления',
+    categories: 'Категории',
+    untitledTour: 'Экскурсия без названия',
+    untitledDestination: 'Направление без названия',
+    untitledCategory: 'Категория без названия',
+    hereAreTours: 'Вот несколько экскурсий, которые я для вас нашёл:',
+    hereAreDestinations: 'Вот несколько направлений, которые я для вас нашёл:',
+    askAiAnything: 'Спросите ИИ о чём угодно, связанном с этим направлением...',
+    clearSearch: 'Очистить поиск',
+    stop: 'Остановить',
+    send: 'Отправить',
+    openAiAssistant: 'Открыть ИИ-помощника',
+    aiDestinationAssistant: 'ИИ-помощник по направлению',
+    searchResults: 'Результаты поиска',
+    popularSearches: 'Популярные запросы',
+    noTenantResultsTitle: 'Подходящих результатов не найдено',
+    noTenantResultsBody: (destination) =>
+      `Попробуйте другой запрос, связанный с ${destination}, или посмотрите экскурсии и направления, доступные на этом сайте.`,
+    newChat: 'Новый чат',
+    askDestinationPrompt: 'Спросите меня о чём угодно про это направление!',
+    trendingTours: 'Популярные экскурсии',
+    discover: 'ОТКРОЙТЕ ДЛЯ СЕБЯ',
+    exploreDestination: (destination: string) => `Откройте для себя ${destination}`,
+    thingsToDoIn: (destination: string) => `Чем заняться в ${destination}`,
+    bestToursIn: (destination: string) => `Лучшие экскурсии в ${destination}`,
+    toursCount: (count: number) =>
+      `${count}+ ${ruPlural(count, 'экскурсия', 'экскурсии', 'экскурсий')}`,
+    home: 'Главная',
+    destinationsRoot: 'Направления',
+    galleryTitle: 'Галерея направления',
+    practicalTitle: 'Полезная информация',
+    practicalClimate: 'Климат',
+    practicalVisa: 'Визовые требования',
+    practicalLanguages: 'Языки',
+    practicalEmergency: 'Телефон экстренной службы',
+    practicalSummer: 'Температура летом',
+    practicalWinter: 'Температура зимой',
+    scrollLeft: 'Прокрутить влево',
+    scrollRight: 'Прокрутить вправо',
+    bookNow: 'Забронировать',
+    bookings: (count: number) => `${count} ${ruPlural(count, 'бронирование', 'бронирования', 'бронирований')}`,
+    statsToursAvailable: 'Доступные экскурсии',
+    statsHappyTravelers: 'Довольные путешественники',
+    statsAverageRating: 'Средняя оценка',
+    statsCustomerSupport: 'Поддержка клиентов',
+    travelTipsTitle: 'Советы путешественникам и важная информация',
+    travelTipsSubtitle: 'Всё, что нужно знать перед поездкой',
+    travelTipBestTime: 'Лучшее время для поездки',
+    travelTipCurrency: 'Валюта',
+    travelTipLanguages: 'Языки',
+    travelTipEmergency: 'Экстренные службы',
+    travelTipDefaultBestTime: 'Направление для поездок круглый год с приятной погодой',
+    travelTipDefaultCurrency: 'Принимается местная валюта',
+    travelTipDefaultLanguages: 'Английский широко распространён',
+    travelTipDefaultEmergency: 'Местные экстренные службы',
+    aboutTitle: (destination: string) => `Ваш местный гид в ${destination}`,
+    aboutFallback: (destination: string) =>
+      `Откройте для себя лучшее в ${destination} вместе с нашими опытными местными гидами. Мы покажем вам скрытые жемчужины, расскажем увлекательные истории и подарим незабываемые впечатления, которые останутся с вами на всю жизнь.`,
+    learnMoreAboutUs: 'Узнать больше о нас',
+    aboutExpertGuidesTitle: 'Опытные местные гиды',
+    aboutExpertGuidesBody: (destination: string) =>
+      `Наши опытные местные гиды знают все скрытые жемчужины и истории ${destination}.`,
+    aboutQualityTitle: 'Качественные впечатления',
+    aboutQualityBody: (destination: string) =>
+      `Мы предлагаем вам лучшие впечатления в ${destination}, тщательно отобранные нашими специалистами.`,
+    aboutSafeTitle: 'Безопасно и надёжно',
+    aboutSafeBody: 'Ваша безопасность для нас в приоритете. Все экскурсии тщательно проверены и застрахованы.',
+    aboutPriceTitle: 'Гарантия лучшей цены',
+    aboutPriceBody: (destination: string) =>
+      `Нашли цену ниже? Мы её повторим. Пользуйтесь лучшими предложениями для ${destination}.`,
+    faqTitle: 'ЧАСТО ЗАДАВАЕМЫЕ ВОПРОСЫ',
+    faqSubtitle: (destination: string) => `Всё, что нужно знать о поездке в ${destination}`,
+    faqViewAll: 'ВСЕ ВОПРОСЫ И ОТВЕТЫ',
+    faqViewAllAria: 'Посмотреть все вопросы и ответы',
+    faqBestTimeQ: (destination: string) => `Когда лучше всего ехать в ${destination}?`,
+    faqBestTimeA: (destination: string) =>
+      `Лучшее время для поездки в ${destination} — прохладные месяцы с октября по апрель, когда температура комфортна для осмотра достопримечательностей и активностей на свежем воздухе. Погода в это время идеальна для прогулок по достопримечательностям и участия в экскурсиях.`,
+    faqDaysQ: (destination: string) => `Сколько дней стоит провести в ${destination}?`,
+    faqDaysA: (_destination: string) =>
+      `Мы рекомендуем выделить хотя бы 3–5 дней, чтобы спокойно осмотреть основные достопримечательности. Впрочем, неделя или больше позволит путешествовать в более размеренном темпе и открыть скрытые жемчужины, местные кварталы и поездки на день в окрестности.`,
+    faqSafeQ: (destination: string) => `Безопасно ли туристам в ${destination}?`,
+    faqSafeA: (destination: string) =>
+      `Да, в ${destination} туристам в целом безопасно. Как и в любом другом месте, соблюдайте обычные меры предосторожности: следите за происходящим вокруг, храните ценные вещи в надёжном месте и следуйте местным рекомендациям. На наших экскурсиях ваша безопасность на первом месте, с профессиональными гидами.`,
+    faqPackQ: (destination: string) => `Что взять с собой в ${destination}?`,
+    faqPackA:
+      'Возьмите удобную обувь для прогулок, лёгкую дышащую одежду на день, тонкую куртку на вечер или для помещений с кондиционером, солнцезащитный крем, солнечные очки, головной убор и все необходимые лекарства. И не забудьте фотоаппарат, чтобы запечатлеть удивительные виды!',
+    faqGuideQ: (destination: string) => `Нужен ли гид для экскурсий в ${destination}?`,
+    faqGuideA:
+      'Это не обязательно, но местный гид заметно обогатит вашу поездку. Гиды делятся знаниями изнутри и историческим контекстом, помогают быстрее пройти через скопления людей и следят за тем, чтобы вы не пропустили важные детали достопримечательностей.',
+    faqDressQ: 'Есть ли требования к одежде, о которых стоит знать?',
+    faqDressA:
+      'Для религиозных объектов и некоторых достопримечательностей требуется скромная одежда (закрытые плечи и колени). Лучше взять с собой лёгкий платок или шаль. В большинстве ресторанов и отелей особых требований к одежде нет, но опрятный повседневный стиль приветствуется.',
+    faqLastMinuteQ: 'Можно ли забронировать экскурсию в последний момент?',
+    faqLastMinuteA:
+      'Популярные экскурсии мы советуем бронировать заранее, но многие впечатления можно забронировать и в последний момент, при наличии мест. Экскурсии без очереди и особые программы часто распродаются, поэтому раннее бронирование предпочтительнее.',
+    faqCancelQ: 'Какие у вас условия отмены?',
+    faqCancelA:
+      'Большинство экскурсий можно бесплатно отменить не позднее чем за 24 часа до начала и получить полный возврат. Для отдельных особых мероприятий условия могут отличаться. Точные условия отмены смотрите в описании конкретной экскурсии.',
+    faqMealsQ: 'Входит ли питание в экскурсии?',
+    faqMealsA:
+      'Это зависит от экскурсии. В некоторые входит питание или перекус, в другие — нет. В описании каждой экскурсии ясно указано, что включено. В гастрономических экскурсиях несколько дегустаций, разумеется, входят в программу.',
+    faqMeetingQ: 'Как добраться до места встречи?',
+    faqMeetingA:
+      'В каждом подтверждении экскурсии есть подробная информация о месте встречи с картами и схемой проезда. Большинство мест встречи находятся в центре, до них легко добраться, в том числе на общественном транспорте. Наша команда на связи круглосуточно, если вам понадобится помощь.',
+    reviewsTitle: (destination: string) => `Что путешественники говорят о ${destination}`,
+    reviewsSummary: (average: number, count: number) =>
+      `${average.toFixed(1)}/5 — ${count} ${ruPlural(count, 'отзыв', 'отзыва', 'отзывов')}`,
+    verifiedTraveler: 'Проверенный путешественник',
+    readAllReviews: 'Читать все отзывы',
+    relatedDestinationsTitle: 'Другие направления',
+    relatedDestinationsSubtitle: 'Откройте другие удивительные места, которые могут вам понравиться',
+    toursAvailable: (count: number) =>
+      `Доступно: ${count} ${ruPlural(count, 'экскурсия', 'экскурсии', 'экскурсий')}`,
+    newsletterTitle: (destination: string) => `Получайте эксклюзивные предложения для поездки в ${destination}`,
+    newsletterSubtitle: 'Подпишитесь на нашу рассылку и получайте специальные предложения, советы путешественникам и полезные гиды',
+    newsletterEmailPlaceholder: 'Введите ваш e-mail',
+    newsletterSubscribe: 'Подписаться',
+    newsletterFootnote: 'Получайте предложения по направлениям на e-mail. Отписаться можно в любой момент.',
+    infoBestTime: 'Лучшее время для поездки',
+    infoCurrency: 'Валюта',
+    infoTimeZone: 'Часовой пояс',
+    infoAvailableTours: 'Доступные экскурсии',
+    infoYearRound: 'Круглый год',
+    infoTimezoneFallback: 'Центральноевропейское время',
+    infoAvailableExperiences: (count: number) =>
+      `${count} ${ruPlural(count, 'впечатление', 'впечатления', 'впечатлений')}`,
+    featuredSectionTitle: (destination: string) => `Лучшие предложения в ${destination}`,
+    featuredSectionSubtitle: 'Отобранные впечатления по непревзойдённым ценам',
+    topToursTitle: (destination: string) => `ТОП-10 ЭКСКУРСИЙ В ${destination.toUpperCase()}`,
+    topToursSubtitle: 'Наши самые популярные экскурсии и впечатления, отобранные местными специалистами',
+    interestsTitle: (destination: string) => `Откройте ${destination} по интересам`,
+    interestsSubtitle: 'Найдите подходящее впечатление, будь вам интересна культура, приключения или еда.',
+    whyVisitTitle: (destination: string) => `Зачем ехать в ${destination}?`,
+  },
 };
+
+type DestinationPageCopyLanguage = keyof typeof destinationPageCopy;
+
+function destinationPageCopyFor(locale: string): DestinationPageCopy {
+  // next-intl hands over values such as "de" or "de-AT", so match on the
+  // language subtag and fall back to English for anything not translated here.
+  const language = locale.slice(0, 2).toLowerCase() as DestinationPageCopyLanguage;
+  return destinationPageCopy[language] ?? destinationPageCopy.en;
+}
 
 function useDestinationPageLocale() {
   const locale = useLocale();
   const rtl = locale.startsWith('ar') || isRTL(locale);
-  const copy = rtl ? destinationPageCopy.ar : destinationPageCopy.en;
+  const copy = destinationPageCopyFor(locale);
   return { locale, rtl, copy };
 }
 
@@ -1972,7 +2533,7 @@ const CombiDealCard = ({ tour, onAddToCartClick }: { tour: Tour, onAddToCartClic
           <span className="flex items-center gap-1">
             <Star size={14} fill="currentColor" className="text-yellow-500" />{tour.rating}
           </span>
-          {(tour.bookings || 0) > 0 && <span>{tour.bookings} {copy.bookings}</span>}
+          {(tour.bookings || 0) > 0 && <span>{copy.bookings(tour.bookings || 0)}</span>}
         </div>
         <div className="flex items-end justify-end mt-3 sm:mt-4">
           {tour.originalPrice && tour.originalPrice > tour.discountPrice && <span className="text-slate-500 line-through me-2 text-sm">{formatPrice(tour.originalPrice)}</span>}
