@@ -13,6 +13,9 @@ const customJestConfig = {
   maxWorkers: 1,
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
+    // maplibre-gl 6 ships only an ES module entry (no require condition); tests
+    // mock it, but Jest still needs a file to resolve the name to.
+    '^maplibre-gl$': '<rootDir>/node_modules/maplibre-gl/dist/maplibre-gl.mjs',
   },
   testPathIgnorePatterns: [
     '/node_modules/',
