@@ -105,3 +105,48 @@ describe('booking panel with unpriced options', () => {
     expect(within(priced).getAllByText('$60.00').length).toBeGreaterThan(0);
   });
 });
+
+describe('booking panel footer and unpriced option toggle', () => {
+  const footer = () => screen.getByTestId('booking-footer-total');
+
+  it('before a time is chosen the footer estimates from a priced option, never 0', async () => {
+    await openOptions();
+    expect(footer()).toHaveAttribute('data-total-state', 'priced');
+    expect(footer()).not.toHaveTextContent('$0.00');
+    expect(footer()).toHaveTextContent('$60.00');
+  });
+
+  it('the unpriced option card never invites the customer to select a time', async () => {
+    await openOptions();
+    const unpriced = card('Private experience');
+    const header = unpriced.querySelector('[aria-controls^="option-body-"]') as HTMLElement | null;
+    if (header) {
+      expect(header).not.toHaveTextContent('booking.selectTime');
+      expect(header).toHaveTextContent('common.readMore');
+    }
+    const priced = card('Group tour').querySelector('[aria-controls^="option-body-"]') as HTMLElement | null;
+    if (priced && priced.getAttribute('aria-expanded') === 'false') expect(priced).toHaveTextContent('booking.selectTime');
+  });
+
+  it('a tour with every option unpriced shows the choose-an-option prompt, not a 0 total or the tour base', async () => {
+    const allUnpriced = apiOptions.map((option) => ({ ...option, price: 0, timeSlots: option.timeSlots.map((slot) => ({ ...slot, price: 0 })) }));
+    global.fetch = mockFetch;
+    HTMLElement.prototype.scrollTo = jest.fn();
+    HTMLElement.prototype.scrollIntoView = jest.fn();
+    mockFetch.mockImplementation(async (url: string) => ({
+      ok: true,
+      json: async () => url.endsWith('/options')
+        ? allUnpriced
+        : { success: true, data: { days: {}, stopSaleStatus: 'none', stoppedOptionIds: [] } },
+    }));
+    // The tour itself carries a real base price: it must not be quoted as a total.
+    render(<BookingSidebar isOpen onClose={jest.fn()} initialStopSaleDates={{}} tour={{ ...tour, discountPrice: 60, bookingOptions: tour.bookingOptions.map((option) => ({ ...option, price: 0, timeSlots: [] })) } as any} />);
+    fireEvent.click(screen.getByRole('button', { name: 'booking.selectDate' }));
+    fireEvent.click(screen.getByRole('button', { name: String(new Date().getDate()) }));
+    fireEvent.click(screen.getByRole('button', { name: 'booking.checkAvailability' }));
+    await waitFor(() => expect(screen.getByText('Group tour')).toBeInTheDocument());
+    expect(footer()).toHaveAttribute('data-total-state', 'choose-option');
+    expect(footer()).toHaveTextContent('booking.chooseOptionForTotal');
+    expect(footer()).not.toHaveTextContent('$');
+  });
+});

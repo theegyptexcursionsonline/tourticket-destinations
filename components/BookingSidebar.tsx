@@ -553,6 +553,31 @@ const CalendarWidget: React.FC<{
 };
 
 // MODIFIED: TourOptionCard now uses real tour data
+/**
+ * The money line in the drawer footer. A total that is not a real price (no
+ * priced option chosen or estimable yet) is never printed as 0; the
+ * customer is asked to choose an option instead.
+ */
+export const BookingFooterTotal: React.FC<{ total: number; totalSavings: number }> = ({ total, totalSavings }) => {
+  const t = useTranslations();
+  const { formatPrice } = useSettings();
+  if (!isRealPrice(total)) {
+    return (
+      <div data-testid="booking-footer-total" data-total-state="choose-option" className="min-w-0 pe-2">
+        <span className="block text-sm font-semibold text-gray-700 leading-snug">{t('booking.chooseOptionForTotal')}</span>
+      </div>
+    );
+  }
+  return (
+    <div data-testid="booking-footer-total" data-total-state="priced">
+      <span className="block font-bold text-lg text-red-600">{formatPrice(total)}</span>
+      <span className="text-xs text-gray-500">
+        {t('price.totalPrice')} {totalSavings > 0 && `(${t('price.save')} ${formatPrice(totalSavings)})`}
+      </span>
+    </div>
+  );
+};
+
 const TourOptionCard: React.FC<{
   option: TourOption;
   onSelect: (timeSlot: TimeSlot) => void;
@@ -782,8 +807,10 @@ const TourOptionCard: React.FC<{
           <span className="font-medium">{option.difficulty}</span>
         </div>
         {collapsible && (
-          <div className="ms-auto flex items-center gap-1 text-[11px] font-semibold text-red-600">
-            {isOpen ? t('common.showLess') : t('booking.selectTime')}
+          <div className={`ms-auto flex items-center gap-1 text-[11px] font-semibold ${option.priceUnavailable ? 'text-slate-600' : 'text-red-600'}`}>
+            {/* An option with no price has no time to select: its toggle only
+                opens the description, so it must not read "Select Time". */}
+            {isOpen ? t('common.showLess') : option.priceUnavailable ? t('common.readMore') : t('booking.selectTime')}
             <ChevronDown size={14} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} />
           </div>
         )}
@@ -1965,6 +1992,12 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
           }))
           .sort((a, b) => a.price - b.price)[0]
       : null;
+    // Nothing on this tour can be booked online: there is no figure to
+    // estimate, so the footer asks for an option instead of quoting the
+    // own base price of the tour (which no option sells at).
+    const estimableOptions = availability?.tourOptions ?? [];
+    const nothingBookable = !slotOption && !estimateOption && estimableOptions.length > 0
+      && estimableOptions.every((candidate) => candidate.priceUnavailable);
     if (estimateOption) {
       basePrice = estimateOption.candidate.price;
       originalBasePrice = estimateOption.candidate.originalPrice || estimateOption.candidate.price;
@@ -2011,6 +2044,9 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
     const tourSavings = originalSubtotal - subtotalCalc;
     const totalSavingsCalc = tourSavings + addOnsSavings;
 
+    if (nothingBookable) {
+      return { subtotal: 0, addOnsTotal: 0, total: 0, totalSavings: 0 };
+    }
     return {
       subtotal: subtotalCalc,
       addOnsTotal: addOnsCalc,
@@ -3128,12 +3164,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
                 >
                   {/* Price Display */}
                   <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <span className="block font-bold text-lg text-red-600">{formatPrice(total)}</span>
-                      <span className="text-xs text-gray-500">
-                        {t('price.totalPrice')} {totalSavings > 0 && `(${t('price.save')} ${formatPrice(totalSavings)})`}
-                      </span>
-                    </div>
+                    <BookingFooterTotal total={total} totalSavings={totalSavings} />
                     
                     {/* Action Buttons */}
                     <div className="flex gap-2">

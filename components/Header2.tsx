@@ -254,7 +254,7 @@ function TourHits({ onHitClick, limit = 5 }: { onHitClick?: () => void; limit?: 
                     </span>
                   </>
                 )}
-                {(hit.price || hit.discountPrice) && (
+                {Boolean(hit.price || hit.discountPrice) && (
                   <>
                     <span className="text-gray-300">•</span>
                     <span className="font-bold text-blue-600">

@@ -1,4 +1,5 @@
 import { bookingCutoffPayloadError, cutoffScheduleError } from '@/lib/bookings/bookingCutoff';
+import { unpricedOptionsWarning } from '@/lib/admin/unpricedBookingOptions';
 import { withAdminAudit } from '@/lib/admin/adminAudit';
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/dbConnect";
@@ -474,7 +475,9 @@ async function PUTHandler(
             );
         }
 
-        return NextResponse.json({ success: true, data: updatedTour });
+        // Unpriced options save ("Price on request" is kept on purpose); the
+        // editor is told which ones customers cannot book online.
+        return NextResponse.json({ success: true, data: updatedTour, warnings: unpricedOptionsWarning(updatedTour.bookingOptions) });
 
     } catch (error: any) {
         console.error('Tour update error:', error);

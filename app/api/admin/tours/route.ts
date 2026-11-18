@@ -1,4 +1,5 @@
 import { bookingCutoffPayloadError, cutoffScheduleError } from '@/lib/bookings/bookingCutoff';
+import { unpricedOptionsWarning } from '@/lib/admin/unpricedBookingOptions';
 import { withAdminAudit } from '@/lib/admin/adminAudit';
 // app/api/admin/tours/route.ts
 import dbConnect from '@/lib/dbConnect';
@@ -405,7 +406,7 @@ async function POSTHandler(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ success: true, data: populated ?? tour }, { status: 201 });
+    return NextResponse.json({ success: true, data: populated ?? tour, warnings: unpricedOptionsWarning(tour.bookingOptions) }, { status: 201 });
   } catch (error) {
     console.error('Error creating tour:', error);
     const message = error instanceof Error ? error.message : 'Unknown server error';

@@ -323,6 +323,7 @@
   },
   "booking": {
     "optionPriceUnavailable": "This option can't be booked online yet. Contact us for a price.",
+    "chooseOptionForTotal": "Choose an option to see the total",
     "adults": "Adults",
     "children": "Children",
     "infants": "Infants",

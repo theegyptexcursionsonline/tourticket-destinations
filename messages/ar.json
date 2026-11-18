@@ -323,6 +323,7 @@
   },
   "booking": {
     "optionPriceUnavailable": "لا يمكن حجز هذا الخيار عبر الإنترنت حاليًا. تواصل معنا لمعرفة السعر.",
+    "chooseOptionForTotal": "اختر خيارًا لمعرفة السعر الإجمالي",
     "adults": "بالغون",
     "children": "أطفال",
     "infants": "رضّع",

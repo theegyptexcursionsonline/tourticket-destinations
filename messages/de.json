@@ -323,6 +323,7 @@
   },
   "booking": {
     "optionPriceUnavailable": "Diese Option ist online noch nicht buchbar. Fragen Sie uns gern nach dem Preis.",
+    "chooseOptionForTotal": "Wählen Sie eine Option, um den Gesamtpreis zu sehen",
     "adults": "Erwachsene",
     "children": "Kinder",
     "infants": "Kleinkinder",

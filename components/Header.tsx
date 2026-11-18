@@ -300,7 +300,7 @@ function TourHits({
                     <span className="font-medium">{hit.duration}</span>
                   </span>
                 )}
-                {(hit.price || hit.discountPrice) && (
+                {Boolean(hit.price || hit.discountPrice) && (
                   <span className="flex items-center gap-1 bg-gradient-to-r from-blue-50 to-indigo-50 px-1.5 md:px-2.5 py-0.5 md:py-1 rounded-md md:rounded-lg font-bold text-blue-600 text-[10px] md:text-xs">
                     ${hit.discountPrice || hit.price}
                   </span>
@@ -552,14 +552,14 @@ const TourCard = ({ tour }: { tour: any }) => (
           <span className="line-clamp-1 text-gray-600">{tour.location}</span>
         </div>
       )}
-      {tour.rating && (
+      {Boolean(tour.rating) && (
         <div className="flex items-center gap-1 mb-1.5">
           <Star className="w-2.5 h-2.5 fill-yellow-400 text-yellow-400" />
           <span className="text-[10px] font-medium text-gray-900">{tour.rating}</span>
-          {tour.reviews && <span className="text-[10px] text-gray-400">({tour.reviews})</span>}
+          {Boolean(tour.reviews) && <span className="text-[10px] text-gray-400">({tour.reviews})</span>}
         </div>
       )}
-      {tour.price && (
+      {Boolean(tour.price) && (
         <div className="flex items-center gap-1 text-blue-600 font-bold text-sm">
           <DollarSign className="w-3 h-3" />
           <span>{tour.price}</span>

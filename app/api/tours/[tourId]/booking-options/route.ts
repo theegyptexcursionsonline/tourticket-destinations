@@ -1,4 +1,5 @@
 import { withAdminAudit } from '@/lib/admin/adminAudit';
+import { unpricedOptionsWarning } from '@/lib/admin/unpricedBookingOptions';
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Tour from '@/lib/models/Tour';
@@ -93,7 +94,8 @@ async function PUTHandler(
     return NextResponse.json({ 
       success: true, 
       message: 'Booking option updated successfully',
-      bookingOptions: tour.bookingOptions 
+      bookingOptions: tour.bookingOptions,
+      warnings: unpricedOptionsWarning(tour.bookingOptions),
     });
 
   } catch (error: any) {

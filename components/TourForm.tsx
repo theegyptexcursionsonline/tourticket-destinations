@@ -9,6 +9,8 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
+import UnpricedOptionsWarning from '@/components/admin/UnpricedOptionsWarning';
+import { unpricedOptionsMessage } from '@/lib/admin/unpricedBookingOptions';
 import { useSettings } from '@/hooks/useSettings';
 import { useAdminTenant } from '@/contexts/AdminTenantContext';
 import TranslationEditor from '@/components/admin/TranslationEditor';
@@ -1164,6 +1166,14 @@ const addItineraryItem = () => {
         setExpandedOptionIndex(null);
     };
 
+    // A save that leaves options without a price still succeeds ("Price on
+    // request" options are kept on purpose); staff are told which ones.
+    const showUnpricedOptionsNotice = (names: unknown) => {
+        if (!Array.isArray(names)) return;
+        const message = unpricedOptionsMessage(names.filter((name): name is string => typeof name === 'string'));
+        if (message) toast(message, { duration: 10000, id: 'unpriced-options-notice' });
+    };
+
     const saveIndividualBookingOption = async (index: number) => {
         if (!tourToEdit?._id) {
             toast.error('Please save the tour first before updating individual options');
@@ -1201,6 +1211,8 @@ const addItineraryItem = () => {
 
             if (response.ok) {
                 toast.success('Booking option saved successfully!');
+                const saved = await response.json().catch(() => null);
+                showUnpricedOptionsNotice(saved?.warnings?.unpricedOptions);
             } else {
                 const errorData = await response.json();
                 toast.error(`Failed to save option: ${errorData.error || 'Unknown error'}`);
@@ -1549,6 +1561,7 @@ const addItineraryItem = () => {
 
             if (response.ok) {
                 toast.success(`Tour ${tourToEdit ? 'updated' : 'created'} successfully!`);
+                showUnpricedOptionsNotice(responseData?.warnings?.unpricedOptions);
                 loadedForm.current = { ...formData };
                 if (!fullPage) setIsPanelOpen(false);
                 if (onSave) onSave();
@@ -2734,6 +2747,7 @@ const addItineraryItem = () => {
                                 {activeTab === 'booking' && (
                                     <div className="space-y-6">
                                         <FormLabel icon={Settings}>Booking Options</FormLabel>
+                                        <UnpricedOptionsWarning options={formData.bookingOptions} />
                                         
                                         {/* Booking Options Preview */}
                                         {formData.bookingOptions.length > 0 && (
@@ -3438,6 +3452,9 @@ const addItineraryItem = () => {
 
                         {/* Panel Footer */}
                         <div className={`p-8 border-t border-slate-200 bg-gradient-to-r from-slate-50 to-white ${fullPage ? 'rounded-b-2xl' : ''}`}>
+                            {activeTab !== 'booking' && (
+                                <UnpricedOptionsWarning options={formData.bookingOptions} className="mb-4" />
+                            )}
                             <div className="flex items-center gap-4">
                                 <button
                                     type="button"
