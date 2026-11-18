@@ -61,3 +61,10 @@ describe('category duration summary', () => {
     expect(pages.category.source).toContain('categoryPageCopyFor(locale).variedTripLengths');
   });
 });
+
+describe('destination cards on the category page', () => {
+  it('count tours with a per-language label, not by cutting letters off an English word', () => {
+    expect(pages.category.source).not.toContain(".replace('s', '')");
+    expect(pages.category.source).toContain('{copy.destinationTourCount(destination.count)}');
+  });
+});

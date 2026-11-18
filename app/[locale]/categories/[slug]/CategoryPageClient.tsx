@@ -77,6 +77,7 @@ type CategoryPageCopy = {
   experienceGallery: string;
   travelTips: string;
   variedTripLengths: string;
+  destinationTourCount: (count: number) => string;
 };
 
 // Russian counts take one of three forms (1 экскурсия, 2 экскурсии, 5 экскурсий).
@@ -148,6 +149,7 @@ const CATEGORY_PAGE_COPY: Record<CategoryCopyLanguage, CategoryPageCopy> = {
     experienceGallery: 'Experience gallery',
     travelTips: 'Travel tips',
     variedTripLengths: 'Varied trip lengths from short outings to full-day tours',
+    destinationTourCount: (count: number) => `${count} ${count === 1 ? 'tour available' : 'tours available'}`,
   },
   ar: {
     searchToursPlaceholder: 'ابحث عن الجولات...',
@@ -204,6 +206,7 @@ const CATEGORY_PAGE_COPY: Record<CategoryCopyLanguage, CategoryPageCopy> = {
     experienceGallery: 'معرض صور التجربة',
     travelTips: 'نصائح السفر',
     variedTripLengths: 'مدد متنوعة من الرحلات القصيرة إلى الجولات اليومية',
+    destinationTourCount: (count: number) => (count === 1 ? 'جولة واحدة متاحة' : count === 2 ? 'جولتان متاحتان' : `${count} ${count % 100 >= 3 && count % 100 <= 10 ? 'جولات متاحة' : 'جولة متاحة'}`),
   },
   de: {
     searchToursPlaceholder: 'Touren suchen...',
@@ -260,6 +263,7 @@ const CATEGORY_PAGE_COPY: Record<CategoryCopyLanguage, CategoryPageCopy> = {
     experienceGallery: 'Bildergalerie',
     travelTips: 'Reisetipps',
     variedTripLengths: 'Unterschiedliche Dauer, von kurzen Ausflügen bis zu Tagestouren',
+    destinationTourCount: (count: number) => `${count} ${count === 1 ? 'verfügbare Tour' : 'verfügbare Touren'}`,
   },
   fr: {
     searchToursPlaceholder: 'Rechercher une excursion...',
@@ -316,6 +320,7 @@ const CATEGORY_PAGE_COPY: Record<CategoryCopyLanguage, CategoryPageCopy> = {
     experienceGallery: 'Galerie photos',
     travelTips: 'Conseils de voyage',
     variedTripLengths: 'Des durées variées, de la courte sortie à la journée complète',
+    destinationTourCount: (count: number) => `${count} ${count === 1 ? 'excursion disponible' : 'excursions disponibles'}`,
   },
   es: {
     searchToursPlaceholder: 'Buscar excursiones...',
@@ -372,6 +377,7 @@ const CATEGORY_PAGE_COPY: Record<CategoryCopyLanguage, CategoryPageCopy> = {
     experienceGallery: 'Galería de fotos',
     travelTips: 'Consejos de viaje',
     variedTripLengths: 'Duraciones variadas, desde salidas cortas hasta excursiones de día completo',
+    destinationTourCount: (count: number) => `${count} ${count === 1 ? 'excursión disponible' : 'excursiones disponibles'}`,
   },
   ru: {
     searchToursPlaceholder: 'Поиск экскурсий...',
@@ -428,6 +434,7 @@ const CATEGORY_PAGE_COPY: Record<CategoryCopyLanguage, CategoryPageCopy> = {
     experienceGallery: 'Фотогалерея',
     travelTips: 'Советы путешественникам',
     variedTripLengths: 'Разная продолжительность: от коротких выездов до экскурсий на весь день',
+    destinationTourCount: (count: number) => `${count} ${ruPlural(count, 'экскурсия', 'экскурсии', 'экскурсий')}`,
   },
 };
 
@@ -761,7 +768,7 @@ const AboutSection = ({
                     <div className="p-4">
                       <div className="text-lg font-semibold text-slate-900 mb-1">{destination.name}</div>
                       <div className="text-sm text-slate-500 mb-3">
-                        {destination.count} {destination.count === 1 ? copy.toursAvailable.replace('s', '') : copy.toursAvailable.toLowerCase()}
+                        {copy.destinationTourCount(destination.count)}
                       </div>
                       <span className="inline-flex items-center gap-2 text-red-600 font-medium text-sm">
                         {copy.browseDestination}
