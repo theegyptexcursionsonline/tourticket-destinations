@@ -56,7 +56,7 @@ describe('InteractiveItineraryMap', () => {
       'utf8',
     );
     const packageJson = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'package.json'), 'utf8'));
-    expect(packageJson.dependencies['maplibre-gl']).toBe('5.24.0');
+    expect(packageJson.dependencies['maplibre-gl']).toBe('6.19.0');
     expect(source).toContain("import('maplibre-gl')");
     expect(source).toContain('IntersectionObserver');
     expect(source).toContain("map.once('style.load'");
