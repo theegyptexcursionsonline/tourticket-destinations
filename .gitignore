@@ -83,3 +83,6 @@ qa-screenshots/
 
 readiness-proof/
 .offer-secret
+
+# Copied from maplibre-gl at build time (scripts/copy-maplibre-worker.cjs)
+/public/vendor/maplibre/

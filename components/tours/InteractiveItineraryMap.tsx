@@ -46,6 +46,7 @@ interface InteractiveItineraryMapProps {
   onSelect: (index: number) => void;
 }
 
+const MAPLIBRE_WORKER_PATH = '/vendor/maplibre/maplibre-gl-worker.mjs';
 type MapLibreModule = typeof import('maplibre-gl');
 type MapLibreMap = import('maplibre-gl').Map;
 type MapLibreMarker = import('maplibre-gl').Marker;
@@ -198,6 +199,10 @@ function InteractiveItineraryMap({
       }
       try {
         const maplibre = await import('maplibre-gl');
+        // MapLibre 6 loads its worker from a separate file; the build copies it
+        // to public/ (scripts/copy-maplibre-worker.cjs). The version query keeps
+        // a cached worker from outliving a library upgrade.
+        maplibre.setWorkerUrl(`${MAPLIBRE_WORKER_PATH}?v=${maplibre.getVersion()}`);
         const first = positionsRef.current[0];
         if (cancelled || !mapElementRef.current || !first) return;
 

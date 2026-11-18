@@ -42,6 +42,8 @@ const mapStats = {
   fitBoundsCalls: 0,
   stallNextBuilds: 0,
   throwOnRemove: false,
+  workerUrls: [] as string[],
+  workerUrlBeforeMap: false,
 };
 
 // jsdom has no WebGL; the map only builds where a WebGL context exists, so
@@ -66,6 +68,7 @@ jest.mock('maplibre-gl', () => {
 
     constructor(_options: unknown) {
       mapStats.constructed += 1;
+      mapStats.workerUrlBeforeMap = mapStats.workerUrls.length > 0;
       // When the tile host stalls, `style.load` simply never arrives.
       if (mapStats.stallNextBuilds > 0) {
         mapStats.stallNextBuilds -= 1;
@@ -113,6 +116,8 @@ jest.mock('maplibre-gl', () => {
     Marker: FakeMarker,
     NavigationControl: class { },
     LngLatBounds: class { extend() { /* no-op */ } },
+    getVersion: () => '6.19.0',
+    setWorkerUrl: (url: string) => { mapStats.workerUrls.push(url); },
   };
 });
 
@@ -267,6 +272,17 @@ describe('InteractiveItineraryMap stability under parent re-renders', () => {
     expect(mapStats.removed).toBe(0);
     expect(mapStats.markersCreated).toBe(markersAfterFirstDraw);
     expect(mapStats.fitBoundsCalls).toBe(1);
+  });
+
+  it('points MapLibre at the worker copied into public/ before the map is built', async () => {
+    mapStats.workerUrls = [];
+    render(<ScrollingParent />);
+    await flushStyleLoad();
+    await waitFor(() => expect(mapStats.constructed).toBe(1));
+    // Without this the library looked for its worker next to the bundle,
+    // which bundlers do not emit, and the map drew no tiles.
+    expect(mapStats.workerUrlBeforeMap).toBe(true);
+    expect(mapStats.workerUrls[0]).toBe('/vendor/maplibre/maplibre-gl-worker.mjs?v=6.19.0');
   });
 
   it('keeps the map alive when a stage is hovered or selected', async () => {

@@ -4,10 +4,11 @@
   "private": true,
   "packageManager": "pnpm@10.30.3",
   "scripts": {
+    "predev": "node scripts/copy-maplibre-worker.cjs",
     "dev": "tsx scripts/dev-with-port.ts",
     "dev:original": "next dev --turbopack",
     "prebuild": "if [ \"$SKIP_TESTS\" = \"1\" ]; then echo 'Skipping pre-build checks because SKIP_TESTS=1'; else echo 'Running pre-build checks...' && pnpm test:unit && echo 'All pre-build checks passed!'; fi",
-    "build": "BASELINE_BROWSER_MAPPING_IGNORE_OLD_DATA=true next build",
+    "build": "node scripts/copy-maplibre-worker.cjs && BASELINE_BROWSER_MAPPING_IGNORE_OLD_DATA=true next build",
     "build:skip-tests": "SKIP_TESTS=1 next build",
     "typecheck": "tsc --noEmit",
     "audit:prod": "node scripts/audit-prod.cjs",
