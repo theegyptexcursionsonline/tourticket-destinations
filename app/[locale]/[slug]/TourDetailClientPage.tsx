@@ -46,7 +46,9 @@ import {
 import { meetingPointEmbedUrl, meetingPointMapUrl } from '@/lib/tours/meetingPointMap';
 import { provableRating } from '@/lib/tours/ratingDisplay';
 import { effectiveTourPrice } from '@/lib/pricing/effectivePrice';
+import { bookableTripPrice } from '@/lib/pricing/displayPrice';
 import { enhancementSections, hasGroupSize, hasList, hasText } from '@/lib/tours/enhancementSections';
+import ListingPrice from '@/components/pricing/ListingPrice';
 
 // Enhanced interfaces for additional tour data
 interface ItineraryItem {
@@ -1091,7 +1093,7 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
   const tCommon = useTranslations('common');
   const tWishlist = useTranslations('wishlist');
   const breadcrumbs = buildContentBreadcrumbs({ currentTitle: tour.title, breadcrumbLabel: tour.breadcrumbLabel, parentPage: tour.parentPage, rootLabel: t('tours'), rootHref: '/search' });
-  const tourBasePricing = effectiveTourPrice(tour);
+  const tourHeadlinePrice = bookableTripPrice(tour);
   const meetingMapHref = meetingPointMapUrl(tour.meetingPoint);
   const meetingMapEmbed = meetingPointEmbedUrl(tour.meetingPoint);
   const [isBookingSidebarOpen, setBookingSidebarOpen] = useState(false);
@@ -1496,7 +1498,7 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
                                 <Star size={12} className="text-yellow-500 fill-current" />
                                 <span className="text-xs font-bold">{relatedTour.rating}</span>
                               </div>
-                              <span className="font-bold text-red-600">{formatPrice(effectiveTourPrice(relatedTour).price)}</span>
+                              <span className="font-bold text-red-600"><ListingPrice value={effectiveTourPrice(relatedTour).price} formatPrice={formatPrice} /></span>
                             </div>
                           </div>
                         </div>
@@ -1634,7 +1636,7 @@ export default function TourPageClient({ tour, relatedTours, initialReviews = []
       <BookingSidebar isOpen={isBookingSidebarOpen} onClose={() => setBookingSidebarOpen(false)} tour={tour} initialStopSaleDates={initialStopSaleDates} />
 
       <StickyBookButton
-        price={tourBasePricing.price}
+        price={tourHeadlinePrice?.price ?? null}
         currency={'$'}
         onClick={openBookingSidebar}
       />

@@ -17,6 +17,8 @@ import { normalizePageTemplate } from '@/lib/content/pageTemplate';
 import { contentPath } from '@/lib/content/contentUrl';
 import { imageMetadataFor } from '@/lib/content/imageMetadata';
 import LinkedPageCardsSection from '@/components/content/LinkedPageCardsSection';
+import ListingPrice from '@/components/pricing/ListingPrice';
+import { firstRealPrice } from '@/lib/pricing/effectivePrice';
 
 interface AttractionPageTemplateProps {
   page: CategoryPageData;
@@ -68,7 +70,7 @@ const TourCard = ({ tour, index }: { tour: Tour; index: number }) => {
           {/* Price Badge */}
           <div className="absolute bottom-3 end-3 bg-white/95 backdrop-blur-sm px-3 py-2 rounded-xl shadow-lg">
             <div className="text-lg font-bold text-slate-900">
-              {formatPrice(tour.discountPrice || tour.price || 0)}
+              <ListingPrice value={firstRealPrice(tour.discountPrice, tour.price)} formatPrice={formatPrice} />
             </div>
             {tour.originalPrice && tour.originalPrice > (tour.discountPrice || tour.price || 0) && (
               <div className="text-xs text-slate-500 line-through text-center">
@@ -197,7 +199,7 @@ const TourListItem = ({ tour, index }: { tour: Tour; index: number }) => {
           
           <div className="text-right flex-shrink-0">
             <div className="text-2xl font-bold text-slate-900">
-              {formatPrice(tour.discountPrice || tour.price || 0)}
+              <ListingPrice value={firstRealPrice(tour.discountPrice, tour.price)} formatPrice={formatPrice} />
             </div>
             {tour.originalPrice && tour.originalPrice > (tour.discountPrice || tour.price || 0) && (
               <div className="text-sm text-slate-500 line-through">

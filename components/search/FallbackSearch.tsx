@@ -15,6 +15,9 @@ import 'instantsearch.css/themes/satellite.css';
 import { Link } from '@/i18n/navigation';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
+import ListingPrice from '@/components/pricing/ListingPrice';
+
+const dollarAmount = (value: number) => `$${value}`;
 
 const ALGOLIA_APP_ID = process.env.NEXT_PUBLIC_ALGOLIA_APP_ID || '1F31U1NOMS';
 const ALGOLIA_SEARCH_KEY = process.env.NEXT_PUBLIC_ALGOLIA_SEARCH_API_KEY || '90dc77f33842e5ca1ad27ba3e42bbc50';
@@ -97,7 +100,7 @@ function TourHit({ hit }: { hit: any }) {
                 </>
               ) : (
                 <span className="text-lg font-bold text-blue-600">
-                  ${hit.price}
+                  <ListingPrice value={hit.price} formatPrice={dollarAmount} />
                 </span>
               )}
             </div>

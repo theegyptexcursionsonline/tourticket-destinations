@@ -26,4 +26,23 @@ describe('TourPriceDisplay', () => {
     render(<TourPriceDisplay tour={{ discountPrice: 50 }} formatPrice={formatPrice} />);
     expect(screen.queryByTestId('tour-base-discount')).not.toBeInTheDocument();
   });
+
+  // #2727: a tour saved at 0 must never read $0.00.
+  it('shows the cheapest real option price when the tour base is 0', () => {
+    render(
+      <TourPriceDisplay
+        tour={{ discountPrice: 0, bookingOptions: [{ price: 0, timeSlots: [{ price: 0 }, { price: 116 }] }, { price: 0 }] }}
+        formatPrice={formatPrice}
+      />,
+    );
+    expect(screen.getByText('$116.00')).toBeInTheDocument();
+    expect(screen.queryByText('$0.00')).not.toBeInTheDocument();
+  });
+
+  it('says price on request when nothing is priced', () => {
+    render(<TourPriceDisplay tour={{ discountPrice: 0, bookingOptions: [{ price: 0 }] }} formatPrice={formatPrice} />);
+    expect(screen.getByTestId('tour-base-price')).toHaveAttribute('data-price-state', 'on-request');
+    expect(screen.getByText('price.onRequest')).toBeInTheDocument();
+    expect(screen.queryByText('$0.00')).not.toBeInTheDocument();
+  });
 });

@@ -429,7 +429,9 @@ describe('FeaturedTours', () => {
 
       expect(screen.getAllByText('Duration not specified')[0]).toBeInTheDocument()
       expect(screen.getAllByText('0.0')[0]).toBeInTheDocument()
-      expect(screen.getAllByText('$0.00')[0]).toBeInTheDocument()
+      // #2727: a tour with no price says so; it never advertises $0.00.
+      expect(screen.getAllByText('price.onRequest')[0]).toBeInTheDocument()
+      expect(screen.queryByText('$0.00')).not.toBeInTheDocument()
     })
   })
 

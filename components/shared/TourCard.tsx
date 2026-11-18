@@ -17,6 +17,8 @@ import { useCart } from '@/hooks/useCart';
 import { useTenant } from '@/contexts/TenantContext';
 import toast from 'react-hot-toast';
 import { toDateOnlyString } from '@/utils/date';
+import ListingPrice from '@/components/pricing/ListingPrice';
+import { isRealPrice } from '@/lib/pricing/effectivePrice';
 
 // Offer badge data interface
 export interface OfferBadgeData {
@@ -102,6 +104,11 @@ const TourCard: React.FC<TourCardProps> = ({
 
     // Otherwise, use the default quick add to cart behavior
     if (isAdding) return;
+    // A tour without a real price cannot be sold online; never add a 0 line.
+    if (!isRealPrice(tour.discountPrice)) {
+      toast.error(t('booking.optionPriceUnavailable'));
+      return;
+    }
     setIsAdding(true);
 
     try {
@@ -265,7 +272,7 @@ const TourCard: React.FC<TourCardProps> = ({
 
               <div className="bg-white/95 backdrop-blur-sm px-3 py-2 rounded-xl shadow-lg text-end">
                 <div className="text-lg font-bold text-slate-900">
-                  {formatPrice(tour.discountPrice)}
+                  <ListingPrice value={tour.discountPrice} formatPrice={formatPrice} />
                 </div>
                 {tour.originalPrice && tour.originalPrice > tour.discountPrice && (
                   <div className="text-xs text-slate-500 line-through">

@@ -86,18 +86,18 @@ const CompactHit = ({ hit }: any) => {
         </div>
 
         {/* Price */}
-        {(hit.discountPrice || hit.price) && (
+        {(hit.discountPrice || hit.price) ? (
           <div className="flex-shrink-0 text-end">
             <div className="text-sm font-bold text-blue-600">
               ${hit.discountPrice || hit.price}
             </div>
-            {hit.discountPrice && hit.price && hit.discountPrice < hit.price && (
+            {Boolean(hit.discountPrice && hit.price && hit.discountPrice < hit.price) && (
               <div className="text-xs text-slate-400 line-through">
                 ${hit.price}
               </div>
             )}
           </div>
-        )}
+        ) : null}
       </div>
     </a>
   );

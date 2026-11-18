@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useSettings } from '@/hooks/useSettings'; // Assuming you have this hook for formatting price
+import { isRealPrice } from '@/lib/pricing/effectivePrice';
 
 interface StickyBookButtonProps {
-  price: number;
+  /** Per-person price to advertise; null when the tour has no real price. */
+  price: number | null;
   currency: string;
   onClick: () => void;
 }
@@ -12,6 +15,7 @@ interface StickyBookButtonProps {
 const StickyBookButton: React.FC<StickyBookButtonProps> = ({ price, currency: _currency, onClick }) => {
   const [isVisible, setIsVisible] = useState(false);
   const { formatPrice } = useSettings();
+  const t = useTranslations();
 
   const handleScroll = () => {
     const scrollY = window.scrollY;
@@ -67,10 +71,16 @@ const StickyBookButton: React.FC<StickyBookButtonProps> = ({ price, currency: _c
         className="fixed bottom-0 start-0 end-0 bg-white p-4 border-t border-slate-200 shadow-lg z-20 md:hidden"
       >
         <div className="container mx-auto flex items-center justify-between">
-          <div>
-            <span className="font-bold text-lg text-slate-800">{formatPrice(price)}</span>
-            <span className="text-sm text-slate-500"> / person</span>
-          </div>
+          {isRealPrice(price) ? (
+            <div>
+              <span className="font-bold text-lg text-slate-800">{formatPrice(price)}</span>
+              <span className="text-sm text-slate-500"> / person</span>
+            </div>
+          ) : (
+            <div data-price-state="on-request">
+              <span className="font-bold text-base text-slate-700">{t('price.onRequest')}</span>
+            </div>
+          )}
           <button
             data-testid="open-booking-drawer-mobile"
             onClick={onClick}

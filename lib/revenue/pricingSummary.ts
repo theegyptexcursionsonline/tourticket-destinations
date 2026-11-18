@@ -40,9 +40,13 @@ export function pricingProjectionRetryDelayMs(attempts: number) {
   return Math.min(PROJECTION_RETRY_MAX_MS, PROJECTION_RETRY_BASE_MS * (2 ** (normalizedAttempts - 1)));
 }
 
+// Only real prices (above 0) may become a listing "from" price. A 0 quote is
+// an option left at its 0 starting base or a start time not priced yet; it
+// cannot be booked. Blank/null values are skipped too (Number(null) is 0).
 const finitePrices = (values: unknown[]) => values
+  .filter((value) => value !== null && value !== undefined && value !== '')
   .map(Number)
-  .filter((value) => Number.isFinite(value) && value >= 0);
+  .filter((value) => Number.isFinite(value) && value > 0);
 
 export function tenantPricingSummary(tour: Pick<ProjectionTour, 'pricingSummaries'> | null | undefined, tenantId: string) {
   return tour?.pricingSummaries?.find((entry) => entry.tenantId === tenantId) ?? null;
@@ -78,7 +82,9 @@ export function catalogueFromPrice(tour: Pick<SummaryTour, 'discountPrice' | 'di
         : [undefined];
       return slots.map((slot) => effectiveOptionPrice(tour, option, slot).price);
     }))
-    : (Number.isFinite(Number(tour.discountPrice)) && Number(tour.discountPrice) >= 0
+    // No options: the tour's own price, when real. (A configured-option tour
+    // sells only its options; none priced gives null above, never the tour price.)
+    : (Number.isFinite(Number(tour.discountPrice)) && Number(tour.discountPrice) > 0
       ? finitePrices([effectiveTourPrice(tour).price])
       : []);
   return candidates.length ? Math.min(...candidates) : null;

@@ -300,6 +300,7 @@
     "backToHome": "Retour à l'Accueil"
   },
   "price": {
+    "onRequest": "Prix sur demande",
     "from": "à partir de",
     "perPerson": "par personne",
     "free": "Gratuit",
@@ -321,6 +322,7 @@
     "unitDefaults": "unités"
   },
   "booking": {
+    "optionPriceUnavailable": "Cette option n'est pas encore réservable en ligne. Contactez-nous pour connaître le prix.",
     "adults": "Adultes",
     "children": "Enfants",
     "infants": "Nourrissons",

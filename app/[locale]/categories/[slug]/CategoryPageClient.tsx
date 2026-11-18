@@ -16,7 +16,8 @@ import { imageMetadataFor } from '@/lib/content/imageMetadata';
 import { buildContentBreadcrumbs } from '@/lib/content/breadcrumbs';
 import ContentBreadcrumbs from '@/components/navigation/ContentBreadcrumbs';
 import { normalizePageTemplate, type PageTemplate } from '@/lib/content/pageTemplate';
-import { tourFromPrice } from '@/lib/pricing/displayPrice';
+import { compareFromPrice, tourFromPrice } from '@/lib/pricing/displayPrice';
+import ListingPrice from '@/components/pricing/ListingPrice';
 import LinkedPageCardsSection from '@/components/content/LinkedPageCardsSection';
 import type { LinkedPageCard } from '@/lib/attractionPages/pageContent';
 import { contentPath } from '@/lib/content/contentUrl';
@@ -1048,7 +1049,7 @@ const TourCard = ({
 }) => {
   const { formatPrice } = useSettings();
   const { tenantId } = useTenant();
-  const displayedPrice = tourFromPrice(tour, tenantId).price;
+  const displayedPrice = tourFromPrice(tour, tenantId)?.price ?? null;
 
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow flex flex-col group">
@@ -1085,10 +1086,10 @@ const TourCard = ({
         </div>
         <div className="flex items-center justify-between mt-auto">
           <div>
-            {tour.originalPrice && tour.originalPrice > displayedPrice && (
+            {displayedPrice !== null && tour.originalPrice && tour.originalPrice > displayedPrice && (
               <span className="text-slate-500 line-through text-sm mr-2">{formatPrice(tour.originalPrice)}</span>
             )}
-            <span className="text-xl font-bold text-red-600">{formatPrice(displayedPrice)}</span>
+            <span className="text-xl font-bold text-red-600"><ListingPrice value={displayedPrice} formatPrice={formatPrice} /></span>
           </div>
           <Link href={tourDetailPath(tour)} className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors text-sm font-medium">
             {copy.viewDetails}
@@ -1175,7 +1176,7 @@ export default function CategoryPageClient({
                 durationSet.add(tour.duration);
             }
 
-            const price = tourFromPrice(tour, tenantId).price;
+            const price = tourFromPrice(tour, tenantId)?.price;
             if (price && Number.isFinite(price)) {
                 prices.push(price);
             }
@@ -1272,7 +1273,9 @@ export default function CategoryPageClient({
         // Price range filter
         if (priceRange) {
             filtered = filtered.filter(tour => {
-                const price = tourFromPrice(tour, tenantId).price;
+                // An unpriced tour matches no price band.
+                const price = tourFromPrice(tour, tenantId)?.price;
+                if (price === undefined) return false;
                 if (priceRange === '0-50') return price < 50;
                 if (priceRange === '50-100') return price >= 50 && price < 100;
                 if (priceRange === '100-200') return price >= 100 && price < 200;
@@ -1284,13 +1287,13 @@ export default function CategoryPageClient({
         // Sort
         switch (sortBy) {
             case 'price_low':
-                filtered.sort((a, b) => tourFromPrice(a, tenantId).price - tourFromPrice(b, tenantId).price);
+                filtered.sort((a, b) => compareFromPrice(tourFromPrice(a, tenantId), tourFromPrice(b, tenantId), 'asc'));
                 break;
             case 'price_high':
                 // Sort by the same number the card shows. This branch used to read
                 // Sort by the same tenant-scoped RevenuePilot summary shown on
                 // each card so another storefront's override cannot influence it.
-                filtered.sort((a, b) => tourFromPrice(b, tenantId).price - tourFromPrice(a, tenantId).price);
+                filtered.sort((a, b) => compareFromPrice(tourFromPrice(a, tenantId), tourFromPrice(b, tenantId), 'desc'));
                 break;
             case 'rating':
                 filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));

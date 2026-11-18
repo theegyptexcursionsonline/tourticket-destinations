@@ -1,7 +1,9 @@
-import { effectiveTourPrice, percentageOff, type PricedTour } from '@/lib/pricing/effectivePrice';
+import { useTranslations } from 'next-intl';
+import { percentageOff, type PricedTour } from '@/lib/pricing/effectivePrice';
+import { bookableTripPrice, type DisplayableTour } from '@/lib/pricing/displayPrice';
 
 interface TourPriceDisplayProps {
-  tour: PricedTour;
+  tour: PricedTour & Pick<DisplayableTour, 'bookingOptions'>;
   formatPrice: (value: number) => string;
   align?: 'left' | 'center' | 'right';
   priceClassName?: string;
@@ -26,7 +28,19 @@ export default function TourPriceDisplay({
   showPerPerson = true,
   perPersonLabel = 'per person',
 }: TourPriceDisplayProps) {
-  const pricing = effectiveTourPrice(tour);
+  const t = useTranslations();
+  // The tour's own price when it has one; a tour saved at 0 and priced through
+  // its options shows its cheapest real option; nothing priced → on request.
+  const pricing = bookableTripPrice(tour);
+
+  if (!pricing) {
+    return (
+      <div className={`flex flex-col ${alignmentClasses[align]}`} data-testid="tour-base-price" data-price-state="on-request">
+        <span className="text-xl md:text-2xl font-bold text-slate-700">{t('price.onRequest')}</span>
+      </div>
+    );
+  }
+
   const discount = percentageOff(pricing.originalPrice, pricing.price);
 
   return (

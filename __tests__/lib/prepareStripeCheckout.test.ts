@@ -18,6 +18,7 @@ jest.mock('@/lib/payments/paymentProviderPolicy', () => ({
   resolveExecutablePaymentMethods: (...args: unknown[]) => mockResolveMethods(...args),
 }));
 jest.mock('@/lib/security/checkoutPricing', () => ({
+  CheckoutPriceChangedError: class CheckoutPriceChangedError extends Error {},
   calculateCheckoutPricing: (...args: unknown[]) => mockCalculatePricing(...args),
   checkoutFingerprint: jest.fn(() => 'f'.repeat(64)),
   checkoutCustomerRef: jest.fn(() => 'c'.repeat(64)),
@@ -25,6 +26,7 @@ jest.mock('@/lib/security/checkoutPricing', () => ({
 
 import { DepartureAdmissionError } from '@/lib/bookings/departureAdmission';
 import { prepareStripeCheckout, StripeCheckoutInputError } from '@/lib/checkout/prepareStripeCheckout';
+import { PriceUnavailableError } from '@/lib/checkout/priceUnavailable';
 
 const checkoutAttemptId = '123e4567-e89b-42d3-a456-426614174000';
 const body = {
@@ -60,6 +62,13 @@ describe('prepareStripeCheckout', () => {
     const changed = await prepareStripeCheckout(request(body), 'hosted');
     expect(changed.quoteBinding).not.toBe(first.quoteBinding);
     expect(changed.metadata.departure_deadlines_utc).not.toBe(first.metadata.departure_deadlines_utc);
+  });
+  it('refuses a line without a real price with 409 PRICE_UNAVAILABLE before any payment is prepared (#2727)', async () => {
+    mockCalculatePricing.mockRejectedValueOnce(new PriceUnavailableError());
+    await expect(prepareStripeCheckout(request(body), 'hosted')).rejects.toMatchObject({
+      status: 409,
+      code: 'PRICE_UNAVAILABLE',
+    });
   });
   it('refuses a departed selection before pricing or payment preparation', async () => {
     mockDepartures.mockRejectedValueOnce(new DepartureAdmissionError());
@@ -113,7 +122,7 @@ describe('prepareStripeCheckout', () => {
 
   it('rejects checkout before pricing when card payment is disabled', async () => {
     mockResolveMethods.mockReturnValueOnce([]);
-    await expect(prepareStripeCheckout(request(body), 'payment-element')).rejects.toMatchObject({
+    await expect(prepareStripeCheckout(request(body), 'hosted')).rejects.toMatchObject({
       status: 409, code: 'CARD_PAYMENT_DISABLED',
     } satisfies Partial<StripeCheckoutInputError>);
     expect(mockCalculatePricing).not.toHaveBeenCalled();

@@ -14,9 +14,14 @@ jest.mock('@/lib/tenant', () => ({
 import { catalogueFromPrice } from '@/lib/revenue/pricingSummary';
 
 describe('catalogueFromPrice', () => {
-  it('includes standard and option prices, including legitimate zero prices', () => {
+  it('includes standard and option prices, never a 0 (an unpriced option is not a $0 price)', () => {
     expect(catalogueFromPrice({ discountPrice: 100, bookingOptions: [{ price: 120 }, { price: 80 }] })).toBe(80);
-    expect(catalogueFromPrice({ discountPrice: 100, bookingOptions: [{ price: 0 }] })).toBe(0);
+    // #2727: this used to expect 0 ("legitimate zero prices"); a 0 option is
+    // not priced yet and must never become the listing "from" price.
+    expect(catalogueFromPrice({ discountPrice: 100, bookingOptions: [{ price: 0 }] })).toBeNull();
+    expect(catalogueFromPrice({ discountPrice: 100, bookingOptions: [{ price: 0 }, { price: 70 }] })).toBe(70);
+    expect(catalogueFromPrice({ discountPrice: 0, bookingOptions: [{ price: 0, timeSlots: [{ price: 0 }, { price: 33 }] }] })).toBe(33);
+    expect(catalogueFromPrice({ discountPrice: 0, bookingOptions: [] })).toBeNull();
   });
 
   it('uses the cheapest chargeable slot and applies discounts only for opted-in options', () => {

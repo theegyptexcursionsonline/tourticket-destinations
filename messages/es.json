@@ -300,6 +300,7 @@
     "backToHome": "Volver a Inicio"
   },
   "price": {
+    "onRequest": "Precio a consultar",
     "from": "desde",
     "perPerson": "por persona",
     "free": "Gratis",
@@ -321,6 +322,7 @@
     "unitDefaults": "unidades"
   },
   "booking": {
+    "optionPriceUnavailable": "Esta opción aún no se puede reservar en línea. Contáctenos para conocer el precio.",
     "adults": "Adultos",
     "children": "Niños",
     "infants": "Bebés",

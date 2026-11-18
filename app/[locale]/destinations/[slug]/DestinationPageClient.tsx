@@ -37,6 +37,7 @@ import { curateDestinationTours } from '@/lib/content/destinationTourCuration';
 import { buildContentBreadcrumbs } from '@/lib/content/breadcrumbs';
 import ContentBreadcrumbs from '@/components/navigation/ContentBreadcrumbs';
 import { contentPath } from '@/lib/content/contentUrl';
+import ListingPrice from '@/components/pricing/ListingPrice';
 
 const DESTINATION_HERO_FALLBACK_IMAGE = '/hero2.jpg';
 
@@ -2474,7 +2475,7 @@ const Top10Card = ({ tour, index, onAddToCartClick }: { tour: Tour, index: numbe
         </div>
         <div className="mt-2 text-sm flex items-center gap-2">
           {tour.originalPrice && tour.originalPrice > tour.discountPrice && <span className="text-slate-500 line-through text-xs sm:text-sm">{formatPrice(tour.originalPrice)}</span>}
-          <span className="text-red-600 font-bold text-lg sm:text-xl">{formatPrice(tour.discountPrice)}</span>
+          <span className="text-red-600 font-bold text-lg sm:text-xl"><ListingPrice value={tour.discountPrice} formatPrice={formatPrice} /></span>
         </div>
       </div>
       <div className="flex sm:flex-col flex-shrink-0 items-center gap-2 ms-auto sm:ms-0">
@@ -2537,7 +2538,7 @@ const CombiDealCard = ({ tour, onAddToCartClick }: { tour: Tour, onAddToCartClic
         </div>
         <div className="flex items-end justify-end mt-3 sm:mt-4">
           {tour.originalPrice && tour.originalPrice > tour.discountPrice && <span className="text-slate-500 line-through me-2 text-sm">{formatPrice(tour.originalPrice)}</span>}
-          <span className="text-lg sm:text-xl font-extrabold text-red-600">{formatPrice(tour.discountPrice)}</span>
+          <span className="text-lg sm:text-xl font-extrabold text-red-600"><ListingPrice value={tour.discountPrice} formatPrice={formatPrice} /></span>
         </div>
       </div>
     </Link>

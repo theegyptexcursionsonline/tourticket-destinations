@@ -14,6 +14,7 @@ import {
   checkoutCustomerRef,
   checkoutFingerprint,
 } from '@/lib/security/checkoutPricing';
+import { PriceUnavailableError } from '@/lib/checkout/priceUnavailable';
 import { getTenantConfigCached, getTenantFromRequest } from '@/lib/tenant';
 
 type CheckoutCustomer = {
@@ -188,6 +189,9 @@ export async function prepareStripeCheckout(
     if (error instanceof DepartureAdmissionError) throw new StripeCheckoutInputError(409, error.code, error.message);
     if (error instanceof CheckoutPriceChangedError) {
       throw new StripeCheckoutInputError(409, error.code, error.message, { quote: error.quote });
+    }
+    if (error instanceof PriceUnavailableError) {
+      throw new StripeCheckoutInputError(409, error.code, error.message);
     }
     throw error;
   }

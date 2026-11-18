@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { useSettings } from '@/hooks/useSettings';
 import { useTranslations } from 'next-intl';
+import ListingPrice from '@/components/pricing/ListingPrice';
 
 export default function WishlistSidebar() {
   const { isWishlistSidebarOpen, closeWishlistSidebar, wishlist, removeFromWishlist } = useWishlist();
@@ -83,7 +84,7 @@ export default function WishlistSidebar() {
                         </h4>
                       </Link>
                       <p className="text-sm text-slate-600 mt-1 font-semibold">
-                        {formatPrice(tour.discountPrice)}
+                        <ListingPrice value={tour.discountPrice} formatPrice={formatPrice} />
                       </p>
                     </div>
                     <button

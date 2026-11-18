@@ -7,7 +7,8 @@ import { Clock, Star, MapPin, Search, X, SlidersHorizontal, Tag } from 'lucide-r
 import { ITour } from '@/lib/models/Tour';
 import { useSettings } from '@/hooks/useSettings';
 import { motion, AnimatePresence } from 'framer-motion';
-import { tourFromPrice } from '@/lib/pricing/displayPrice';
+import { compareFromPrice, tourFromPrice } from '@/lib/pricing/displayPrice';
+import ListingPrice from '@/components/pricing/ListingPrice';
 import { useTenant } from '@/contexts/TenantContext';
 
 interface TourWithDetails extends Omit<ITour, 'destination' | 'categories'> {
@@ -24,7 +25,7 @@ const TourCard = ({ tour }: { tour: TourWithDetails }) => {
   const { formatPrice } = useSettings();
   const { tenantId } = useTenant();
   const fromPrice = tourFromPrice(tour, tenantId);
-  const discountPercent = fromPrice.discountApplied
+  const discountPercent = fromPrice?.discountApplied
     ? Math.round(((fromPrice.originalPrice - fromPrice.price) / fromPrice.originalPrice) * 100)
     : 0;
 
@@ -108,16 +109,16 @@ const TourCard = ({ tour }: { tour: TourWithDetails }) => {
           {/* Price Section */}
           <div className="pt-4 border-t border-slate-100 flex justify-between items-end">
             <div>
-              {fromPrice.discountApplied && (
+              {fromPrice?.discountApplied && (
                 <div className="text-sm text-slate-400 line-through">
                   {formatPrice(fromPrice.originalPrice)}
                 </div>
               )}
               <div className="flex items-baseline gap-1">
                 <span className="text-2xl font-bold text-[var(--primary-color)]">
-                  {formatPrice(fromPrice.price)}
+                  <ListingPrice value={fromPrice?.price} formatPrice={formatPrice} />
                 </span>
-                <span className="text-xs text-slate-500">per person</span>
+                {fromPrice && <span className="text-xs text-slate-500">per person</span>}
               </div>
             </div>
             <span className="rounded-lg bg-[var(--primary-color)] px-4 py-2 text-sm font-semibold text-white transition-opacity group-hover:opacity-90">
@@ -172,10 +173,10 @@ export default function ToursClientPage({ tours }: ToursClientPageProps) {
     // Sort
     switch (sortBy) {
       case 'price-low':
-        filtered.sort((a, b) => tourFromPrice(a, tenantId).price - tourFromPrice(b, tenantId).price);
+        filtered.sort((a, b) => compareFromPrice(tourFromPrice(a, tenantId), tourFromPrice(b, tenantId), 'asc'));
         break;
       case 'price-high':
-        filtered.sort((a, b) => tourFromPrice(b, tenantId).price - tourFromPrice(a, tenantId).price);
+        filtered.sort((a, b) => compareFromPrice(tourFromPrice(a, tenantId), tourFromPrice(b, tenantId), 'desc'));
         break;
       case 'rating':
         filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));

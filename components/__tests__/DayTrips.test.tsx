@@ -484,7 +484,9 @@ describe('DayTripsSection', () => {
       // Should show default values
       expect(screen.getByText('Duration not specified')).toBeInTheDocument()
       expect(screen.getByText('0.0')).toBeInTheDocument()
-      expect(screen.getByText('$0.00')).toBeInTheDocument()
+      // #2727: a tour with no price says so; it never advertises $0.00.
+      expect(screen.getByText('price.onRequest')).toBeInTheDocument()
+      expect(screen.queryByText('$0.00')).not.toBeInTheDocument()
     })
   })
 

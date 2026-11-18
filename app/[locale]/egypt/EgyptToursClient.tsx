@@ -9,6 +9,8 @@ import BookingSidebar from '@/components/BookingSidebar';
 import { Tour } from '@/types';
 import { useSettings } from '@/hooks/useSettings';
 import { useTenant } from '@/contexts/TenantContext';
+import ListingPrice from '@/components/pricing/ListingPrice';
+import { firstRealPrice } from '@/lib/pricing/effectivePrice';
 
 interface EgyptToursClientProps {
   tours: Tour[];
@@ -137,7 +139,7 @@ const SimpleTourCard = ({ tour, onAddToCartClick }: { tour: Tour; onAddToCartCli
         {/* Price Badge */}
         <div className="absolute start-4 bottom-4 z-20">
           <div className="rounded-full border-2 border-white/20 bg-[var(--primary-color)] px-3 py-2 text-sm font-black text-white sm:text-base">
-            {formatPrice(tour.discountPrice || tour.originalPrice || 0)}
+            <ListingPrice value={firstRealPrice(tour.discountPrice, tour.originalPrice)} formatPrice={formatPrice} />
             {tour.originalPrice && tour.discountPrice && tour.originalPrice > tour.discountPrice && (
               <span className="ms-2 text-xs font-medium line-through opacity-70">
                 {formatPrice(tour.originalPrice)}
@@ -189,7 +191,7 @@ const SimpleTourCard = ({ tour, onAddToCartClick }: { tour: Tour; onAddToCartCli
             <div className="text-xs text-gray-500 mb-0.5">Starting from</div>
             <div className="flex items-baseline gap-2">
               <span className="text-xl font-black text-gray-900">
-                {formatPrice(tour.discountPrice || tour.originalPrice || 0)}
+                <ListingPrice value={firstRealPrice(tour.discountPrice, tour.originalPrice)} formatPrice={formatPrice} />
               </span>
               {tour.originalPrice && tour.discountPrice && tour.originalPrice > tour.discountPrice && (
                 <span className="text-xs text-gray-400 line-through">

@@ -516,14 +516,14 @@ function TourHits({
                     </span>
                   </>
                 )}
-                {(hit.price || hit.discountPrice) && (
+                {(hit.price || hit.discountPrice) ? (
                   <>
                     <span className="text-gray-300">•</span>
                     <span className="font-bold text-blue-600">
                       ${hit.discountPrice || hit.price}
                     </span>
                   </>
-                )}
+                ) : null}
               </div>
             </div>
           </div>

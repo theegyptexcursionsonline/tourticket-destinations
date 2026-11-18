@@ -300,6 +300,7 @@
     "backToHome": "العودة للرئيسية"
   },
   "price": {
+    "onRequest": "السعر عند الطلب",
     "from": "من",
     "perPerson": "للشخص",
     "free": "مجاني",
@@ -321,6 +322,7 @@
     "unitDefaults": "وحدات"
   },
   "booking": {
+    "optionPriceUnavailable": "لا يمكن حجز هذا الخيار عبر الإنترنت حاليًا. تواصل معنا لمعرفة السعر.",
     "adults": "بالغون",
     "children": "أطفال",
     "infants": "رضّع",

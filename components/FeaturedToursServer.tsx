@@ -11,6 +11,8 @@ import BookingSidebar from '@/components/BookingSidebar';
 import { Link } from '@/i18n/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { isRTL } from '@/i18n/config';
+import ListingPrice from '@/components/pricing/ListingPrice';
+import { firstRealPrice } from '@/lib/pricing/effectivePrice';
 
 interface FeaturedToursServerProps {
   tours: Tour[];
@@ -152,7 +154,7 @@ const TourCard = ({ tour, onAddToCartClick }: { tour: Tour; onAddToCartClick: (t
         {/* Price Badge */}
         <div className="absolute start-4 bottom-4 z-20">
           <div className="rounded-full border-2 border-white/20 bg-[var(--primary-color)] px-3 py-2 text-sm font-black text-white sm:text-base" style={{ boxShadow: 'none' }}>
-            {formatPrice(tour.discountPrice || tour.originalPrice || 0)}
+            <ListingPrice value={firstRealPrice(tour.discountPrice, tour.originalPrice)} formatPrice={formatPrice} />
             {tour.originalPrice && tour.discountPrice && tour.originalPrice > tour.discountPrice && (
               <span className="ms-2 text-xs font-medium line-through text-red-100">
                 {formatPrice(tour.originalPrice)}
@@ -205,7 +207,7 @@ const TourCard = ({ tour, onAddToCartClick }: { tour: Tour; onAddToCartClick: (t
             <div className="text-xs text-gray-500 mb-0.5">{t('tourCard.startingFrom')}</div>
             <div className="flex items-baseline gap-2">
               <span className="text-lg sm:text-xl md:text-2xl font-black text-gray-900">
-                {formatPrice(tour.discountPrice || tour.originalPrice || 0)}
+                <ListingPrice value={firstRealPrice(tour.discountPrice, tour.originalPrice)} formatPrice={formatPrice} />
               </span>
               {tour.originalPrice && tour.discountPrice && tour.originalPrice > tour.discountPrice && (
                 <span className="text-xs text-gray-400 line-through">

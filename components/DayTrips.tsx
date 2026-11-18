@@ -12,6 +12,8 @@ import Image from 'next/image';
 import toast from 'react-hot-toast';
 import { useLocale, useTranslations } from 'next-intl';
 import { isRTL } from '@/i18n/config';
+import ListingPrice from '@/components/pricing/ListingPrice';
+import { firstRealPrice } from '@/lib/pricing/effectivePrice';
 
 // --- Safe Image Component ---
 const SafeImage = ({ 
@@ -155,7 +157,7 @@ const DayTripCard = ({
             </span>
           )}
           <span className="font-extrabold text-lg sm:text-xl md:text-2xl text-slate-900">
-            {formatPrice(trip.discountPrice || trip.originalPrice || 0)}
+            <ListingPrice value={firstRealPrice(trip.discountPrice, trip.originalPrice)} formatPrice={formatPrice} />
           </span>
         </div>
       </div>

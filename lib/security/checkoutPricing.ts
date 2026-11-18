@@ -10,6 +10,8 @@ import {
   isPerPersonAddOn,
 } from '@/lib/checkout/addOnPricing';
 import { authoritativeBasePrice } from '@/lib/pricing/authoritativePrice';
+import { isRealPrice } from '@/lib/pricing/effectivePrice';
+import { PriceUnavailableError } from '@/lib/checkout/priceUnavailable';
 import { guestPricedSubtotal, resolveCatalogueGuestPrices } from '@/lib/revenue/guestPrices';
 import {
   capacityAvailability,
@@ -31,6 +33,8 @@ export class CheckoutPriceChangedError extends Error {
     this.name = 'CheckoutPriceChangedError';
   }
 }
+
+export { PriceUnavailableError };
 
 export function checkoutFingerprint(cart: CartItem[], tenantId: string, currency: string): string {
   const canonical = cart.map((item) => ({
@@ -209,6 +213,9 @@ export async function calculateCheckoutPricing(
     for (const guest of ['child', 'infant'] as const) {
       if (!Number.isFinite(guestPrices[guest]) || guestPrices[guest] < 0) throw new Error('Invalid tour price');
     }
+    // The adult price is also the unit price of a Per Couple/Family/Group
+    // option. Child and infant may legitimately be 0 (infants travel free).
+    if (!isRealPrice(basePrice) || !isRealPrice(guestPrices.adult)) throw new PriceUnavailableError();
 
     const selectedAddOns: Record<string, number> = {};
     const selectedAddOnDetails: Record<string, any> = {};

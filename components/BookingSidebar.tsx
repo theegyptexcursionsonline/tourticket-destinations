@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { effectiveOptionPrice, effectiveTourPrice, percentageOff } from '@/lib/pricing/effectivePrice';
+import { effectiveOptionPrice, effectiveTourPrice, isRealPrice, percentageOff } from '@/lib/pricing/effectivePrice';
+import { bookableTripPrice } from '@/lib/pricing/displayPrice';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from '@/i18n/navigation';
 import Image from 'next/image';
@@ -195,6 +196,10 @@ interface TourOption {
   isRecommended?: boolean;
   isStopSale?: boolean;
   stopSaleReason?: string;
+  /** No departure of this option has a real price: shown, never bookable online. */
+  priceUnavailable?: boolean;
+  /** Cheapest priced departure, used to quote a 0-base option before a time is chosen. */
+  priceFromTime?: string;
 }
 
 interface SpecialOffer {
@@ -593,7 +598,7 @@ const TourOptionCard: React.FC<{
     isSelectedTimeSlot(selectedTimeSlot, option.id, timeSlot.id));
   const cardGuestPrices = resolveCatalogueGuestPrices(tour, {
     selectedBookingOption: { id: option.id },
-    selectedTime: selectedSlotForOption?.time ?? null,
+    selectedTime: selectedSlotForOption?.time ?? option.priceFromTime ?? null,
   });
   const subtotal = tour
     ? guestPricedSubtotal(option, cardGuestPrices, adults, children, infants)
@@ -662,7 +667,13 @@ const TourOptionCard: React.FC<{
           </div>
         </div>
       )}
-      {!option.isStopSale && option.timeSlots.length === 0 && (
+      {!option.isStopSale && option.priceUnavailable && (
+        <div role="status" data-price-state="on-request" className="mb-2 flex items-start gap-2 bg-slate-50 border border-slate-200 text-slate-700 px-2.5 py-2 rounded-xl text-sm">
+          <AlertCircle size={14} className="shrink-0 mt-0.5" />
+          <p>{t('booking.optionPriceUnavailable')}</p>
+        </div>
+      )}
+      {!option.isStopSale && !option.priceUnavailable && option.timeSlots.length === 0 && (
         <div role="status" className="mb-2 flex items-start gap-2 bg-amber-50 border border-amber-200 text-amber-900 px-2.5 py-2 rounded-xl text-sm">
           <AlertCircle size={14} className="shrink-0 mt-0.5" />
           <p>No departures are available for this date. Please choose another date.</p>
@@ -729,6 +740,12 @@ const TourOptionCard: React.FC<{
 
         {/* Price Section */}
         <div className="flex-shrink-0 text-end bg-gray-50 rounded-xl px-2.5 py-2 w-[96px] sm:w-[104px]">
+          {option.priceUnavailable ? (
+            <div className="text-sm font-bold text-slate-700 leading-tight" data-price-state="on-request">
+              {t('price.onRequest')}
+            </div>
+          ) : (
+          <>
           {originalSubtotal > subtotal && (
             <div className="text-xs text-gray-400 line-through whitespace-nowrap">
               {formatPrice(originalSubtotal)}
@@ -740,6 +757,8 @@ const TourOptionCard: React.FC<{
           <div className="text-[10px] text-gray-500 whitespace-nowrap">
             {t('price.totalPrice')}
           </div>
+          </>
+          )}
         </div>
       </div>
 
@@ -825,7 +844,9 @@ const TourOptionCard: React.FC<{
         </div>
       )}
 
-      {/* Price Summary */}
+      {/* Price Summary — an unpriced option has no total and no times to pick */}
+      {!option.priceUnavailable && (
+      <>
       <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl px-3 py-2 mb-2 border border-gray-200">
         <div className="flex justify-between items-center text-xs mb-1">
           <span className="text-gray-700 font-medium">
@@ -1024,6 +1045,8 @@ const TourOptionCard: React.FC<{
           })}
         </div>
       </div>
+      </>
+      )}
 
       {/* Trust Indicators */}
       <div className="flex items-center gap-2.5 mt-2 pt-2 border-t border-gray-200">
@@ -1658,6 +1681,12 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
     () => effectiveTourPrice(tourDisplayData),
     [tourDisplayData],
   );
+  // The panel headline matches the trip page: the tour's own price, else its
+  // cheapest real option price, else "price on request" (never $0.00).
+  const headlinePricing = useMemo(
+    () => bookableTripPrice(tourDisplayData),
+    [tourDisplayData],
+  );
 
   // Helper function to generate time slots from tour availability settings
   const generateTimeSlotsFromAvailability = useCallback((price: number, optionIndex: number, option?: BookingOption): TimeSlot[] => {
@@ -1709,9 +1738,15 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
           // Same helper the server charges with, so the quoted price and the
           // charged price cannot drift apart.
           const pricing = effectiveOptionPrice(tourDisplayData, option);
-          const optionPrice = pricing.price || tourDisplayData?.discountPrice || 50;
           const optionId = option.id || option._id || `option-${index}`;
-          const optionSlots: TimeSlot[] = Array.isArray(option.timeSlots) && option.timeSlots.length > 0
+          const hasOwnSlots = Array.isArray(option.timeSlots) && option.timeSlots.length > 0;
+          // A departure is offered only at a real price. A new option starts
+          // with a 0 base; staff may price it per start time, or not yet at
+          // all. Checkout charges the option base for a departure the option
+          // does not list itself, so a 0-base option without its own priced
+          // times cannot be sold, and showing it at the tour price (or an
+          // invented amount) quoted something checkout would never charge.
+          const pricedSlots: TimeSlot[] = (hasOwnSlots
             ? option.timeSlots.map((slot: any, slotIndex: number) => {
                 const slotPricing = effectiveOptionPrice(tourDisplayData, option, slot);
                 return {
@@ -1725,7 +1760,16 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
                   isPopular: slotIndex === 0,
                 };
               })
-            : generateTimeSlotsFromAvailability(optionPrice, index, option);
+            : (isRealPrice(pricing.price) ? generateTimeSlotsFromAvailability(pricing.price, index, option) : [])
+          ).filter((slot: TimeSlot) => isRealPrice(slot.price));
+          const cheapestSlot = pricedSlots.reduce<TimeSlot | null>(
+            (best, slot) => (!best || slot.price < best.price ? slot : best),
+            null,
+          );
+          const baseIsReal = isRealPrice(pricing.price);
+          const optionPrice = baseIsReal ? pricing.price : (cheapestSlot?.price ?? 0);
+          const optionSlots = pricedSlots;
+          const priceUnavailable = !baseIsReal && !cheapestSlot;
           return {
             id: optionId,
             pricingKey: option.pricingKey,
@@ -1751,12 +1795,18 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
             discount: pricing.discountApplied
               ? percentageOff(pricing.originalPrice, pricing.price)
               : option.discount,
-            isRecommended: option.isRecommended ?? index === 0,
+            // An option that cannot be booked is never the recommended one.
+            isRecommended: !priceUnavailable && (option.isRecommended ?? index === 0),
+            priceUnavailable,
+            priceFromTime: baseIsReal ? undefined : cheapestSlot?.time,
           };
-        });
+        })
+          // Bookable options first; an unpriced one is still listed, last.
+          .sort((a: TourOption, b: TourOption) => Number(Boolean(a.priceUnavailable)) - Number(Boolean(b.priceUnavailable)));
       } else {
         // Fallback to default tour options using actual availability slots
         const standardPrice = tourBasePricing.price;
+        const standardPriced = isRealPrice(standardPrice);
         tourOptions = [
           {
             id: 'standard-default',
@@ -1771,10 +1821,12 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
             duration: tourDisplayData?.duration || '3 hours',
             languages: tourDisplayData?.languages || ['English'],
             description: 'Perfect introduction to the destination with expert guide',
-            timeSlots: bindTimeSlotsToOption(
-              'standard-default',
-              generateTimeSlotsFromAvailability(standardPrice, 0),
-            ),
+            timeSlots: standardPriced
+              ? bindTimeSlotsToOption(
+                  'standard-default',
+                  generateTimeSlotsFromAvailability(standardPrice, 0).filter((slot) => isRealPrice(slot.price)),
+                )
+              : [],
             highlights: tourDisplayData?.highlights?.slice(0, 3) || ['Expert guide included', 'Small group experience', 'Photo opportunities'],
             included: tourDisplayData?.includes?.slice(0, 3) || ['Professional guide', 'Entry tickets', 'Group photos'],
             groupSize: `Max ${tourDisplayData?.maxGroupSize || 15} people`,
@@ -1784,6 +1836,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
               ? percentageOff(tourBasePricing.originalPrice, tourBasePricing.price)
               : undefined,
             isRecommended: true,
+            priceUnavailable: !standardPriced,
           }
         ];
       }
@@ -1901,6 +1954,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
     // card. Estimate from the cheapest option the party can actually take.
     const estimateOption = !slotOption
       ? (availability?.tourOptions ?? [])
+          .filter((candidate) => !candidate.priceUnavailable)
           .filter((candidate) => capacityAvailability(
             candidate,
             bookingData.adults + bookingData.children + bookingData.infants,
@@ -1921,7 +1975,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
     const quotedGuestPrices = tour
       ? resolveCatalogueGuestPrices(tour, {
           selectedBookingOption: pricedOption ? { id: pricedOption.id, pricingKey: pricedOption.pricingKey } : null,
-          selectedTime: bookingData.selectedTimeSlot?.time ?? null,
+          selectedTime: bookingData.selectedTimeSlot?.time ?? pricedOption?.priceFromTime ?? null,
         })
       : null;
     const effectiveGuestPrices = bookingData.selectedTimeSlot?.guestPrices || pricedOption?.guestPrices || quotedGuestPrices;
@@ -2567,22 +2621,28 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
 
             {/* Compact Price Section */}
             <div className="flex justify-between items-center bg-gray-100 rounded-2xl p-4 text-gray-800 border border-gray-200">
+              {headlinePricing ? (
               <div>
-                {tourBasePricing.discountApplied && (
+                {headlinePricing.discountApplied && (
                   <span className="text-sm text-gray-500 line-through block">
-                    {formatPrice(tourBasePricing.originalPrice)}
+                    {formatPrice(headlinePricing.originalPrice)}
                   </span>
                 )}
-                {tourBasePricing.discountApplied && percentageOff(tourBasePricing.originalPrice, tourBasePricing.price) > 0 && (
+                {headlinePricing.discountApplied && percentageOff(headlinePricing.originalPrice, headlinePricing.price) > 0 && (
                   <span className="mb-1 inline-block rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700">
-                    {percentageOff(tourBasePricing.originalPrice, tourBasePricing.price)}% OFF
+                    {percentageOff(headlinePricing.originalPrice, headlinePricing.price)}% OFF
                   </span>
                 )}
                 <span className="text-2xl sm:text-3xl font-bold text-red-600 block">
-                  {formatPrice(tourBasePricing.price)}
+                  {formatPrice(headlinePricing.price)}
                 </span>
                 <span className="text-xs text-gray-500">{t('price.perPerson')}</span>
               </div>
+              ) : (
+              <div data-price-state="on-request">
+                <span className="text-xl sm:text-2xl font-bold text-slate-700 block">{t('price.onRequest')}</span>
+              </div>
+              )}
               <div className="flex items-center gap-2 text-green-700 font-semibold bg-green-100 px-3 py-1 rounded-full text-sm">
                 <BadgeDollarSign size={16} />
                 <span>{t('booking.greatValue')}</span>

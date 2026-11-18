@@ -8,6 +8,7 @@ import { useSettings } from '@/hooks/useSettings';
 import { useWishlist } from '@/contexts/WishlistContext';
 import { Star, Clock, Trash2, Heart } from 'lucide-react';
 import toast from 'react-hot-toast';
+import ListingPrice from '@/components/pricing/ListingPrice';
 
 interface TourCardProps {
   tour: Tour;
@@ -56,7 +57,7 @@ const TourCard: React.FC<{ tour: Tour }> = ({ tour }) => {
           </div>
           <div className="mt-auto flex items-center justify-between">
             <p className="text-sm text-slate-500">From</p>
-            <span className="text-xl font-bold text-red-600">{formatPrice(tour.discountPrice)}</span>
+            <span className="text-xl font-bold text-red-600"><ListingPrice value={tour.discountPrice} formatPrice={formatPrice} /></span>
           </div>
         </div>
       </Link>
@@ -109,7 +110,7 @@ export const UserTourCard: React.FC<TourCardProps> = ({ tour, onRemove }) => {
           </div>
           <div className="mt-auto flex items-end justify-between">
             <div className="text-end">
-                <span className="text-xl font-bold text-red-600">{formatPrice(tour.discountPrice)}</span>
+                <span className="text-xl font-bold text-red-600"><ListingPrice value={tour.discountPrice} formatPrice={formatPrice} /></span>
             </div>
             <button
               onClick={handleRemove}

@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { Tour } from '@/types';
 import { useSettings } from '@/hooks/useSettings';
 import { tourFromPrice } from '@/lib/pricing/displayPrice';
+import ListingPrice from '@/components/pricing/ListingPrice';
 import { useTenant } from '@/contexts/TenantContext';
 import BookingSidebar from '@/components/BookingSidebar';
 import { Link } from '@/i18n/navigation';
@@ -151,8 +152,8 @@ const TourCard = ({ tour, onAddToCartClick }: { tour: Tour; onAddToCartClick: (t
         {/* Price pill (overlay bottom-left) */}
         <div className="absolute start-4 bottom-4 z-20">
           <div className="bg-gradient-to-r from-red-600 to-red-500 text-white px-4 py-3 rounded-full font-black shadow-xl text-lg border-2 border-white/20">
-            {formatPrice(fromPrice.price)}
-            {fromPrice.discountApplied && (
+            <ListingPrice value={fromPrice?.price} formatPrice={formatPrice} />
+            {fromPrice?.discountApplied && (
               <span className="ms-3 text-sm font-medium line-through text-red-100">
                 {formatPrice(fromPrice.originalPrice)}
               </span>
@@ -207,9 +208,9 @@ const TourCard = ({ tour, onAddToCartClick }: { tour: Tour; onAddToCartClick: (t
             <div className="text-sm text-gray-500 mb-1">Starting from</div>
             <div className="flex items-baseline gap-2">
               <span className="text-2xl md:text-3xl font-black text-gray-900">
-                {formatPrice(fromPrice.price)}
+                <ListingPrice value={fromPrice?.price} formatPrice={formatPrice} />
               </span>
-              {fromPrice.discountApplied && (
+              {fromPrice?.discountApplied && (
                 <span className="text-sm text-gray-400 line-through">
                   {formatPrice(fromPrice.originalPrice)}
                 </span>

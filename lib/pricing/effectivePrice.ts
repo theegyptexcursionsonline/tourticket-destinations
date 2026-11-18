@@ -35,6 +35,26 @@ export interface PricedTimeSlot {
 /** Round to cents so repeated percentage maths cannot drift. */
 const toMoney = (value: number) => Math.round(value * 100) / 100;
 
+/**
+ * A price a guest can actually be charged: a finite amount above zero.
+ *
+ * The catalogue has no free products and card payment cannot take 0, so a 0
+ * or blank price means "not priced yet", never "free". A new booking option
+ * starts with a 0 base; an option priced only per start time is priced by
+ * those times, and one priced nowhere has no price at all.
+ */
+export function isRealPrice(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0;
+}
+
+/** The first candidate that is a real price, or null when none is. */
+export function firstRealPrice(...candidates: unknown[]): number | null {
+  for (const candidate of candidates) {
+    if (isRealPrice(candidate)) return candidate;
+  }
+  return null;
+}
+
 export function normalizeDiscountPercent(percent?: number | null): number {
   if (typeof percent !== 'number' || !Number.isFinite(percent)) return 0;
   if (percent <= 0) return 0;
