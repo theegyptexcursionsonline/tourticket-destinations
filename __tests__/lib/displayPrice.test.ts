@@ -128,3 +128,22 @@ describe('unpriced options never advertise $0.00', () => {
     expect(desc).toEqual([b, a, null]);
   });
 });
+
+// 19 Nov 2026 (parity with the German site): a base price that no option
+// sells at put a per-person headline in the booking panel that its option
+// cards and total never reached. The headline follows the cheapest option.
+describe('bookableTripPrice never advertises a price no option sells at', () => {
+  it('a base below every option gives way to the cheapest option', () => {
+    expect(bookableTripPrice({ discountPrice: 80, bookingOptions: [{ price: 120, timeSlots: [{ price: 120 }] }] })?.price).toBe(120);
+  });
+
+  it('a base above the cheapest option gives way to it', () => {
+    expect(bookableTripPrice({ discountPrice: 140, bookingOptions: [{ price: 125 }, { price: 160 }] })?.price).toBe(125);
+  });
+
+  it('a base equal to the cheapest option keeps its original price', () => {
+    expect(bookableTripPrice({ discountPrice: 45, originalPrice: 65, bookingOptions: [{ price: 45 }, { price: 120 }] }))
+      .toEqual({ price: 45, originalPrice: 65, discountApplied: true });
+    expect(bookableTripPrice({ discountPrice: 45 })?.price).toBe(45);
+  });
+});

@@ -432,7 +432,15 @@
     "capacityBelowMinimum": "Нужно минимум {limit} {unit} — у вас {participants}.",
     "capacityAboveMaximum": "Не более {limit} {unit} — у вас {participants}.",
     "timesAvailable": "Доступно {available} из {total} времён",
-    "notAvailableForPartySize": "Недоступно для группы такого размера"
+    "notAvailableForPartySize": "Недоступно для группы такого размера",
+    "stepDateGuests": "Дата и гости",
+    "stepTourOptions": "Варианты тура",
+    "stepEnhance": "Дополнения",
+    "stepReviewBook": "Проверка и бронирование",
+    "stepShortDate": "Дата",
+    "stepShortOptions": "Варианты",
+    "stepShortEnhance": "Допы",
+    "stepShortReview": "Проверка"
   },
   "offers": {
     "save": "Экономьте до 20% на комби-предложениях и городских пропусках!",

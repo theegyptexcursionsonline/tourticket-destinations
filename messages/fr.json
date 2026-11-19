@@ -432,7 +432,15 @@
     "capacityBelowMinimum": "Au moins {limit} {unit} requis – vous en avez {participants}.",
     "capacityAboveMaximum": "Jusqu'à {limit} {unit} – vous en avez {participants}.",
     "timesAvailable": "{available} horaires sur {total} disponibles",
-    "notAvailableForPartySize": "Indisponible pour cette taille de groupe"
+    "notAvailableForPartySize": "Indisponible pour cette taille de groupe",
+    "stepDateGuests": "Date et voyageurs",
+    "stepTourOptions": "Options de visite",
+    "stepEnhance": "Enrichir la visite",
+    "stepReviewBook": "Vérifier et réserver",
+    "stepShortDate": "Date",
+    "stepShortOptions": "Options",
+    "stepShortEnhance": "Extras",
+    "stepShortReview": "Récapitulatif"
   },
   "offers": {
     "save": "Économisez jusqu'à 20% sur les forfaits combinés et les pass touristiques!",

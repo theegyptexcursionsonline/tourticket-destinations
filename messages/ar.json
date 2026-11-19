@@ -432,7 +432,15 @@
     "capacityBelowMinimum": "يتطلب {limit} {unit} على الأقل — لديك {participants}.",
     "capacityAboveMaximum": "يتسع لـ {limit} {unit} كحد أقصى — لديك {participants}.",
     "timesAvailable": "{available} من {total} مواعيد متاحة",
-    "notAvailableForPartySize": "غير متاح لحجم هذه المجموعة"
+    "notAvailableForPartySize": "غير متاح لحجم هذه المجموعة",
+    "stepDateGuests": "التاريخ والضيوف",
+    "stepTourOptions": "خيارات الرحلة",
+    "stepEnhance": "حسّن رحلتك",
+    "stepReviewBook": "مراجعة وحجز",
+    "stepShortDate": "التاريخ",
+    "stepShortOptions": "الخيارات",
+    "stepShortEnhance": "الإضافات",
+    "stepShortReview": "المراجعة"
   },
   "offers": {
     "save": "وفّر حتى 20% على العروض المجمّعة وبطاقات المدن!",

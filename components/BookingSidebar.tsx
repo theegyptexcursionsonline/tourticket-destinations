@@ -238,10 +238,12 @@ const getAddOnIcon = (category: string) => {
 
 // Steps configuration
 const STEPS = [
-  { id: 1, title: 'Date & Guests', shortTitle: 'Date', icon: Calendar },
-  { id: 2, title: 'Tour Options', shortTitle: 'Options', icon: Star },
-  { id: 3, title: 'Enhance Tour', shortTitle: 'Enhance', icon: Sparkles },
-  { id: 4, title: 'Review & Book', shortTitle: 'Review', icon: CheckCircle },
+  // Message keys: the step names follow the page language (they were fixed
+  // words in one language on every locale).
+  { id: 1, title: 'booking.stepDateGuests', shortTitle: 'booking.stepShortDate', icon: Calendar },
+  { id: 2, title: 'booking.stepTourOptions', shortTitle: 'booking.stepShortOptions', icon: Star },
+  { id: 3, title: 'booking.stepEnhance', shortTitle: 'booking.stepShortEnhance', icon: Sparkles },
+  { id: 4, title: 'booking.stepReviewBook', shortTitle: 'booking.stepShortReview', icon: CheckCircle },
 ];
 
 const StepsIndicator: React.FC<{
@@ -302,8 +304,8 @@ const StepsIndicator: React.FC<{
                   <div className={`text-xs font-medium leading-tight ${
                     isActive || isCompleted ? 'text-gray-800' : 'text-gray-500'
                   }`}>
-                    <div className="sm:hidden text-xs">{step.shortTitle}</div>
-                    <div className="hidden sm:block text-xs">{step.title}</div>
+                    <div className="sm:hidden text-xs">{t(step.shortTitle)}</div>
+                    <div className="hidden sm:block text-xs">{t(step.title)}</div>
                   </div>
                   <div className={`hidden sm:block text-xs mt-0.5 ${
                     isActive ? 'text-red-600' : isCompleted ? 'text-green-600' : 'text-gray-400'

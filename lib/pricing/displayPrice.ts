@@ -91,9 +91,9 @@ export function tourFromPrice(tour: DisplayableTour | null | undefined, tenantId
 
 /**
  * The per-person price the trip page headline, the booking panel headline and
- * the phone booking bar show. The tour's own base price stands when it is a
- * real price (today's behaviour for every priced tour); a tour saved with a 0
- * base and priced through its options shows its cheapest real option price;
+ * the phone booking bar show. With priced options it is the cheapest real
+ * option price, shown with the tour base and its original price when the two
+ * agree; without options the tour's own base price stands;
  * null when nothing is priced (no real base and no priced option, or options
  * configured and none of them priced), so the page says "price on request".
  */
@@ -102,6 +102,13 @@ export function bookableTripPrice(tour: DisplayableTour | null | undefined): Dis
   // Options configured but none priced: nothing on this trip can be booked.
   if (hasOptions(tour) && !cheapestOption) return null;
   const base = effectiveTourPrice(tour);
+  // With priced options, the headline is what the cheapest option sells at:
+  // a base price that no option sells at put a per-person figure in the
+  // booking panel that its cards and total never reached. A base equal to
+  // that cheapest option keeps standing (with its original price) as before.
+  if (cheapestOption && !(isRealPrice(base.price) && Math.abs(base.price - cheapestOption.price) < 0.005)) {
+    return cheapestOption;
+  }
   if (isRealPrice(base.price)) return base;
   return cheapestOption;
 }

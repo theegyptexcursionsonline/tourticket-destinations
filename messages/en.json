@@ -432,7 +432,15 @@
     "capacityBelowMinimum": "Needs at least {limit} {unit} — you have {participants}.",
     "capacityAboveMaximum": "Takes up to {limit} {unit} — you have {participants}.",
     "timesAvailable": "{available} of {total} times available",
-    "notAvailableForPartySize": "Not available for this party size"
+    "notAvailableForPartySize": "Not available for this party size",
+    "stepDateGuests": "Date & Guests",
+    "stepTourOptions": "Tour Options",
+    "stepEnhance": "Enhance Tour",
+    "stepReviewBook": "Review & Book",
+    "stepShortDate": "Date",
+    "stepShortOptions": "Options",
+    "stepShortEnhance": "Enhance",
+    "stepShortReview": "Review"
   },
   "offers": {
     "save": "Save up to 20% on combi deals and city passes!",
