@@ -15,7 +15,7 @@ jest.mock('framer-motion', () => {
 jest.mock('@/i18n/navigation', () => ({ useRouter: () => ({ push: jest.fn() }) }));
 jest.mock('@/hooks/useCart', () => ({ useCart: () => ({ addToCart: jest.fn() }) }));
 jest.mock('@/hooks/useSettings', () => ({ useSettings: () => ({ formatPrice: (n: number) => `$${n}` }) }));
-jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }));
+jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key, useLocale: () => 'en' }));
 describe('rendered no-option catalogue tour', () => {
   it('opens authored standard departures without a pricing-option render error', async () => {
     global.fetch = mockFetch;

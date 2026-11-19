@@ -7,6 +7,7 @@ import { Star, Search as SearchIcon, SlidersHorizontal } from 'lucide-react';
 import { useRouter, usePathname } from '@/i18n/navigation';
 import { useSearchParams } from 'next/navigation';
 import Header from '@/components/Headersearch';
+import { useTranslations } from 'next-intl';
 import Footer from '@/components/Footer';
 
 interface SearchClientProps {
@@ -15,17 +16,18 @@ interface SearchClientProps {
   destinations: Destination[];
 }
 
-const durationOptions = [
-  { label: 'Up to 2 hours', value: '0-2' },
-  { label: '2 to 4 hours', value: '2-4' },
-  { label: '4 to 6 hours', value: '4-6' },
-  { label: '6+ hours', value: '6-24' },
+// Filter labels follow the page language (they were fixed English words).
+const durationOptionKeys = [
+  { key: 'duration.upTo2Hours', value: '0-2' },
+  { key: 'duration.from2To4Hours', value: '2-4' },
+  { key: 'duration.from4To6Hours', value: '4-6' },
+  { key: 'duration.moreThan6Hours', value: '6-24' },
 ];
 
-const ratingOptions = [
-  { value: 5, label: '5 Stars' },
-  { value: 4, label: '4 Stars & up' },
-  { value: 3, label: '3 Stars & up' },
+const ratingOptionKeys = [
+  { value: 5, key: 'ratings.fiveStars' },
+  { value: 4, key: 'ratings.fourStarsAndUp' },
+  { value: 3, key: 'ratings.threeStarsAndUp' },
 ];
 
 const normalizeArrayParam = (val: string | null | undefined) => {
@@ -63,6 +65,9 @@ const SearchClient: React.FC<SearchClientProps> = ({ initialTours = [], categori
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const t = useTranslations('searchPage');
+  const durationOptions = durationOptionKeys.map((option) => ({ label: t(option.key), value: option.value }));
+  const ratingOptions = ratingOptionKeys.map((option) => ({ value: option.value, label: t(option.key) }));
 
   // Filters & UI state
   const [searchQuery, setSearchQuery] = useState(() => searchParams?.get('q') ?? '');
@@ -289,7 +294,7 @@ const SearchClient: React.FC<SearchClientProps> = ({ initialTours = [], categori
       <div className="bg-slate-50 border-b border-slate-200">
         <div className="container mx-auto px-4 py-10">
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-slate-900 mb-6">
-            Find Your Next Adventure
+            {t('title')}
           </h1>
 
           {/* Search Input */}
@@ -298,7 +303,7 @@ const SearchClient: React.FC<SearchClientProps> = ({ initialTours = [], categori
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by tour name, e.g., 'Giza Pyramids'"
+              placeholder={t('searchPlaceholder')}
               className="w-full ps-12 pe-4 py-3 text-black placeholder-gray-500 border border-slate-300 rounded-full focus:ring-2 focus:ring-red-500 focus:border-red-500 shadow-sm"
             />
             <SearchIcon className="absolute start-4 top-1/2 -translate-y-1/2 w-6 h-6 text-slate-400" />
@@ -312,7 +317,7 @@ const SearchClient: React.FC<SearchClientProps> = ({ initialTours = [], categori
             <div className="lg:hidden mb-4">
               <button onClick={() => setMobileFiltersOpen(!isMobileFiltersOpen)} className="flex items-center justify-center w-full px-4 py-2 bg-white border border-slate-300 rounded-lg shadow-sm">
                 <SlidersHorizontal className="w-5 h-5 me-2 text-slate-600" />
-                <span>{isMobileFiltersOpen ? 'Hide' : 'Show'} Filters</span>
+                <span>{isMobileFiltersOpen ? t('hideFilters') : t('showFilters')}</span>
               </button>
               {isMobileFiltersOpen && <div className="mt-3"><FilterSidebar /></div>}
             </div>
@@ -322,15 +327,15 @@ const SearchClient: React.FC<SearchClientProps> = ({ initialTours = [], categori
           <div className="lg:col-span-3">
             <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-6 pb-4 border-b border-slate-200">
               <p className="text-sm text-slate-600 mb-2 sm:mb-0">
-                {isLoading ? 'Searching...' : `Showing ${tours.length} result(s)`}
+                {isLoading ? t('searching') : t('showingResults', { count: tours.length })}
               </p>
               <div className="flex items-center gap-2">
-                <label htmlFor="sort" className="text-sm font-medium text-slate-700">Sort by:</label>
+                <label htmlFor="sort" className="text-sm font-medium text-slate-700">{t('sortBy')}</label>
                 <select id="sort" value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="border-slate-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 text-sm">
-                  <option value="relevance">Relevance</option>
-                  <option value="rating">Rating</option>
-                  <option value="price-asc">Price: Low to High</option>
-                  <option value="price-desc">Price: High to Low</option>
+                  <option value="relevance">{t('sortOptions.relevance')}</option>
+                  <option value="rating">{t('sortOptions.rating')}</option>
+                  <option value="price-asc">{t('sortOptions.priceLowToHigh')}</option>
+                  <option value="price-desc">{t('sortOptions.priceHighToLow')}</option>
                 </select>
               </div>
             </div>
@@ -348,13 +353,13 @@ const SearchClient: React.FC<SearchClientProps> = ({ initialTours = [], categori
       return (
         <aside className="bg-white p-6 rounded-lg shadow-sm border border-slate-200 sticky top-6">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-bold text-slate-800">Filters</h2>
-            <button onClick={clearAllFilters} className="text-sm text-red-600 hover:underline">Clear all</button>
+            <h2 className="text-xl font-bold text-slate-800">{t('filters')}</h2>
+            <button onClick={clearAllFilters} className="text-sm text-red-600 hover:underline">{t('clearAll')}</button>
           </div>
           <div className="space-y-6">
             {/* Categories */}
             <div>
-              <h3 className="font-semibold mb-2">Categories</h3>
+              <h3 className="font-semibold mb-2">{t('categories')}</h3>
               <div className="space-y-2 max-h-60 overflow-y-auto pe-2">
                 {categories.map((category) => (
                   <label key={category._id} className="flex items-center space-x-2 cursor-pointer">
@@ -371,7 +376,7 @@ const SearchClient: React.FC<SearchClientProps> = ({ initialTours = [], categori
             </div>
             {/* Destinations */}
             <div>
-              <h3 className="font-semibold mb-2">Destinations</h3>
+              <h3 className="font-semibold mb-2">{t('destinations')}</h3>
               <div className="space-y-2 max-h-60 overflow-y-auto pe-2">
                 {destinations.map((dest) => (
                   <label key={dest._id} className="flex items-center space-x-2 cursor-pointer">
@@ -388,7 +393,7 @@ const SearchClient: React.FC<SearchClientProps> = ({ initialTours = [], categori
             </div>
             {/* Price Range */}
             <div>
-              <h3 className="font-semibold mb-2">Price Range</h3>
+              <h3 className="font-semibold mb-2">{t('priceRange')}</h3>
               <input
                 type="range"
                 min={0}
@@ -404,7 +409,7 @@ const SearchClient: React.FC<SearchClientProps> = ({ initialTours = [], categori
             </div>
             {/* Duration */}
             <div>
-              <h3 className="font-semibold mb-2">Duration</h3>
+              <h3 className="font-semibold mb-2">{t('duration.title')}</h3>
               <div className="space-y-2">
                 {durationOptions.map((opt) => (
                   <label key={opt.value} className="flex items-center space-x-2 cursor-pointer">
@@ -421,7 +426,7 @@ const SearchClient: React.FC<SearchClientProps> = ({ initialTours = [], categori
             </div>
             {/* Rating */}
             <div>
-              <h3 className="font-semibold mb-2">Rating</h3>
+              <h3 className="font-semibold mb-2">{t('rating')}</h3>
               <div className="space-y-2">
                 {ratingOptions.map((opt) => (
                   <label key={opt.value} className="flex items-center space-x-2 cursor-pointer">
@@ -464,22 +469,22 @@ const SearchClient: React.FC<SearchClientProps> = ({ initialTours = [], categori
       return (
         <div className="py-24 text-center" role="alert">
           <SearchIcon className="h-16 w-16 text-slate-300 mb-4 mx-auto" aria-hidden="true" />
-          <h3 className="text-2xl font-bold text-slate-800">We could not load tours</h3>
-          <p className="text-slate-500 mt-2 max-w-md mx-auto">Something went wrong while fetching results. Please try again.</p>
+          <h3 className="text-2xl font-bold text-slate-800">{t('searchFailedTitle')}</h3>
+          <p className="text-slate-500 mt-2 max-w-md mx-auto">{t('searchFailedDescription')}</p>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
             <button
               type="button"
               onClick={() => setRetryToken((token) => token + 1)}
               className="px-5 py-2.5 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 shadow-sm"
             >
-              Try again
+              {t('searchRetry')}
             </button>
             <button
               type="button"
               onClick={clearAllFilters}
               className="px-5 py-2.5 border border-slate-300 text-slate-800 font-semibold rounded-lg hover:bg-slate-50"
             >
-              Clear filters
+              {t('clearFilters')}
             </button>
           </div>
         </div>
@@ -490,10 +495,10 @@ const SearchClient: React.FC<SearchClientProps> = ({ initialTours = [], categori
       return (
         <div className="py-24 text-center">
           <SearchIcon className="h-16 w-16 text-slate-300 mb-4 mx-auto" />
-          <h3 className="text-2xl font-bold text-slate-800">No tours found</h3>
-          <p className="text-slate-500 mt-2 max-w-md mx-auto">We couldn't find any tours matching your criteria. Try adjusting or clearing your filters.</p>
+          <h3 className="text-2xl font-bold text-slate-800">{t('noToursFoundTitle')}</h3>
+          <p className="text-slate-500 mt-2 max-w-md mx-auto">{t('noToursFoundDescription')}</p>
           <button onClick={clearAllFilters} className="mt-6 px-5 py-2.5 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 shadow-sm">
-            Clear Filters
+            {t('clearFilters')}
           </button>
         </div>
       );

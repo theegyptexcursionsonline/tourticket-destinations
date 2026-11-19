@@ -440,7 +440,11 @@
     "stepShortDate": "التاريخ",
     "stepShortOptions": "الخيارات",
     "stepShortEnhance": "الإضافات",
-    "stepShortReview": "المراجعة"
+    "stepShortReview": "المراجعة",
+    "difficultyEasy": "سهلة",
+    "difficultyModerate": "متوسطة",
+    "difficultyChallenging": "صعبة",
+    "difficultyDifficult": "صعبة جدًا"
   },
   "offers": {
     "save": "وفّر حتى 20% على العروض المجمّعة وبطاقات المدن!",
@@ -637,7 +641,8 @@
     "payOnline": "الدفع عبر الإنترنت",
     "payOnlineDescription": "دفع آمن عبر بطاقة الائتمان",
     "hotel": "اسم الفندق",
-    "roomNumber": "رقم الغرفة"
+    "roomNumber": "رقم الغرفة",
+    "serviceFee": "رسوم الخدمة"
   },
   "destinations": {
     "title": "الوجهات",
@@ -982,5 +987,45 @@
     "description": "تم حجز مكانك. نفتح الآن خطوة الدفع الآمن.",
     "secureNote": "دفع مشفّر",
     "continueManually": "المتابعة إلى الدفع"
+  },
+  "searchPage": {
+    "title": "اعثر على مغامرتك القادمة",
+    "searchPlaceholder": "ابحث باسم الجولة، مثل: 'أهرامات الجيزة'",
+    "hideFilters": "إخفاء الفلاتر",
+    "showFilters": "إظهار الفلاتر",
+    "searching": "جارٍ البحث...",
+    "showingResults": "عرض {count} نتيجة",
+    "sortBy": "الترتيب حسب:",
+    "sortOptions": {
+      "relevance": "الأكثر صلة",
+      "rating": "التقييم",
+      "priceLowToHigh": "السعر: من الأقل إلى الأعلى",
+      "priceHighToLow": "السعر: من الأعلى إلى الأقل"
+    },
+    "filters": "الفلاتر",
+    "clearAll": "مسح الكل",
+    "categories": "الفئات",
+    "destinations": "الوجهات",
+    "priceRange": "نطاق السعر",
+    "duration": {
+      "title": "المدة",
+      "upTo2Hours": "حتى ساعتين",
+      "from2To4Hours": "من ساعتين إلى 4 ساعات",
+      "from4To6Hours": "من 4 إلى 6 ساعات",
+      "moreThan6Hours": "أكثر من 6 ساعات"
+    },
+    "rating": "التقييم",
+    "ratings": {
+      "fiveStars": "5 نجوم",
+      "fourStarsAndUp": "4 نجوم فأكثر",
+      "threeStarsAndUp": "3 نجوم فأكثر"
+    },
+    "noToursFoundTitle": "لم يتم العثور على جولات",
+    "searchFailedTitle": "تعذّر تحميل الجولات",
+    "searchFailedDescription": "حدث خطأ أثناء تحميل النتائج. يرجى المحاولة مرة أخرى.",
+    "searchRetry": "إعادة المحاولة",
+    "noToursFoundDescription": "لم نعثر على جولات تطابق معاييرك. جرّب تعديل الفلاتر أو مسحها.",
+    "clearFilters": "مسح الفلاتر",
+    "loadingTours": "جارٍ تحميل الجولات..."
   }
 }

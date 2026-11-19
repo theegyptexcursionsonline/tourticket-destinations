@@ -440,7 +440,11 @@
     "stepShortDate": "Datum",
     "stepShortOptions": "Optionen",
     "stepShortEnhance": "Extras",
-    "stepShortReview": "Prüfen"
+    "stepShortReview": "Prüfen",
+    "difficultyEasy": "Leicht",
+    "difficultyModerate": "Mittel",
+    "difficultyChallenging": "Anspruchsvoll",
+    "difficultyDifficult": "Schwierig"
   },
   "offers": {
     "save": "Sparen Sie bis zu 20% bei Kombi-Deals und City-Pässen!",
@@ -637,7 +641,8 @@
     "payOnline": "Online bezahlen",
     "payOnlineDescription": "Sichere Zahlung per Kreditkarte",
     "hotel": "Hotelname",
-    "roomNumber": "Zimmernummer"
+    "roomNumber": "Zimmernummer",
+    "serviceFee": "Servicegebühr"
   },
   "destinations": {
     "title": "Reiseziele",
@@ -982,5 +987,45 @@
     "description": "Ihr Platz ist reserviert. Wir öffnen jetzt den sicheren Zahlungsschritt.",
     "secureNote": "Verschlüsselte Kasse",
     "continueManually": "Weiter zur Kasse"
+  },
+  "searchPage": {
+    "title": "Finden Sie Ihr nachstes Abenteuer",
+    "searchPlaceholder": "Nach Tourname suchen, z. B. 'Gizeh Pyramiden'",
+    "hideFilters": "Filter ausblenden",
+    "showFilters": "Filter anzeigen",
+    "searching": "Suche...",
+    "showingResults": "Zeige {count, plural, one {# Ergebnis} other {# Ergebnisse}}",
+    "sortBy": "Sortieren nach:",
+    "sortOptions": {
+      "relevance": "Relevanz",
+      "rating": "Bewertung",
+      "priceLowToHigh": "Preis: Niedrig bis hoch",
+      "priceHighToLow": "Preis: Hoch bis niedrig"
+    },
+    "filters": "Filter",
+    "clearAll": "Alles loschen",
+    "categories": "Kategorien",
+    "destinations": "Reiseziele",
+    "priceRange": "Preisspanne",
+    "duration": {
+      "title": "Dauer",
+      "upTo2Hours": "Bis zu 2 Stunden",
+      "from2To4Hours": "2 bis 4 Stunden",
+      "from4To6Hours": "4 bis 6 Stunden",
+      "moreThan6Hours": "Mehr als 6 Stunden"
+    },
+    "rating": "Bewertung",
+    "ratings": {
+      "fiveStars": "5 Sterne",
+      "fourStarsAndUp": "4 Sterne und mehr",
+      "threeStarsAndUp": "3 Sterne und mehr"
+    },
+    "noToursFoundTitle": "Keine Touren gefunden",
+    "searchFailedTitle": "Touren konnten nicht geladen werden",
+    "searchFailedDescription": "Beim Laden der Ergebnisse ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.",
+    "searchRetry": "Erneut versuchen",
+    "noToursFoundDescription": "Wir konnten keine Touren finden, die zu Ihren Filtern passen. Bitte passen Sie Ihre Filter an.",
+    "clearFilters": "Filter loschen",
+    "loadingTours": "Touren werden geladen..."
   }
 }

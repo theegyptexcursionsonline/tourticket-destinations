@@ -8,6 +8,7 @@ import { Link } from '@/i18n/navigation';
 import { useSettings } from '@/hooks/useSettings';
 import { useTranslations } from 'next-intl';
 import ListingPrice from '@/components/pricing/ListingPrice';
+import { bookableTripPrice } from '@/lib/pricing/displayPrice';
 
 export default function WishlistSidebar() {
   const { isWishlistSidebarOpen, closeWishlistSidebar, wishlist, removeFromWishlist } = useWishlist();
@@ -84,7 +85,7 @@ export default function WishlistSidebar() {
                         </h4>
                       </Link>
                       <p className="text-sm text-slate-600 mt-1 font-semibold">
-                        <ListingPrice value={tour.discountPrice} formatPrice={formatPrice} />
+                        <ListingPrice value={bookableTripPrice(tour as Parameters<typeof bookableTripPrice>[0])?.price ?? null} formatPrice={formatPrice} />
                       </p>
                     </div>
                     <button

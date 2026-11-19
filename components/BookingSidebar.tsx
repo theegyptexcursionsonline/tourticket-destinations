@@ -16,7 +16,10 @@ import {
   BadgeDollarSign, Edit,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { calendarMonthTitle, calendarWeekdayNames, formatBookingDate } from '@/lib/i18n/bookingDates';
+import { formatDuration, formatLanguageList } from '@/lib/i18n/displayValues';
+import { tourDifficultyLabel } from '@/lib/tours/difficultyLabel';
 import { useCart } from '@/hooks/useCart';
 import { useSettings } from '@/hooks/useSettings';
 import { toDateOnlyString, parseLocalDate } from '@/utils/date';
@@ -345,18 +348,15 @@ const CalendarWidget: React.FC<{
   hasLoadedStopSales?: boolean;
 }> = ({ selectedDate, onDateSelect, availabilityData = {}, availableDays, hasLoadedStopSales = true }) => {
   const t = useTranslations();
+  const locale = useLocale();
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
   const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
   const firstDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).getDay();
   const today = new Date();
 
-  const monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
-
-  const dayNames = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+  // Month and weekday names follow the page language (they were English everywhere).
+  const dayNames = calendarWeekdayNames(locale);
 
   const navigateMonth = (direction: 'prev' | 'next') => {
     setCurrentMonth(prev => {
@@ -466,7 +466,7 @@ const CalendarWidget: React.FC<{
       <div className="flex items-center justify-between mb-4 sm:mb-6">
         <div>
           <h3 className="text-lg sm:text-xl font-bold text-gray-800">
-            {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+            {calendarMonthTitle(currentMonth, locale)}
           </h3>
           <p className="text-xs sm:text-sm text-gray-500 mt-1">{t('booking.selectDate')}</p>
         </div>
@@ -594,6 +594,7 @@ const TourOptionCard: React.FC<{
   onToggleExpanded?: () => void;
 }> = ({ option, onSelect, selectedTimeSlot, adults, children, infants, tour, collapsible = false, expanded = true, onToggleExpanded }) => {
   const t = useTranslations();
+  const locale = useLocale();
   const { formatPrice } = useSettings();
   const [descExpanded, setDescExpanded] = useState(false);
   const [descOverflows, setDescOverflows] = useState(false);
@@ -791,23 +792,30 @@ const TourOptionCard: React.FC<{
 
       {/* Specs Row */}
       <div className="flex items-center gap-3 text-xs text-gray-600 mb-2 bg-gray-50 rounded-full px-3 py-1.5">
+        {/* A typed duration ("6 hours") is written in the page language; other
+            operator text is shown as entered. Languages and difficulty come
+            from fixed lists and are translated. */}
+        {option.duration ? (
         <div className="flex items-center gap-1.5">
           <Clock size={13} className="text-red-500" />
-          <span className="font-medium">{option.duration}</span>
+          <span className="font-medium">{formatDuration(option.duration, locale)}</span>
         </div>
+        ) : null}
         <div className="flex items-center gap-1.5">
           <Languages size={13} className="text-green-500" />
-          <span className="font-medium">{option.languages.slice(0, 2).join(', ')}</span>
+          <span className="font-medium">{formatLanguageList(option.languages.slice(0, 2), locale)}</span>
           {option.languages.length > 2 && (
             <span className="text-[10px] bg-gray-200 px-1 py-0.5 rounded-full">
               +{option.languages.length - 2}
             </span>
           )}
         </div>
+        {option.difficulty ? (
         <div className="flex items-center gap-1.5">
           <TrendingUp size={13} className="text-orange-500" />
-          <span className="font-medium">{option.difficulty}</span>
+          <span className="font-medium">{tourDifficultyLabel(option.difficulty, t)}</span>
         </div>
+        ) : null}
         {collapsible && (
           <div className={`ms-auto flex items-center gap-1 text-[11px] font-semibold ${option.priceUnavailable ? 'text-slate-600' : 'text-red-600'}`}>
             {/* An option with no price has no time to select: its toggle only
@@ -1260,16 +1268,10 @@ const BookingSummaryCard: React.FC<{
   onEditClick: (section: 'date' | 'guests' | 'language') => void;
 }> = ({ bookingData, tour, availability, onEditClick }) => {
   const t = useTranslations();
+  const locale = useLocale();
   const { formatPrice: _formatPrice } = useSettings();
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
+  const formatDate = (date: Date) => formatBookingDate(date, locale);
 
   const formatParticipants = () => {
     const total = bookingData.adults + bookingData.children + bookingData.infants;
@@ -1410,9 +1412,9 @@ const BookingSummaryCard: React.FC<{
                       {selectedOption.title}
                     </div>
                     <div className="text-xs sm:text-sm text-slate-500 flex items-center gap-2">
-                      <span>{selectedOption.duration}</span>
+                      <span>{formatDuration(selectedOption.duration, locale)}</span>
                       <span>•</span>
-                      <span>{selectedOption.languages.slice(0, 2).join(', ')}</span>
+                      <span>{formatLanguageList(selectedOption.languages.slice(0, 2), locale)}</span>
                       {selectedOption.badge && (
                         <>
                           <span>•</span>
@@ -1482,6 +1484,7 @@ interface BookingSidebarProps {
 
 const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, initialStopSaleDates }) => {
   const t = useTranslations();
+  const locale = useLocale();
   const router = useRouter();
   const { formatPrice } = useSettings();
   const { addToCart } = useCart();
@@ -1809,7 +1812,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
             originalPrice: pricing.discountApplied
               ? pricing.originalPrice
               : (option.originalPrice || optionPrice),
-            duration: option.duration || tourDisplayData?.duration || '3 hours',
+            duration: option.duration || tourDisplayData?.duration || '',
             languages: option.languages || tourDisplayData?.languages || ['English'],
             description: option.description || 'Experience our tour',
             timeSlots: bindTimeSlotsToOption(
@@ -1819,7 +1822,8 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
             highlights: option.highlights || tourDisplayData?.highlights?.slice(0, 3) || ['Expert guide included', 'Small group experience', 'Photo opportunities'],
             included: option.included || tourDisplayData?.includes?.slice(0, 3) || ['Professional guide', 'Entry tickets', 'Group photos'],
             groupSize: option.groupSize || `Max ${tourDisplayData?.maxGroupSize || 15} people`,
-            difficulty: option.difficulty || 'Easy',
+            // Only a difficulty the operator chose; none is not "Easy".
+            difficulty: option.difficulty || undefined,
             badge: option.badge || (index === 0 ? 'Most Popular' : undefined),
             discount: pricing.discountApplied
               ? percentageOff(pricing.originalPrice, pricing.price)
@@ -1847,7 +1851,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
               selectedTime: undefined,
             }),
             originalPrice: tourBasePricing.discountApplied ? tourBasePricing.originalPrice : standardPrice,
-            duration: tourDisplayData?.duration || '3 hours',
+            duration: tourDisplayData?.duration || '',
             languages: tourDisplayData?.languages || ['English'],
             description: 'Perfect introduction to the destination with expert guide',
             timeSlots: standardPriced
@@ -2526,14 +2530,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
     }
   }, [isProcessing, onClose, router, bookingData, availability, tour, tourDisplayData, addToCart, t]);
 
-  const formatDate = useCallback((date: Date) => {
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  }, []);
+  const formatDate = useCallback((date: Date) => formatBookingDate(date, locale), [locale]);
 
   // Handle editing from final step
   const handleEditClick = useCallback((section: 'date' | 'guests' | 'language') => {

@@ -37,7 +37,8 @@ import { useTenant } from '@/contexts/TenantContext';
 import { CartItem } from '@/types';
 import toast from 'react-hot-toast';
 import { parseLocalDate } from '@/utils/date';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { formatBookingDate as formatDateInLanguage } from '@/lib/i18n/bookingDates';
 import type { PaymentExperience } from '@/lib/checkout/paymentExperience';
 import { lineAddOnQuantity, lineGuestBreakdown, lineTotal } from '@/lib/checkout/lineTotals';
 import type { AuthoritativePriceQuote } from '@/lib/cart/authoritativeCart';
@@ -173,6 +174,7 @@ export const CustomerTypeSelector = ({
 };
 
 const SummaryItem: React.FC<{ item: CartItem }> = ({ item }) => {
+  const locale = useLocale();
   const { formatPrice } = useSettings();
   const { removeFromCart } = useCart();
 
@@ -203,7 +205,7 @@ const SummaryItem: React.FC<{ item: CartItem }> = ({ item }) => {
         {/* Show booking details */}
         {item.selectedDate && (
           <p className="text-xs text-slate-500">
-            {formatBookingDate(item.selectedDate)} at {item.selectedTime}
+            {formatBookingDate(item.selectedDate, locale)} · {item.selectedTime}
           </p>
         )}
         
@@ -286,7 +288,7 @@ const BookingSummary = ({ pricing, promoCode, setPromoCode, applyPromoCode, isPr
 
       <div className="mt-4 p-3 sm:p-4 bg-slate-50 border-t border-b border-slate-200">
         <div className="flex justify-between text-xs sm:text-sm text-slate-600"><span>{t('checkout.subtotal')}</span><span>{formatPrice(pricing.subtotal)}</span></div>
-        <div className="flex justify-between text-xs sm:text-sm text-slate-600 mt-1.5 sm:mt-2"><span>Service fee</span><span>{formatPrice(pricing.serviceFee)}</span></div>
+        <div className="flex justify-between text-xs sm:text-sm text-slate-600 mt-1.5 sm:mt-2"><span>{t('checkout.serviceFee')}</span><span>{formatPrice(pricing.serviceFee)}</span></div>
         <div className="flex justify-between text-xs sm:text-sm text-slate-600 mt-1.5 sm:mt-2"><span>{t('booking.taxes')}</span><span>{formatPrice(pricing.tax)}</span></div>
         {pricing.discount > 0 && (
           <div className="flex justify-between text-xs sm:text-sm text-emerald-700 font-medium mt-1.5 sm:mt-2">
@@ -666,16 +668,11 @@ const CheckoutFormStep = ({
 };
 
 // Format date consistently for display
-const formatBookingDate = (dateString: string | Date | undefined): string => {
+const formatBookingDate = (dateString: string | Date | undefined, locale: string): string => {
   const date = parseLocalDate(dateString);
   if (!date || isNaN(date.getTime())) return '';
-
-  return date.toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+  // In the page language (it was a fixed "en-US" on every page).
+  return formatDateInLanguage(date, locale);
 };
 
 type TimeUntilTour = {
@@ -733,6 +730,7 @@ const ThankYouPage = ({
   const [isDownloading, setIsDownloading] = useState(false);
   const [showConfetti, setShowConfetti] = useState(true);
   const t = useTranslations();
+  const locale = useLocale();
 
   // Get first item's booking details
   const firstItem = orderedItems[0];
@@ -743,9 +741,9 @@ const ThankYouPage = ({
 
   // Parse date for ticket display
   const dateObj = parseLocalDate(firstItem?.selectedDate) || new Date();
-  const dayOfWeek = dateObj.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+  const dayOfWeek = formatDateInLanguage(dateObj, locale, { weekday: 'short' }).toUpperCase();
   const dayNum = dateObj.getDate();
-  const month = dateObj.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+  const month = formatDateInLanguage(dateObj, locale, { month: 'short' }).toUpperCase();
 
   const formatTimerUnit = (value: number) => String(value).padStart(2, '0');
 
@@ -1059,7 +1057,7 @@ const handleDownloadReceipt = async () => {
                   <span>{formatPrice(pricing.subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-sm text-slate-600">
-                  <span>Service fee</span>
+                  <span>{t('checkout.serviceFee')}</span>
                   <span>{formatPrice(pricing.serviceFee)}</span>
                 </div>
                 <div className="flex justify-between text-sm text-slate-600">

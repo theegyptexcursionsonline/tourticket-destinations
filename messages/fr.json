@@ -440,7 +440,11 @@
     "stepShortDate": "Date",
     "stepShortOptions": "Options",
     "stepShortEnhance": "Extras",
-    "stepShortReview": "Récapitulatif"
+    "stepShortReview": "Récapitulatif",
+    "difficultyEasy": "Facile",
+    "difficultyModerate": "Modérée",
+    "difficultyChallenging": "Exigeante",
+    "difficultyDifficult": "Difficile"
   },
   "offers": {
     "save": "Économisez jusqu'à 20% sur les forfaits combinés et les pass touristiques!",
@@ -637,7 +641,8 @@
     "payOnline": "Payer en Ligne",
     "payOnlineDescription": "Paiement sécurisé par carte de crédit",
     "hotel": "Nom de l'Hôtel",
-    "roomNumber": "Numéro de Chambre"
+    "roomNumber": "Numéro de Chambre",
+    "serviceFee": "Frais de service"
   },
   "destinations": {
     "title": "Destinations",
@@ -982,5 +987,45 @@
     "description": "Votre place est réservée. Nous ouvrons l’étape de paiement sécurisé.",
     "secureNote": "Paiement chiffré",
     "continueManually": "Continuer vers le paiement"
+  },
+  "searchPage": {
+    "title": "Trouvez votre prochaine aventure",
+    "searchPlaceholder": "Rechercher par nom de tour, ex. 'Pyramides de Gizeh'",
+    "hideFilters": "Masquer les filtres",
+    "showFilters": "Afficher les filtres",
+    "searching": "Recherche...",
+    "showingResults": "{count, plural, one {# resultat affiche} other {# resultats affiches}}",
+    "sortBy": "Trier par :",
+    "sortOptions": {
+      "relevance": "Pertinence",
+      "rating": "Note",
+      "priceLowToHigh": "Prix : du plus bas au plus eleve",
+      "priceHighToLow": "Prix : du plus eleve au plus bas"
+    },
+    "filters": "Filtres",
+    "clearAll": "Tout effacer",
+    "categories": "Categories",
+    "destinations": "Destinations",
+    "priceRange": "Fourchette de prix",
+    "duration": {
+      "title": "Duree",
+      "upTo2Hours": "Jusqu'a 2 heures",
+      "from2To4Hours": "2 a 4 heures",
+      "from4To6Hours": "4 a 6 heures",
+      "moreThan6Hours": "6+ heures"
+    },
+    "rating": "Note",
+    "ratings": {
+      "fiveStars": "5 etoiles",
+      "fourStarsAndUp": "4 etoiles et plus",
+      "threeStarsAndUp": "3 etoiles et plus"
+    },
+    "noToursFoundTitle": "Aucun tour trouve",
+    "searchFailedTitle": "Impossible de charger les excursions",
+    "searchFailedDescription": "Une erreur est survenue lors du chargement des résultats. Veuillez réessayer.",
+    "searchRetry": "Réessayer",
+    "noToursFoundDescription": "Aucun tour ne correspond a vos criteres. Essayez de modifier ou reinitialiser vos filtres.",
+    "clearFilters": "Effacer les filtres",
+    "loadingTours": "Chargement des tours..."
   }
 }

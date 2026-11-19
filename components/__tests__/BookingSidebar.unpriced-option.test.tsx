@@ -18,7 +18,7 @@ jest.mock('framer-motion', () => {
 jest.mock('@/i18n/navigation', () => ({ useRouter: () => ({ push: jest.fn() }) }));
 jest.mock('@/hooks/useCart', () => ({ useCart: () => ({ addToCart: jest.fn() }) }));
 jest.mock('@/hooks/useSettings', () => ({ useSettings: () => ({ formatPrice: (n: number) => `$${n.toFixed(2)}` }) }));
-jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }));
+jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key, useLocale: () => 'en' }));
 
 const apiOptions = [
   {

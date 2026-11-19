@@ -440,7 +440,11 @@
     "stepShortDate": "Дата",
     "stepShortOptions": "Варианты",
     "stepShortEnhance": "Допы",
-    "stepShortReview": "Проверка"
+    "stepShortReview": "Проверка",
+    "difficultyEasy": "Лёгкая",
+    "difficultyModerate": "Средняя",
+    "difficultyChallenging": "Сложная",
+    "difficultyDifficult": "Очень сложная"
   },
   "offers": {
     "save": "Экономьте до 20% на комби-предложениях и городских пропусках!",
@@ -637,7 +641,8 @@
     "payOnline": "Онлайн-оплата",
     "payOnlineDescription": "Безопасная оплата картой",
     "hotel": "Название отеля",
-    "roomNumber": "Номер комнаты"
+    "roomNumber": "Номер комнаты",
+    "serviceFee": "Сервисный сбор"
   },
   "destinations": {
     "title": "Направления",
@@ -982,5 +987,45 @@
     "continueManually": "Перейти к оплате",
     "imageAlt": "Выбранное вами впечатление",
     "defaultTourName": "ваше впечатление"
+  },
+  "searchPage": {
+    "title": "Найдите своё следующее приключение",
+    "searchPlaceholder": "Поиск по названию тура, например «Пирамиды Гизы»",
+    "hideFilters": "Скрыть фильтры",
+    "showFilters": "Показать фильтры",
+    "searching": "Поиск...",
+    "showingResults": "{count, plural, one {Найден # тур} few {Найдено # тура} many {Найдено # туров} other {Найдено # тура}}",
+    "sortBy": "Сортировка:",
+    "sortOptions": {
+      "relevance": "По релевантности",
+      "rating": "По рейтингу",
+      "priceLowToHigh": "Цена: по возрастанию",
+      "priceHighToLow": "Цена: по убыванию"
+    },
+    "filters": "Фильтры",
+    "clearAll": "Сбросить всё",
+    "categories": "Категории",
+    "destinations": "Направления",
+    "priceRange": "Диапазон цен",
+    "duration": {
+      "title": "Продолжительность",
+      "upTo2Hours": "До 2 часов",
+      "from2To4Hours": "От 2 до 4 часов",
+      "from4To6Hours": "От 4 до 6 часов",
+      "moreThan6Hours": "Более 6 часов"
+    },
+    "rating": "Рейтинг",
+    "ratings": {
+      "fiveStars": "5 звёзд",
+      "fourStarsAndUp": "4 звезды и выше",
+      "threeStarsAndUp": "3 звезды и выше"
+    },
+    "noToursFoundTitle": "Туры не найдены",
+    "searchFailedTitle": "Не удалось загрузить туры",
+    "searchFailedDescription": "При загрузке результатов произошла ошибка. Пожалуйста, попробуйте ещё раз.",
+    "searchRetry": "Попробовать снова",
+    "noToursFoundDescription": "Мы не нашли туров по вашим условиям. Измените или сбросьте фильтры.",
+    "clearFilters": "Сбросить фильтры",
+    "loadingTours": "Загрузка туров..."
   }
 }

@@ -12,7 +12,7 @@ jest.mock('@/hooks/useCart', () => ({ useCart: () => ({ cart: mockCart, clearCar
 jest.mock('@/hooks/useSettings', () => ({ useSettings: () => ({ formatPrice: (n: number) => `$${n}`, selectedCurrency: { code: 'USD', symbol: '$' } }) }));
 jest.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: null }) }));
 jest.mock('@/i18n/navigation', () => ({ useRouter: () => ({ push: mockPush }) }));
-jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }));
+jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key, useLocale: () => 'en' }));
 jest.mock('@/components/AuthModal', () => ({ __esModule: true, default: () => null }));
 jest.mock('@/components/HotelPickupMap', () => ({ __esModule: true, default: () => null }));
 jest.mock('@/components/StripePaymentForm', () => ({ __esModule: true, default: ({ onSuccess }: { onSuccess: (id: string) => void }) => <button type="button" onClick={() => onSuccess('pi_owned')}>Confirm paid intent</button> }));

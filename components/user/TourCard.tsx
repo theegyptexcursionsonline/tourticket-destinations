@@ -9,6 +9,9 @@ import { useWishlist } from '@/contexts/WishlistContext';
 import { Star, Clock, Trash2, Heart } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ListingPrice from '@/components/pricing/ListingPrice';
+import { bookableTripPrice } from '@/lib/pricing/displayPrice';
+import { useLocale, useTranslations } from 'next-intl';
+import { formatDuration } from '@/lib/i18n/displayValues';
 
 interface TourCardProps {
   tour: Tour;
@@ -18,6 +21,8 @@ interface TourCardProps {
 // Generic TourCard for general listings (e.g., search results)
 const TourCard: React.FC<{ tour: Tour }> = ({ tour }) => {
   const { formatPrice } = useSettings();
+  const t = useTranslations();
+  const locale = useLocale();
   const { addToWishlist, wishlist } = useWishlist();
   const isInWishlist = wishlist.some(item => item._id === tour._id);
 
@@ -52,12 +57,13 @@ const TourCard: React.FC<{ tour: Tour }> = ({ tour }) => {
               {tour.title}
           </h3>
           <div className="flex items-center gap-4 text-sm text-slate-500 mb-4">
-            <div className="flex items-center gap-1.5"><Clock size={14} /><span>{tour.duration}</span></div>
+            <div className="flex items-center gap-1.5"><Clock size={14} /><span>{formatDuration(tour.duration, locale)}</span></div>
             <div className="flex items-center gap-1.5"><Star size={14} className="text-yellow-400 fill-current" /><span>{tour.rating?.toFixed(1) || 'N/A'}</span></div>
           </div>
+          {/* The same price as the trip page heading, with "From" in the page language. */}
           <div className="mt-auto flex items-center justify-between">
-            <p className="text-sm text-slate-500">From</p>
-            <span className="text-xl font-bold text-red-600"><ListingPrice value={tour.discountPrice} formatPrice={formatPrice} /></span>
+            <p className="text-sm text-slate-500 first-letter:uppercase">{t('price.from')}</p>
+            <span className="text-xl font-bold text-red-600"><ListingPrice value={bookableTripPrice(tour as Parameters<typeof bookableTripPrice>[0])?.price ?? null} formatPrice={formatPrice} /></span>
           </div>
         </div>
       </Link>
@@ -110,7 +116,7 @@ export const UserTourCard: React.FC<TourCardProps> = ({ tour, onRemove }) => {
           </div>
           <div className="mt-auto flex items-end justify-between">
             <div className="text-end">
-                <span className="text-xl font-bold text-red-600"><ListingPrice value={tour.discountPrice} formatPrice={formatPrice} /></span>
+                <span className="text-xl font-bold text-red-600"><ListingPrice value={bookableTripPrice(tour as Parameters<typeof bookableTripPrice>[0])?.price ?? null} formatPrice={formatPrice} /></span>
             </div>
             <button
               onClick={handleRemove}
