@@ -6,6 +6,7 @@ import { Link } from '@/i18n/navigation';
 import { Calendar, Clock, User, Tag, Eye, Heart, Search, Filter } from 'lucide-react';
 import { imageMetadataFor } from '@/lib/content/imageMetadata';
 import type { PublicBlogListItem } from '@/lib/content/publicBlogListing';
+import CalendarDate from '@/components/shared/CalendarDate';
 
 interface BlogClientPageProps {
   blogs: PublicBlogListItem[];
@@ -20,10 +21,6 @@ function formatCategory(value: string) {
   return value.split('-').map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
 }
 
-function formatPublishedDate(blog: PublicBlogListItem) {
-  const value = blog.publishedAt || blog.createdAt;
-  return value ? new Date(value).toLocaleDateString() : '';
-}
 
 const BlogCard = ({ blog }: { blog: PublicBlogListItem }) => (
   <Link href={`/blog/${blog.slug}`} className="group block bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-slate-200">
@@ -90,7 +87,7 @@ const BlogCard = ({ blog }: { blog: PublicBlogListItem }) => (
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1 text-xs text-slate-500">
           <Calendar className="h-3 w-3" />
-          <span>{formatPublishedDate(blog)}</span>
+          <span><CalendarDate value={blog.publishedAt || blog.createdAt} dateStyle="numeric" /></span>
         </div>
         
         {blog.tags && blog.tags.length > 0 && (
@@ -147,7 +144,7 @@ const FeaturedBlogCard = ({ blog }: { blog: PublicBlogListItem }) => (
         </div>
         <div className="flex items-center gap-1">
           <Calendar className="h-4 w-4" />
-          <span>{formatPublishedDate(blog)}</span>
+          <span><CalendarDate value={blog.publishedAt || blog.createdAt} dateStyle="numeric" /></span>
         </div>
       </div>
     </div>

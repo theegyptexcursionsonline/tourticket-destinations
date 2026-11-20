@@ -1,10 +1,18 @@
 import * as Sentry from "@sentry/nextjs";
+import { shouldEnableMonitoring } from "@/lib/monitoring/monitoringEnabled";
 
 const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
 
 Sentry.init({
   dsn,
-  enabled: Boolean(dsn),
+  // Only a Netlify production deploy reports; local and preview runs stay silent.
+  enabled:
+    Boolean(dsn) &&
+    shouldEnableMonitoring({
+      nodeEnv: process.env.NODE_ENV,
+      deployContext: process.env.SENTRY_DEPLOY_CONTEXT,
+      hostname: typeof window === "undefined" ? null : window.location.hostname,
+    }),
   environment: process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT ?? process.env.NODE_ENV,
   sendDefaultPii: false,
   // Admin sessions are few and every slow-dashboard report needs a trace,
@@ -17,7 +25,10 @@ Sentry.init({
     return 0.1;
   },
   enableLogs: true,
-  integrations: [Sentry.replayIntegration()],
+  // Embedded widgets (search, voice, sign-in) are other origins. Safari throws
+  // when the session recorder probes a cross-origin frame, so frames stay opaque
+  // in recordings; the page around them is still recorded.
+  integrations: [Sentry.replayIntegration({ block: ["iframe"] })],
   replaysSessionSampleRate: 0.05,
   replaysOnErrorSampleRate: 1.0,
 });

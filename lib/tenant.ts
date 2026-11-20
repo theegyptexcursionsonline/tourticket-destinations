@@ -591,6 +591,7 @@ export function generateBrandingStyles(branding: TenantConfig['branding']): Reac
 // Simple in-memory cache for tenant config
 const tenantCache = new Map<string, { config: ITenant; timestamp: number }>();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const tenantConfigInFlight = new Map<string, Promise<ITenant | null>>();
 
 /**
  * Get tenant config with caching
@@ -602,25 +603,39 @@ export async function getTenantConfigCached(tenantId: string): Promise<ITenant |
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
     return cached.config;
   }
-  
+
+  // The layout, metadata and page of one render ask for the same tenant at
+  // the same moment. Share the one lookup already on its way instead of
+  // sending a query each (reported as an N+1 on Tenant.findOne).
+  const pending = tenantConfigInFlight.get(tenantId);
+  if (pending) return pending;
+
   // getTenantConfig already uses tenant-specific database
-  const config = await getTenantConfig(tenantId);
-  
-  if (config) {
-    tenantCache.set(tenantId, { config, timestamp: Date.now() });
-  }
-  
-  return config;
+  const lookup = getTenantConfig(tenantId)
+    .then((config) => {
+      if (config && tenantConfigInFlight.get(tenantId) === lookup) {
+        tenantCache.set(tenantId, { config, timestamp: Date.now() });
+      }
+      return config;
+    })
+    .finally(() => {
+      if (tenantConfigInFlight.get(tenantId) === lookup) tenantConfigInFlight.delete(tenantId);
+    });
+  tenantConfigInFlight.set(tenantId, lookup);
+  return lookup;
 }
 
 /**
  * Clear tenant cache (call after updating tenant config)
  */
 export function clearTenantCache(tenantId?: string): void {
+  // A lookup started before the change must not repopulate the cache.
   if (tenantId) {
     tenantCache.delete(tenantId);
+    tenantConfigInFlight.delete(tenantId);
   } else {
     tenantCache.clear();
+    tenantConfigInFlight.clear();
   }
 }
 

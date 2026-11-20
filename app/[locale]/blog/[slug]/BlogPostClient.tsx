@@ -24,6 +24,7 @@ import toast from 'react-hot-toast';
 import { sanitizeRichHtml } from '@/lib/security/sanitizeRichHtml';
 import { imageMetadataFor } from '@/lib/content/imageMetadata';
 import { contentPath } from '@/lib/content/contentUrl';
+import CalendarDate from '@/components/shared/CalendarDate';
 
 type IBlog = any;
 type ITour = any;
@@ -42,12 +43,6 @@ interface Props {
  * - Keep server-side sanitization for blog.content.
  * - Ensure next.config.js includes allowed image domains for featuredImage / avatars.
  */
-
-function formatDate(date?: string | Date) {
-  if (!date) return '';
-  const d = typeof date === 'string' ? new Date(date) : date;
-  return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
-}
 
 function ReadTimeText(blog: IBlog) {
   if (blog.readTimeText) return blog.readTimeText;
@@ -326,7 +321,7 @@ export default function BlogPostClient({ blog, relatedPosts }: Props) {
 
           <div className="flex items-center gap-4 text-sm text-slate-200">
             <div className="flex items-center gap-2"><User className="h-4 w-4" /> <span>{blog.author}</span></div>
-            <div className="flex items-center gap-2"><Calendar className="h-4 w-4" /> <span>{formatDate(blog.publishedAt)}</span></div>
+            <div className="flex items-center gap-2"><Calendar className="h-4 w-4" /> <span><CalendarDate value={blog.publishedAt} /></span></div>
             <div className="flex items-center gap-2"><Clock className="h-4 w-4" /> <span>{ReadTimeText(blog)}</span></div>
             <div className="flex items-center gap-2"><Eye className="h-4 w-4" /> <span>{blog.views ?? 0} views</span></div>
           </div>

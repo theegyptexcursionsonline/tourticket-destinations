@@ -202,6 +202,8 @@ const nextConfig = {
     // Netlify build metadata, baked in so /api/version can name the live commit.
     COMMIT_REF: process.env.COMMIT_REF ?? '',
     BRANCH: process.env.BRANCH ?? '',
+    // Netlify build context; error monitoring reports only when it is 'production'.
+    SENTRY_DEPLOY_CONTEXT: process.env.CONTEXT ?? '',
   },
 
   // Webpack configuration for additional optimization

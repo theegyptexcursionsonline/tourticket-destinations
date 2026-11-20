@@ -37,7 +37,7 @@ import {
 } from '@/lib/bookings/bookingSelection';
 import { createLatestRequestGate } from '@/lib/bookings/latestRequestGate';
 import { optionSubtotal } from '@/lib/bookings/optionSubtotal';
-import { guestPricedSubtotal, resolveCatalogueGuestPrices } from '@/lib/revenue/guestPrices';
+import { displayGuestPrices, guestPricedSubtotal, resolveCatalogueGuestPrices } from '@/lib/revenue/guestPrices';
 import { groupAvailableAddOns } from '@/lib/bookings/addOnAvailability';
 import { capacityAvailability, isUnitPricedType, unitCount, unitNounKey, effectiveUnitSize } from '@/lib/bookings/unitPricing';
 
@@ -624,11 +624,11 @@ const TourOptionCard: React.FC<{
   // exactly what the server will charge.
   const selectedSlotForOption = option.timeSlots.find((timeSlot) =>
     isSelectedTimeSlot(selectedTimeSlot, option.id, timeSlot.id));
-  const cardGuestPrices = resolveCatalogueGuestPrices(tour, {
+  const cardGuestPrices = displayGuestPrices(tour, {
     selectedBookingOption: { id: option.id },
     selectedTime: selectedSlotForOption?.time ?? option.priceFromTime ?? null,
-  });
-  const subtotal = tour
+  }, selectedSlotForOption?.guestPrices ?? option.guestPrices ?? null);
+  const subtotal = tour && cardGuestPrices
     ? guestPricedSubtotal(option, cardGuestPrices, adults, children, infants)
     : optionSubtotal(option, basePrice, adults, children, infants);
   // Capacity gate: an option is offered only for a party it can actually take.
@@ -901,7 +901,7 @@ const TourOptionCard: React.FC<{
           <span className="text-gray-600 text-xs">
             {isUnitPricedType(option.type)
               ? `${units} ${t(unitNounKey(option.type, units))} × ${formatPrice(basePrice)}`
-              : (
+              : cardGuestPrices && (
                 <>
                   <span className="block">{t('booking.adult')}: {formatPrice(cardGuestPrices.adult)}</span>
                   <span className="block">{t('booking.child')}: {formatPrice(cardGuestPrices.child)}</span>
@@ -2012,7 +2012,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
     // Quote children and infants at the stored guest prices of the chosen
     // departure — the same resolution the server applies at checkout.
     const quotedGuestPrices = tour
-      ? resolveCatalogueGuestPrices(tour, {
+      ? displayGuestPrices(tour, {
           selectedBookingOption: pricedOption ? { id: pricedOption.id, pricingKey: pricedOption.pricingKey } : null,
           selectedTime: bookingData.selectedTimeSlot?.time ?? pricedOption?.priceFromTime ?? null,
         })
@@ -2065,12 +2065,13 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
     availability?.tourOptions,
     bookingData.selectedTimeSlot,
   ), [availability?.tourOptions, bookingData.selectedTimeSlot]);
-  const participantGuestPrices = useMemo(() => resolveCatalogueGuestPrices(tour, {
+  const participantGuestPrices = useMemo(() => displayGuestPrices(tour, {
     selectedBookingOption: selectedBookingOption
       ? { id: selectedBookingOption.id, pricingKey: selectedBookingOption.pricingKey }
       : null,
     selectedTime: bookingData.selectedTimeSlot?.time ?? null,
-  }), [tour, selectedBookingOption, bookingData.selectedTimeSlot?.time]);
+  }, bookingData.selectedTimeSlot?.guestPrices ?? selectedBookingOption?.guestPrices ?? null),
+  [tour, selectedBookingOption, bookingData.selectedTimeSlot?.time, bookingData.selectedTimeSlot?.guestPrices]);
 
   // With several options the list is a stack of collapsed cards; one expands
   // at a time. A single option is never collapsed — there is nothing to
@@ -2769,7 +2770,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
                         <div className="flex items-center justify-between">
                           <div className="flex-1 pe-3">
                             <div className="font-medium text-gray-800 text-sm">{t('booking.adults')}</div>
-                            <div className="text-xs text-gray-500">{t('booking.age12Plus')} · {formatPrice(participantGuestPrices.adult)}</div>
+                            <div className="text-xs text-gray-500">{t('booking.age12Plus')}{participantGuestPrices ? ` · ${formatPrice(participantGuestPrices.adult)}` : ''}</div>
                           </div>
                           <div className="flex items-center gap-2">
                             <motion.button
@@ -2792,7 +2793,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
                         <div className="flex items-center justify-between">
                           <div className="flex-1 pe-3">
                             <div className="font-medium text-gray-800 text-sm">{t('booking.children')}</div>
-                            <div className="text-xs text-gray-500">{t('booking.age2to11')} · {formatPrice(participantGuestPrices.child)}</div>
+                            <div className="text-xs text-gray-500">{t('booking.age2to11')}{participantGuestPrices ? ` · ${formatPrice(participantGuestPrices.child)}` : ''}</div>
                           </div>
                           <div className="flex items-center gap-2">
                             <motion.button
@@ -2815,7 +2816,7 @@ const BookingSidebar: React.FC<BookingSidebarProps> = ({ isOpen, onClose, tour, 
                         <div className="flex items-center justify-between">
                           <div className="flex-1 pe-3">
                             <div className="font-medium text-gray-800 text-sm">{t('booking.infants')}</div>
-                            <div className="text-xs text-gray-500">{t('booking.under2')} · {formatPrice(participantGuestPrices.infant)}</div>
+                            <div className="text-xs text-gray-500">{t('booking.under2')}{participantGuestPrices ? ` · ${formatPrice(participantGuestPrices.infant)}` : ''}</div>
                           </div>
                           <div className="flex items-center gap-2">
                             <motion.button

@@ -1,5 +1,5 @@
 import { applyDiscountPercent } from '@/lib/pricing/effectivePrice';
-import { authoritativeBasePrice } from '@/lib/pricing/authoritativePrice';
+import { AuthoritativePriceError, authoritativeBasePrice } from '@/lib/pricing/authoritativePrice';
 import { optionSubtotal } from '@/lib/bookings/optionSubtotal';
 import { isUnitPricedType, type UnitCapacityOption } from '@/lib/bookings/unitPricing';
 
@@ -335,4 +335,30 @@ export function cleanAvailabilitySlotGuestPrices<T extends { slots?: unknown }>(
       return cleanedSlot ? { ...rest, guestPrices: cleanedSlot } : rest;
     }),
   };
+}
+
+/**
+ * Guest prices for a label in the booking panel, or null when there is no
+ * tour yet or its catalogue cannot price the chosen option. Only for display:
+ * charging keeps using resolveCatalogueGuestPrices, which refuses such a tour.
+ *
+ * Home and listing cards hand the panel a trimmed tour whose embedded options
+ * carry only a price, while the panel lists the current options from
+ * /api/tours/[id]/options. Those options already hold the guest prices the
+ * server computed from the stored tour, so they are shown instead of failing
+ * the whole page (16 Nov 2026: booking from a home-page card replaced the
+ * site with "Application error").
+ */
+export function displayGuestPrices(
+  tour: StoredGuestPricedTour | null | undefined,
+  cartItem: GuestPricedCartItem | null | undefined,
+  serverGuestPrices?: GuestPriceSet | null,
+): GuestPriceSet | null {
+  if (!tour) return serverGuestPrices ?? null;
+  try {
+    return resolveCatalogueGuestPrices(tour, cartItem);
+  } catch (error) {
+    if (error instanceof AuthoritativePriceError) return serverGuestPrices ?? null;
+    throw error;
+  }
 }

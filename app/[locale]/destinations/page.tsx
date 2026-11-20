@@ -2,7 +2,7 @@ import React from 'react';
 import { Metadata } from 'next';
 import dbConnect from '@/lib/dbConnect';
 import Destination from '@/lib/models/Destination';
-import Tour from '@/lib/models/Tour';
+import { countToursByDestination } from '@/lib/destinations/tourCountsByDestination';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import DestinationsClientPage from './DestinationsClientPage';
@@ -38,18 +38,16 @@ async function getDestinationsWithTourCounts(tenantId: string): Promise<IDestina
 
   const destinations = await Destination.find(buildStrictTenantQuery({ ...PUBLIC_CONTENT_FILTER }, tenantId)).lean();
 
-  // For each destination, count the number of published tours for this tenant
-  const destinationsWithCounts = await Promise.all(
-    destinations.map(async (dest) => {
-      const tourCount = await Tour.countDocuments(
-        buildStrictTenantQuery({ destination: dest._id, isPublished: true }, tenantId)
-      );
-      return {
-        ...dest,
-        tourCount: tourCount,
-      };
-    })
-  );
+  // Published tours for this tenant, counted for every destination at once.
+  const tourCounts = destinations.length > 0
+    ? await countToursByDestination(
+        buildStrictTenantQuery({ destination: { $in: destinations.map((dest) => dest._id) }, isPublished: true }, tenantId)
+      )
+    : new Map<string, number>();
+  const destinationsWithCounts = destinations.map((dest) => ({
+    ...dest,
+    tourCount: tourCounts.get(String(dest._id)) ?? 0,
+  }));
 
   // Filter out destinations with no tours for this tenant (unless it's default tenant)
   const filteredDestinations = tenantId && tenantId !== 'default'
